@@ -1,0 +1,60 @@
+{
+  "name": "ahegyes/wp-framework-bootstrap",
+  "description": "Pre-autoload requirements validation and dependency checks for WordPress plugins — fails gracefully with admin UI when PHP/WP versions or required plugins are missing.",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/ahegyes/wordpress-framework",
+  "authors": [
+    {
+      "name": "Contributors",
+      "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
+    }
+  ],
+  "keywords": ["wordpress", "wordpress-plugin", "framework", "requirements", "validation", "dependencies", "whitelabel"],
+  "support": {
+    "issues": "https://github.com/ahegyes/wordpress-framework/issues",
+    "source": "https://github.com/ahegyes/wordpress-framework"
+  },
+
+  "require": {
+    "php": ">=8.5"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "phpunit/phpunit": "^13"
+  },
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "autoload": {
+    "psr-4": {
+      "DeepWebSolutions\\Framework\\Bootstrap\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "DeepWebSolutions\\Framework\\Bootstrap\\Tests\\": "tests/"
+    }
+  },
+
+  "scripts": {
+    "test": "@php vendor/bin/phpunit",
+    "test:unit": "@php vendor/bin/phpunit --testsuite=Unit"
+  },
+
+  "extra": {
+    "branch-alias": {
+      "dev-trunk": "2.0.x-dev"
+    }
+  },
+
+  "config": {
+    "allow-plugins": {
+      "composer/*": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
+  }
+}

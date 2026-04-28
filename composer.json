@@ -1,0 +1,63 @@
+{
+  "name": "ahegyes/wordpress-framework",
+  "description": "DWS WordPress Framework v2 — monorepo development root. Aggregates bootstrap, core, utilities, and woocommerce packages for local dev and cross-package testing.",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/ahegyes/wordpress-framework",
+  "authors": [
+    {
+      "name": "Contributors",
+      "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
+    }
+  ],
+
+  "require": {
+    "php": ">=8.5",
+    "ahegyes/wp-framework-bootstrap": "^2.0@dev",
+    "ahegyes/wp-framework-core": "^2.0@dev"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "phpunit/phpunit": "^13"
+  },
+
+  "repositories": [
+    {
+      "type": "path",
+      "url": "packages/bootstrap",
+      "options": { "symlink": true }
+    },
+    {
+      "type": "path",
+      "url": "packages/core",
+      "options": { "symlink": true }
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wordpress-configs"
+    }
+  ],
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "scripts": {
+    "test": "@php vendor/bin/phpunit",
+    "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
+
+    "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
+    "packages-update": [
+      "@composer clear-cache",
+      "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+    ]
+  },
+
+  "config": {
+    "allow-plugins": {
+      "composer/*": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
+  }
+}
