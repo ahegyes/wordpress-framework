@@ -254,12 +254,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "e82fdb9715266c53db5644c7bc4cf706b2f938f0"
+                "reference": "3204bab82d957bc90408899c3522955614ee39c2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/e82fdb9715266c53db5644c7bc4cf706b2f938f0",
-                "reference": "e82fdb9715266c53db5644c7bc4cf706b2f938f0",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/3204bab82d957bc90408899c3522955614ee39c2",
+                "reference": "3204bab82d957bc90408899c3522955614ee39c2",
                 "shasum": ""
             },
             "require": {
@@ -327,7 +327,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-04-29T14:25:08+00:00"
+            "time": "2026-04-29T14:52:41+00:00"
         },
         {
             "name": "colinodell/json5",
@@ -1348,12 +1348,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/johnpbloch/wordpress-core.git",
-                "reference": "a87dca5552fa17cc8494e3ed163f4b4f12b3e97a"
+                "reference": "a1d2d94115e410f7abca79ded102dd5dd6d4e4b8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/johnpbloch/wordpress-core/zipball/a87dca5552fa17cc8494e3ed163f4b4f12b3e97a",
-                "reference": "a87dca5552fa17cc8494e3ed163f4b4f12b3e97a",
+                "url": "https://api.github.com/repos/johnpbloch/wordpress-core/zipball/a1d2d94115e410f7abca79ded102dd5dd6d4e4b8",
+                "reference": "a1d2d94115e410f7abca79ded102dd5dd6d4e4b8",
                 "shasum": ""
             },
             "require": {
@@ -1388,7 +1388,7 @@
                 "source": "https://core.trac.wordpress.org/browser",
                 "wiki": "https://codex.wordpress.org/"
             },
-            "time": "2026-04-28T13:04:02+00:00"
+            "time": "2026-04-29T14:28:04+00:00"
         },
         {
             "name": "justinrainbow/json-schema",
