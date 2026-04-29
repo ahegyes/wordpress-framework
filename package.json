@@ -1,0 +1,25 @@
+{
+    "name": "@ahegyes/wordpress-framework",
+    "private": true,
+    "description": "DWS WordPress Framework v2 — monorepo dev tooling.",
+    "license": "GPL-2.0-or-later",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ahegyes/wordpress-framework.git"
+    },
+    "bugs": "https://github.com/ahegyes/wordpress-framework/issues",
+    "engines": {
+        "node": ">=24"
+    },
+    "devDependencies": {
+        "@wordpress/env": "^11.4"
+    },
+    "scripts": {
+        "wp-env": "wp-env",
+        "wp-env:start": "wp-env start",
+        "wp-env:stop": "wp-env stop",
+        "wp-env:update": "wp-env start --update",
+        "wp-env:destroy": "wp-env destroy",
+        "test:integration": "wp-env run tests-cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration"
+    }
+}

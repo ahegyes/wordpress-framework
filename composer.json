@@ -20,6 +20,7 @@
     "ahegyes/wordpress-configs": "dev-trunk",
     "deptrac/deptrac": "^4.6",
     "infection/infection": "^0.32",
+    "johnpbloch/wordpress-core": "^7.0@dev",
     "phpunit/phpunit": "^13"
   },
 
@@ -46,9 +47,18 @@
   "scripts": {
     "generate-autoloader": "@composer dump-autoload --ignore-platform-reqs -o",
 
-    "test": "@php vendor/bin/phpunit",
+    "test": [
+      "@test:unit",
+      "@test:integration"
+    ],
     "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
+    "test:integration": "npm --prefix=. run test:integration",
     "test:mutation": "@php vendor/bin/infection --threads=max",
+    "test:all": [
+      "@test:unit",
+      "@test:integration",
+      "@test:mutation"
+    ],
 
     "format:php": "phpcbf --standard=./phpcs.xml --basepath=. ./ -v",
     "lint:php": [
@@ -62,7 +72,11 @@
 
     "quality-check": [
       "@lint:php",
-      "@test"
+      "@test:unit"
+    ],
+    "quality-check:all": [
+      "@lint:php",
+      "@test:all"
     ],
 
     "packages-install": "@composer install --ignore-platform-reqs --no-interaction",

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ff0e615f37f3579e14c0b410625c75ff",
+    "content-hash": "9aed28cfbf47beb2f5892433a73c010f",
     "packages": [
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -12,10 +12,10 @@
             "dist": {
                 "type": "path",
                 "url": "packages/bootstrap",
-                "reference": "58e162071ca20e1bac8e2c932e2817cff0bb6961"
+                "reference": "ea72ea072192e540666368835deec117b8e3bf3e"
             },
             "require": {
-                "php": ">=8.5"
+                "php": ">=5.6"
             },
             "require-dev": {
                 "ahegyes/wordpress-configs": "dev-trunk",
@@ -28,9 +28,9 @@
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "DeepWebSolutions\\Framework\\Bootstrap\\": "src/"
-                }
+                "files": [
+                    "check-requirements.php"
+                ]
             },
             "autoload-dev": {
                 "psr-4": {
@@ -54,14 +54,12 @@
                     "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
                 }
             ],
-            "description": "Pre-autoload requirements validation and dependency checks for WordPress plugins — fails gracefully with admin UI when PHP/WP versions or required plugins are missing.",
+            "description": "Pre-autoload PHP/WordPress version check for plugins — fails gracefully with an admin notice when the runtime can't host the framework's modern PHP code.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "keywords": [
-                "dependencies",
                 "framework",
                 "requirements",
                 "validation",
-                "whitelabel",
                 "wordpress",
                 "wordpress-plugin"
             ],
@@ -256,12 +254,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "e10750ae078d430e5d97432c926052952089a0d7"
+                "reference": "e82fdb9715266c53db5644c7bc4cf706b2f938f0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/e10750ae078d430e5d97432c926052952089a0d7",
-                "reference": "e10750ae078d430e5d97432c926052952089a0d7",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/e82fdb9715266c53db5644c7bc4cf706b2f938f0",
+                "reference": "e82fdb9715266c53db5644c7bc4cf706b2f938f0",
                 "shasum": ""
             },
             "require": {
@@ -329,7 +327,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-04-29T07:22:29+00:00"
+            "time": "2026-04-29T14:25:08+00:00"
         },
         {
             "name": "colinodell/json5",
@@ -1343,6 +1341,54 @@
                 }
             ],
             "time": "2025-12-04T10:54:35+00:00"
+        },
+        {
+            "name": "johnpbloch/wordpress-core",
+            "version": "7.0.x-dev",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/johnpbloch/wordpress-core.git",
+                "reference": "a87dca5552fa17cc8494e3ed163f4b4f12b3e97a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/johnpbloch/wordpress-core/zipball/a87dca5552fa17cc8494e3ed163f4b4f12b3e97a",
+                "reference": "a87dca5552fa17cc8494e3ed163f4b4f12b3e97a",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "php": ">=7.4"
+            },
+            "provide": {
+                "wordpress/core-implementation": "7.0.x-dev"
+            },
+            "type": "wordpress-core",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "WordPress Community",
+                    "homepage": "https://wordpress.org/about/"
+                }
+            ],
+            "description": "WordPress is open source software you can use to create a beautiful website, blog, or app.",
+            "homepage": "https://wordpress.org/",
+            "keywords": [
+                "blog",
+                "cms",
+                "wordpress"
+            ],
+            "support": {
+                "forum": "https://wordpress.org/support/",
+                "irc": "irc://irc.freenode.net/wordpress",
+                "issues": "https://core.trac.wordpress.org/",
+                "source": "https://core.trac.wordpress.org/browser",
+                "wiki": "https://codex.wordpress.org/"
+            },
+            "time": "2026-04-28T13:04:02+00:00"
         },
         {
             "name": "justinrainbow/json-schema",
@@ -2522,11 +2568,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.1.53",
+            "version": "2.1.54",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/ef67586798c003274797b288a68b221e4270dca7",
-                "reference": "ef67586798c003274797b288a68b221e4270dca7",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/8be50c3992107dc837b17da4d140fbbdf9a5c5bd",
+                "reference": "8be50c3992107dc837b17da4d140fbbdf9a5c5bd",
                 "shasum": ""
             },
             "require": {
@@ -2571,7 +2617,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-28T16:09:00+00:00"
+            "time": "2026-04-29T13:31:09+00:00"
         },
         {
             "name": "phpstan/phpstan-deprecation-rules",
@@ -7697,7 +7743,8 @@
     "stability-flags": {
         "ahegyes/wordpress-configs": 20,
         "ahegyes/wp-framework-bootstrap": 20,
-        "ahegyes/wp-framework-core": 20
+        "ahegyes/wp-framework-core": 20,
+        "johnpbloch/wordpress-core": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

@@ -1,4 +1,4 @@
-name: Mutation Testing
+name: Mutation Tests
 
 on:
   workflow_dispatch:

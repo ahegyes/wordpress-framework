@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wp-framework-bootstrap",
-  "description": "Pre-autoload requirements validation and dependency checks for WordPress plugins — fails gracefully with admin UI when PHP/WP versions or required plugins are missing.",
+  "description": "Pre-autoload PHP/WordPress version check for plugins — fails gracefully with an admin notice when the runtime can't host the framework's modern PHP code.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -10,14 +10,14 @@
       "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
     }
   ],
-  "keywords": ["wordpress", "wordpress-plugin", "framework", "requirements", "validation", "dependencies", "whitelabel"],
+  "keywords": ["wordpress", "wordpress-plugin", "framework", "requirements", "validation"],
   "support": {
     "issues": "https://github.com/ahegyes/wordpress-framework/issues",
     "source": "https://github.com/ahegyes/wordpress-framework"
   },
 
   "require": {
-    "php": ">=8.5"
+    "php": ">=5.6"
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
@@ -28,9 +28,9 @@
   "prefer-stable": true,
 
   "autoload": {
-    "psr-4": {
-      "DeepWebSolutions\\Framework\\Bootstrap\\": "src/"
-    }
+    "files": [
+      "check-requirements.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {

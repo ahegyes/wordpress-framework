@@ -3,7 +3,7 @@ includes:
 
 parameters:
     paths:
-        - packages/bootstrap/src
+        - packages/bootstrap/check-requirements.php
         - packages/bootstrap/tests
         - packages/core/src
         - packages/core/tests

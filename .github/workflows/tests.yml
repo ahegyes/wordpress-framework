@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+
+jobs:
+  unit:
+    name: Unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+      - uses: ramsey/composer-install@v3
+      - run: composer test:unit
+
+  integration:
+    name: Integration (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Happy path: WP nightly trunk meets framework's WP 7.0+ floor.
+          - label: 'WP nightly (compatible)'
+            php-version: '8.5'
+            wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+          # Graceful-failure path: WP 6.9.4 is below the framework's 7.0 floor.
+          # Exercises check_requirements returning WP_Error with
+          # plugin_wp_incompatible. Validates that the framework correctly
+          # blocks plugin init on an incompatible WP runtime.
+          - label: 'WP 6.9.4 (below floor)'
+            php-version: '8.5'
+            wp-env-core: 'WordPress/WordPress#tags/6.9.4'
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@trunk
+    with:
+      php-version: ${{ matrix.php-version }}
+      wp-env-core: ${{ matrix.wp-env-core }}
+      composer-script: 'test:integration'
+      node-version: '24'

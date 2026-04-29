@@ -1,0 +1,13 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/wp-env.schema.json",
+    "core": "https://wordpress.org/nightly-builds/wordpress-latest.zip",
+    "phpVersion": "8.5",
+    "mappings": {
+        "wp-content/mu-plugins/wp-framework": ".",
+        "wp-content/plugins/dws-framework-test-plugin": "./packages/bootstrap/tests/Fixtures/dws-framework-test-plugin"
+    },
+    "config": {
+        "WP_DEBUG": true,
+        "SCRIPT_DEBUG": true
+    }
+}
