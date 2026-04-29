@@ -42,3 +42,4 @@ jobs:
       wp-env-core: ${{ matrix.wp-env-core }}
       composer-script: 'test:integration'
       node-version: '24'
+      wp-env-config-file: '.wp-env.tests.json'

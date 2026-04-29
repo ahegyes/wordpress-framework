@@ -254,12 +254,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "3204bab82d957bc90408899c3522955614ee39c2"
+                "reference": "dba446b9c947d5b67b4805b19f395f32d55dd301"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/3204bab82d957bc90408899c3522955614ee39c2",
-                "reference": "3204bab82d957bc90408899c3522955614ee39c2",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/dba446b9c947d5b67b4805b19f395f32d55dd301",
+                "reference": "dba446b9c947d5b67b4805b19f395f32d55dd301",
                 "shasum": ""
             },
             "require": {
@@ -327,7 +327,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-04-29T14:52:41+00:00"
+            "time": "2026-04-29T15:00:26+00:00"
         },
         {
             "name": "colinodell/json5",
