@@ -1,0 +1,17 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "packages/bootstrap/src",
+            "packages/core/src"
+        ]
+    },
+    "logs": {
+        "text": "build/infection/infection.log",
+        "html": "build/infection/infection.html",
+        "summary": "build/infection/summary.log"
+    },
+    "mutators": {
+        "@default": true
+    }
+}

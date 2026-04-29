@@ -1,0 +1,9 @@
+includes:
+    - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
+
+parameters:
+    paths:
+        - packages/bootstrap/src
+        - packages/bootstrap/tests
+        - packages/core/src
+        - packages/core/tests

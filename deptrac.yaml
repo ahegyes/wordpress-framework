@@ -1,0 +1,19 @@
+deptrac:
+  paths:
+    - ./packages/bootstrap/src
+    - ./packages/core/src
+
+  layers:
+    - name: Bootstrap
+      collectors:
+        - type: classLike
+          value: '^DeepWebSolutions\\Framework\\Bootstrap\\.*$'
+    - name: Core
+      collectors:
+        - type: classLike
+          value: '^DeepWebSolutions\\Framework\\Core\\.*$'
+
+  ruleset:
+    Bootstrap: ~
+    Core:
+      - Bootstrap

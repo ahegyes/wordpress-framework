@@ -18,6 +18,8 @@
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
+    "deptrac/deptrac": "^4.6",
+    "infection/infection": "^0.32",
     "phpunit/phpunit": "^13"
   },
 
@@ -42,8 +44,26 @@
   "prefer-stable": true,
 
   "scripts": {
+    "generate-autoloader": "@composer dump-autoload --ignore-platform-reqs -o",
+
     "test": "@php vendor/bin/phpunit",
     "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
+    "test:mutation": "@php vendor/bin/infection --threads=max",
+
+    "format:php": "phpcbf --standard=./phpcs.xml --basepath=. ./ -v",
+    "lint:php": [
+      "@lint:php:phpcs",
+      "@lint:php:phpstan",
+      "@lint:php:deptrac"
+    ],
+    "lint:php:phpcs": "phpcs --standard=./phpcs.xml --basepath=. ./ -v",
+    "lint:php:phpstan": "phpstan analyse -c ./phpstan.neon -v --memory-limit=1G",
+    "lint:php:deptrac": "deptrac analyse --no-interaction",
+
+    "quality-check": [
+      "@lint:php",
+      "@test"
+    ],
 
     "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
     "packages-update": [
@@ -56,6 +76,7 @@
     "allow-plugins": {
       "composer/*": true,
       "dealerdirect/phpcodesniffer-composer-installer": true,
+      "infection/extension-installer": true,
       "phpstan/extension-installer": true
     },
     "sort-packages": true
