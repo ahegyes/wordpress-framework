@@ -1,0 +1,48 @@
+name: Split Packages
+
+on:
+  push:
+    branches: [trunk]
+    paths:
+      - 'packages/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  split:
+    name: Split ${{ matrix.package.dir }} → ${{ matrix.package.repo }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - { dir: 'bootstrap', repo: 'wp-framework-bootstrap' }
+          - { dir: 'core',      repo: 'wp-framework-core' }
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install splitsh-lite
+        run: |
+          curl -sSL -o splitsh.tar.gz https://github.com/splitsh/lite/releases/download/v2.0.0/lite_linux_amd64.tar.gz
+          tar -xzf splitsh.tar.gz
+          sudo mv splitsh-lite /usr/local/bin/
+          rm splitsh.tar.gz
+
+      - name: Compute split SHA for packages/${{ matrix.package.dir }}
+        id: split
+        run: |
+          SHA=$(splitsh-lite --prefix=packages/${{ matrix.package.dir }})
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Split SHA: $SHA"
+
+      - name: Push split to ahegyes/${{ matrix.package.repo }}
+        env:
+          TOKEN: ${{ secrets.MONOREPO_SPLIT_TOKEN }}
+          SPLIT_SHA: ${{ steps.split.outputs.sha }}
+          TARGET_REPO: ${{ matrix.package.repo }}
+        run: |
+          git push --force "https://x-access-token:${TOKEN}@github.com/ahegyes/${TARGET_REPO}.git" "${SPLIT_SHA}:refs/heads/trunk"
