@@ -1,0 +1,76 @@
+{
+  "name": "ahegyes/wp-framework-consumer-smoke",
+  "description": "Smoke fixture — installs the framework as an external consumer would and exercises scoped autoload + class resolution. Catches scoping breakage, missing-require declarations, and autoload metadata drift at framework PR time.",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../../../packages/bootstrap",
+      "options": { "symlink": false }
+    },
+    {
+      "type": "path",
+      "url": "../../../packages/core",
+      "options": { "symlink": false }
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wordpress-configs"
+    }
+  ],
+
+  "require": {
+    "php": ">=8.5",
+    "psr/container": "^2"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "ahegyes/wp-framework-bootstrap": "^2.0@dev",
+    "ahegyes/wp-framework-core": "^2.0@dev",
+    "humbug/php-scoper": "^0.18",
+    "php-di/php-di": "^7",
+    "php-stubs/wordpress-stubs": "*"
+  },
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "autoload": {
+    "psr-4": {
+      "DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Core\\": "dependencies/ahegyes/wp-framework-core/src",
+      "DWS_CONSUMER_SMOKE_Deps\\DI\\": "dependencies/php-di/php-di/src",
+      "DWS_CONSUMER_SMOKE_Deps\\Invoker\\": "dependencies/php-di/invoker/src",
+      "DWS_CONSUMER_SMOKE_Deps\\Laravel\\SerializableClosure\\": "dependencies/laravel/serializable-closure/src"
+    },
+    "files": [
+      "dependencies/ahegyes/wp-framework-bootstrap/check-requirements.php",
+      "dependencies/php-di/php-di/src/functions.php"
+    ]
+  },
+
+  "scripts": {
+    "pre-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::preAutoloadDump"
+    ],
+    "post-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\CollectScopingStubs::postAutoloadDump",
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::postAutoloadDump"
+    ],
+    "scope-php-dependencies": [
+      "@php vendor/bin/php-scoper add-prefix --prefix=DWS_CONSUMER_SMOKE_Deps --output-dir=./dependencies --config=./scoper.inc.php --force --quiet"
+    ],
+
+    "smoke": "@php smoke.php"
+  },
+
+  "config": {
+    "allow-plugins": {
+      "composer/*": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
+  }
+}
