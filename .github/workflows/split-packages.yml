@@ -24,6 +24,10 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          # Don't install the credential helper that auths as github-actions[bot].
+          # We push to the split repos via PAT embedded in the URL — the helper
+          # would otherwise hijack the auth and fail with 403.
+          persist-credentials: false
 
       - name: Install splitsh-lite
         run: |
