@@ -35,24 +35,18 @@ jobs:
         run: |
           set -e
 
-          # PHP-DI's Compiler/Template.php must be skipped (raw template) — its
-          # scoped copy must remain identical to the source.
           diff vendor/php-di/php-di/src/Compiler/Template.php dependencies/php-di/php-di/src/Compiler/Template.php
 
-          # WP_Error must stay unscoped inside the scoped framework code.
           if grep -qF 'DWS_CONSUMER_SMOKE_Deps\WP_Error' dependencies/ahegyes/wp-framework-bootstrap/check-requirements.php; then
             echo "FAIL: WP_Error got prefixed inside scoped check-requirements.php" >&2
             exit 1
           fi
 
-          # PluginKernel must have its namespace correctly prefixed.
           if ! grep -qF 'namespace DWS_CONSUMER_SMOKE_Deps\DeepWebSolutions\Framework\Core\Kernel' dependencies/ahegyes/wp-framework-core/src/Kernel/PluginKernel.php; then
             echo "FAIL: PluginKernel.php missing scoped namespace declaration" >&2
             exit 1
           fi
 
-          # Psr\Container\* must NOT be prefixed — scoping PSR interfaces breaks
-          # cross-plugin interop (each plugin would ship an incompatible copy).
           if grep -qF 'DWS_CONSUMER_SMOKE_Deps\Psr\Container' dependencies/ahegyes/wp-framework-core/src/Kernel/PluginKernel.php; then
             echo "FAIL: Psr\\Container namespace got prefixed" >&2
             exit 1

@@ -1,7 +1,7 @@
 <?php
 /**
  * Smoke-fixture php-scoper config — composes wordpress-configs' scoper-base
- * with the reusable PHP-DI partial. Mirrors the plugin template's pattern.
+ * with the reusable PHP-DI partial.
  *
  * @package DeepWebSolutions\Framework\Tests\ConsumerSmoke
  */

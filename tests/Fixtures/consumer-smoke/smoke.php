@@ -18,14 +18,12 @@
 
 require __DIR__ . '/vendor/autoload.php';
 
-// Bootstrap — files-autoloaded scoped function.
 $is_php_compatible = \DWS_CONSUMER_SMOKE_Deps\DeepWebSolutions\Framework\Bootstrap\is_php_compatible( '5.6' );
 if ( ! is_bool( $is_php_compatible ) ) {
 	fwrite( STDERR, "is_php_compatible returned non-bool\n" );
 	exit( 1 );
 }
 
-// Core — PSR-4 scoped class accepting an UNscoped PSR container.
 $container = new class () implements \Psr\Container\ContainerInterface {
 	public function get( string $id ): mixed {
 		throw new \LogicException( 'smoke fixture: container::get not exercised' );
@@ -36,10 +34,8 @@ $container = new class () implements \Psr\Container\ContainerInterface {
 };
 $kernel = new \DWS_CONSUMER_SMOKE_Deps\DeepWebSolutions\Framework\Core\Kernel\PluginKernel( $container );
 
-// PHP-DI — third-party scoped class.
 $di_builder = new \DWS_CONSUMER_SMOKE_Deps\DI\ContainerBuilder();
 
-// PHP-DI's `files`-autoloaded helpers (functions.php) — exercise one.
 $factory_def = \DWS_CONSUMER_SMOKE_Deps\DI\factory(
 	static fn(): string => 'smoke'
 );
