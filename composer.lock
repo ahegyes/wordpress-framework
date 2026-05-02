@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9aed28cfbf47beb2f5892433a73c010f",
+    "content-hash": "abff63a5750a03d3851cf98053cfe20a",
     "packages": [
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -12,7 +12,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/bootstrap",
-                "reference": "f5bc2033993d2ddd4057955bc4601805966e7af1"
+                "reference": "5ec278c02729d755983abb9e298a83f7fb4c9fb2"
             },
             "require": {
                 "php": ">=5.6"
@@ -29,7 +29,21 @@
                 },
                 "scoping-stubs": [
                     "php-stubs/wordpress-stubs"
-                ]
+                ],
+                "changelogger": {
+                    "versioning": "semver",
+                    "changelog": "CHANGELOG.md",
+                    "changes-dir": "changelog",
+                    "default-type": "changed",
+                    "types": {
+                        "added": "Added",
+                        "changed": "Changed",
+                        "deprecated": "Deprecated",
+                        "removed": "Removed",
+                        "fixed": "Fixed",
+                        "security": "Security"
+                    }
+                }
             },
             "autoload": {
                 "files": [
@@ -82,7 +96,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "28c430fa0c048a8876a62b6215ca2083d657e739"
+                "reference": "776e01fb277b8a92c3675322880c09a728926ece"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0@dev",
@@ -102,7 +116,21 @@
                 },
                 "scoping-stubs": [
                     "php-stubs/wordpress-stubs"
-                ]
+                ],
+                "changelogger": {
+                    "versioning": "semver",
+                    "changelog": "CHANGELOG.md",
+                    "changes-dir": "changelog",
+                    "default-type": "changed",
+                    "types": {
+                        "added": "Added",
+                        "changed": "Changed",
+                        "deprecated": "Deprecated",
+                        "removed": "Removed",
+                        "fixed": "Fixed",
+                        "security": "Security"
+                    }
+                }
             },
             "autoload": {
                 "psr-4": {
@@ -131,7 +159,7 @@
                     "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
                 }
             ],
-            "description": "PSR-11-based plugin kernel and lifecycle framework for WordPress — interface-driven components, two-pass boot, settings abstraction, DDD-lite primitives (value objects, result types, exception hierarchy).",
+            "description": "PSR-11-based plugin kernel and lifecycle framework for WordPress — interface-driven components, two-pass boot dispatch.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "keywords": [
                 "framework",
@@ -139,6 +167,182 @@
                 "lifecycle",
                 "settings",
                 "value-object",
+                "wordpress",
+                "wordpress-plugin"
+            ],
+            "support": {
+                "issues": "https://github.com/ahegyes/wordpress-framework/issues",
+                "source": "https://github.com/ahegyes/wordpress-framework"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "ahegyes/wp-framework-utilities",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/utilities",
+                "reference": "74048e14271760274db7b2aea890b47411372ebe"
+            },
+            "require": {
+                "ahegyes/wp-framework-core": "^2.0@dev",
+                "php": ">=8.5"
+            },
+            "require-dev": {
+                "ahegyes/wordpress-configs": "dev-trunk",
+                "php-stubs/wordpress-stubs": "*",
+                "phpunit/phpunit": "^13"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.0.x-dev"
+                },
+                "scoping-stubs": [
+                    "php-stubs/wordpress-stubs"
+                ],
+                "changelogger": {
+                    "versioning": "semver",
+                    "changelog": "CHANGELOG.md",
+                    "changes-dir": "changelog",
+                    "default-type": "changed",
+                    "types": {
+                        "added": "Added",
+                        "changed": "Changed",
+                        "deprecated": "Deprecated",
+                        "removed": "Removed",
+                        "fixed": "Fixed",
+                        "security": "Security"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\Utilities\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "@php vendor/bin/phpunit"
+                ],
+                "test:unit": [
+                    "@php vendor/bin/phpunit --testsuite=Unit"
+                ]
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
+                }
+            ],
+            "description": "Hooks, caching, admin notices, shortcodes, and runtime dependency-check services for WordPress plugins built on the DWS framework.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "keywords": [
+                "admin-notices",
+                "caching",
+                "framework",
+                "hooks",
+                "shortcodes",
+                "wordpress",
+                "wordpress-plugin"
+            ],
+            "support": {
+                "issues": "https://github.com/ahegyes/wordpress-framework/issues",
+                "source": "https://github.com/ahegyes/wordpress-framework"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "ahegyes/wp-framework-woocommerce",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/woocommerce",
+                "reference": "a1f83fa1755e91900587619a1ca0e1bad2d7b795"
+            },
+            "require": {
+                "ahegyes/wp-framework-core": "^2.0@dev",
+                "php": ">=8.5"
+            },
+            "require-dev": {
+                "ahegyes/wordpress-configs": "dev-trunk",
+                "php-stubs/woocommerce-stubs": "*",
+                "php-stubs/wordpress-stubs": "*",
+                "phpunit/phpunit": "^13"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.0.x-dev"
+                },
+                "scoping-stubs": [
+                    "php-stubs/wordpress-stubs",
+                    "php-stubs/woocommerce-stubs"
+                ],
+                "changelogger": {
+                    "versioning": "semver",
+                    "changelog": "CHANGELOG.md",
+                    "changes-dir": "changelog",
+                    "default-type": "changed",
+                    "types": {
+                        "added": "Added",
+                        "changed": "Changed",
+                        "deprecated": "Deprecated",
+                        "removed": "Removed",
+                        "fixed": "Fixed",
+                        "security": "Security"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\WooCommerce\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\WooCommerce\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "@php vendor/bin/phpunit"
+                ],
+                "test:unit": [
+                    "@php vendor/bin/phpunit --testsuite=Unit"
+                ]
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
+                }
+            ],
+            "description": "WooCommerce-specific services for plugins built on the DWS framework — settings backend, PSR-3 logger, HPOS compatibility helpers.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "keywords": [
+                "framework",
+                "hpos",
+                "logger",
+                "settings",
+                "woocommerce",
                 "wordpress",
                 "wordpress-plugin"
             ],
@@ -262,12 +466,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "29a138342f01e8ca5a6b4f0174546c618bd55f72"
+                "reference": "afb5ec05015dfd8ab4140ac5796dd35fc79c242a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/29a138342f01e8ca5a6b4f0174546c618bd55f72",
-                "reference": "29a138342f01e8ca5a6b4f0174546c618bd55f72",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/afb5ec05015dfd8ab4140ac5796dd35fc79c242a",
+                "reference": "afb5ec05015dfd8ab4140ac5796dd35fc79c242a",
                 "shasum": ""
             },
             "require": {
@@ -334,7 +538,75 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-05-01T13:47:33+00:00"
+            "time": "2026-05-02T10:22:21+00:00"
+        },
+        {
+            "name": "automattic/jetpack-changelogger",
+            "version": "v6.0.14",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Automattic/jetpack-changelogger.git",
+                "reference": "f81fd5f7fb9046ccbed9e4462f4fe619d961ce24"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Automattic/jetpack-changelogger/zipball/f81fd5f7fb9046ccbed9e4462f4fe619d961ce24",
+                "reference": "f81fd5f7fb9046ccbed9e4462f4fe619d961ce24",
+                "shasum": ""
+            },
+            "require": {
+                "composer-runtime-api": "^2.2.0",
+                "php": ">=7.2.5",
+                "symfony/console": "^5.4 || ^6.4 || ^7.1",
+                "symfony/process": "^5.4 || ^6.4 || ^7.1"
+            },
+            "require-dev": {
+                "wikimedia/testing-access-wrapper": "^1.0 || ^2.0 || ^3.0 || ^4.0",
+                "yoast/phpunit-polyfills": "^4.0.0"
+            },
+            "bin": [
+                "bin/changelogger"
+            ],
+            "type": "project",
+            "extra": {
+                "autotagger": true,
+                "mirror-repo": "Automattic/jetpack-changelogger",
+                "branch-alias": {
+                    "dev-trunk": "6.0.x-dev"
+                },
+                "changelogger": {
+                    "link-template": "https://github.com/Automattic/jetpack-changelogger/compare/${old}...${new}"
+                },
+                "dependencies": {
+                    "test-only": [
+                        "packages/phpunit-select-config"
+                    ]
+                },
+                "version-constants": {
+                    "::VERSION": "src/Application.php"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Automattic\\Jetpack\\Changelog\\": "lib",
+                    "Automattic\\Jetpack\\Changelogger\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "Jetpack Changelogger tool. Allows for managing changelogs by dropping change files into a changelog directory with each PR.",
+            "keywords": [
+                "changelog",
+                "cli",
+                "dev",
+                "keepachangelog"
+            ],
+            "support": {
+                "source": "https://github.com/Automattic/jetpack-changelogger/tree/v6.0.14"
+            },
+            "time": "2026-02-12T23:21:29+00:00"
         },
         {
             "name": "colinodell/json5",
@@ -1860,6 +2132,50 @@
             "time": "2022-02-21T01:04:05+00:00"
         },
         {
+            "name": "php-stubs/woocommerce-stubs",
+            "version": "v10.7.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-stubs/woocommerce-stubs.git",
+                "reference": "7251902ebc048626aff04855c333afa9f3bae2d5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-stubs/woocommerce-stubs/zipball/7251902ebc048626aff04855c333afa9f3bae2d5",
+                "reference": "7251902ebc048626aff04855c333afa9f3bae2d5",
+                "shasum": ""
+            },
+            "require": {
+                "php-stubs/wordpress-stubs": "^5.3 || ^6.0"
+            },
+            "require-dev": {
+                "php": "~7.1 || ~8.0",
+                "php-stubs/generator": "^0.8.0"
+            },
+            "suggest": {
+                "symfony/polyfill-php73": "Symfony polyfill backporting some PHP 7.3+ features to lower PHP versions",
+                "szepeviktor/phpstan-wordpress": "WordPress extensions for PHPStan"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "WooCommerce function and class declaration stubs for static analysis.",
+            "homepage": "https://github.com/php-stubs/woocommerce-stubs",
+            "keywords": [
+                "PHPStan",
+                "static analysis",
+                "woocommerce",
+                "wordpress"
+            ],
+            "support": {
+                "issues": "https://github.com/php-stubs/woocommerce-stubs/issues",
+                "source": "https://github.com/php-stubs/woocommerce-stubs/tree/v10.7.0"
+            },
+            "time": "2026-04-14T15:19:28+00:00"
+        },
+        {
             "name": "php-stubs/wordpress-stubs",
             "version": "v6.9.1",
             "source": {
@@ -2678,16 +2994,16 @@
         },
         {
             "name": "phpstan/phpstan-strict-rules",
-            "version": "2.0.10",
+            "version": "2.0.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpstan/phpstan-strict-rules.git",
-                "reference": "1aba28b697c1e3b6bbec8a1725f8b11b6d3e5a5f"
+                "reference": "9b000a578b85b32945b358b172c7b20e91189024"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan-strict-rules/zipball/1aba28b697c1e3b6bbec8a1725f8b11b6d3e5a5f",
-                "reference": "1aba28b697c1e3b6bbec8a1725f8b11b6d3e5a5f",
+                "url": "https://api.github.com/repos/phpstan/phpstan-strict-rules/zipball/9b000a578b85b32945b358b172c7b20e91189024",
+                "reference": "9b000a578b85b32945b358b172c7b20e91189024",
                 "shasum": ""
             },
             "require": {
@@ -2723,9 +3039,9 @@
             ],
             "support": {
                 "issues": "https://github.com/phpstan/phpstan-strict-rules/issues",
-                "source": "https://github.com/phpstan/phpstan-strict-rules/tree/2.0.10"
+                "source": "https://github.com/phpstan/phpstan-strict-rules/tree/2.0.11"
             },
-            "time": "2026-02-11T14:17:32+00:00"
+            "time": "2026-05-02T06:54:10+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -5932,39 +6248,47 @@
         },
         {
             "name": "symfony/console",
-            "version": "v8.0.9",
+            "version": "v7.4.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/console.git",
-                "reference": "7113778e2e91f4709cb3194a75dfa9c0d028d94d"
+                "reference": "d7d2b64a45a89d607865927b176fa51c33ddbb58"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/console/zipball/7113778e2e91f4709cb3194a75dfa9c0d028d94d",
-                "reference": "7113778e2e91f4709cb3194a75dfa9c0d028d94d",
+                "url": "https://api.github.com/repos/symfony/console/zipball/d7d2b64a45a89d607865927b176fa51c33ddbb58",
+                "reference": "d7d2b64a45a89d607865927b176fa51c33ddbb58",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.4",
-                "symfony/polyfill-mbstring": "^1.0",
+                "php": ">=8.2",
+                "symfony/deprecation-contracts": "^2.5|^3",
+                "symfony/polyfill-mbstring": "~1.0",
                 "symfony/service-contracts": "^2.5|^3",
-                "symfony/string": "^7.4|^8.0"
+                "symfony/string": "^7.2|^8.0"
+            },
+            "conflict": {
+                "symfony/dependency-injection": "<6.4",
+                "symfony/dotenv": "<6.4",
+                "symfony/event-dispatcher": "<6.4",
+                "symfony/lock": "<6.4",
+                "symfony/process": "<6.4"
             },
             "provide": {
                 "psr/log-implementation": "1.0|2.0|3.0"
             },
             "require-dev": {
                 "psr/log": "^1|^2|^3",
-                "symfony/config": "^7.4|^8.0",
-                "symfony/dependency-injection": "^7.4|^8.0",
-                "symfony/event-dispatcher": "^7.4|^8.0",
-                "symfony/http-foundation": "^7.4|^8.0",
-                "symfony/http-kernel": "^7.4|^8.0",
-                "symfony/lock": "^7.4|^8.0",
-                "symfony/messenger": "^7.4|^8.0",
-                "symfony/process": "^7.4|^8.0",
-                "symfony/stopwatch": "^7.4|^8.0",
-                "symfony/var-dumper": "^7.4|^8.0"
+                "symfony/config": "^6.4|^7.0|^8.0",
+                "symfony/dependency-injection": "^6.4|^7.0|^8.0",
+                "symfony/event-dispatcher": "^6.4|^7.0|^8.0",
+                "symfony/http-foundation": "^6.4|^7.0|^8.0",
+                "symfony/http-kernel": "^6.4|^7.0|^8.0",
+                "symfony/lock": "^6.4|^7.0|^8.0",
+                "symfony/messenger": "^6.4|^7.0|^8.0",
+                "symfony/process": "^6.4|^7.0|^8.0",
+                "symfony/stopwatch": "^6.4|^7.0|^8.0",
+                "symfony/var-dumper": "^6.4|^7.0|^8.0"
             },
             "type": "library",
             "autoload": {
@@ -5998,7 +6322,7 @@
                 "terminal"
             ],
             "support": {
-                "source": "https://github.com/symfony/console/tree/v8.0.9"
+                "source": "https://github.com/symfony/console/tree/v7.4.9"
             },
             "funding": [
                 {
@@ -6018,7 +6342,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-04-29T15:02:55+00:00"
+            "time": "2026-04-22T15:21:55+00:00"
         },
         {
             "name": "symfony/dependency-injection",
@@ -6884,20 +7208,20 @@
         },
         {
             "name": "symfony/process",
-            "version": "v8.0.8",
+            "version": "v7.4.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/process.git",
-                "reference": "cb8939aff03470d1a9d1d1b66d08c6fa71b3bbdc"
+                "reference": "60f19cd3badc8de688421e21e4305eba50f8089a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/process/zipball/cb8939aff03470d1a9d1d1b66d08c6fa71b3bbdc",
-                "reference": "cb8939aff03470d1a9d1d1b66d08c6fa71b3bbdc",
+                "url": "https://api.github.com/repos/symfony/process/zipball/60f19cd3badc8de688421e21e4305eba50f8089a",
+                "reference": "60f19cd3badc8de688421e21e4305eba50f8089a",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.4"
+                "php": ">=8.2"
             },
             "type": "library",
             "autoload": {
@@ -6925,7 +7249,7 @@
             "description": "Executes commands in sub-processes",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/process/tree/v8.0.8"
+                "source": "https://github.com/symfony/process/tree/v7.4.8"
             },
             "funding": [
                 {
@@ -6945,7 +7269,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-03-30T15:14:47+00:00"
+            "time": "2026-03-24T13:12:05+00:00"
         },
         {
             "name": "symfony/service-contracts",
@@ -7752,6 +8076,8 @@
         "ahegyes/wordpress-configs": 20,
         "ahegyes/wp-framework-bootstrap": 20,
         "ahegyes/wp-framework-core": 20,
+        "ahegyes/wp-framework-utilities": 20,
+        "ahegyes/wp-framework-woocommerce": 20,
         "johnpbloch/wordpress-core": 20
     },
     "prefer-stable": true,

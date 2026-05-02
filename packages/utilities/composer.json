@@ -1,6 +1,6 @@
 {
-  "name": "ahegyes/wp-framework-core",
-  "description": "PSR-11-based plugin kernel and lifecycle framework for WordPress — interface-driven components, two-pass boot dispatch.",
+  "name": "ahegyes/wp-framework-utilities",
+  "description": "Hooks, caching, admin notices, shortcodes, and runtime dependency-check services for WordPress plugins built on the DWS framework.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -10,7 +10,7 @@
       "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
     }
   ],
-  "keywords": ["wordpress", "wordpress-plugin", "framework", "kernel", "lifecycle", "settings", "value-object"],
+  "keywords": ["wordpress", "wordpress-plugin", "framework", "hooks", "caching", "admin-notices", "shortcodes"],
   "support": {
     "issues": "https://github.com/ahegyes/wordpress-framework/issues",
     "source": "https://github.com/ahegyes/wordpress-framework"
@@ -18,9 +18,7 @@
 
   "require": {
     "php": ">=8.5",
-    "ahegyes/wp-framework-bootstrap": "^2.0@dev",
-    "psr/container": "^2",
-    "psr/log": "^3"
+    "ahegyes/wp-framework-core": "^2.0@dev"
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
@@ -33,12 +31,12 @@
 
   "autoload": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Core\\": "src/"
+      "DeepWebSolutions\\Framework\\Utilities\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Core\\Tests\\": "tests/"
+      "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "tests/"
     }
   },
 

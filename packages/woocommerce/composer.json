@@ -1,6 +1,6 @@
 {
-  "name": "ahegyes/wp-framework-core",
-  "description": "PSR-11-based plugin kernel and lifecycle framework for WordPress — interface-driven components, two-pass boot dispatch.",
+  "name": "ahegyes/wp-framework-woocommerce",
+  "description": "WooCommerce-specific services for plugins built on the DWS framework — settings backend, PSR-3 logger, HPOS compatibility helpers.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -10,7 +10,7 @@
       "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
     }
   ],
-  "keywords": ["wordpress", "wordpress-plugin", "framework", "kernel", "lifecycle", "settings", "value-object"],
+  "keywords": ["wordpress", "wordpress-plugin", "woocommerce", "framework", "settings", "logger", "hpos"],
   "support": {
     "issues": "https://github.com/ahegyes/wordpress-framework/issues",
     "source": "https://github.com/ahegyes/wordpress-framework"
@@ -18,13 +18,12 @@
 
   "require": {
     "php": ">=8.5",
-    "ahegyes/wp-framework-bootstrap": "^2.0@dev",
-    "psr/container": "^2",
-    "psr/log": "^3"
+    "ahegyes/wp-framework-core": "^2.0@dev"
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
     "php-stubs/wordpress-stubs": "*",
+    "php-stubs/woocommerce-stubs": "*",
     "phpunit/phpunit": "^13"
   },
 
@@ -33,12 +32,12 @@
 
   "autoload": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Core\\": "src/"
+      "DeepWebSolutions\\Framework\\WooCommerce\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Core\\Tests\\": "tests/"
+      "DeepWebSolutions\\Framework\\WooCommerce\\Tests\\": "tests/"
     }
   },
 
@@ -52,7 +51,8 @@
       "dev-trunk": "2.0.x-dev"
     },
     "scoping-stubs": [
-      "php-stubs/wordpress-stubs"
+      "php-stubs/wordpress-stubs",
+      "php-stubs/woocommerce-stubs"
     ],
     "changelogger": {
       "versioning": "semver",

@@ -2,7 +2,14 @@
     "$schema": "vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": [
-            "packages/core/src"
+            "packages/bootstrap",
+            "packages/core/src",
+            "packages/utilities/src",
+            "packages/woocommerce/src"
+        ],
+        "excludes": [
+            "tests",
+            "changelog"
         ]
     },
     "logs": {

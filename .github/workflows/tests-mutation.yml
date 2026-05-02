@@ -2,6 +2,10 @@ name: Mutation Tests
 
 on:
   workflow_dispatch:
+  schedule:
+    # Weekly on Mondays at 06:00 UTC. Catches test-suite quality regression
+    # without gating every PR (mutation runs are slow).
+    - cron: '0 6 * * 1'
 
 jobs:
   infection:

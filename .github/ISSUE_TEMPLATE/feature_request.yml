@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a new capability for one of the framework packages.
+labels: [enhancement, triage]
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Target package
+      options:
+        - wp-framework-bootstrap
+        - wp-framework-core
+        - wp-framework-utilities
+        - wp-framework-woocommerce
+        - new package
+        - cross-cutting / unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is the user-facing problem this would solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you imagine this looking? Code samples welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you weigh? Why this one?
+
+  - type: dropdown
+    id: significance
+    attributes:
+      label: Estimated significance
+      options:
+        - patch (no API change)
+        - minor (additive API)
+        - major (breaking API change)
+    validations:
+      required: true

@@ -55,3 +55,7 @@ npm run wp-env:stop         # Stop wp-env when done
 - **Mutation tests** — Infection validates test-suite quality. Currently 100% MSI on the framework slice.
 
 Both unit and integration test suites share a single `tests/bootstrap.php` that conditionally loads WordPress when running inside the wp-env container.
+
+## History
+
+This framework is a ground-up rewrite of the DWS WordPress framework v1, developed at Deep Web Solutions GmbH (now defunct). v1 spread across 7 archived packages (`wordpress-framework-{bootstrapper,helpers,core,utilities,settings,woocommerce,foundations}`) under the [`deep-web-solutions` GitHub org](https://github.com/orgs/deep-web-solutions/repositories?q=wordpress-framework). v2 collapses the surface to 4 packages and replaces v1's trait + service-handler hierarchies with interfaces + final classes throughout.

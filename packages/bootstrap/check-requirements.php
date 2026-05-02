@@ -108,17 +108,17 @@ function get_plugin_metadata( $plugin_basename, $translate = false ) {
  * @return  true|\WP_Error
  */
 function check_requirements( $plugin_basename ) {
-	$metadata = get_plugin_metadata( $plugin_basename );
+	$metadata = namespace\get_plugin_metadata( $plugin_basename );
 
 	$plugin_min_php = isset( $metadata['RequiresPHP'] ) && '' !== $metadata['RequiresPHP'] ? $metadata['RequiresPHP'] : '0';
 	$plugin_min_wp  = isset( $metadata['RequiresWP'] ) && '' !== $metadata['RequiresWP'] ? $metadata['RequiresWP'] : '0';
 
-	$effective_min_php = \version_compare( $plugin_min_php, FRAMEWORK_MIN_PHP, '>=' ) ? $plugin_min_php : FRAMEWORK_MIN_PHP;
-	$effective_min_wp  = \version_compare( $plugin_min_wp, FRAMEWORK_MIN_WP, '>=' ) ? $plugin_min_wp : FRAMEWORK_MIN_WP;
+	$effective_min_php = \version_compare( $plugin_min_php, namespace\FRAMEWORK_MIN_PHP, '>=' ) ? $plugin_min_php : namespace\FRAMEWORK_MIN_PHP;
+	$effective_min_wp  = \version_compare( $plugin_min_wp, namespace\FRAMEWORK_MIN_WP, '>=' ) ? $plugin_min_wp : namespace\FRAMEWORK_MIN_WP;
 
 	$errors = new \WP_Error();
 
-	if ( ! is_php_compatible( $effective_min_php ) ) {
+	if ( ! namespace\is_php_compatible( $effective_min_php ) ) {
 		$errors->add(
 			'plugin_php_incompatible',
 			'',
@@ -129,7 +129,7 @@ function check_requirements( $plugin_basename ) {
 		);
 	}
 
-	if ( ! is_wp_compatible( $effective_min_wp ) ) {
+	if ( ! namespace\is_wp_compatible( $effective_min_wp ) ) {
 		$errors->add(
 			'plugin_wp_incompatible',
 			'',
@@ -158,7 +158,7 @@ function output_requirements_error( $plugin_basename, \WP_Error $error ) {
 	\add_action(
 		'admin_notices',
 		function () use ( $plugin_basename, $error ) {
-			$metadata = get_plugin_metadata( $plugin_basename, true );
+			$metadata = namespace\get_plugin_metadata( $plugin_basename, true );
 
 			$intro = \sprintf(
 				/* translators: 1: plugin name, 2: plugin version */

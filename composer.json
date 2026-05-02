@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wordpress-framework",
-  "description": "DWS WordPress Framework v2 — monorepo development root. Aggregates bootstrap, core, utilities, and woocommerce packages for local dev and cross-package testing.",
+  "description": "DWS WordPress Framework — monorepo development root. Aggregates bootstrap, core, utilities, and woocommerce packages for local dev and cross-package testing.",
   "type": "project",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -14,13 +14,17 @@
   "require": {
     "php": ">=8.5",
     "ahegyes/wp-framework-bootstrap": "^2.0@dev",
-    "ahegyes/wp-framework-core": "^2.0@dev"
+    "ahegyes/wp-framework-core": "^2.0@dev",
+    "ahegyes/wp-framework-utilities": "^2.0@dev",
+    "ahegyes/wp-framework-woocommerce": "^2.0@dev"
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
+    "automattic/jetpack-changelogger": "^6.0",
     "deptrac/deptrac": "^4.6",
     "infection/infection": "^0.32",
     "johnpbloch/wordpress-core": "^7.0@dev",
+    "php-stubs/woocommerce-stubs": "*",
     "phpunit/phpunit": "^13"
   },
 
@@ -33,6 +37,16 @@
     {
       "type": "path",
       "url": "packages/core",
+      "options": { "symlink": true }
+    },
+    {
+      "type": "path",
+      "url": "packages/utilities",
+      "options": { "symlink": true }
+    },
+    {
+      "type": "path",
+      "url": "packages/woocommerce",
       "options": { "symlink": true }
     },
     {
@@ -83,6 +97,25 @@
     "packages-update": [
       "@composer clear-cache",
       "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+    ],
+
+    "changelog:add:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger add",
+    "changelog:add:core": "cd packages/core && ../../vendor/bin/changelogger add",
+    "changelog:add:utilities": "cd packages/utilities && ../../vendor/bin/changelogger add",
+    "changelog:add:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger add",
+    "changelog:write:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger write",
+    "changelog:write:core": "cd packages/core && ../../vendor/bin/changelogger write",
+    "changelog:write:utilities": "cd packages/utilities && ../../vendor/bin/changelogger write",
+    "changelog:write:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger write",
+    "changelog:validate:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger validate",
+    "changelog:validate:core": "cd packages/core && ../../vendor/bin/changelogger validate",
+    "changelog:validate:utilities": "cd packages/utilities && ../../vendor/bin/changelogger validate",
+    "changelog:validate:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger validate",
+    "changelog:validate": [
+      "@changelog:validate:bootstrap",
+      "@changelog:validate:core",
+      "@changelog:validate:utilities",
+      "@changelog:validate:woocommerce"
     ]
   },
 

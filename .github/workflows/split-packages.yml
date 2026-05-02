@@ -18,8 +18,10 @@ jobs:
       fail-fast: false
       matrix:
         package:
-          - { dir: 'bootstrap', repo: 'wp-framework-bootstrap' }
-          - { dir: 'core',      repo: 'wp-framework-core' }
+          - { dir: 'bootstrap',   repo: 'wp-framework-bootstrap' }
+          - { dir: 'core',        repo: 'wp-framework-core' }
+          - { dir: 'utilities',   repo: 'wp-framework-utilities' }
+          - { dir: 'woocommerce', repo: 'wp-framework-woocommerce' }
     steps:
       - uses: actions/checkout@v5
         with:

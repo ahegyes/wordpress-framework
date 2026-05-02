@@ -1,12 +1,44 @@
 deptrac:
   paths:
+    - ./packages/bootstrap
     - ./packages/core/src
+    - ./packages/utilities/src
+    - ./packages/woocommerce/src
+
+  exclude_files:
+    - '#packages/.*/tests/.*#'
+    - '#packages/.*/changelog/.*#'
+    - '#packages/.*/vendor/.*#'
 
   layers:
+    - name: Bootstrap
+      collectors:
+        - type: directory
+          value: 'packages/bootstrap/.*'
+
     - name: Core
       collectors:
         - type: classLike
           value: '^DeepWebSolutions\\Framework\\Core\\.*$'
 
+    - name: Utilities
+      collectors:
+        - type: classLike
+          value: '^DeepWebSolutions\\Framework\\Utilities\\.*$'
+
+    - name: WooCommerce
+      collectors:
+        - type: classLike
+          value: '^DeepWebSolutions\\Framework\\WooCommerce\\.*$'
+
+  # Allowed direct dependencies per layer.
+  # Transitive deps work naturally (Utilities → Core → Bootstrap is fine because Utilities → Core is allowed and Core → Bootstrap is allowed).
+  # Cross-layer shortcuts are forbidden (Utilities → Bootstrap directly is NOT allowed; must go through Core).
   ruleset:
-    Core: ~
+    Bootstrap: ~
+    Core:
+      - Bootstrap
+    Utilities:
+      - Core
+    WooCommerce:
+      - Core

@@ -50,7 +50,21 @@
     },
     "scoping-stubs": [
       "php-stubs/wordpress-stubs"
-    ]
+    ],
+    "changelogger": {
+      "versioning": "semver",
+      "changelog": "CHANGELOG.md",
+      "changes-dir": "changelog",
+      "default-type": "changed",
+      "types": {
+        "added": "Added",
+        "changed": "Changed",
+        "deprecated": "Deprecated",
+        "removed": "Removed",
+        "fixed": "Fixed",
+        "security": "Security"
+      }
+    }
   },
 
   "config": {

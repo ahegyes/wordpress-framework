@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wp-framework-consumer-smoke",
-  "description": "Smoke fixture — installs the framework as an external consumer would and exercises scoped autoload + class resolution. Catches scoping breakage, missing-require declarations, and autoload metadata drift at framework PR time.",
+  "description": "INTERNAL FIXTURE — DO NOT PUBLISH. Smoke fixture that installs the framework as an external consumer would and exercises scoped autoload + class resolution. Catches scoping breakage, missing-require declarations, and autoload metadata drift at framework PR time.",
   "type": "project",
   "license": "GPL-2.0-or-later",
 
@@ -13,6 +13,16 @@
     {
       "type": "path",
       "url": "../../../packages/core",
+      "options": { "symlink": false }
+    },
+    {
+      "type": "path",
+      "url": "../../../packages/utilities",
+      "options": { "symlink": false }
+    },
+    {
+      "type": "path",
+      "url": "../../../packages/woocommerce",
       "options": { "symlink": false }
     },
     {
@@ -29,6 +39,8 @@
     "ahegyes/wordpress-configs": "dev-trunk",
     "ahegyes/wp-framework-bootstrap": "^2.0@dev",
     "ahegyes/wp-framework-core": "^2.0@dev",
+    "ahegyes/wp-framework-utilities": "^2.0@dev",
+    "ahegyes/wp-framework-woocommerce": "^2.0@dev",
     "humbug/php-scoper": "^0.18",
     "php-di/php-di": "^7",
     "php-stubs/wordpress-stubs": "*"
@@ -40,6 +52,8 @@
   "autoload": {
     "psr-4": {
       "DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Core\\": "dependencies/ahegyes/wp-framework-core/src",
+      "DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Utilities\\": "dependencies/ahegyes/wp-framework-utilities/src",
+      "DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\WooCommerce\\": "dependencies/ahegyes/wp-framework-woocommerce/src",
       "DWS_CONSUMER_SMOKE_Deps\\DI\\": "dependencies/php-di/php-di/src",
       "DWS_CONSUMER_SMOKE_Deps\\Invoker\\": "dependencies/php-di/invoker/src",
       "DWS_CONSUMER_SMOKE_Deps\\Laravel\\SerializableClosure\\": "dependencies/laravel/serializable-closure/src"
