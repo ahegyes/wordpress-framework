@@ -8,22 +8,34 @@
     {
       "type": "path",
       "url": "../../../packages/bootstrap",
-      "options": { "symlink": false }
+      "options": {
+        "symlink": false,
+        "versions": { "ahegyes/wp-framework-bootstrap": "2.0.x-dev" }
+      }
     },
     {
       "type": "path",
       "url": "../../../packages/core",
-      "options": { "symlink": false }
+      "options": {
+        "symlink": false,
+        "versions": { "ahegyes/wp-framework-core": "2.0.x-dev" }
+      }
     },
     {
       "type": "path",
       "url": "../../../packages/utilities",
-      "options": { "symlink": false }
+      "options": {
+        "symlink": false,
+        "versions": { "ahegyes/wp-framework-utilities": "2.0.x-dev" }
+      }
     },
     {
       "type": "path",
       "url": "../../../packages/woocommerce",
-      "options": { "symlink": false }
+      "options": {
+        "symlink": false,
+        "versions": { "ahegyes/wp-framework-woocommerce": "2.0.x-dev" }
+      }
     },
     {
       "type": "vcs",
