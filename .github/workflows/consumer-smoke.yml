@@ -11,7 +11,7 @@ jobs:
     name: Consumer install + scope + autoload
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -21,7 +21,7 @@ jobs:
           tools: composer:v2
 
       - name: Install consumer-smoke fixture
-        uses: ramsey/composer-install@v3
+        uses: ramsey/composer-install@v4
         with:
           working-directory: tests/Fixtures/consumer-smoke
           composer-options: '--prefer-dist'
