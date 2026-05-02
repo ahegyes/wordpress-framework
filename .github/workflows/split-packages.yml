@@ -23,7 +23,7 @@ jobs:
           - { dir: 'utilities',   repo: 'wp-framework-utilities' }
           - { dir: 'woocommerce', repo: 'wp-framework-woocommerce' }
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           # Don't install the credential helper that auths as github-actions[bot].
