@@ -1,4 +1,5 @@
-<?php
+<?php declare( strict_types=1 );
+
 /**
  * Plugin Name:       DWS Framework Test Plugin
  * Plugin URI:        https://github.com/ahegyes/wordpress-framework
