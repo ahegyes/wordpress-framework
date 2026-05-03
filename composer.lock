@@ -466,12 +466,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "2252971612addab1eb63e4d909574099d2cd492a"
+                "reference": "b94040ee00b37b95539b0658114b6fa459df6cb3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/2252971612addab1eb63e4d909574099d2cd492a",
-                "reference": "2252971612addab1eb63e4d909574099d2cd492a",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/b94040ee00b37b95539b0658114b6fa459df6cb3",
+                "reference": "b94040ee00b37b95539b0658114b6fa459df6cb3",
                 "shasum": ""
             },
             "require": {
@@ -546,7 +546,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-05-02T14:02:55+00:00"
+            "time": "2026-05-03T12:27:20+00:00"
         },
         {
             "name": "automattic/jetpack-changelogger",

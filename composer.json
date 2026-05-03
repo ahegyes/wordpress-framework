@@ -74,14 +74,14 @@
       "@test:mutation"
     ],
 
-    "format:php": "phpcbf --standard=./phpcs.xml --basepath=. ./ -v",
+    "format:php": "phpcbf --standard=./phpcs.dist.xml --basepath=. ./ -v",
     "lint:php": [
       "@lint:php:phpcs",
       "@lint:php:phpstan",
       "@lint:php:deptrac"
     ],
-    "lint:php:phpcs": "phpcs --standard=./phpcs.xml --basepath=. ./ -v",
-    "lint:php:phpstan": "phpstan analyse -c ./phpstan.neon -v --memory-limit=1G",
+    "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
     "lint:php:deptrac": "deptrac analyse --no-interaction",
 
     "quality-check": [
