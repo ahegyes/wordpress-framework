@@ -65,6 +65,21 @@
 
   "scripts": {
     "generate-autoloader": "@composer dump-autoload --ignore-platform-reqs -o",
+    "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
+    "packages-update": [
+      "@composer clear-cache",
+      "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+    ],
+
+    "format:php": "phpcbf --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "lint:php": [
+      "@lint:php:phpcs",
+      "@lint:php:phpstan",
+      "@lint:php:deptrac"
+    ],
+    "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
+    "lint:php:deptrac": "deptrac analyse --no-interaction",
 
     "test": [
       "@test:unit",
@@ -79,16 +94,6 @@
       "@test:mutation"
     ],
 
-    "format:php": "phpcbf --standard=./phpcs.dist.xml --basepath=. ./ -v",
-    "lint:php": [
-      "@lint:php:phpcs",
-      "@lint:php:phpstan",
-      "@lint:php:deptrac"
-    ],
-    "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
-    "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
-    "lint:php:deptrac": "deptrac analyse --no-interaction",
-
     "quality-check": [
       "@lint:php",
       "@test:unit"
@@ -98,30 +103,24 @@
       "@test:all"
     ],
 
-    "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
-    "packages-update": [
-      "@composer clear-cache",
-      "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
-    ],
-
     "changelog:add:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger add",
     "changelog:add:core": "cd packages/core && ../../vendor/bin/changelogger add",
     "changelog:add:utilities": "cd packages/utilities && ../../vendor/bin/changelogger add",
     "changelog:add:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger add",
-    "changelog:write:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger write",
-    "changelog:write:core": "cd packages/core && ../../vendor/bin/changelogger write",
-    "changelog:write:utilities": "cd packages/utilities && ../../vendor/bin/changelogger write",
-    "changelog:write:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger write",
-    "changelog:validate:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger validate",
-    "changelog:validate:core": "cd packages/core && ../../vendor/bin/changelogger validate",
-    "changelog:validate:utilities": "cd packages/utilities && ../../vendor/bin/changelogger validate",
-    "changelog:validate:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger validate",
     "changelog:validate": [
       "@changelog:validate:bootstrap",
       "@changelog:validate:core",
       "@changelog:validate:utilities",
       "@changelog:validate:woocommerce"
-    ]
+    ],
+    "changelog:validate:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger validate",
+    "changelog:validate:core": "cd packages/core && ../../vendor/bin/changelogger validate",
+    "changelog:validate:utilities": "cd packages/utilities && ../../vendor/bin/changelogger validate",
+    "changelog:validate:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger validate",
+    "changelog:write:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger write",
+    "changelog:write:core": "cd packages/core && ../../vendor/bin/changelogger write",
+    "changelog:write:utilities": "cd packages/utilities && ../../vendor/bin/changelogger write",
+    "changelog:write:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger write"
   },
 
   "extra": {

@@ -466,12 +466,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "0e14b867ca3e6becb75607034267d2a73b99ec80"
+                "reference": "a25ac2a20564752acd0688996682c3596abea130"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/0e14b867ca3e6becb75607034267d2a73b99ec80",
-                "reference": "0e14b867ca3e6becb75607034267d2a73b99ec80",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/a25ac2a20564752acd0688996682c3596abea130",
+                "reference": "a25ac2a20564752acd0688996682c3596abea130",
                 "shasum": ""
             },
             "require": {
@@ -511,6 +511,13 @@
                 "generate-autoloader": [
                     "@composer dump-autoload --ignore-platform-reqs -o"
                 ],
+                "packages-install": [
+                    "@composer install --ignore-platform-reqs --no-interaction"
+                ],
+                "packages-update": [
+                    "@composer clear-cache",
+                    "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+                ],
                 "test": [
                     "@php vendor/bin/phpunit"
                 ],
@@ -523,13 +530,6 @@
                 "test:all": [
                     "@test",
                     "@test:mutation"
-                ],
-                "packages-install": [
-                    "@composer install --ignore-platform-reqs --no-interaction"
-                ],
-                "packages-update": [
-                    "@composer clear-cache",
-                    "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
                 ]
             },
             "license": [
@@ -546,7 +546,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-05-03T13:17:49+00:00"
+            "time": "2026-05-03T14:27:23+00:00"
         },
         {
             "name": "automattic/jetpack-changelogger",
