@@ -79,7 +79,7 @@
     ],
     "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
     "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
-    "lint:php:deptrac": "deptrac analyse --no-interaction",
+    "lint:php:deptrac": "deptrac analyse --no-interaction --cache-file=tests/.cache/deptrac",
 
     "test": [
       "@test:unit",
