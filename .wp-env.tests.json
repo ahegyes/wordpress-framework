@@ -6,7 +6,8 @@
     "testsEnvironment": false,
     "mappings": {
         "wp-content/mu-plugins/wp-framework": ".",
-        "wp-content/plugins/dws-framework-test-plugin": "./packages/bootstrap/tests/Fixtures/dws-framework-test-plugin"
+        "wp-content/plugins/dws-framework-test-plugin": "./packages/bootstrap/tests/Fixtures/dws-framework-test-plugin",
+        "wp-content/plugins/woocommerce": "./vendor/wp-plugin/woocommerce"
     },
     "config": {
         "WP_DEBUG": true,

@@ -9,7 +9,7 @@ Monorepo publishing four Composer packages:
 | Package                            | Purpose                                                                                                       | PHP min |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------- |
 | `ahegyes/wp-framework-bootstrap`   | Pre-autoload PHP/WP version check; gracefully fails with admin notice when runtime can't host the framework.  | 5.6     |
-| `ahegyes/wp-framework-core`        | `PluginKernel`, lifecycle interfaces, settings abstraction, DDD-lite primitives.                              | 8.5     |
+| `ahegyes/wp-framework-core`        | `PluginKernel`, lifecycle interfaces, two-pass boot dispatch.                                                 | 8.5     |
 | `ahegyes/wp-framework-utilities`   | Hooks, caching, admin notices, shortcodes, runtime dependency checks.                                         | 8.5     |
 | `ahegyes/wp-framework-woocommerce` | WooCommerce-specific helpers; PSR-3 logger.                                                                   | 8.5     |
 
@@ -25,7 +25,7 @@ The `bootstrap` package runs before any modern PHP 8.5+ code parses, so consumer
 ## Local development
 
 ```bash
-composer install            # PHP deps
+composer packages-install   # PHP deps (wraps composer install with --ignore-platform-reqs)
 npm install                 # Node deps (wp-env)
 npm run wp-env:start        # Start Docker WP environment (~40s first time)
 composer quality-check      # Fast: lint + unit tests (no Docker)
@@ -33,6 +33,8 @@ composer test:integration   # Real WP via wp-env
 composer quality-check:all  # Full: lint + unit + integration + mutation
 npm run wp-env:stop         # Stop wp-env when done
 ```
+
+> Always use `composer packages-install` / `composer packages-update` (not bare `composer install` / `update`). The wrappers pass `--ignore-platform-reqs` so composer skips generating `vendor/composer/platform_check.php`, which would otherwise bypass the framework's own `check-requirements.php` runtime check and emit a hard PHP fatal instead of the friendly admin notice.
 
 ## Composer scripts
 
@@ -51,7 +53,7 @@ npm run wp-env:stop         # Stop wp-env when done
 ## Testing strategy
 
 - **Unit tests** (`packages/*/tests/Unit/`) — pure PHP, no WP loaded. Used to test wrapper "outside WP" fallback paths (e.g., `is_php_compatible` correctly returns `false` when WordPress's native function is missing).
-- **Integration tests** (`packages/*/tests/Integration/`) — run inside wp-env's `tests-cli` container with full WordPress loaded. Real `WP_Error`, `get_plugin_data`, `add_action`, etc.
+- **Integration tests** (`packages/*/tests/Integration/`) — run inside wp-env's `cli` container with full WordPress loaded. Real `WP_Error`, `get_plugin_data`, `add_action`, etc.
 - **Mutation tests** — Infection validates test-suite quality. Currently 100% MSI on the framework slice.
 
 Both unit and integration test suites share a single `tests/bootstrap.php` that conditionally loads WordPress when running inside the wp-env container.

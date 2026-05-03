@@ -16,8 +16,8 @@
     },
     "scripts": {
         "setup": "npm run install:all && npm run wp-env:start",
-        "install:all": "composer install && npm install",
-        "update:all": "composer update && npm update",
+        "install:all": "composer packages-install && npm install",
+        "update:all": "composer packages-update && npm update",
 
         "wp-env": "wp-env",
         "wp-env:start": "wp-env --config .wp-env.tests.json start",

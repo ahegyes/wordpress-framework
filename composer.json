@@ -24,8 +24,8 @@
     "deptrac/deptrac": "^4.6",
     "infection/infection": "^0.32",
     "johnpbloch/wordpress-core": "^7.0@dev",
-    "php-stubs/woocommerce-stubs": "*",
-    "phpunit/phpunit": "^13"
+    "phpunit/phpunit": "^13",
+    "wp-plugin/woocommerce": "*"
   },
 
   "repositories": [
@@ -52,6 +52,11 @@
     {
       "type": "vcs",
       "url": "https://github.com/ahegyes/wordpress-configs"
+    },
+    {
+      "type": "composer",
+      "url": "https://repo.wp-packages.org",
+      "only": ["wp-plugin/*", "wp-theme/*"]
     }
   ],
 
@@ -117,6 +122,15 @@
       "@changelog:validate:utilities",
       "@changelog:validate:woocommerce"
     ]
+  },
+
+  "extra": {
+    "installer-paths": {
+      "vendor/{$vendor}/{$name}/": [
+        "type:wordpress-plugin",
+        "type:wordpress-theme"
+      ]
+    }
   },
 
   "config": {
