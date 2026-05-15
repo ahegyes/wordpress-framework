@@ -33,7 +33,7 @@
       "DeepWebSolutions\\Framework\\Shared\\": "src/"
     },
     "files": [
-      "src/Reflection/reflection.php"
+      "src/Reflection/functions.php"
     ]
   },
   "autoload-dev": {

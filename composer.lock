@@ -184,7 +184,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "ebc2a2476ed8ce45535932e90c717825a9cc47a6"
+                "reference": "aa24f0afe2cc49cd64e25eac059ea46e30a6fd7e"
             },
             "require": {
                 "php": ">=8.5"
@@ -219,7 +219,7 @@
                     "DeepWebSolutions\\Framework\\Shared\\": "src/"
                 },
                 "files": [
-                    "src/Reflection/reflection.php"
+                    "src/Reflection/functions.php"
                 ]
             },
             "autoload-dev": {
@@ -244,7 +244,7 @@
                     "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
                 }
             ],
-            "description": "Substrate primitives for plugins built on the DWS framework: Result, ValueObject, Error and Exception scaffolding. Runtime-WP-aware; pulls in no WP-specific abstractions.",
+            "description": "Substrate primitives for plugins built on the DWS framework: result and value-object patterns, plus error and exception scaffolding. Runtime-WP-aware; pulls in no WP-specific abstractions.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "keywords": [
                 "framework",
@@ -268,7 +268,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/utilities",
-                "reference": "f72384a912a55994bc1ee2e1c05ea90a7b321cbe"
+                "reference": "02244371945a531af35f0b3ae3276e28d7d4b2c5"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
@@ -329,7 +329,7 @@
                     "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
                 }
             ],
-            "description": "Hooks and admin notices for WordPress plugins built on the DWS framework.",
+            "description": "Hooks, admin notices, and key-value storage backends for WordPress plugins built on the DWS framework.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "keywords": [
                 "admin-notices",
@@ -353,7 +353,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "ca2b39cc9f24df5e64fc66891a2f6a2b034dbbc0"
+                "reference": "0c508333c9dd2ea8c4d46f38c6956ca34e3c05d5"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
@@ -421,7 +421,7 @@
                     "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
                 }
             ],
-            "description": "WooCommerce-specific services for plugins built on the DWS framework (skeleton — implementation pending).",
+            "description": "WooCommerce settings backend and WC-aware helpers for plugins built on the DWS framework.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "keywords": [
                 "framework",
