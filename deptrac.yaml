@@ -2,6 +2,7 @@ deptrac:
   paths:
     - ./packages/bootstrap
     - ./packages/core/src
+    - ./packages/shared/src
     - ./packages/utilities/src
     - ./packages/woocommerce/src
 
@@ -15,6 +16,11 @@ deptrac:
       collectors:
         - type: directory
           value: 'packages/bootstrap/.*'
+
+    - name: Shared
+      collectors:
+        - type: classLike
+          value: '^DeepWebSolutions\\Framework\\Shared\\.*$'
 
     - name: Core
       collectors:
@@ -32,13 +38,18 @@ deptrac:
           value: '^DeepWebSolutions\\Framework\\WooCommerce\\.*$'
 
   # Allowed direct dependencies per layer.
-  # Transitive deps work naturally (Utilities → Core → Bootstrap is fine because Utilities → Core is allowed and Core → Bootstrap is allowed).
+  # Shared is the WP-agnostic shared kernel — has zero deps and may be required directly by any layer above Bootstrap (Common Closure Principle).
+  # Bootstrap stays minimal (PHP 5.6+, pre-autoload) — cannot depend on Shared (PHP 8.5+).
   # Cross-layer shortcuts are forbidden (Utilities → Bootstrap directly is NOT allowed; must go through Core).
   ruleset:
     Bootstrap: ~
+    Shared: ~
     Core:
       - Bootstrap
+      - Shared
     Utilities:
       - Core
+      - Shared
     WooCommerce:
       - Core
+      - Shared

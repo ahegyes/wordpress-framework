@@ -1,6 +1,6 @@
 {
-  "name": "ahegyes/wp-framework-woocommerce",
-  "description": "WooCommerce settings backend and WC-aware helpers for plugins built on the DWS framework.",
+  "name": "ahegyes/wp-framework-shared",
+  "description": "Substrate primitives for plugins built on the DWS framework: result and value-object patterns, plus error and exception scaffolding. Runtime-WP-aware; pulls in no WP-specific abstractions.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -10,42 +10,35 @@
       "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
     }
   ],
-  "keywords": ["wordpress", "wordpress-plugin", "woocommerce", "framework"],
+  "keywords": ["framework", "result", "value-object", "shared-kernel", "primitives"],
   "support": {
     "issues": "https://github.com/ahegyes/wordpress-framework/issues",
     "source": "https://github.com/ahegyes/wordpress-framework"
   },
 
   "require": {
-    "php": ">=8.5",
-    "ahegyes/wp-framework-core": "^2.0@dev"
+    "php": ">=8.5"
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
     "johnpbloch/wordpress-core": "^7.0@dev",
-    "phpunit/phpunit": "^13",
-    "wp-plugin/woocommerce": "*"
+    "phpunit/phpunit": "^13"
   },
-
-  "repositories": [
-    {
-      "type": "composer",
-      "url": "https://repo.wp-packages.org",
-      "only": ["wp-plugin/*", "wp-theme/*"]
-    }
-  ],
 
   "minimum-stability": "dev",
   "prefer-stable": true,
 
   "autoload": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\WooCommerce\\": "src/"
-    }
+      "DeepWebSolutions\\Framework\\Shared\\": "src/"
+    },
+    "files": [
+      "src/Reflection/reflection.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\WooCommerce\\Tests\\": "tests/"
+      "DeepWebSolutions\\Framework\\Shared\\Tests\\": "tests/"
     }
   },
 
@@ -58,15 +51,6 @@
     "branch-alias": {
       "dev-trunk": "2.0.x-dev"
     },
-    "installer-paths": {
-      "vendor/{$vendor}/{$name}/": [
-        "type:wordpress-plugin",
-        "type:wordpress-theme"
-      ]
-    },
-    "scoping-stubs": [
-      "php-stubs/wordpress-stubs"
-    ],
     "changelogger": {
       "versioning": "semver",
       "changelog": "CHANGELOG.md",

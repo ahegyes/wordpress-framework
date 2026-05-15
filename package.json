@@ -9,15 +9,20 @@
     },
     "bugs": "https://github.com/ahegyes/wordpress-framework/issues",
     "engines": {
-        "node": ">=24"
+        "node": ">=26",
+        "npm": ">=11"
     },
     "devDependencies": {
-        "@wordpress/env": "^11.4"
+        "@wordpress/env": "^11.6.0"
     },
     "scripts": {
-        "setup": "npm run install:all && npm run wp-env:start",
-        "install:all": "composer packages-install && npm install",
-        "update:all": "composer packages-update && npm update",
+        "setup": "npm run packages-install:all && npm run wp-env:start",
+        "packages-install:all": "composer packages-install && npm run packages-install",
+        "packages-update:all": "composer packages-update && npm run packages-update && npm run packages-update:wp",
+
+        "packages-install": "npm install",
+        "packages-update": "npm update",
+        "packages-update:wp": "npx --yes @wordpress/scripts@latest packages-update",
 
         "wp-env": "wp-env",
         "wp-env:start": "wp-env --config .wp-env.tests.json start",
@@ -27,6 +32,8 @@
 
         "audit": "composer audit && npm audit",
         "audit:fix": "npm audit fix",
+        "check:engines": "npx --yes @wordpress/scripts@latest check-engines",
+        "check:licenses": "npx --yes @wordpress/scripts@latest check-licenses",
 
         "test:integration": "wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration"
     }

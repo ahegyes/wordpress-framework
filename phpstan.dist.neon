@@ -7,6 +7,8 @@ parameters:
         - packages/bootstrap/tests
         - packages/core/src
         - packages/core/tests
+        - packages/shared/src
+        - packages/shared/tests
         - packages/utilities/src
         - packages/utilities/tests
         - packages/woocommerce/src

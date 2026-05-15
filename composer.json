@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wordpress-framework",
-  "description": "DWS WordPress Framework — monorepo development root. Aggregates bootstrap, core, utilities, and woocommerce packages for local dev and cross-package testing.",
+  "description": "DWS WordPress Framework — monorepo development root. Aggregates bootstrap, shared, core, utilities, and woocommerce packages for local dev and cross-package testing.",
   "type": "project",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -15,6 +15,7 @@
     "php": ">=8.5",
     "ahegyes/wp-framework-bootstrap": "^2.0@dev",
     "ahegyes/wp-framework-core": "^2.0@dev",
+    "ahegyes/wp-framework-shared": "^2.0@dev",
     "ahegyes/wp-framework-utilities": "^2.0@dev",
     "ahegyes/wp-framework-woocommerce": "^2.0@dev"
   },
@@ -37,6 +38,11 @@
     {
       "type": "path",
       "url": "packages/core",
+      "options": { "symlink": true }
+    },
+    {
+      "type": "path",
+      "url": "packages/shared",
       "options": { "symlink": true }
     },
     {
@@ -105,20 +111,31 @@
 
     "changelog:add:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger add",
     "changelog:add:core": "cd packages/core && ../../vendor/bin/changelogger add",
+    "changelog:add:shared": "cd packages/shared && ../../vendor/bin/changelogger add",
     "changelog:add:utilities": "cd packages/utilities && ../../vendor/bin/changelogger add",
     "changelog:add:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger add",
     "changelog:validate": [
       "@changelog:validate:bootstrap",
       "@changelog:validate:core",
+      "@changelog:validate:shared",
       "@changelog:validate:utilities",
       "@changelog:validate:woocommerce"
     ],
     "changelog:validate:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger validate",
     "changelog:validate:core": "cd packages/core && ../../vendor/bin/changelogger validate",
+    "changelog:validate:shared": "cd packages/shared && ../../vendor/bin/changelogger validate",
     "changelog:validate:utilities": "cd packages/utilities && ../../vendor/bin/changelogger validate",
     "changelog:validate:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger validate",
+    "changelog:write": [
+      "@changelog:write:bootstrap",
+      "@changelog:write:core",
+      "@changelog:write:shared",
+      "@changelog:write:utilities",
+      "@changelog:write:woocommerce"
+    ],
     "changelog:write:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger write",
     "changelog:write:core": "cd packages/core && ../../vendor/bin/changelogger write",
+    "changelog:write:shared": "cd packages/shared && ../../vendor/bin/changelogger write",
     "changelog:write:utilities": "cd packages/utilities && ../../vendor/bin/changelogger write",
     "changelog:write:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger write"
   },

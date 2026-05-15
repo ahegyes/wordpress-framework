@@ -21,7 +21,7 @@
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
-    "php-stubs/wordpress-stubs": "*",
+    "johnpbloch/wordpress-core": "^7.0@dev",
     "phpunit/phpunit": "^13"
   },
 

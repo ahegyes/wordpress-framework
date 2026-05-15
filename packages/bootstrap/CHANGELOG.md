@@ -7,6 +7,7 @@ Pending entries live in [`changelog/`](./changelog) — add via `composer change
 ## 2.0.0 - unreleased
 
 ### Added
+
 - Initial release.
-- Pre-autoload PHP/WordPress version check via Composer `files` autoload.
-- Graceful admin notice when the runtime can't host the framework's modern PHP code.
+- Pre-autoload PHP/WordPress version check.
+- Graceful admin notice when the runtime can't host the framework.
