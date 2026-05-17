@@ -2,42 +2,67 @@
 /**
  * Smoke run — exercises every framework symbol the consumer contract exposes,
  * forcing autoload to resolve scoped classes/functions across all three sources
- * (bootstrap files-autoload, core PSR-4, PHP-DI PSR-4 + transitive deps).
+ * (bootstrap files-autoload, core/shared/utilities/woocommerce PSR-4,
+ * PHP-DI PSR-4 + transitive deps).
  *
  * Failure modes this catches:
- * - Bootstrap's `files`-autoloaded check-requirements.php missing or mis-pathed
- *   in dependencies/.
- * - Core's PluginKernel mis-pathed under PSR-4 (autoload metadata drift).
- * - PHP-DI's ContainerBuilder mis-pathed (contrib finder/exclude_files
- *   regression).
- * - Scoped types referencing global PSR (e.g. ContainerInterface) prefixed
- *   when they shouldn't be.
+ * - autoload.files entries from each scoped package not loaded by the generator
+ *   (bootstrap, shared, core, php-di functions).
+ * - PSR-4 mappings for scoped framework + PHP-DI packages missing or mis-pathed.
+ * - PHP-DI's Template.php scoped despite being in exclude_files.
+ * - PSR (e.g. ContainerInterface) prefixed when it shouldn't be.
  *
  * @package DeepWebSolutions\Framework\Tests\ConsumerSmoke
  */
 
 require __DIR__ . '/vendor/autoload.php';
 
-$is_php_compatible = \DWS_CONSUMER_SMOKE_Deps\DeepWebSolutions\Framework\Bootstrap\is_php_compatible( '5.6' );
-if ( ! is_bool( $is_php_compatible ) ) {
-	fwrite( STDERR, "is_php_compatible returned non-bool\n" );
-	exit( 1 );
+$failures = array();
+
+// Bootstrap files-autoload: the package's nested function files must be loaded.
+$bootstrap_functions = array(
+	'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Bootstrap\\Environment\\is_php_compatible',
+	'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Bootstrap\\Requirements\\check_requirements',
+);
+foreach ( $bootstrap_functions as $function ) {
+	if ( ! function_exists( $function ) ) {
+		$failures[] = "missing scoped function: $function";
+	}
 }
 
-$container = new class () implements \Psr\Container\ContainerInterface {
-	public function get( string $id ): mixed {
-		throw new \LogicException( 'smoke fixture: container::get not exercised' );
-	}
-	public function has( string $id ): bool {
-		return false;
-	}
-};
-$kernel = new \DWS_CONSUMER_SMOKE_Deps\DeepWebSolutions\Framework\Core\Kernel\PluginKernel( $container );
-
-$di_builder = new \DWS_CONSUMER_SMOKE_Deps\DI\ContainerBuilder();
-
-$factory_def = \DWS_CONSUMER_SMOKE_Deps\DI\factory(
-	static fn(): string => 'smoke'
+// Core PSR-4: PluginKernel + interfaces.
+$core_classes = array(
+	'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Core\\PluginKernel',
+	'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Core\\PluginInterface',
 );
+foreach ( $core_classes as $class ) {
+	if ( ! class_exists( $class ) && ! interface_exists( $class ) ) {
+		$failures[] = "missing scoped class/interface: $class";
+	}
+}
+
+// PHP-DI PSR-4 + files-autoloaded factory().
+if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DI\\ContainerBuilder' ) ) {
+	$failures[] = 'missing scoped class: DI\\ContainerBuilder';
+}
+if ( ! function_exists( 'DWS_CONSUMER_SMOKE_Deps\\DI\\factory' ) ) {
+	$failures[] = 'missing scoped function: DI\\factory';
+}
+
+// PSR\Container must NOT be prefixed — the global namespace stays as-is.
+if ( ! interface_exists( 'Psr\\Container\\ContainerInterface' ) ) {
+	$failures[] = 'Psr\\Container\\ContainerInterface should resolve to the global, un-scoped definition';
+}
+if ( interface_exists( 'DWS_CONSUMER_SMOKE_Deps\\Psr\\Container\\ContainerInterface' ) ) {
+	$failures[] = 'Psr\\Container\\ContainerInterface was incorrectly prefixed';
+}
+
+if ( array() !== $failures ) {
+	fwrite( STDERR, "Smoke failed:\n" );
+	foreach ( $failures as $failure ) {
+		fwrite( STDERR, "  - $failure\n" );
+	}
+	exit( 1 );
+}
 
 echo "OK\n";

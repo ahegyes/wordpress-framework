@@ -1,0 +1,18 @@
+name: Supply-Chain Audit
+
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+  schedule:
+    # Weekly Monday at 07:00 UTC — staggered after dependabot (06:00) so PRs from
+    # dependency bumps surface audit results in the same morning batch.
+    - cron: '0 7 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-supply-chain-audit.yml@trunk

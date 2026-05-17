@@ -19,29 +19,19 @@
   "require": {
     "php": ">=5.6"
   },
-  "require-dev": {
-    "ahegyes/wordpress-configs": "dev-trunk",
-    "johnpbloch/wordpress-core": "^7.0@dev",
-    "phpunit/phpunit": "^13"
-  },
 
   "minimum-stability": "dev",
   "prefer-stable": true,
 
   "autoload": {
     "files": [
-      "check-requirements.php"
+      "functions.php"
     ]
   },
   "autoload-dev": {
     "psr-4": {
       "DeepWebSolutions\\Framework\\Bootstrap\\Tests\\": "tests/"
     }
-  },
-
-  "scripts": {
-    "test": "@php vendor/bin/phpunit",
-    "test:unit": "@php vendor/bin/phpunit --testsuite=Unit"
   },
 
   "extra": {

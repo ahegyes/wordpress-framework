@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wp-framework-utilities",
-  "description": "Hooks, caching, admin notices, shortcodes, and runtime dependency-check services for WordPress plugins built on the DWS framework.",
+  "description": "Hooks, admin notices, and key-value storage backends for WordPress plugins built on the DWS framework.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -10,7 +10,7 @@
       "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
     }
   ],
-  "keywords": ["wordpress", "wordpress-plugin", "framework", "hooks", "caching", "admin-notices", "shortcodes"],
+  "keywords": ["wordpress", "wordpress-plugin", "framework", "hooks", "admin-notices"],
   "support": {
     "issues": "https://github.com/ahegyes/wordpress-framework/issues",
     "source": "https://github.com/ahegyes/wordpress-framework"
@@ -20,11 +20,6 @@
     "php": ">=8.5",
     "ahegyes/wp-framework-core": "^2.0@dev"
   },
-  "require-dev": {
-    "ahegyes/wordpress-configs": "dev-trunk",
-    "php-stubs/wordpress-stubs": "*",
-    "phpunit/phpunit": "^13"
-  },
 
   "minimum-stability": "dev",
   "prefer-stable": true,
@@ -32,17 +27,15 @@
   "autoload": {
     "psr-4": {
       "DeepWebSolutions\\Framework\\Utilities\\": "src/"
-    }
+    },
+    "files": [
+      "functions.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {
       "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "tests/"
     }
-  },
-
-  "scripts": {
-    "test": "@php vendor/bin/phpunit",
-    "test:unit": "@php vendor/bin/phpunit --testsuite=Unit"
   },
 
   "extra": {

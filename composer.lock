@@ -12,15 +12,10 @@
             "dist": {
                 "type": "path",
                 "url": "packages/bootstrap",
-                "reference": "15bfebe65eb56f9a9b1f2ccbc325c008aeae1b1f"
+                "reference": "9ddf92a9023855052403df889e5322badd9268cc"
             },
             "require": {
                 "php": ">=5.6"
-            },
-            "require-dev": {
-                "ahegyes/wordpress-configs": "dev-trunk",
-                "johnpbloch/wordpress-core": "^7.0@dev",
-                "phpunit/phpunit": "^13"
             },
             "type": "library",
             "extra": {
@@ -47,21 +42,13 @@
             },
             "autoload": {
                 "files": [
-                    "check-requirements.php"
+                    "functions.php"
                 ]
             },
             "autoload-dev": {
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\Bootstrap\\Tests\\": "tests/"
                 }
-            },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit"
-                ],
-                "test:unit": [
-                    "@php vendor/bin/phpunit --testsuite=Unit"
-                ]
             },
             "license": [
                 "GPL-2.0-or-later"
@@ -96,7 +83,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "a3fb6177c7833b40c89ae11ec2ee14dacb5d5201"
+                "reference": "6ada2f7b74e4fe22320638482e438f2936245dfe"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0@dev",
@@ -104,11 +91,6 @@
                 "php": ">=8.5",
                 "psr/container": "^2",
                 "psr/log": "^3"
-            },
-            "require-dev": {
-                "ahegyes/wordpress-configs": "dev-trunk",
-                "johnpbloch/wordpress-core": "^7.0@dev",
-                "phpunit/phpunit": "^13"
             },
             "type": "library",
             "extra": {
@@ -136,20 +118,15 @@
             "autoload": {
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\Core\\": "src/"
-                }
+                },
+                "files": [
+                    "functions.php"
+                ]
             },
             "autoload-dev": {
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\Core\\Tests\\": "tests/"
                 }
-            },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit"
-                ],
-                "test:unit": [
-                    "@php vendor/bin/phpunit --testsuite=Unit"
-                ]
             },
             "license": [
                 "GPL-2.0-or-later"
@@ -184,15 +161,10 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "aa24f0afe2cc49cd64e25eac059ea46e30a6fd7e"
+                "reference": "15487883126ab5831fd5592272e4b46be10958de"
             },
             "require": {
                 "php": ">=8.5"
-            },
-            "require-dev": {
-                "ahegyes/wordpress-configs": "dev-trunk",
-                "johnpbloch/wordpress-core": "^7.0@dev",
-                "phpunit/phpunit": "^13"
             },
             "type": "library",
             "extra": {
@@ -219,21 +191,13 @@
                     "DeepWebSolutions\\Framework\\Shared\\": "src/"
                 },
                 "files": [
-                    "src/Reflection/functions.php"
+                    "functions.php"
                 ]
             },
             "autoload-dev": {
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\Shared\\Tests\\": "tests/"
                 }
-            },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit"
-                ],
-                "test:unit": [
-                    "@php vendor/bin/phpunit --testsuite=Unit"
-                ]
             },
             "license": [
                 "GPL-2.0-or-later"
@@ -268,16 +232,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/utilities",
-                "reference": "02244371945a531af35f0b3ae3276e28d7d4b2c5"
+                "reference": "002d56982875764f3be92d3cd7b39b3910635051"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
                 "php": ">=8.5"
-            },
-            "require-dev": {
-                "ahegyes/wordpress-configs": "dev-trunk",
-                "johnpbloch/wordpress-core": "^7.0@dev",
-                "phpunit/phpunit": "^13"
             },
             "type": "library",
             "extra": {
@@ -312,14 +271,6 @@
                     "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "tests/"
                 }
             },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit"
-                ],
-                "test:unit": [
-                    "@php vendor/bin/phpunit --testsuite=Unit"
-                ]
-            },
             "license": [
                 "GPL-2.0-or-later"
             ],
@@ -353,17 +304,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "0c508333c9dd2ea8c4d46f38c6956ca34e3c05d5"
+                "reference": "4a9e96cedffe1eed505ac6aba7d06316afa59a3e"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
                 "php": ">=8.5"
-            },
-            "require-dev": {
-                "ahegyes/wordpress-configs": "dev-trunk",
-                "johnpbloch/wordpress-core": "^7.0@dev",
-                "phpunit/phpunit": "^13",
-                "wp-plugin/woocommerce": "*"
             },
             "type": "library",
             "extra": {
@@ -403,14 +348,6 @@
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\WooCommerce\\Tests\\": "tests/"
                 }
-            },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit"
-                ],
-                "test:unit": [
-                    "@php vendor/bin/phpunit --testsuite=Unit"
-                ]
             },
             "license": [
                 "GPL-2.0-or-later"
@@ -549,12 +486,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "be506fced346fe5e5a2e2887bd1f6c35850f7962"
+                "reference": "576bb4aa81457df6c37038e638b1f0e62f4869ed"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/be506fced346fe5e5a2e2887bd1f6c35850f7962",
-                "reference": "be506fced346fe5e5a2e2887bd1f6c35850f7962",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/576bb4aa81457df6c37038e638b1f0e62f4869ed",
+                "reference": "576bb4aa81457df6c37038e638b1f0e62f4869ed",
                 "shasum": ""
             },
             "require": {
@@ -623,7 +560,7 @@
                     "@php vendor/bin/composer-require-checker check --config-file=composer-require-checker.json"
                 ],
                 "test": [
-                    "@php vendor/bin/phpunit"
+                    "@test:unit"
                 ],
                 "test:unit": [
                     "@php vendor/bin/phpunit --testsuite=Unit"
@@ -632,12 +569,12 @@
                     "@php vendor/bin/infection --threads=max"
                 ],
                 "test:all": [
-                    "@test",
+                    "@test:unit",
                     "@test:mutation"
                 ],
                 "quality-check": [
                     "@lint:php",
-                    "@test:unit"
+                    "@test"
                 ],
                 "quality-check:all": [
                     "@lint:php",
@@ -658,7 +595,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-05-09T11:55:40+00:00"
+            "time": "2026-05-17T15:15:52+00:00"
         },
         {
             "name": "automattic/jetpack-changelogger",
@@ -3267,16 +3204,16 @@
         },
         {
             "name": "phpunit/php-code-coverage",
-            "version": "14.1.8",
+            "version": "14.1.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/php-code-coverage.git",
-                "reference": "031856c28c060e1c1d1fc94d256e3ffbe4230c91"
+                "reference": "655533a65696bbc4231cd8027af150dadc40ec88"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/031856c28c060e1c1d1fc94d256e3ffbe4230c91",
-                "reference": "031856c28c060e1c1d1fc94d256e3ffbe4230c91",
+                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/655533a65696bbc4231cd8027af150dadc40ec88",
+                "reference": "655533a65696bbc4231cd8027af150dadc40ec88",
                 "shasum": ""
             },
             "require": {
@@ -3333,7 +3270,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/php-code-coverage/issues",
                 "security": "https://github.com/sebastianbergmann/php-code-coverage/security/policy",
-                "source": "https://github.com/sebastianbergmann/php-code-coverage/tree/14.1.8"
+                "source": "https://github.com/sebastianbergmann/php-code-coverage/tree/14.1.9"
             },
             "funding": [
                 {
@@ -3353,7 +3290,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-05-09T12:06:52+00:00"
+            "time": "2026-05-16T05:16:14+00:00"
         },
         {
             "name": "phpunit/php-file-iterator",
@@ -3843,12 +3780,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "16706d82a6f250e56047a9e95791a92a8a29f791"
+                "reference": "80f4d3dbb1fc1ef5bb1eee68dbfb44060e1fb4e8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/16706d82a6f250e56047a9e95791a92a8a29f791",
-                "reference": "16706d82a6f250e56047a9e95791a92a8a29f791",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/80f4d3dbb1fc1ef5bb1eee68dbfb44060e1fb4e8",
+                "reference": "80f4d3dbb1fc1ef5bb1eee68dbfb44060e1fb4e8",
                 "shasum": ""
             },
             "conflict": {
@@ -3969,7 +3906,7 @@
                 "clickstorm/cs-seo": ">=6,<6.8|>=7,<7.5|>=8,<8.4|>=9,<9.3",
                 "co-stack/fal_sftp": "<0.2.6",
                 "cockpit-hq/cockpit": "<2.14",
-                "code16/sharp": "<9.20",
+                "code16/sharp": "<9.22",
                 "codeception/codeception": "<3.1.3|>=4,<4.1.22",
                 "codeigniter/framework": "<3.1.10",
                 "codeigniter4/framework": "<4.6.2",
@@ -4593,6 +4530,7 @@
                 "simplesamlphp/saml2": "<=4.16.15|>=5.0.0.0-alpha1,<=5.0.0.0-alpha19",
                 "simplesamlphp/saml2-legacy": "<=4.16.15",
                 "simplesamlphp/simplesamlphp": "<1.18.6",
+                "simplesamlphp/simplesamlphp-module-casserver": "<=7.0.2",
                 "simplesamlphp/simplesamlphp-module-infocard": "<1.0.1",
                 "simplesamlphp/simplesamlphp-module-openid": "<1",
                 "simplesamlphp/simplesamlphp-module-openidprovider": "<0.9",
@@ -4901,7 +4839,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-05-14T13:38:25+00:00"
+            "time": "2026-05-15T18:36:41+00:00"
         },
         {
             "name": "sanmai/di-container",

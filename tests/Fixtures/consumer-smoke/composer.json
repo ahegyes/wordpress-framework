@@ -23,6 +23,14 @@
     },
     {
       "type": "path",
+      "url": "../../../packages/shared",
+      "options": {
+        "symlink": false,
+        "versions": { "ahegyes/wp-framework-shared": "2.0.x-dev" }
+      }
+    },
+    {
+      "type": "path",
       "url": "../../../packages/utilities",
       "options": {
         "symlink": false,
@@ -51,6 +59,7 @@
     "ahegyes/wordpress-configs": "dev-trunk",
     "ahegyes/wp-framework-bootstrap": "^2.0@dev",
     "ahegyes/wp-framework-core": "^2.0@dev",
+    "ahegyes/wp-framework-shared": "^2.0@dev",
     "ahegyes/wp-framework-utilities": "^2.0@dev",
     "ahegyes/wp-framework-woocommerce": "^2.0@dev",
     "humbug/php-scoper": "^0.18",
@@ -62,18 +71,14 @@
   "prefer-stable": true,
 
   "autoload": {
-    "psr-4": {
-      "DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Core\\": "dependencies/ahegyes/wp-framework-core/src",
-      "DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Utilities\\": "dependencies/ahegyes/wp-framework-utilities/src",
-      "DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\WooCommerce\\": "dependencies/ahegyes/wp-framework-woocommerce/src",
-      "DWS_CONSUMER_SMOKE_Deps\\DI\\": "dependencies/php-di/php-di/src",
-      "DWS_CONSUMER_SMOKE_Deps\\Invoker\\": "dependencies/php-di/invoker/src",
-      "DWS_CONSUMER_SMOKE_Deps\\Laravel\\SerializableClosure\\": "dependencies/laravel/serializable-closure/src"
-    },
     "files": [
-      "dependencies/ahegyes/wp-framework-bootstrap/check-requirements.php",
-      "dependencies/php-di/php-di/src/functions.php"
+      "dependencies/scoper-autoload.php"
     ]
+  },
+
+  "extra": {
+    "scoped-dependencies-dir": "dependencies",
+    "scoping-prefix": "DWS_CONSUMER_SMOKE_Deps"
   },
 
   "scripts": {

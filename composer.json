@@ -69,6 +69,16 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
 
+  "autoload-dev": {
+    "psr-4": {
+      "DeepWebSolutions\\Framework\\Bootstrap\\Tests\\": "packages/bootstrap/tests/",
+      "DeepWebSolutions\\Framework\\Core\\Tests\\": "packages/core/tests/",
+      "DeepWebSolutions\\Framework\\Shared\\Tests\\": "packages/shared/tests/",
+      "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "packages/utilities/tests/",
+      "DeepWebSolutions\\Framework\\WooCommerce\\Tests\\": "packages/woocommerce/tests/"
+    }
+  },
+
   "scripts": {
     "generate-autoloader": "@composer dump-autoload --ignore-platform-reqs -o",
     "packages-install": "@composer install --ignore-platform-reqs --no-interaction",
@@ -92,7 +102,11 @@
       "@test:integration"
     ],
     "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
-    "test:integration": "npm --prefix=. run test:integration",
+    "test:integration": [
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:start",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration"
+    ],
     "test:mutation": "@php vendor/bin/infection --threads=max",
     "test:all": [
       "@test:unit",
@@ -102,42 +116,97 @@
 
     "quality-check": [
       "@lint:php",
-      "@test:unit"
+      "@test"
     ],
     "quality-check:all": [
       "@lint:php",
       "@test:all"
     ],
 
-    "changelog:add:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger add",
-    "changelog:add:core": "cd packages/core && ../../vendor/bin/changelogger add",
-    "changelog:add:shared": "cd packages/shared && ../../vendor/bin/changelogger add",
-    "changelog:add:utilities": "cd packages/utilities && ../../vendor/bin/changelogger add",
-    "changelog:add:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger add",
-    "changelog:validate": [
-      "@changelog:validate:bootstrap",
-      "@changelog:validate:core",
-      "@changelog:validate:shared",
-      "@changelog:validate:utilities",
-      "@changelog:validate:woocommerce"
+    "packages:bootstrap:test": [
+      "@packages:bootstrap:test:unit",
+      "@packages:bootstrap:test:integration"
     ],
-    "changelog:validate:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger validate",
-    "changelog:validate:core": "cd packages/core && ../../vendor/bin/changelogger validate",
-    "changelog:validate:shared": "cd packages/shared && ../../vendor/bin/changelogger validate",
-    "changelog:validate:utilities": "cd packages/utilities && ../../vendor/bin/changelogger validate",
-    "changelog:validate:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger validate",
-    "changelog:write": [
-      "@changelog:write:bootstrap",
-      "@changelog:write:core",
-      "@changelog:write:shared",
-      "@changelog:write:utilities",
-      "@changelog:write:woocommerce"
+    "packages:bootstrap:test:unit": "@php vendor/bin/phpunit packages/bootstrap/tests/Unit",
+    "packages:bootstrap:test:integration": [
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:start",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/bootstrap/tests/Integration"
     ],
-    "changelog:write:bootstrap": "cd packages/bootstrap && ../../vendor/bin/changelogger write",
-    "changelog:write:core": "cd packages/core && ../../vendor/bin/changelogger write",
-    "changelog:write:shared": "cd packages/shared && ../../vendor/bin/changelogger write",
-    "changelog:write:utilities": "cd packages/utilities && ../../vendor/bin/changelogger write",
-    "changelog:write:woocommerce": "cd packages/woocommerce && ../../vendor/bin/changelogger write"
+    "packages:bootstrap:changelog:add": "cd packages/bootstrap && ../../vendor/bin/changelogger add",
+    "packages:bootstrap:changelog:validate": "cd packages/bootstrap && ../../vendor/bin/changelogger validate",
+    "packages:bootstrap:changelog:write": "cd packages/bootstrap && ../../vendor/bin/changelogger write",
+
+    "packages:core:test": [
+      "@packages:core:test:unit",
+      "@packages:core:test:integration"
+    ],
+    "packages:core:test:unit": "@php vendor/bin/phpunit packages/core/tests/Unit",
+    "packages:core:test:integration": [
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:start",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/core/tests/Integration"
+    ],
+    "packages:core:changelog:add": "cd packages/core && ../../vendor/bin/changelogger add",
+    "packages:core:changelog:validate": "cd packages/core && ../../vendor/bin/changelogger validate",
+    "packages:core:changelog:write": "cd packages/core && ../../vendor/bin/changelogger write",
+
+    "packages:shared:test": [
+      "@packages:shared:test:unit",
+      "@packages:shared:test:integration"
+    ],
+    "packages:shared:test:unit": "@php vendor/bin/phpunit packages/shared/tests/Unit",
+    "packages:shared:test:integration": [
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:start",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/shared/tests/Integration"
+    ],
+    "packages:shared:changelog:add": "cd packages/shared && ../../vendor/bin/changelogger add",
+    "packages:shared:changelog:validate": "cd packages/shared && ../../vendor/bin/changelogger validate",
+    "packages:shared:changelog:write": "cd packages/shared && ../../vendor/bin/changelogger write",
+
+    "packages:utilities:test": [
+      "@packages:utilities:test:unit",
+      "@packages:utilities:test:integration"
+    ],
+    "packages:utilities:test:unit": "@php vendor/bin/phpunit packages/utilities/tests/Unit",
+    "packages:utilities:test:integration": [
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:start",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/utilities/tests/Integration"
+    ],
+    "packages:utilities:changelog:add": "cd packages/utilities && ../../vendor/bin/changelogger add",
+    "packages:utilities:changelog:validate": "cd packages/utilities && ../../vendor/bin/changelogger validate",
+    "packages:utilities:changelog:write": "cd packages/utilities && ../../vendor/bin/changelogger write",
+
+    "packages:woocommerce:test": [
+      "@packages:woocommerce:test:unit",
+      "@packages:woocommerce:test:integration"
+    ],
+    "packages:woocommerce:test:unit": "@php vendor/bin/phpunit packages/woocommerce/tests/Unit",
+    "packages:woocommerce:test:integration": [
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:start",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/woocommerce/tests/Integration"
+    ],
+    "packages:woocommerce:changelog:add": "cd packages/woocommerce && ../../vendor/bin/changelogger add",
+    "packages:woocommerce:changelog:validate": "cd packages/woocommerce && ../../vendor/bin/changelogger validate",
+    "packages:woocommerce:changelog:write": "cd packages/woocommerce && ../../vendor/bin/changelogger write",
+
+    "packages:changelog:validate": [
+      "@packages:bootstrap:changelog:validate",
+      "@packages:core:changelog:validate",
+      "@packages:shared:changelog:validate",
+      "@packages:utilities:changelog:validate",
+      "@packages:woocommerce:changelog:validate"
+    ],
+    "packages:changelog:write": [
+      "@packages:bootstrap:changelog:write",
+      "@packages:core:changelog:write",
+      "@packages:shared:changelog:write",
+      "@packages:utilities:changelog:write",
+      "@packages:woocommerce:changelog:write"
+    ]
   },
 
   "extra": {

@@ -4,6 +4,7 @@
         "directories": [
             "packages/bootstrap",
             "packages/core/src",
+            "packages/shared/src",
             "packages/utilities/src",
             "packages/woocommerce/src"
         ],

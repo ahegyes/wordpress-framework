@@ -4,20 +4,16 @@ on:
   push:
     branches: [trunk]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   unit:
     name: Unit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          coverage: none
-          tools: composer:v2
-      - uses: ramsey/composer-install@v4
-      - run: composer test:unit
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@trunk
+    with:
+      php-version: '8.5'
+      composer-script: 'test:unit'
+      needs-wp-env: false
 
   integration:
     name: Integration (${{ matrix.label }})
@@ -43,3 +39,48 @@ jobs:
       composer-script: 'test:integration'
       node-version: '24'
       wp-env-config-file: '.wp-env.tests.json'
+
+  smoke:
+    name: Consumer Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install consumer-smoke fixture
+        uses: ramsey/composer-install@v4
+        with:
+          working-directory: tests/Fixtures/consumer-smoke
+          composer-options: '--prefer-dist'
+
+      - name: Run smoke
+        working-directory: tests/Fixtures/consumer-smoke
+        run: composer smoke
+
+      - name: Assert scoped output sanity
+        working-directory: tests/Fixtures/consumer-smoke
+        run: |
+          set -e
+
+          diff vendor/php-di/php-di/src/Compiler/Template.php dependencies/php-di/php-di/src/Compiler/Template.php
+
+          if grep -rqF 'DWS_CONSUMER_SMOKE_Deps\WP_Error' dependencies/ahegyes/wp-framework-bootstrap/; then
+            echo "FAIL: WP_Error got prefixed inside scoped bootstrap" >&2
+            exit 1
+          fi
+
+          if ! grep -qF 'namespace DWS_CONSUMER_SMOKE_Deps\DeepWebSolutions\Framework\Core' dependencies/ahegyes/wp-framework-core/src/PluginKernel.php; then
+            echo "FAIL: PluginKernel.php missing scoped namespace declaration" >&2
+            exit 1
+          fi
+
+          if grep -qF 'DWS_CONSUMER_SMOKE_Deps\Psr\Container' dependencies/ahegyes/wp-framework-core/src/PluginKernel.php; then
+            echo "FAIL: Psr\\Container namespace got prefixed" >&2
+            exit 1
+          fi

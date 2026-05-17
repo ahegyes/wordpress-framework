@@ -19,11 +19,6 @@
   "require": {
     "php": ">=8.5"
   },
-  "require-dev": {
-    "ahegyes/wordpress-configs": "dev-trunk",
-    "johnpbloch/wordpress-core": "^7.0@dev",
-    "phpunit/phpunit": "^13"
-  },
 
   "minimum-stability": "dev",
   "prefer-stable": true,
@@ -33,18 +28,13 @@
       "DeepWebSolutions\\Framework\\Shared\\": "src/"
     },
     "files": [
-      "src/Reflection/functions.php"
+      "functions.php"
     ]
   },
   "autoload-dev": {
     "psr-4": {
       "DeepWebSolutions\\Framework\\Shared\\Tests\\": "tests/"
     }
-  },
-
-  "scripts": {
-    "test": "@php vendor/bin/phpunit",
-    "test:unit": "@php vendor/bin/phpunit --testsuite=Unit"
   },
 
   "extra": {
