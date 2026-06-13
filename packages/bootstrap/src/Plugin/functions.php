@@ -14,7 +14,7 @@ namespace DeepWebSolutions\Framework\Bootstrap\Plugin;
  * @param   string $plugin_basename Plugin file path relative to plugins dir.
  * @param   bool   $translate       Whether to translate plugin headers.
  *
- * @return  array<string, string>
+ * @return  array{Name: string, PluginURI: string, Version: string, Description: string, Author: string, AuthorURI: string, TextDomain: string, DomainPath: string, Network: bool, RequiresWP: string, RequiresPHP: string, UpdateURI: string, RequiresPlugins: string, Title: string, AuthorName: string}
  */
 function get_plugin_metadata( $plugin_basename, $translate = false ) {
 	static $cache = array();
