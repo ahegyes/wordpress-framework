@@ -12,3 +12,4 @@ Pending entries live in [`changelog/`](./changelog) — add via `composer change
 - **Hooks system** — multi-handler facade with pluggable routing strategies. Deprecated-hook dispatcher for preserving v1 hook surfaces.
 - **AdminNotices system** — in-memory notice queue rendered via WP's native admin notice API.
 - **Storage system** — key-value store interface with in-memory, wp_options, and user-meta backends.
+- **Conditionals system** — standard pre-resolution gates: dependency checks (plugin active, PHP/WP version, extension, function, ini size) and request-context checks (admin, AJAX, CLI, current-user capability).
