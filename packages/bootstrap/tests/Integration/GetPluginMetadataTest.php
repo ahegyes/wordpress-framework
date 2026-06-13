@@ -26,8 +26,8 @@ final class GetPluginMetadataTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'    => 'Original Name',
-				'Version' => '1.0.0',
+				'Plugin Name' => 'Original Name',
+				'Version'     => '1.0.0',
 			)
 		);
 
@@ -36,8 +36,8 @@ final class GetPluginMetadataTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'    => 'Mutated Name',
-				'Version' => '2.0.0',
+				'Plugin Name' => 'Mutated Name',
+				'Version'     => '2.0.0',
 			)
 		);
 
@@ -58,6 +58,9 @@ final class GetPluginMetadataTest extends TestCase {
 		self::assertSame( '', $metadata['Version'] );
 		self::assertSame( '', $metadata['RequiresPHP'] );
 		self::assertSame( '', $metadata['RequiresWP'] );
+		self::assertFalse( $metadata['Network'] );
+		// get_plugin_data() falls a missing TextDomain back to the plugin slug.
+		self::assertSame( 'dws-does-not-exist', $metadata['TextDomain'] );
 	}
 
 	public function test_translate_true_uses_separate_cache_key(): void {
@@ -65,8 +68,8 @@ final class GetPluginMetadataTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'    => 'Translate Original',
-				'Version' => '1.0.0',
+				'Plugin Name' => 'Translate Original',
+				'Version'     => '1.0.0',
 			)
 		);
 
@@ -75,8 +78,8 @@ final class GetPluginMetadataTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'    => 'Translate Mutated',
-				'Version' => '2.0.0',
+				'Plugin Name' => 'Translate Mutated',
+				'Version'     => '2.0.0',
 			)
 		);
 

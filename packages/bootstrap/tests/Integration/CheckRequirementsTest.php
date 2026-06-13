@@ -15,7 +15,7 @@ final class CheckRequirementsTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'              => 'Passes',
+				'Plugin Name'       => 'Passes',
 				'Version'           => '1.0.0',
 				'Requires PHP'      => '8.5',
 				'Requires at least' => '7.0',
@@ -30,7 +30,7 @@ final class CheckRequirementsTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'              => 'PHP Too New',
+				'Plugin Name'       => 'PHP Too New',
 				'Version'           => '1.0.0',
 				'Requires PHP'      => '99.99',
 				'Requires at least' => '7.0',
@@ -52,7 +52,7 @@ final class CheckRequirementsTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'              => 'WP Too New',
+				'Plugin Name'       => 'WP Too New',
 				'Version'           => '1.0.0',
 				'Requires PHP'      => '8.5',
 				'Requires at least' => '99.99',
@@ -74,7 +74,7 @@ final class CheckRequirementsTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'              => 'Both Too New',
+				'Plugin Name'       => 'Both Too New',
 				'Version'           => '1.0.0',
 				'Requires PHP'      => '99.99',
 				'Requires at least' => '99.99',
@@ -93,7 +93,7 @@ final class CheckRequirementsTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'              => 'PHP Low Min',
+				'Plugin Name'       => 'PHP Low Min',
 				'Version'           => '1.0.0',
 				'Requires PHP'      => '5.0',
 				'Requires at least' => '7.0',
@@ -108,7 +108,7 @@ final class CheckRequirementsTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'              => 'No PHP Header',
+				'Plugin Name'       => 'No PHP Header',
 				'Version'           => '1.0.0',
 				'Requires at least' => '7.0',
 			)
@@ -126,7 +126,7 @@ final class CheckRequirementsTest extends TestCase {
 		$this->write_fixture(
 			$basename,
 			array(
-				'Name'         => 'No WP Header',
+				'Plugin Name'  => 'No WP Header',
 				'Version'      => '1.0.0',
 				'Requires PHP' => '8.5',
 			)
