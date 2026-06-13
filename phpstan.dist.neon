@@ -2,7 +2,20 @@ includes:
     - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
 
 parameters:
+    # PHPStan does not expand globs in `paths`; each package is enumerated literally.
     paths:
-        - packages/*/functions.php
-        - packages/*/src
-        - packages/*/tests
+        - packages/bootstrap/functions.php
+        - packages/bootstrap/src
+        - packages/bootstrap/tests
+        - packages/shared/functions.php
+        - packages/shared/src
+        - packages/shared/tests
+        - packages/core/functions.php
+        - packages/core/src
+        - packages/core/tests
+        - packages/utilities/functions.php
+        - packages/utilities/src
+        - packages/utilities/tests
+        - packages/woocommerce/functions.php
+        - packages/woocommerce/src
+        - packages/woocommerce/tests
