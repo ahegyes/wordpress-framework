@@ -250,3 +250,76 @@ The framework ships no translation catalogs (i18n-catalogs-drop decision), but u
 The intended mechanism is a build-time php-scoper patcher that rewrites a framework token → the consumer's text domain at scope time (v1 did this via `$dws_framework_language_domains`; the v2 `wordpress-configs` scoper rewrite dropped it). The `"text-domain"` composer field already exists in the template + every plugin but is wired to nothing — a half-built feature. The framework's only translatable strings today are the 3 in `bootstrap/src/Notice/functions.php` (domain `'wp-framework-bootstrap'`, left as the patcher's find-target).
 
 **Deferred to a `wordpress-configs` task** (it belongs with the scoping pipeline, migration-plan Task 4.0; the framework has no real consumers until Phase 4 plugin migration, so nothing ships untranslatable provided the patcher lands by then). Do NOT scatter per-package runtime dynamic-domain reads instead — finish the one scope-time mechanism.
+
+### Bootstrap requirements API: explicit `check_requirements` chain, no `are_requirements_met()` (2026-05-17, promoted 2026-06-12)
+
+Gap-analysis #13 + #26; locked as triage decision 8 (promoted from the 2026-05-17 PM session handoff, marked do-not-re-litigate). Phase 0 already removed the stale `are_requirements_met` mention from the structure tree; this records the API and its rationale.
+
+`wp-framework-bootstrap` exposes a two-call requirements chain and ships **no** `are_requirements_met()` boolean wrapper:
+
+- `Requirements\check_requirements( string $plugin_basename ): true|\WP_Error` — `true` when the consumer's effective PHP/WP minimums (its `Requires PHP` / `Requires at least` headers, floored by `FRAMEWORK_MIN_PHP` / `FRAMEWORK_MIN_WP`) are met, otherwise a `\WP_Error` carrying `plugin_php_incompatible` / `plugin_wp_incompatible` codes, each with `min` + `current` data.
+- `Notice\output_requirements_error( string $plugin_basename, \WP_Error $error ): void` — hooks an `admin_notices` callback that renders those two codes; no-op on an empty bag. The renderer is locked to the PHP/WP codes it owns.
+
+A boolean wrapper would collapse the `WP_Error` to a bare `false`, discarding which requirement failed and the `min`/`current` data the renderer needs. The explicit chain hands the consumer the structured error so it can branch, layer its own gates (a WooCommerce-active check, a PHP-extension probe) before bailing, and still render the framework notice. Consumer entrypoints call the chain directly — `$req = check_requirements( $basename ); if ( $req instanceof \WP_Error ) { output_requirements_error( $basename, $req ); return; }` — ahead of autoload. The `wordpress-plugin-template` + all three plugins get rewired to this shape during migration (gap #25/#30).
+
+### v1 bootstrap-era extras: dropped (DWS defunct) (2026-06-12)
+
+Gap-analysis #23 + matrix rows 5/6/8/64; triage decision 5. v1 carried four bootstrap-era capability families — spread across the v1 `wordpress-framework-bootstrapper`, `-foundations`, and `-core` packages — that v2 does not port:
+
+- **Whitelabel / rebranding family** (`whitelabel.php` — `get_whitelabel_*` helpers referenced across the v1 plugin bootstraps) — DWS is defunct, so rebranding the framework's own admin output is meaningless.
+- **Temp / upload-dir constants trio** (`DWS_WP_FRAMEWORK_TEMP_DIR_PATH` & siblings) — already absent from v1's own abandoned 2.0 line (they survive only as stale plugin references); consumers derive paths via WP natives per the no-directory-assumptions rule.
+- **INIT-constant chain + `init_status` gating** (every v1 `bootstrap.php`; e.g. `wordpress-framework-foundations/bootstrap.php`) — replaced by the explicit `check_requirements()` chain (above) + `PluginKernel::run()`; the kernel's `$booted` guard is the only "already initialized" state v2 keeps.
+- **Init-failure output helper** (archived `wordpress-framework-core`'s `dws_wp_framework_output_initialization_error()` rendering `src/templates/initialization/error.php`, guarding a late call after `admin_notices` fires with `_doing_it_wrong`) — v2 folds requirement reporting into the single fixed `output_requirements_error()` renderer: no separate init-failure template, no timing guard, no template-extension hook surface.
+
+This drops these v1 bootstrap-era features. It does NOT touch v2's `wp-framework-bootstrap` package's PHP-5.6+/old-WP runtime-compatibility branches, which run before the version gate and are load-bearing — see the `project_bootstrap_legacy_runtime` decision; those stay.
+
+### Framework i18n translation catalogs: dropped (2026-06-12)
+
+Gap-analysis row 7; triage decision 5 (the DWS-defunct drop bundle, sibling to #23). The framework ships **no** `.pot`/`.po`/`.mo` files of its own. v1 loaded a per-package framework text domain at runtime in every package's `bootstrap.php` (`load_plugin_textdomain()`) and shipped catalogs (`.pot` plus translated `de_DE`/`ro_RO` for the bootstrapper); v2 drops both the catalogs and that loader machinery — a closed ecosystem (DWS defunct) with no external translators to keep them current. The framework's only user-facing strings are the three requirements-notice strings in `bootstrap/src/Notice/functions.php`.
+
+Those strings stay translatable — but under the **consumer plugin's** text domain, via the build-time php-scoper textdomain rewrite (the `wp-framework-*` → consumer-domain patcher), not a framework-owned catalog. See the "Framework i18n: consumer-domain via scope-time textdomain rewrite" block above for the mechanism. Catalog-drop and consumer-domain-rewrite are the two halves of one story: the framework owns no catalog; the consumer's catalog covers the rewritten strings.
+
+### Settings backends: ACF backend dropped (2026-06-12)
+
+Gap-analysis row 43 + #24; triage decision 5. v1's `ACFSettingsAdapter` has **zero** successor (IC/LO/LPM) usage — its apparent priority came only from non-successor plugins. v2 ships no ACF settings backend. The Spec C settings stack will define `WordPressSettingsBackend` (+ `WooCommerceSettingsBackend` — both still unwritten); MetaBox stays a planned on-demand backend (matrix row 44). ACF returns only if a wave-2 plugin that actually used it is revived, and then as a final backend against the Spec C contract — not the v1 adapter shape.
+
+### Shortcodes + templating services: dropped; wave-2 triggers pre-seeded (2026-06-12)
+
+Gap-analysis rows 54/55 + #24; triage decision 5. v1's `utilities/Shortcodes/` and `utilities/Templating/` services have **zero** successor usage (their high v1 import counts came from QR-WC / PPW, both wave-2). v2 ships neither service.
+
+Wave-2 re-entry triggers (recorded so the drop is reversible, not amnesia): a revived **QR-WC** registers shortcodes via direct `add_shortcode()` — no service indirection — and, if its frontend templating is real, gets a plugin-local template loader, promoted to a framework topic folder only at cross-plugin volume per the discover-on-demand helpers rule. Do not resurrect the v1 service shape.
+
+### Caching: lean `utilities/Caching/` built in Phase 1, not deferred (2026-06-12)
+
+Gap-analysis row 51 + #24; triage decision 4. The deliberate **exception** to the zero-successor drops above. v1's caching service also has zero *current* successor usage, but wave-2 (QR-WC / WR-WC) demand is certain from the archive call sites, so caching is built as a Phase-1 task rather than discover-on-demand — availability beats a later scramble when the consumer arrives (`feedback-build-ahead-when-demand-certain`).
+
+Planned shape (Task 1.2, design-bearing, not yet landed — mini-spec first): final classes, no facade. `TransientCache` (`get`/`set`/`delete`/`remember()`, per-plugin key prefix, versioned-group invalidation). The object cache stays **WP-native** — consumers call `wp_cache_*` directly, with `wp_cache_flush_group()` (WP 6.1+) for group invalidation; the framework does not wrap it. Task 1.2 carries the API-mapping table against the QR/WR v1 call sites.
+
+### Permissions-as-capabilities: in each plugin's Installer (2026-06-12)
+
+Gap-analysis #17 + matrix row 63; triage decision 1. The #1 successor-impact framework gap (v1 `AbstractPermissions*Functionality`: recursive collection, role `add_cap`/`remove_cap`, permission versioning + caching — 28 files / 51 hits across all three successors).
+
+v2 has no permissions framework. Capability grants live in each plugin's concrete `InstallerInterface` implementation: **grant on `install()` and `update()`, revoke on `uninstall()`** — not on deactivate, since capabilities persist across a deactivate/reactivate cycle, matching WP norms. IC's current activate-time grant gets realigned to this during its migration (Task 4.1). A shared caps-diff helper is carved out only on 2+-plugin duplication, not pre-built. The worked recipe (IC's capability list; the install/update/uninstall triplet) lives in the project vault.
+
+### Install / update: silent versioned migrations, notice on failure only (2026-06-12)
+
+Gap-analysis #18 + matrix row 61; triage decision 2. v1's `InstallationFunctionality` ran user-confirmed AJAX migrations with result notices. v2 migrations are **silent**: the kernel orchestrates install/update on boot (see the kernel-branch "Installer orchestration on boot" block — `run_installer()` compares stored vs current version, dispatches `install()`/`update( $from )`, persists only on success, retries on the next boot after a failure) and surfaces a notice **only when a migration fails**.
+
+There is no framework `InstallationManager` — an orchestrator in `utilities` was a migration-plan phantom (it would violate deptrac Core↛Utilities). The mechanism splits cleanly: the kernel (core) owns orchestration; each plugin's concrete `Installer` owns persistence (`{slug}_version` via `utilities` `OptionsStore`) and the failure-notice UX (a consumer-injected PSR-3 logger whose error handler queues a persistent `AdminNotice` — recipe in the project vault). `update()`'s migration steps MUST be idempotent — silent retry-on-boot depends on it. The worked recipe lives in the project vault alongside the permissions recipe (one `Installer` does both).
+
+### Concrete generic exceptions: deferred to first consumer (2026-06-12)
+
+Gap-analysis #22 + matrix row 24. v1 shipped five generic concrete exceptions. v2 `shared/Exception/` holds the interface + three abstract bases only and adds concretes back on demand. Add `final NotFoundException` and `final NotSupportedException` (each extending the fitting abstract) at the first consumer that throws them: `NotSupportedException` already has surviving-code precedent (v1 `DWS_Order_Node` / `DWS_Internal_Comment` models throw it), and `NotFoundException` is the likely first call for the stores/settings backends. The other three v1 concretes — `InexistentPropertyException`, `NotImplementedException`, `ReadOnlyPropertyException` — were thrown only by v1 framework constructs that v2 drops or redesigns (the validation handlers, the dependency-state / admin-notice / `*Aware` traits, the WC validated-options abstracts, the magic-property accessors), so they have no v2 home. Once concretes mix with the abstracts they nest in a plural `shared/Exception/Exceptions/` bag per the singular-concept / plural-bag rule; until then, no speculative classes.
+
+### WooCommerce package: version conditionals + `WC_Logger` PSR-3 adapter, on demand (2026-06-12)
+
+Gap-analysis #21 + matrix rows 65/66. The `woocommerce` package stays a skeleton until the first WC-plugin migration (LO-WC, Phase 4) creates real demand. Two WC helpers land then, both thin finals:
+
+- **WC version conditionals** — `Shared\Version\Version` covers version-compare mechanics, but WC's plugin-version and **db-version** checks (the latter has no analogue anywhere in v2) become `ConditionalInterface` implementations in the woocommerce package, mirroring the `utilities/Conditionals/Dependencies/` shape.
+- **`WC_Logger` PSR-3 bridge** — a thin `final` adapter implementing `Psr\Log\LoggerInterface` over WC's `WC_Logger` (v1's `WC_LoggingHandler`), so framework/plugin code logs through the standard PSR-3 surface and the kernel's optional logger can route to WC's log viewer.
+
+Both are trivial finals best shaped against their first real consumer, so they ride the LO-WC migration rather than being pre-built in the skeleton now.
+
+### wp-core-calls tooling: archived, not active (2026-06-12)
+
+Gap-analysis matrix row 9 (Codex round-3 adjudication). v1's `wp-core-calls.json` tooling (a bootstrapper/helpers composer hook generating a manifest of WP core calls) has no v2 home and is NOT carried by the active `wordpress-configs` — the only implementation lives in `Archive/Tools/wordpress-configs`, superseded. Status: archived-not-active; low priority. Re-enable in `wordpress-configs` only if the manifest proves wanted during migration. The earlier "lives in wordpress-configs" refutation overstated availability — it lives only in the archive.
