@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
-use DeepWebSolutions\Framework\Utilities\Storage\MemoryStore;
+use DeepWebSolutions\Framework\Storage\MemoryStore;
 
 /**
  * Collects admin notices across one or more named stores (in-memory, wp_options, user_meta) and

@@ -13,6 +13,8 @@ Only the latest release line of each package receives security updates:
 | Package                            | Supported version |
 | ---------------------------------- | ----------------- |
 | `ahegyes/wp-framework-bootstrap`   | latest 2.x        |
+| `ahegyes/wp-framework-shared`      | latest 2.x        |
+| `ahegyes/wp-framework-storage`     | latest 2.x        |
 | `ahegyes/wp-framework-core`        | latest 2.x        |
 | `ahegyes/wp-framework-utilities`   | latest 2.x        |
 | `ahegyes/wp-framework-woocommerce` | latest 2.x        |

@@ -5,6 +5,8 @@
 ## Affected packages
 
 - [ ] `wp-framework-bootstrap`
+- [ ] `wp-framework-shared`
+- [ ] `wp-framework-storage`
 - [ ] `wp-framework-core`
 - [ ] `wp-framework-utilities`
 - [ ] `wp-framework-woocommerce`

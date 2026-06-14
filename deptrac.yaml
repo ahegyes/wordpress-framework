@@ -3,6 +3,7 @@ deptrac:
     - ./packages/bootstrap
     - ./packages/core/src
     - ./packages/shared/src
+    - ./packages/storage/src
     - ./packages/utilities/src
     - ./packages/woocommerce/src
 
@@ -22,6 +23,11 @@ deptrac:
         - type: classLike
           value: '^DeepWebSolutions\\Framework\\Shared\\.*$'
 
+    - name: Storage
+      collectors:
+        - type: classLike
+          value: '^DeepWebSolutions\\Framework\\Storage\\.*$'
+
     - name: Core
       collectors:
         - type: classLike
@@ -39,17 +45,20 @@ deptrac:
 
   # Allowed direct dependencies per layer.
   # Shared is the WP-agnostic shared kernel — has zero deps and may be required directly by any layer above Bootstrap (Common Closure Principle).
+  # Storage is a second zero-dep leaf (KV storage backends; WP-runtime-coupled but no internal framework deps) — required directly by Utilities.
   # Bootstrap stays minimal (PHP 5.6+, pre-autoload) — cannot depend on Shared (PHP 8.5+).
   # Cross-layer shortcuts are forbidden (Utilities → Bootstrap directly is NOT allowed; must go through Core).
   ruleset:
     Bootstrap: ~
     Shared: ~
+    Storage: ~
     Core:
       - Bootstrap
       - Shared
     Utilities:
       - Core
       - Shared
+      - Storage
     WooCommerce:
       - Core
       - Shared

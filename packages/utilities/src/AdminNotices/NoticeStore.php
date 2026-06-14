@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
-use DeepWebSolutions\Framework\Utilities\Storage\KeyValueStoreInterface;
+use DeepWebSolutions\Framework\Storage\KeyValueStoreInterface;
 
 /**
  * Persists admin notices through any {@see KeyValueStoreInterface} backend (in-memory, wp_options,

@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
-use DeepWebSolutions\Framework\Utilities\Storage\UserMetaStore;
+use DeepWebSolutions\Framework\Storage\UserMetaStore;
 
 /**
  * Records, per user, which admin notices a user has dismissed, so a dismissed recurring notice is

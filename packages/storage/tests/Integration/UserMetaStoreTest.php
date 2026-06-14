@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Utilities\Tests\Integration\Storage;
+namespace DeepWebSolutions\Framework\Storage\Tests\Integration;
 
-use DeepWebSolutions\Framework\Utilities\Storage\UserMetaStore;
+use DeepWebSolutions\Framework\Storage\UserMetaStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

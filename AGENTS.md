@@ -1,10 +1,10 @@
 # wordpress-framework
 
-DWS v2 WordPress framework — monorepo for 5 packages (bootstrap, shared, core, utilities, woocommerce). Auto-splits to `wp-framework-*` mirrors via `.github/workflows/split-packages.yml` (splitsh-lite v1.0.1).
+DWS v2 WordPress framework — monorepo for 6 packages (bootstrap, shared, storage, core, utilities, woocommerce). Auto-splits to `wp-framework-*` mirrors via `.github/workflows/split-packages.yml` (splitsh-lite v1.0.1).
 
 ## Status
 
-`bootstrap`, `shared` (Error / Exception / Result / ValueObject scaffolding + Reflection helpers), `core`, and `utilities` (Hooks + AdminNotices + Storage + Conditionals) have implementations. `woocommerce` is a skeleton, awaiting implementation as plugin migration drives demand.
+`bootstrap`, `shared` (Error / Exception / Result / ValueObject scaffolding + Reflection helpers), `storage` (KeyValueStore + Memory / Options / UserMeta backends), `core`, and `utilities` (Hooks + AdminNotices + Conditionals + Caching) have implementations. `woocommerce` is a skeleton, awaiting implementation as plugin migration drives demand.
 
 ## Monorepo structure
 
@@ -26,6 +26,13 @@ wordpress-framework/
 │   │       ├── Result/        # AbstractResult + Success + Failure (sealed-type sim of Result<T, E>)
 │   │       ├── ValueObject/   # ValueObjectInterface + AbstractValueObject + Exceptions/InvalidValueObjectException
 │   │       └── Reflection/    # get_public_property_names + convert_to_primitives (underpin VO base)
+│   ├── storage/            # ahegyes/wp-framework-storage (PHP 8.5+, zero-dep leaf — KV storage backends)
+│   │   ├── functions.php      # autoload-files aggregator (placeholder; storage has no namespace functions yet)
+│   │   └── src/
+│   │       ├── KeyValueStoreInterface.php  # get/set/has/delete/get_all/clear contract
+│   │       ├── MemoryStore.php             # per-request array store
+│   │       ├── OptionsStore.php            # wp_options-backed (one row per store; autoload policy flag)
+│   │       └── UserMetaStore.php           # per-user meta-backed (optional explicit user id)
 │   ├── core/               # ahegyes/wp-framework-core
 │   │   ├── functions.php      # autoload-files aggregator (placeholder; core has no namespace functions yet)
 │   │   └── src/
@@ -38,10 +45,10 @@ wordpress-framework/
 │   │       ├── Enabled/EnabledInterface.php          # post-resolution gate (is_enabled; collapsed from rev-1 Active+Disabled)
 │   │       ├── Lifecycle/                   # per-action markers: Hookable/, Initializable/, Renderable/, Outputtable/
 │   │       └── Installer/                   # install/update/activate/deactivate/uninstall + version I/O (get/set stored, get current)
-│   ├── utilities/          # ahegyes/wp-framework-utilities (Hooks + AdminNotices + Storage + Conditionals)
+│   ├── utilities/          # ahegyes/wp-framework-utilities (Hooks + AdminNotices + Conditionals + Caching)
 │   └── woocommerce/        # ahegyes/wp-framework-woocommerce (skeleton)
 ├── tests/Fixtures/consumer-smoke/  # plugin-template-shaped scoping smoke fixture
-├── composer.json                   # path repos for all 5 packages + VCS for wordpress-configs + WP Packages registry for wp-plugin/woocommerce
+├── composer.json                   # path repos for all 6 packages + VCS for wordpress-configs + WP Packages registry for wp-plugin/woocommerce
 └── .github/workflows/
 ```
 
@@ -93,7 +100,7 @@ Locked in the framework kernel design spec (2026-05-14; design history archived 
 
 Consumer plugins define a `final class Plugin implements PluginInterface` (singleton-per-plugin, matches every successful WP plugin rewrite). `PluginKernel::run( Plugin::get_instance() )` is the canonical bootstrap call. The kernel is `final` — composition only, no inheritance.
 
-No abstract base class for Plugin. `KeyValueStoreInterface` moved from `core/` to `utilities/Storage/` to co-locate with its impls.
+No abstract base class for Plugin. `KeyValueStoreInterface` moved from `core/` to `utilities/Storage/` to co-locate with its impls. *(Superseded 2026-06-14, Task 3.0: the Storage module — `KeyValueStoreInterface` + the Memory/Options/UserMeta stores — was extracted to the `wp-framework-storage` package, namespace `…\Storage`.)*
 
 Rev-1 placed lifecycle interfaces in `core/src/Lifecycle/`: `HookableInterface`, `InitializableInterface`, `ActivatableInterface` (WP plugin activate/deactivate), `UninstallableInterface`, `RenderableInterface` (marker, no methods). *(Superseded — see rev-2 + as-built below: per-component `Activatable`/`Uninstallable` dropped, `activate`/`deactivate`/`uninstall` moved onto `InstallerInterface`; surviving markers are `Hookable`/`Initializable`/`Renderable`/`Outputtable`.)*
 
@@ -226,13 +233,13 @@ Refines the rev-2 block above with what the committed `PluginKernel` actually do
 
 **`is_enabled()` is a COARSE attach-time gate** — evaluated once at `plugins_loaded`, before the current user and other plugins' capability filters have settled. A component performing a privileged action MUST re-check the capability inside the hook callback; the enablement gate is not a substitute.
 
-**Installer orchestration on boot lives in the kernel (core)**, not a utilities orchestrator (the migration-plan "utilities `InstallationManager`" was a phantom — an orchestrator there would violate deptrac). Version I/O routes through three `InstallerInterface` methods — `get_current_version()` / `get_stored_version()` / `set_stored_version()` — keeping `boot()` WP-free (unit-testable, deptrac-clean: core must not depend on utilities). Persistence + failure-notice UX live in the consumer's concrete installer (which may legally depend on utilities); failure UX rides the optional PSR-3 logger.
+**Installer orchestration on boot lives in the kernel (core)**, not a utilities orchestrator (the migration-plan "utilities `InstallationManager`" was a phantom — an orchestrator there would violate deptrac). Version I/O routes through three `InstallerInterface` methods — `get_current_version()` / `get_stored_version()` / `set_stored_version()` — keeping `boot()` WP-free (unit-testable, deptrac-clean: core must not depend on utilities). Persistence + failure-notice UX live in the consumer's concrete installer (which may legally depend on storage for persistence and utilities for notices); failure UX rides the optional PSR-3 logger.
 
 **Activation wiring cannot live in `boot()`.** `register_activation_hook` only schedules a callback for the activation request, which fires during the plugin include — before any `plugins_loaded`-deferred `boot()`. So `PluginKernel::register_lifecycle_hooks( $plugin )` is static and called at plugin-include scope; it wires `activate( bool $network_wide )` / `deactivate( bool $network_deactivating )` to the plugin's installer.
 
 ### utilities phase-0 land + harden (2026-06-13)
 
-Landed the implemented-but-unreviewed `utilities` package (Hooks, AdminNotices, Storage, Conditionals) per migration-plan Tasks 0.4–0.6, treating every line as new work. Decisions, verified against `packages/utilities/src/`:
+Landed the implemented-but-unreviewed `utilities` package (Hooks, AdminNotices, Storage, Conditionals) per migration-plan Tasks 0.4–0.6, treating every line as new work. Decisions, verified against `packages/utilities/src/`: *(Storage was later extracted to the `wp-framework-storage` package — 2026-06-14, Task 3.0; the Storage decisions below hold there unchanged, namespace `…\Storage`.)*
 
 - **Storage null-correctness:** all three stores use `array_key_exists()`, not `?? $default` — a key stored as `null` returns `null`, not the default (which would contradict `has()`).
 - **`UserMetaStore` per-user targeting is concrete-only.** `set/get/has/delete/get_all/clear` take a trailing optional `int $user_id = 0` (0 ⇒ current user; the anonymous guard is `< 1` after resolution). This widens the implementations but is NOT lifted to `KeyValueStoreInterface` (meaningless for Memory/Options) — callers targeting another user typehint the concrete store.
@@ -305,7 +312,7 @@ v2 has no permissions framework. Capability grants live in each plugin's concret
 
 Gap-analysis #18 + matrix row 61; triage decision 2. v1's `InstallationFunctionality` ran user-confirmed AJAX migrations with result notices. v2 migrations are **silent**: the kernel orchestrates install/update on boot (see the kernel-branch "Installer orchestration on boot" block — `run_installer()` compares stored vs current version, dispatches `install()`/`update( $from )`, persists only on success, retries on the next boot after a failure) and surfaces a notice **only when a migration fails**.
 
-There is no framework `InstallationManager` — an orchestrator in `utilities` was a migration-plan phantom (it would violate deptrac Core↛Utilities). The mechanism splits cleanly: the kernel (core) owns orchestration; each plugin's concrete `Installer` owns persistence (`{slug}_version` via `utilities` `OptionsStore`) and the failure-notice UX (a consumer-injected PSR-3 logger whose error handler queues a persistent `AdminNotice` — recipe in the project vault). `update()`'s migration steps MUST be idempotent — silent retry-on-boot depends on it. The worked recipe lives in the project vault alongside the permissions recipe (one `Installer` does both).
+There is no framework `InstallationManager` — an orchestrator in `utilities` was a migration-plan phantom (it would violate deptrac Core↛Utilities). The mechanism splits cleanly: the kernel (core) owns orchestration; each plugin's concrete `Installer` owns persistence (`{slug}_version` via the `storage` package's `OptionsStore`) and the failure-notice UX (a consumer-injected PSR-3 logger whose error handler queues a persistent `AdminNotice` — recipe in the project vault). `update()`'s migration steps MUST be idempotent — silent retry-on-boot depends on it. The worked recipe lives in the project vault alongside the permissions recipe (one `Installer` does both).
 
 ### Concrete generic exceptions: deferred to first consumer (2026-06-12)
 

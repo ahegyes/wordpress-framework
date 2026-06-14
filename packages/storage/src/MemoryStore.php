@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Utilities\Storage;
+namespace DeepWebSolutions\Framework\Storage;
 
 /**
  * In-memory key-value store. State lives in PHP memory for the duration of the request.

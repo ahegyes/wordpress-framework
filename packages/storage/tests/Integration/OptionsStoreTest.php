@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Utilities\Tests\Integration\Storage;
+namespace DeepWebSolutions\Framework\Storage\Tests\Integration;
 
-use DeepWebSolutions\Framework\Utilities\Storage\OptionsStore;
+use DeepWebSolutions\Framework\Storage\OptionsStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -75,5 +75,23 @@ final class OptionsStoreTest extends TestCase {
 
 		self::assertSame( array(), $store->get_all() );
 		self::assertSame( 'default', $store->get( 'k', 'default' ) );
+	}
+
+	public function test_autoload_false_persists_value_without_autoloading(): void {
+		( new OptionsStore( self::OPTION_KEY, autoload: false ) )->set( 'k', 'v' );
+
+		// The value still round-trips across instances...
+		self::assertSame( 'v', ( new OptionsStore( self::OPTION_KEY ) )->get( 'k' ) );
+
+		// ...but the option is excluded from the autoloaded set.
+		\wp_cache_delete( 'alloptions', 'options' );
+		self::assertArrayNotHasKey( self::OPTION_KEY, \wp_load_alloptions() );
+	}
+
+	public function test_autoload_true_is_autoloaded(): void {
+		( new OptionsStore( self::OPTION_KEY, autoload: true ) )->set( 'k', 'v' );
+
+		\wp_cache_delete( 'alloptions', 'options' );
+		self::assertArrayHasKey( self::OPTION_KEY, \wp_load_alloptions() );
 	}
 }

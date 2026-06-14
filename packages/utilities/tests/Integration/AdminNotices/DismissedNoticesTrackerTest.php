@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Utilities\Tests\Integration\AdminNotices;
 
 use DeepWebSolutions\Framework\Utilities\AdminNotices\DismissedNoticesTracker;
-use DeepWebSolutions\Framework\Utilities\Storage\UserMetaStore;
+use DeepWebSolutions\Framework\Storage\UserMetaStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

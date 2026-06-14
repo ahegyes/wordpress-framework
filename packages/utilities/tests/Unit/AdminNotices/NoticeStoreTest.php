@@ -5,7 +5,7 @@ namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\AdminNotices;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\NoticeType;
-use DeepWebSolutions\Framework\Utilities\Storage\MemoryStore;
+use DeepWebSolutions\Framework\Storage\MemoryStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

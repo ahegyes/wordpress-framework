@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\Storage;
+namespace DeepWebSolutions\Framework\Storage\Tests\Unit;
 
-use DeepWebSolutions\Framework\Utilities\Storage\MemoryStore;
+use DeepWebSolutions\Framework\Storage\MemoryStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

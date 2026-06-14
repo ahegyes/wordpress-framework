@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b62749defe24c99aec1ac63572e4bb43",
+    "content-hash": "862321dac112d751f85556473f0464d5",
     "packages": [
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -227,15 +227,91 @@
             }
         },
         {
+            "name": "ahegyes/wp-framework-storage",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/storage",
+                "reference": "bca0455241dd8fdfa8de5995904a19341d5c1107"
+            },
+            "require": {
+                "php": ">=8.5"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.0.x-dev"
+                },
+                "scoping-stubs": [
+                    "php-stubs/wordpress-stubs"
+                ],
+                "changelogger": {
+                    "versioning": "semver",
+                    "changelog": "CHANGELOG.md",
+                    "changes-dir": "changelog",
+                    "default-type": "changed",
+                    "types": {
+                        "added": "Added",
+                        "changed": "Changed",
+                        "deprecated": "Deprecated",
+                        "removed": "Removed",
+                        "fixed": "Fixed",
+                        "security": "Security"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\Storage\\": "src/"
+                },
+                "files": [
+                    "functions.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\Storage\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
+                }
+            ],
+            "description": "Key-value storage backends — in-memory, wp_options, and user-meta — for WordPress plugins built on the DWS framework.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "keywords": [
+                "framework",
+                "key-value",
+                "storage",
+                "wordpress",
+                "wordpress-plugin"
+            ],
+            "support": {
+                "issues": "https://github.com/ahegyes/wordpress-framework/issues",
+                "source": "https://github.com/ahegyes/wordpress-framework"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "ahegyes/wp-framework-utilities",
             "version": "dev-trunk",
             "dist": {
                 "type": "path",
                 "url": "packages/utilities",
-                "reference": "3094327ef3348db75196cab6626570ee6f1c417b"
+                "reference": "274495096e66b5e9b1d0a7020c75f1318638eb10"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
+                "ahegyes/wp-framework-shared": "^2.0@dev",
+                "ahegyes/wp-framework-storage": "^2.0@dev",
                 "php": ">=8.5"
             },
             "type": "library",
@@ -283,7 +359,7 @@
                     "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
                 }
             ],
-            "description": "Hooks, admin notices, and key-value storage backends for WordPress plugins built on the DWS framework.",
+            "description": "Hooks, admin notices, caching, and conditionals for WordPress plugins built on the DWS framework.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "keywords": [
                 "admin-notices",
@@ -8427,6 +8503,7 @@
         "ahegyes/wp-framework-bootstrap": 20,
         "ahegyes/wp-framework-core": 20,
         "ahegyes/wp-framework-shared": 20,
+        "ahegyes/wp-framework-storage": 20,
         "ahegyes/wp-framework-utilities": 20,
         "ahegyes/wp-framework-woocommerce": 20,
         "johnpbloch/wordpress-core": 20

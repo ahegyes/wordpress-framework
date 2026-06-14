@@ -10,6 +10,9 @@ parameters:
         - packages/shared/functions.php
         - packages/shared/src
         - packages/shared/tests
+        - packages/storage/functions.php
+        - packages/storage/src
+        - packages/storage/tests
         - packages/core/functions.php
         - packages/core/src
         - packages/core/tests

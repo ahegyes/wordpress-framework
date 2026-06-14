@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Utilities\Storage;
+namespace DeepWebSolutions\Framework\Storage;
 
 /**
  * Per-user key-value store backed by WordPress user_meta.

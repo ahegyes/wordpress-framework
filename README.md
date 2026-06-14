@@ -4,14 +4,15 @@ A modern, modular framework for building WordPress plugins. Composer-only librar
 
 ## Architecture
 
-Monorepo publishing five Composer packages:
+Monorepo publishing six Composer packages:
 
 | Package                            | Purpose                                                                          | PHP min |
 | ---------------------------------- | -------------------------------------------------------------------------------- | ------- |
 | `ahegyes/wp-framework-bootstrap`   | Pre-autoload PHP/WP version check with graceful admin-notice fallback.           | 5.6     |
 | `ahegyes/wp-framework-shared`      | Substrate primitives: result/value-object patterns, error/exception scaffolding. | 8.5     |
+| `ahegyes/wp-framework-storage`     | Key-value storage backends: in-memory, wp_options, and user-meta.                | 8.5     |
 | `ahegyes/wp-framework-core`        | Plugin kernel, lifecycle and state interfaces, two-pass boot dispatch.           | 8.5     |
-| `ahegyes/wp-framework-utilities`   | Hooks, admin notices, and key-value storage backends.                            | 8.5     |
+| `ahegyes/wp-framework-utilities`   | Hooks, admin notices, caching, and conditionals.                                 | 8.5     |
 | `ahegyes/wp-framework-woocommerce` | WooCommerce settings backend and WC-aware helpers.                               | 8.5     |
 
 The `bootstrap` package runs before any modern PHP 8.5+ code parses, so consumer plugins on incompatible runtimes get a graceful admin notice instead of a fatal error.
@@ -61,4 +62,4 @@ Both unit and integration test suites share a single `tests/bootstrap.php` that 
 
 ## History
 
-This framework is a ground-up rewrite of the DWS WordPress framework v1, developed at Deep Web Solutions GmbH (now defunct). v1 spread across 7 archived packages (`wordpress-framework-{bootstrapper,helpers,core,utilities,settings,woocommerce,foundations}`) under the [`deep-web-solutions` GitHub org](https://github.com/orgs/deep-web-solutions/repositories?q=wordpress-framework). v2 reorganizes into 5 packages with composition over inheritance, PSR-11 wiring throughout, and a clear substrate-vs-WP-aware boundary between `shared` and the rest.
+This framework is a ground-up rewrite of the DWS WordPress framework v1, developed at Deep Web Solutions GmbH (now defunct). v1 spread across 7 archived packages (`wordpress-framework-{bootstrapper,helpers,core,utilities,settings,woocommerce,foundations}`) under the [`deep-web-solutions` GitHub org](https://github.com/orgs/deep-web-solutions/repositories?q=wordpress-framework). v2 reorganizes into 6 packages with composition over inheritance, PSR-11 wiring throughout, and a clear substrate-vs-WP-aware boundary between `shared` and the rest.

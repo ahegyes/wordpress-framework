@@ -21,6 +21,7 @@ jobs:
           - { dir: 'bootstrap',   repo: 'wp-framework-bootstrap' }
           - { dir: 'core',        repo: 'wp-framework-core' }
           - { dir: 'shared',      repo: 'wp-framework-shared' }
+          - { dir: 'storage',     repo: 'wp-framework-storage' }
           - { dir: 'utilities',   repo: 'wp-framework-utilities' }
           - { dir: 'woocommerce', repo: 'wp-framework-woocommerce' }
     steps:

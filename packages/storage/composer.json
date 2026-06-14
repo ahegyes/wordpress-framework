@@ -1,6 +1,6 @@
 {
-  "name": "ahegyes/wp-framework-utilities",
-  "description": "Hooks, admin notices, caching, and conditionals for WordPress plugins built on the DWS framework.",
+  "name": "ahegyes/wp-framework-storage",
+  "description": "Key-value storage backends — in-memory, wp_options, and user-meta — for WordPress plugins built on the DWS framework.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -10,17 +10,14 @@
       "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
     }
   ],
-  "keywords": ["wordpress", "wordpress-plugin", "framework", "hooks", "admin-notices"],
+  "keywords": ["wordpress", "wordpress-plugin", "framework", "storage", "key-value"],
   "support": {
     "issues": "https://github.com/ahegyes/wordpress-framework/issues",
     "source": "https://github.com/ahegyes/wordpress-framework"
   },
 
   "require": {
-    "php": ">=8.5",
-    "ahegyes/wp-framework-core": "^2.0@dev",
-    "ahegyes/wp-framework-shared": "^2.0@dev",
-    "ahegyes/wp-framework-storage": "^2.0@dev"
+    "php": ">=8.5"
   },
 
   "minimum-stability": "dev",
@@ -28,7 +25,7 @@
 
   "autoload": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Utilities\\": "src/"
+      "DeepWebSolutions\\Framework\\Storage\\": "src/"
     },
     "files": [
       "functions.php"
@@ -36,7 +33,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "tests/"
+      "DeepWebSolutions\\Framework\\Storage\\Tests\\": "tests/"
     }
   },
 

@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Utilities\Storage;
+namespace DeepWebSolutions\Framework\Storage;
 
 /**
  * Cross-request key-value store backed by the WordPress options table.
@@ -8,6 +8,7 @@ namespace DeepWebSolutions\Framework\Utilities\Storage;
  * Each instance owns one wp_options row, identified by an option key passed at construction.
  * All entries for that store are serialized into a single array stored under that option.
  * State persists site-wide across requests and survives plugin deactivation unless cleared.
+ * The option's autoload policy is configurable at construction; by default WordPress decides.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -26,9 +27,11 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   string $option_key Option key under which all entries for this store live.
+	 * @param   ?bool  $autoload   Autoload policy for the option row: true/false to force, null to let WordPress decide.
 	 */
 	public function __construct(
 		private string $option_key,
+		private ?bool $autoload = null,
 	) {}
 
 	// endregion
@@ -131,7 +134,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @param   array<string, T> $entries Entries to persist.
 	 */
 	private function save( array $entries ): void {
-		\update_option( $this->option_key, $entries );
+		\update_option( $this->option_key, $entries, $this->autoload );
 	}
 
 	// endregion

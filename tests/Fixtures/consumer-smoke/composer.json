@@ -31,6 +31,14 @@
     },
     {
       "type": "path",
+      "url": "../../../packages/storage",
+      "options": {
+        "symlink": false,
+        "versions": { "ahegyes/wp-framework-storage": "2.0.x-dev" }
+      }
+    },
+    {
+      "type": "path",
       "url": "../../../packages/utilities",
       "options": {
         "symlink": false,
@@ -60,6 +68,7 @@
     "ahegyes/wp-framework-bootstrap": "^2.0@dev",
     "ahegyes/wp-framework-core": "^2.0@dev",
     "ahegyes/wp-framework-shared": "^2.0@dev",
+    "ahegyes/wp-framework-storage": "^2.0@dev",
     "ahegyes/wp-framework-utilities": "^2.0@dev",
     "ahegyes/wp-framework-woocommerce": "^2.0@dev",
     "humbug/php-scoper": "^0.18",
