@@ -25,11 +25,6 @@ function get_plugin_metadata( $plugin_basename, $translate = false ) {
 		$plugin_file = WP_PLUGIN_DIR . '/' . $plugin_basename;
 
 		if ( ! \is_readable( $plugin_file ) ) {
-			// get_plugin_data() reads the file with file_get_contents(), which emits an
-			// E_WARNING for a missing or unreadable plugin. Return the shape it produces
-			// for a header-less file — including its slug-derived TextDomain fallback —
-			// without the warning.
-			$text_domain = '';
 			$plugin_slug = \dirname( $plugin_basename );
 			if ( '.' !== $plugin_slug && false === \strpos( $plugin_slug, '/' ) ) {
 				$text_domain = $plugin_slug;
@@ -42,7 +37,7 @@ function get_plugin_metadata( $plugin_basename, $translate = false ) {
 				'Description'     => '',
 				'Author'          => '',
 				'AuthorURI'       => '',
-				'TextDomain'      => $text_domain,
+				'TextDomain'      => $text_domain ?? '',
 				'DomainPath'      => '',
 				'Network'         => false,
 				'RequiresWP'      => '',
