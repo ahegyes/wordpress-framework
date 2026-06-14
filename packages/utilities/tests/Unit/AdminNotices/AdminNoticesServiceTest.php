@@ -98,4 +98,33 @@ final class AdminNoticesServiceTest extends TestCase {
 		self::assertFalse( $service->stores['memory']->has( 'x' ) );
 		self::assertTrue( $service->stores['extra']->has( 'x' ) );
 	}
+
+	public function test_get_dismiss_action_returns_the_configured_action(): void {
+		$service = new AdminNoticesService( null, null, 'dws_test_dismiss_notice' );
+
+		self::assertSame( 'dws_test_dismiss_notice', $service->get_dismiss_action() );
+	}
+
+	public function test_get_dismiss_action_is_null_when_unconfigured(): void {
+		self::assertNull( ( new AdminNoticesService() )->get_dismiss_action() );
+	}
+
+	public function test_print_dismiss_script_is_noop_without_a_dismiss_action(): void {
+		$service = new AdminNoticesService();
+
+		\ob_start();
+		$service->print_dismiss_script();
+
+		self::assertSame( '', (string) \ob_get_clean() );
+	}
+
+	public function test_print_dismiss_script_is_noop_without_a_tracker(): void {
+		// Action set but no tracker means nowhere to record a dismissal, so nothing is printed.
+		$service = new AdminNoticesService( null, null, 'dws_test_dismiss_notice' );
+
+		\ob_start();
+		$service->print_dismiss_script();
+
+		self::assertSame( '', (string) \ob_get_clean() );
+	}
 }

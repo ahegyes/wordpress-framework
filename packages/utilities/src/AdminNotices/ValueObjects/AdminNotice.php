@@ -23,7 +23,7 @@ final readonly class AdminNotice {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string     $id            Unique identifier (used for dismissal tracking, storage keying, and removal).
+	 * @param   string     $id            Unique identifier (used for dismissal tracking, storage keying, and removal). Keep it sanitize_key-stable (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips.
 	 * @param   string     $message       Notice message (inline HTML allowed; sanitized and paragraph-wrapped at render time).
 	 * @param   NoticeType $type          Severity level. Defaults to NoticeType::Info.
 	 * @param   bool       $dismissible   Whether the notice shows a dismiss button. Defaults to true.

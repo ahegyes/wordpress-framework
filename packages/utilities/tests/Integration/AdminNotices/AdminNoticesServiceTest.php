@@ -23,8 +23,9 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( OptionsStore::class )]
 #[UsesClass( UserMetaStore::class )]
 final class AdminNoticesServiceTest extends TestCase {
-	private const NOTICE_KEY  = 'dws_test_service_notices';
-	private const DISMISS_KEY = 'dws_test_service_dismissed';
+	private const NOTICE_KEY     = 'dws_test_service_notices';
+	private const DISMISS_KEY    = 'dws_test_service_dismissed';
+	private const DISMISS_ACTION = 'dws_test_dismiss_notice';
 
 	private int $admin_a;
 	private int $admin_b;
@@ -39,6 +40,7 @@ final class AdminNoticesServiceTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		unset( $_POST['id'], $_REQUEST['_wpnonce'], $_REQUEST['_ajax_nonce'] );
 		\wp_set_current_user( $this->original_user );
 		\delete_option( self::NOTICE_KEY );
 		$this->delete_user( $this->admin_a );
@@ -185,6 +187,198 @@ final class AdminNoticesServiceTest extends TestCase {
 		} finally {
 			\remove_action( 'doing_it_wrong_run', $spy );
 			\remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		}
+	}
+
+	public function test_render_emits_notice_id_and_scopes_dismiss_action_when_configured(): void {
+		$with = $this->transport_service();
+		$with->add_notice(
+			new AdminNotice( 'setup', 'Configure me.', NoticeType::Warning, is_persistent: true ),
+			'user-meta',
+		);
+		$with_output = $this->capture_render( $with );
+
+		self::assertStringContainsString( 'data-notice-id="setup"', $with_output );
+		self::assertStringContainsString( 'data-dismiss-action="' . self::DISMISS_ACTION . '"', $with_output );
+
+		$without = new AdminNoticesService();
+		$without->add_notice( new AdminNotice( 'plain', 'No transport here.' ) );
+		$without_output = $this->capture_render( $without );
+
+		self::assertStringContainsString( 'data-notice-id="plain"', $without_output );
+		self::assertStringNotContainsString( 'data-dismiss-action', $without_output );
+	}
+
+	public function test_print_dismiss_script_emits_a_scoped_listener_with_action_and_nonce(): void {
+		\ob_start();
+		$this->transport_service()->print_dismiss_script();
+		$output = (string) \ob_get_clean();
+
+		self::assertStringContainsString( '<script', $output );
+		self::assertStringContainsString( self::DISMISS_ACTION, $output );
+		self::assertStringContainsString( 'data-dismiss-action', $output );
+		self::assertStringContainsString( 'data-notice-id', $output );
+		self::assertStringContainsString( '_wpnonce', $output );
+		self::assertStringContainsString( 'URLSearchParams', $output );
+		self::assertStringContainsString( '"POST"', $output );
+		self::assertStringContainsString( 'same-origin', $output );
+		// The POST body must carry all three fields; assert the action and id mappings, not just _wpnonce.
+		self::assertStringContainsString( 'action: action', $output );
+		self::assertStringContainsString( 'id: id', $output );
+	}
+
+	public function test_two_services_print_independently_scoped_scripts(): void {
+		$alpha = new AdminNoticesService( null, $this->tracker(), 'dws_alpha_dismiss' );
+		$beta  = new AdminNoticesService( null, $this->tracker(), 'dws_beta_dismiss' );
+
+		\ob_start();
+		$alpha->print_dismiss_script();
+		$alpha_output = (string) \ob_get_clean();
+
+		\ob_start();
+		$beta->print_dismiss_script();
+		$beta_output = (string) \ob_get_clean();
+
+		self::assertStringContainsString( 'dws_alpha_dismiss', $alpha_output );
+		self::assertStringNotContainsString( 'dws_beta_dismiss', $alpha_output );
+		self::assertStringContainsString( 'dws_beta_dismiss', $beta_output );
+		self::assertStringNotContainsString( 'dws_alpha_dismiss', $beta_output );
+	}
+
+	public function test_handle_dismiss_records_dismissal_with_a_valid_nonce(): void {
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'dep_woocommerce';
+
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		self::assertTrue( $this->tracker()->is_dismissed( 'dep_woocommerce' ) );
+	}
+
+	public function test_handle_dismiss_ignores_an_invalid_nonce(): void {
+		$_REQUEST['_wpnonce'] = 'not-a-valid-nonce';
+		$_POST['id']          = 'dep_woocommerce';
+
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		self::assertFalse( $this->tracker()->is_dismissed( 'dep_woocommerce' ) );
+	}
+
+	public function test_handle_dismiss_ignores_a_logged_out_user(): void {
+		\wp_set_current_user( 0 );
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'dep_woocommerce';
+
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		\wp_set_current_user( $this->admin_a );
+		self::assertFalse( $this->tracker()->is_dismissed( 'dep_woocommerce' ) );
+	}
+
+	public function test_handle_dismiss_with_a_missing_id_records_nothing_and_does_not_warn(): void {
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+
+		// No $_POST['id']: the ?? '' guard avoids an undefined-index warning (the suite fails on warnings).
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		self::assertFalse( $this->tracker()->is_dismissed( 'dep_woocommerce' ) );
+	}
+
+	public function test_handle_dismiss_records_a_well_formed_but_never_rendered_id(): void {
+		// The endpoint is self-scoped and idempotent: it records any well-formed ID the caller posts,
+		// even one never rendered to them — bounded to their own user meta, a no-op they never see.
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'never_rendered';
+
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		self::assertTrue( $this->tracker()->is_dismissed( 'never_rendered' ) );
+	}
+
+	public function test_handle_dismiss_without_a_transport_records_nothing(): void {
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'dep_woocommerce';
+
+		$this->run_until_wp_die( fn() => ( new AdminNoticesService() )->handle_dismiss() );
+
+		self::assertFalse( $this->tracker()->is_dismissed( 'dep_woocommerce' ) );
+	}
+
+	public function test_endpoint_dismissal_suppresses_the_notice_on_the_next_render(): void {
+		$this->transport_service()->add_notice(
+			new AdminNotice( 'dep_wc', 'WooCommerce is required.', NoticeType::Error, is_persistent: true ),
+			'user-meta',
+		);
+
+		$first = $this->capture_render( $this->transport_service() );
+		self::assertStringContainsString( 'WooCommerce is required.', $first );
+		self::assertStringContainsString( 'data-notice-id="dep_wc"', $first );
+
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'dep_wc';
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		self::assertSame( '', $this->capture_render( $this->transport_service() ) );
+		// Suppression is not removal — the persistent row survives.
+		self::assertTrue( $this->transport_service()->stores['user-meta']->has( 'dep_wc' ) );
+	}
+
+	public function test_render_scopes_dismiss_action_only_for_sticky_notices(): void {
+		$service = $this->transport_service();
+		$service->add_notice(
+			new AdminNotice( 'sticky_dep', 'Sticky.', NoticeType::Warning, dismissible: true, is_persistent: true ),
+			'user-meta',
+		);
+		$service->add_notice(
+			new AdminNotice( 'flash_msg', 'Flash.', NoticeType::Info, dismissible: true, is_persistent: false ),
+			'user-meta',
+		);
+
+		$output = $this->capture_render( $service );
+
+		// The sticky notice carries the transport marker; the one-shot is never tracker-gated, so it must not.
+		self::assertMatchesRegularExpression( '/data-notice-id="sticky_dep"[^>]*data-dismiss-action/', $output );
+		self::assertStringContainsString( 'data-notice-id="flash_msg"', $output );
+		self::assertDoesNotMatchRegularExpression( '/data-notice-id="flash_msg"[^>]*data-dismiss-action/', $output );
+	}
+
+	public function test_handle_dismiss_rejects_a_non_sanitize_key_stable_id(): void {
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'Mixed_Case';
+
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		// Rejected without lossy normalization: neither the raw nor a lowercased key is recorded.
+		self::assertFalse( $this->tracker()->is_dismissed( 'Mixed_Case' ) );
+		self::assertFalse( $this->tracker()->is_dismissed( 'mixed_case' ) );
+	}
+
+	private function transport_service(): AdminNoticesService {
+		return new AdminNoticesService(
+			array( 'user-meta' => new NoticeStore( new UserMetaStore( self::NOTICE_KEY ) ) ),
+			$this->tracker(),
+			self::DISMISS_ACTION,
+		);
+	}
+
+	// Runs a callable expected to terminate via wp_die(), trapping the exit so the test can assert side
+	// effects; swaps the WP die handlers for a thrower for the duration of the call.
+	private function run_until_wp_die( callable $fn ): void {
+		$thrower = static fn() => static function (): void {
+			throw new \RuntimeException( '__dws_wp_die__' );
+		};
+		\add_filter( 'wp_die_handler', $thrower );
+		\add_filter( 'wp_die_ajax_handler', $thrower );
+
+		try {
+			$fn();
+			self::fail( 'Expected wp_die() to terminate the request.' );
+		} catch ( \RuntimeException $e ) {
+			if ( '__dws_wp_die__' !== $e->getMessage() ) {
+				throw $e;
+			}
+		} finally {
+			\remove_filter( 'wp_die_handler', $thrower );
+			\remove_filter( 'wp_die_ajax_handler', $thrower );
 		}
 	}
 
