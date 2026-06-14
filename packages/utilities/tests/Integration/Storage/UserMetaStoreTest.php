@@ -124,6 +124,15 @@ final class UserMetaStoreTest extends TestCase {
 		self::assertSame( 'default', $store->get( 'k', 'default' ) );
 	}
 
+	public function test_preserves_backslashes_in_stored_string_values(): void {
+		$store = new UserMetaStore( self::META_KEY );
+		$store->set( 'path', 'C:\\Users\\dev\\file.txt' );
+
+		// update_user_meta() runs the value through wp_unslash(); without a compensating wp_slash()
+		// the backslashes would be stripped to 'C:Usersdevfile.txt'.
+		self::assertSame( 'C:\\Users\\dev\\file.txt', $store->get( 'path' ) );
+	}
+
 	private function make_user( string $login ): int {
 		$existing = \get_user_by( 'login', $login );
 		if ( $existing instanceof \WP_User ) {
