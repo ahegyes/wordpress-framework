@@ -161,7 +161,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/settings",
-                "reference": "e33f74f739baf1f52e8de46c6228c338e877b150"
+                "reference": "790c8cc1bb38065f29aaba2a4320b4326a28d522"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0@dev",
@@ -169,13 +169,17 @@
                 "php": ">=8.5",
                 "psr/log": "^3"
             },
+            "suggest": {
+                "wp-plugin/woocommerce": "Required at runtime by WordPressObjectFieldStore, which stores fields as WooCommerce order meta."
+            },
             "type": "library",
             "extra": {
                 "branch-alias": {
                     "dev-trunk": "2.0.x-dev"
                 },
                 "scoping-stubs": [
-                    "php-stubs/wordpress-stubs"
+                    "php-stubs/wordpress-stubs",
+                    "php-stubs/woocommerce-stubs"
                 ],
                 "changelogger": {
                     "versioning": "semver",
@@ -460,10 +464,12 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "ac69f47116a10a123291c0bba137a0bdfe23155a"
+                "reference": "dea8a86d45574170e45463de0de5bf27cc49ec5a"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
+                "ahegyes/wp-framework-settings": "^2.0@dev",
+                "ahegyes/wp-framework-shared": "^2.0@dev",
                 "php": ">=8.5"
             },
             "type": "library",

@@ -72,3 +72,4 @@ deptrac:
     WooCommerce:
       - Core
       - Shared
+      - Settings
