@@ -4,6 +4,7 @@
         "directories": [
             "packages/bootstrap",
             "packages/core/src",
+            "packages/settings/src",
             "packages/shared/src",
             "packages/storage/src",
             "packages/utilities/src",

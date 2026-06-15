@@ -20,6 +20,7 @@ jobs:
         package:
           - { dir: 'bootstrap',   repo: 'wp-framework-bootstrap' }
           - { dir: 'core',        repo: 'wp-framework-core' }
+          - { dir: 'settings',    repo: 'wp-framework-settings' }
           - { dir: 'shared',      repo: 'wp-framework-shared' }
           - { dir: 'storage',     repo: 'wp-framework-storage' }
           - { dir: 'utilities',   repo: 'wp-framework-utilities' }

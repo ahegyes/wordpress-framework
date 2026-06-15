@@ -23,6 +23,14 @@
     },
     {
       "type": "path",
+      "url": "../../../packages/settings",
+      "options": {
+        "symlink": false,
+        "versions": { "ahegyes/wp-framework-settings": "2.0.x-dev" }
+      }
+    },
+    {
+      "type": "path",
       "url": "../../../packages/shared",
       "options": {
         "symlink": false,
@@ -67,13 +75,15 @@
     "ahegyes/wordpress-configs": "dev-trunk",
     "ahegyes/wp-framework-bootstrap": "^2.0@dev",
     "ahegyes/wp-framework-core": "^2.0@dev",
+    "ahegyes/wp-framework-settings": "^2.0@dev",
     "ahegyes/wp-framework-shared": "^2.0@dev",
     "ahegyes/wp-framework-storage": "^2.0@dev",
     "ahegyes/wp-framework-utilities": "^2.0@dev",
     "ahegyes/wp-framework-woocommerce": "^2.0@dev",
     "humbug/php-scoper": "^0.18",
     "php-di/php-di": "^7",
-    "php-stubs/wordpress-stubs": "*"
+    "php-stubs/wordpress-stubs": "*",
+    "php-stubs/woocommerce-stubs": "*"
   },
 
   "minimum-stability": "dev",

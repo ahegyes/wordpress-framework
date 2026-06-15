@@ -1,10 +1,10 @@
 # wordpress-framework
 
-DWS v2 WordPress framework — monorepo for 6 packages (bootstrap, shared, storage, core, utilities, woocommerce). Auto-splits to `wp-framework-*` mirrors via `.github/workflows/split-packages.yml` (splitsh-lite v1.0.1).
+DWS v2 WordPress framework — monorepo for 7 packages (bootstrap, shared, storage, core, utilities, settings, woocommerce). Auto-splits to `wp-framework-*` mirrors via `.github/workflows/split-packages.yml` (splitsh-lite v1.0.1).
 
 ## Status
 
-`bootstrap`, `shared` (Error / Exception / Result / ValueObject scaffolding + Reflection helpers), `storage` (KeyValueStore + Memory / Options / UserMeta backends), `core`, and `utilities` (Hooks + AdminNotices + Conditionals + Caching) have implementations. `woocommerce` is a skeleton, awaiting implementation as plugin migration drives demand.
+`bootstrap`, `shared` (Error / Exception / Result / ValueObject scaffolding + Reflection helpers), `storage` (KeyValueStore + Memory / Options / UserMeta backends), `core`, `utilities` (Hooks + AdminNotices + Conditionals + Caching), and `settings` (descriptors + aggregator / dispatcher + WordPress options & object-field backends) have implementations. `woocommerce` is a skeleton, awaiting implementation as plugin migration drives demand.
 
 ## Monorepo structure
 
@@ -46,9 +46,10 @@ wordpress-framework/
 │   │       ├── Lifecycle/                   # per-action markers: Hookable/, Initializable/, Renderable/, Outputtable/
 │   │       └── Installer/                   # install/update/activate/deactivate/uninstall + version I/O (get/set stored, get current)
 │   ├── utilities/          # ahegyes/wp-framework-utilities (Hooks + AdminNotices + Conditionals + Caching)
+│   ├── settings/           # ahegyes/wp-framework-settings (declarative settings: descriptors + aggregator/dispatcher + WP options & object-field backends; depends on storage + shared)
 │   └── woocommerce/        # ahegyes/wp-framework-woocommerce (skeleton)
 ├── tests/Fixtures/consumer-smoke/  # plugin-template-shaped scoping smoke fixture
-├── composer.json                   # path repos for all 6 packages + VCS for wordpress-configs + WP Packages registry for wp-plugin/woocommerce
+├── composer.json                   # path repos for all 7 packages + VCS for wordpress-configs + WP Packages registry for wp-plugin/woocommerce
 └── .github/workflows/
 ```
 

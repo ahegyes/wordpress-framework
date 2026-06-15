@@ -14,5 +14,8 @@
     "config": {
         "WP_DEBUG": true,
         "SCRIPT_DEBUG": true
+    },
+    "lifecycleScripts": {
+        "afterStart": "node_modules/.bin/wp-env --config .wp-env.tests.json run cli wp plugin activate woocommerce && node_modules/.bin/wp-env --config .wp-env.tests.json run cli wp wc hpos enable"
     }
 }

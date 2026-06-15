@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "862321dac112d751f85556473f0464d5",
+    "content-hash": "45c9da7415957a2cafc149881a7eb147",
     "packages": [
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -143,6 +143,83 @@
                 "framework",
                 "kernel",
                 "lifecycle",
+                "wordpress",
+                "wordpress-plugin"
+            ],
+            "support": {
+                "issues": "https://github.com/ahegyes/wordpress-framework/issues",
+                "source": "https://github.com/ahegyes/wordpress-framework"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "ahegyes/wp-framework-settings",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/settings",
+                "reference": "e33f74f739baf1f52e8de46c6228c338e877b150"
+            },
+            "require": {
+                "ahegyes/wp-framework-shared": "^2.0@dev",
+                "ahegyes/wp-framework-storage": "^2.0@dev",
+                "php": ">=8.5",
+                "psr/log": "^3"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.0.x-dev"
+                },
+                "scoping-stubs": [
+                    "php-stubs/wordpress-stubs"
+                ],
+                "changelogger": {
+                    "versioning": "semver",
+                    "changelog": "CHANGELOG.md",
+                    "changes-dir": "changelog",
+                    "default-type": "changed",
+                    "types": {
+                        "added": "Added",
+                        "changed": "Changed",
+                        "deprecated": "Deprecated",
+                        "removed": "Removed",
+                        "fixed": "Fixed",
+                        "security": "Security"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\Settings\\": "src/"
+                },
+                "files": [
+                    "functions.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\Settings\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
+                }
+            ],
+            "description": "Declarative settings screens with pluggable persistence — a WordPress options backend, per-entity object fields, and a WP-free descriptor/render layer — for plugins built on the DWS framework.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "keywords": [
+                "framework",
+                "options",
+                "settings",
                 "wordpress",
                 "wordpress-plugin"
             ],
@@ -2414,6 +2491,50 @@
                 "source": "https://github.com/phar-io/version/tree/3.2.1"
             },
             "time": "2022-02-21T01:04:05+00:00"
+        },
+        {
+            "name": "php-stubs/woocommerce-stubs",
+            "version": "v10.8.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-stubs/woocommerce-stubs.git",
+                "reference": "9d59e65dcabc18153c243cb9acd85fc88ef40589"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-stubs/woocommerce-stubs/zipball/9d59e65dcabc18153c243cb9acd85fc88ef40589",
+                "reference": "9d59e65dcabc18153c243cb9acd85fc88ef40589",
+                "shasum": ""
+            },
+            "require": {
+                "php-stubs/wordpress-stubs": "^5.3 || ^6.0"
+            },
+            "require-dev": {
+                "php": "~7.1 || ~8.0",
+                "php-stubs/generator": "^0.8.0"
+            },
+            "suggest": {
+                "symfony/polyfill-php73": "Symfony polyfill backporting some PHP 7.3+ features to lower PHP versions",
+                "szepeviktor/phpstan-wordpress": "WordPress extensions for PHPStan"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "WooCommerce function and class declaration stubs for static analysis.",
+            "homepage": "https://github.com/php-stubs/woocommerce-stubs",
+            "keywords": [
+                "PHPStan",
+                "static analysis",
+                "woocommerce",
+                "wordpress"
+            ],
+            "support": {
+                "issues": "https://github.com/php-stubs/woocommerce-stubs/issues",
+                "source": "https://github.com/php-stubs/woocommerce-stubs/tree/v10.8.0"
+            },
+            "time": "2026-05-27T11:46:50+00:00"
         },
         {
             "name": "php-stubs/wordpress-stubs",
@@ -8502,6 +8623,7 @@
         "ahegyes/wordpress-configs": 20,
         "ahegyes/wp-framework-bootstrap": 20,
         "ahegyes/wp-framework-core": 20,
+        "ahegyes/wp-framework-settings": 20,
         "ahegyes/wp-framework-shared": 20,
         "ahegyes/wp-framework-storage": 20,
         "ahegyes/wp-framework-utilities": 20,

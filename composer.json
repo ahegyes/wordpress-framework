@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wordpress-framework",
-  "description": "DWS WordPress Framework — monorepo development root. Aggregates bootstrap, shared, storage, core, utilities, and woocommerce packages for local dev and cross-package testing.",
+  "description": "DWS WordPress Framework — monorepo development root. Aggregates bootstrap, shared, storage, core, utilities, settings, and woocommerce packages for local dev and cross-package testing.",
   "type": "project",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -15,6 +15,7 @@
     "php": ">=8.5",
     "ahegyes/wp-framework-bootstrap": "^2.0@dev",
     "ahegyes/wp-framework-core": "^2.0@dev",
+    "ahegyes/wp-framework-settings": "^2.0@dev",
     "ahegyes/wp-framework-shared": "^2.0@dev",
     "ahegyes/wp-framework-storage": "^2.0@dev",
     "ahegyes/wp-framework-utilities": "^2.0@dev",
@@ -26,6 +27,7 @@
     "deptrac/deptrac": "^4.6",
     "infection/infection": "^0.32",
     "johnpbloch/wordpress-core": "^7.0@dev",
+    "php-stubs/woocommerce-stubs": "^10.8",
     "phpunit/phpunit": "^13",
     "wp-plugin/woocommerce": "*"
   },
@@ -39,6 +41,11 @@
     {
       "type": "path",
       "url": "packages/core",
+      "options": { "symlink": true }
+    },
+    {
+      "type": "path",
+      "url": "packages/settings",
       "options": { "symlink": true }
     },
     {
@@ -79,6 +86,7 @@
     "psr-4": {
       "DeepWebSolutions\\Framework\\Bootstrap\\Tests\\": "packages/bootstrap/tests/",
       "DeepWebSolutions\\Framework\\Core\\Tests\\": "packages/core/tests/",
+      "DeepWebSolutions\\Framework\\Settings\\Tests\\": "packages/settings/tests/",
       "DeepWebSolutions\\Framework\\Shared\\Tests\\": "packages/shared/tests/",
       "DeepWebSolutions\\Framework\\Storage\\Tests\\": "packages/storage/tests/",
       "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "packages/utilities/tests/",
@@ -158,6 +166,20 @@
     "packages:core:changelog:validate": "cd packages/core && ../../vendor/bin/changelogger validate",
     "packages:core:changelog:write": "cd packages/core && ../../vendor/bin/changelogger write",
 
+    "packages:settings:test": [
+      "@packages:settings:test:unit",
+      "@packages:settings:test:integration"
+    ],
+    "packages:settings:test:unit": "@php vendor/bin/phpunit packages/settings/tests/Unit",
+    "packages:settings:test:integration": [
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:start",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/settings/tests/Integration"
+    ],
+    "packages:settings:changelog:add": "cd packages/settings && ../../vendor/bin/changelogger add",
+    "packages:settings:changelog:validate": "cd packages/settings && ../../vendor/bin/changelogger validate",
+    "packages:settings:changelog:write": "cd packages/settings && ../../vendor/bin/changelogger write",
+
     "packages:shared:test": [
       "@packages:shared:test:unit",
       "@packages:shared:test:integration"
@@ -217,6 +239,7 @@
     "packages:changelog:validate": [
       "@packages:bootstrap:changelog:validate",
       "@packages:core:changelog:validate",
+      "@packages:settings:changelog:validate",
       "@packages:shared:changelog:validate",
       "@packages:storage:changelog:validate",
       "@packages:utilities:changelog:validate",
@@ -225,6 +248,7 @@
     "packages:changelog:write": [
       "@packages:bootstrap:changelog:write",
       "@packages:core:changelog:write",
+      "@packages:settings:changelog:write",
       "@packages:shared:changelog:write",
       "@packages:storage:changelog:write",
       "@packages:utilities:changelog:write",
@@ -235,6 +259,7 @@
 
     "changelog:add:bootstrap": "@packages:bootstrap:changelog:add",
     "changelog:add:core": "@packages:core:changelog:add",
+    "changelog:add:settings": "@packages:settings:changelog:add",
     "changelog:add:shared": "@packages:shared:changelog:add",
     "changelog:add:storage": "@packages:storage:changelog:add",
     "changelog:add:utilities": "@packages:utilities:changelog:add",
@@ -242,6 +267,7 @@
 
     "changelog:write:bootstrap": "@packages:bootstrap:changelog:write",
     "changelog:write:core": "@packages:core:changelog:write",
+    "changelog:write:settings": "@packages:settings:changelog:write",
     "changelog:write:shared": "@packages:shared:changelog:write",
     "changelog:write:storage": "@packages:storage:changelog:write",
     "changelog:write:utilities": "@packages:utilities:changelog:write",

@@ -17,6 +17,7 @@ Only the latest release line of each package receives security updates:
 | `ahegyes/wp-framework-storage`     | latest 2.x        |
 | `ahegyes/wp-framework-core`        | latest 2.x        |
 | `ahegyes/wp-framework-utilities`   | latest 2.x        |
+| `ahegyes/wp-framework-settings`    | latest 2.x        |
 | `ahegyes/wp-framework-woocommerce` | latest 2.x        |
 
 Older minor releases may receive critical fixes at the maintainer's discretion.

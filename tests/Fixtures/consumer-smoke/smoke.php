@@ -46,6 +46,17 @@ if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Stor
 	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Storage\\MemoryStore';
 }
 
+// Settings PSR-4: the descriptor value objects resolve under the scoped prefix.
+if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Settings\\ValueObjects\\SettingsField' ) ) {
+	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Settings\\ValueObjects\\SettingsField';
+}
+
+// Settings WooCommerce-coupled backend: the class that references WooCommerce symbols resolves under
+// the scoped prefix, with those symbols left unprefixed via the fixture's woocommerce-stubs catalog.
+if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Settings\\WordPressObjectFieldStore' ) ) {
+	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Settings\\WordPressObjectFieldStore';
+}
+
 // PHP-DI PSR-4 + files-autoloaded factory().
 if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DI\\ContainerBuilder' ) ) {
 	$failures[] = 'missing scoped class: DI\\ContainerBuilder';

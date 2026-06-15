@@ -1,0 +1,79 @@
+{
+  "name": "ahegyes/wp-framework-settings",
+  "description": "Declarative settings screens with pluggable persistence — a WordPress options backend, per-entity object fields, and a WP-free descriptor/render layer — for plugins built on the DWS framework.",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/ahegyes/wordpress-framework",
+  "authors": [
+    {
+      "name": "Contributors",
+      "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
+    }
+  ],
+  "keywords": ["wordpress", "wordpress-plugin", "framework", "settings", "options"],
+  "support": {
+    "issues": "https://github.com/ahegyes/wordpress-framework/issues",
+    "source": "https://github.com/ahegyes/wordpress-framework"
+  },
+
+  "require": {
+    "php": ">=8.5",
+    "ahegyes/wp-framework-shared": "^2.0@dev",
+    "ahegyes/wp-framework-storage": "^2.0@dev",
+    "psr/log": "^3"
+  },
+
+  "suggest": {
+    "wp-plugin/woocommerce": "Required at runtime by WordPressObjectFieldStore, which stores fields as WooCommerce order meta."
+  },
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "autoload": {
+    "psr-4": {
+      "DeepWebSolutions\\Framework\\Settings\\": "src/"
+    },
+    "files": [
+      "functions.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "DeepWebSolutions\\Framework\\Settings\\Tests\\": "tests/"
+    }
+  },
+
+  "extra": {
+    "branch-alias": {
+      "dev-trunk": "2.0.x-dev"
+    },
+    "scoping-stubs": [
+      "php-stubs/wordpress-stubs",
+      "php-stubs/woocommerce-stubs"
+    ],
+    "changelogger": {
+      "versioning": "semver",
+      "changelog": "CHANGELOG.md",
+      "changes-dir": "changelog",
+      "default-type": "changed",
+      "types": {
+        "added": "Added",
+        "changed": "Changed",
+        "deprecated": "Deprecated",
+        "removed": "Removed",
+        "fixed": "Fixed",
+        "security": "Security"
+      }
+    }
+  },
+
+  "config": {
+    "allow-plugins": {
+      "composer/*": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
+  }
+}

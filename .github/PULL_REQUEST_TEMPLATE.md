@@ -9,6 +9,7 @@
 - [ ] `wp-framework-storage`
 - [ ] `wp-framework-core`
 - [ ] `wp-framework-utilities`
+- [ ] `wp-framework-settings`
 - [ ] `wp-framework-woocommerce`
 
 ## Checklist
