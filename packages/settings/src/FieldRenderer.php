@@ -57,7 +57,7 @@ final class FieldRenderer {
 			throw new UnknownFieldTypeException( "Unknown settings field type: '$field->type'" );
 		}
 
-		return match ( $type ) {
+		$control = match ( $type ) {
 			FieldType::Textarea    => $this->render_textarea( $field, $value, $name ),
 			FieldType::Checkbox    => $this->render_checkbox( $field, $value, $name ),
 			FieldType::Select      => $this->render_select( $field, $value, $name, false ),
@@ -65,6 +65,8 @@ final class FieldRenderer {
 			FieldType::Radio       => $this->render_radio( $field, $value, $name ),
 			default                => $this->render_input( $field, $value, $name, $type ),
 		};
+
+		return $control . $this->render_description( $field );
 	}
 
 	// endregion
@@ -242,6 +244,24 @@ final class FieldRenderer {
 	 */
 	private function stringify( mixed $value ): string {
 		return \is_scalar( $value ) ? (string) $value : '';
+	}
+
+	/**
+	 * Renders a field's help text as an escaped description paragraph, after the control; empty when none is set.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsField $field Field whose description to render.
+	 *
+	 * @return  string
+	 */
+	private function render_description( SettingsField $field ): string {
+		if ( null === $field->description ) {
+			return '';
+		}
+
+		return \sprintf( '<p class="description">%s</p>', \esc_html( $field->description ) );
 	}
 
 	// endregion

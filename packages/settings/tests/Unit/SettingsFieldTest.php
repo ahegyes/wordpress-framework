@@ -26,6 +26,7 @@ final class SettingsFieldTest extends TestCase {
 		self::assertSame( array(), $field->options );
 		self::assertSame( array(), $field->attributes );
 		self::assertNull( $field->meta_key );
+		self::assertNull( $field->description );
 	}
 
 	public function test_full_construction_round_trips_every_value(): void {
@@ -43,6 +44,7 @@ final class SettingsFieldTest extends TestCase {
 			options: $options,
 			attributes: array( 'class' => 'widefat' ),
 			meta_key: '_my_meta',
+			description: 'Helpful hint',
 		);
 
 		self::assertSame( 'a', $field->default );
@@ -52,6 +54,7 @@ final class SettingsFieldTest extends TestCase {
 		self::assertSame( $options, $field->options );
 		self::assertSame( array( 'class' => 'widefat' ), $field->attributes );
 		self::assertSame( '_my_meta', $field->meta_key );
+		self::assertSame( 'Helpful hint', $field->description );
 	}
 
 	public function test_string_callable_sanitize_is_normalized_to_a_closure(): void {

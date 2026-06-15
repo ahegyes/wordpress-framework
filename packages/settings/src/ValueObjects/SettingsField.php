@@ -73,6 +73,7 @@ final readonly class SettingsField {
 	 * @param   array<array-key, mixed>|\Closure|SettingsOptionsProviderInterface $options Option set for choice-typed fields: a literal array, a Closure (not a bare callable, so an array is always the option set), or a provider; labels are stringified at render.
 	 * @param   array<string, scalar> $attributes Extra HTML attributes passed through to the rendered control.
 	 * @param   ?string $meta_key Object-field storage key; may be underscore-prefixed, and null for option settings.
+	 * @param   ?string $description Help text rendered beneath the control; null renders none.
 	 *
 	 * @throws  InvalidSettingsFieldException If $id does not match the field-id charset.
 	 */
@@ -89,6 +90,7 @@ final readonly class SettingsField {
 		public array|\Closure|SettingsOptionsProviderInterface $options = array(),
 		public array $attributes = array(),
 		public ?string $meta_key = null,
+		public ?string $description = null,
 	) {
 		if ( 1 !== \preg_match( self::ID_PATTERN, $id ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.

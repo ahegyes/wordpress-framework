@@ -223,6 +223,31 @@ final class FieldRendererTest extends TestCase {
 		( new FieldRenderer() )->render( $this->field( 'x', 'bogus' ), '', 'x' );
 	}
 
+	public function test_renders_the_field_description_after_the_control(): void {
+		$field = new SettingsField( id: 'x', type: 'text', label: 'X', description: 'Helpful hint.' );
+
+		$html = ( new FieldRenderer() )->render( $field, '', 'x' );
+
+		self::assertStringContainsString( 'Helpful hint.', $html );
+		self::assertStringContainsString( 'class="description"', $html );
+		// The description follows the control, not precedes it.
+		self::assertGreaterThan( \strpos( $html, '<input' ), \strpos( $html, 'Helpful hint.' ) );
+	}
+
+	public function test_omits_the_description_when_none_is_set(): void {
+		$html = ( new FieldRenderer() )->render( $this->field( 'x', 'text' ), '', 'x' );
+
+		self::assertStringNotContainsString( 'class="description"', $html );
+	}
+
+	public function test_escapes_the_field_description(): void {
+		$field = new SettingsField( id: 'x', type: 'text', label: 'X', description: '"><script>alert(1)</script>' );
+
+		$html = ( new FieldRenderer() )->render( $field, '', 'x' );
+
+		self::assertStringNotContainsString( '<script>', $html );
+	}
+
 	private function field( string $id, string $type ): SettingsField {
 		return new SettingsField( id: $id, type: $type, label: $id );
 	}
