@@ -2,7 +2,6 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Hooks;
 
-use DeepWebSolutions\Framework\Utilities\Hooks\Contracts\HookHandlerInterface;
 use DeepWebSolutions\Framework\Utilities\Hooks\Handlers\DirectHookHandler;
 use OutOfBoundsException;
 

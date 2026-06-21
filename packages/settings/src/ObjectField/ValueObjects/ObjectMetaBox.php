@@ -5,7 +5,7 @@ namespace DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects;
 use DeepWebSolutions\Framework\Settings\ObjectField\Exceptions\InvalidObjectMetaBoxException;
 
 /**
- * Declarative description of a per-entity meta box (object fields).
+ * Descriptor for a per-entity meta box (object fields).
  *
  * Drives the object-field backend: the box attaches to an object screen and its
  * fields are built per object at render time by the provider closure — so a box

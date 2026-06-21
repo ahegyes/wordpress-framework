@@ -3,8 +3,8 @@
 namespace DeepWebSolutions\Framework\Settings\ValueObjects;
 
 /**
- * Declarative description of a settings page: a titled, capability-gated screen
- * composed of sections.
+ * Descriptor for a settings page: a titled, capability-gated screen composed
+ * of sections.
  *
  * The location is interpreted by the backend the page is registered with — a
  * WordPress parent slug for the options backend, a tab id for the WooCommerce

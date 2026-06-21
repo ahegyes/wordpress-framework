@@ -6,7 +6,7 @@ use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
 use DeepWebSolutions\Framework\Shared\Version\Exceptions\InvalidVersionException;
 
 /**
- * Immutable representation of a software version. SemVer-shaped:
+ * Value object representing a software version. SemVer-shaped:
  * MAJOR[.MINOR[.PATCH]][-PRERELEASE][+BUILD]. Provides type-safe ordering and
  * equality.
  *

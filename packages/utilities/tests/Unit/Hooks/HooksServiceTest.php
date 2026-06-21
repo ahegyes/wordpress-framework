@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\Hooks;
 
-use DeepWebSolutions\Framework\Utilities\Hooks\Contracts\HookHandlerInterface;
 use DeepWebSolutions\Framework\Utilities\Hooks\Handlers\DirectHookHandler;
+use DeepWebSolutions\Framework\Utilities\Hooks\HookHandlerInterface;
 use DeepWebSolutions\Framework\Utilities\Hooks\HooksService;
 use OutOfBoundsException;
 use PHPUnit\Framework\Attributes\CoversClass;

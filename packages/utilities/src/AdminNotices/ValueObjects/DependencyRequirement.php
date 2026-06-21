@@ -5,11 +5,11 @@ namespace DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects;
 use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
 
 /**
- * A dependency a plugin declares for missing-dependency admin notices: the conditional that decides
- * whether it is satisfied, a human-readable label, and whether it is required (blocking) or optional
- * (recommended). The getters derive the notice's identity and presentation purely from those fields,
- * so {@see \DeepWebSolutions\Framework\Utilities\AdminNotices\DependencyAdminNoticeRenderer} owns only
- * the translatable message and the queueing.
+ * Descriptor for a dependency a plugin declares for missing-dependency admin notices: the conditional
+ * that decides whether it is satisfied, a human-readable label, and whether it is required (blocking)
+ * or optional (recommended). The getters derive the notice's identity and presentation purely from
+ * those fields, so {@see \DeepWebSolutions\Framework\Utilities\AdminNotices\DependencyAdminNoticeRenderer}
+ * owns only the translatable message and the queueing.
  *
  * @since   2.0.0
  * @version 2.0.0

@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Settings\ValueObjects;
 
 /**
- * Declarative description of a settings section: a titled group of fields.
+ * Descriptor for a settings section: a titled group of fields.
  *
  * A section is the unit of storage for the WordPress options backend — its
  * identifier doubles as the persisted option-group key segment — and the unit of

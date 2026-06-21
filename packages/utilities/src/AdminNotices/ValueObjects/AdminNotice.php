@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects;
 
 /**
- * Value object representing a single WordPress admin notice.
+ * Descriptor for a single WordPress admin notice.
  *
  * The $is_persistent flag governs post-render retention in a persistent store: a non-persistent
  * notice is consumed (removed) after it renders once, a persistent one recurs until dismissed or

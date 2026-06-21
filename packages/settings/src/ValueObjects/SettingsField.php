@@ -6,7 +6,7 @@ use DeepWebSolutions\Framework\Settings\Exceptions\InvalidSettingsFieldException
 use DeepWebSolutions\Framework\Settings\SettingsOptionsProviderInterface;
 
 /**
- * Declarative, storage- and UI-agnostic description of a single settings field.
+ * Descriptor for a single settings field, storage- and UI-agnostic.
  *
  * Immutable carrier of everything a backend needs to register, render, sanitize,
  * and validate one field: identifier, type token, presentation metadata, an

@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Hooks\Handlers;
 
-use DeepWebSolutions\Framework\Utilities\Hooks\Contracts\HookHandlerInterface;
+use DeepWebSolutions\Framework\Utilities\Hooks\HookHandlerInterface;
 use DeepWebSolutions\Framework\Utilities\Hooks\HookRegistry;
 
 /**
