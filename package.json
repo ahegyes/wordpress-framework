@@ -13,7 +13,7 @@
         "npm": ">=11"
     },
     "devDependencies": {
-        "@wordpress/env": "^11.8.0"
+        "@wordpress/env": "^11.8.1"
     },
     "scripts": {
         "setup": "npm run packages-install:all && npm run wp-env:start",
