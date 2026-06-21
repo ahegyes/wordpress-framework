@@ -25,6 +25,15 @@ final readonly class WrapperFixtureValueObject extends AbstractValueObject {
 	) {}
 }
 
+final readonly class CollectionFixtureValueObject extends AbstractValueObject {
+	/**
+	 * @param list<FixtureValueObject> $items
+	 */
+	public function __construct(
+		public array $items,
+	) {}
+}
+
 #[CoversClass( AbstractValueObject::class )]
 final class AbstractValueObjectTest extends TestCase {
 	public function test_equals_returns_true_for_structurally_identical_objects(): void {
@@ -54,6 +63,41 @@ final class AbstractValueObjectTest extends TestCase {
 	public function test_equals_returns_false_when_nested_value_objects_differ(): void {
 		$a = new WrapperFixtureValueObject( new FixtureValueObject( 'foo', 1 ) );
 		$b = new WrapperFixtureValueObject( new FixtureValueObject( 'foo', 2 ) );
+		self::assertFalse( $a->equals( $b ) );
+	}
+
+	public function test_equals_recurses_into_arrays_of_value_objects(): void {
+		$a = new CollectionFixtureValueObject(
+			array(
+				new FixtureValueObject( 'foo', 1 ),
+				new FixtureValueObject( 'bar', 2 ),
+			),
+		);
+		$b = new CollectionFixtureValueObject(
+			array(
+				new FixtureValueObject( 'foo', 1 ),
+				new FixtureValueObject( 'bar', 2 ),
+			),
+		);
+
+		self::assertTrue( $a->equals( $b ) );
+		self::assertSame( $a->jsonSerialize(), $b->jsonSerialize() );
+	}
+
+	public function test_equals_false_when_value_object_inside_array_differs(): void {
+		$a = new CollectionFixtureValueObject(
+			array(
+				new FixtureValueObject( 'foo', 1 ),
+				new FixtureValueObject( 'bar', 2 ),
+			),
+		);
+		$b = new CollectionFixtureValueObject(
+			array(
+				new FixtureValueObject( 'foo', 1 ),
+				new FixtureValueObject( 'bar', 3 ),
+			),
+		);
+
 		self::assertFalse( $a->equals( $b ) );
 	}
 
