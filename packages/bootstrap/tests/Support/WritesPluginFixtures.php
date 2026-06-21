@@ -2,17 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Bootstrap\Tests\Support;
 
-use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\After;
 
 trait WritesPluginFixtures {
 	/** @var list<string> */
 	private array $fixture_paths = array();
-
-	#[Before]
-	protected function reset_admin_notices(): void {
-		\remove_all_actions( 'admin_notices' );
-	}
 
 	#[After]
 	protected function cleanup_written_fixtures(): void {
@@ -28,12 +22,6 @@ trait WritesPluginFixtures {
 		}
 
 		$this->fixture_paths = array();
-	}
-
-	protected function render_admin_notices(): string {
-		\ob_start();
-		\do_action( 'admin_notices' );
-		return (string) \ob_get_clean();
 	}
 
 	/**

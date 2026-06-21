@@ -2,12 +2,14 @@
 
 namespace DeepWebSolutions\Framework\Bootstrap\Tests\Integration;
 
+use DeepWebSolutions\Framework\Bootstrap\Tests\Support\RendersAdminNotices;
 use DeepWebSolutions\Framework\Bootstrap\Tests\Support\WritesPluginFixtures;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Bootstrap\Notice\output_requirements_error;
 
 final class OutputRequirementsErrorTest extends TestCase {
+	use RendersAdminNotices;
 	use WritesPluginFixtures;
 
 	private string $plugin_basename = 'dws-framework-test-plugin/dws-framework-test-plugin.php';
