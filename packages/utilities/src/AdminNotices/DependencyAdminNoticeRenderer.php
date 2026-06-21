@@ -40,11 +40,11 @@ final class DependencyAdminNoticeRenderer {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   AdminNoticesService          $service      Service the dependency notices are queued into.
-	 * @param   list<DependencyRequirement>  $requirements Dependencies evaluated on each render.
-	 * @param   string|null                  $source       Plugin or feature display name woven into the notice text; null uses a generic subject.
-	 * @param   string                       $store        Name of the service store to queue into. Defaults to AdminNoticesService::DEFAULT_STORE.
-	 * @param   string                       $capability   Capability required to see the notices. Defaults to DEFAULT_CAPABILITY.
+	 * @param   AdminNoticesService         $service      Service the dependency notices are queued into.
+	 * @param   list<DependencyRequirement> $requirements Dependencies evaluated on each render.
+	 * @param   string|null                 $source       Plugin or feature display name woven into the notice text; null uses a generic subject.
+	 * @param   string                      $store        Name of the service store to queue into. Defaults to AdminNoticesService::DEFAULT_STORE.
+	 * @param   string                      $capability   Capability required to see the notices. Defaults to DEFAULT_CAPABILITY.
 	 */
 	public function __construct(
 		private AdminNoticesService $service,

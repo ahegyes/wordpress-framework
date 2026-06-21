@@ -22,11 +22,11 @@ final readonly class SettingsPage {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $slug Menu slug, unique across registered pages.
-	 * @param   string $page_title Title rendered at the top of the page.
-	 * @param   string $menu_title Label shown in the admin menu.
-	 * @param   string $capability Capability required to view and save the page.
-	 * @param   ?string $location Backend-interpreted placement (WordPress parent slug, WooCommerce tab id); null uses the backend default.
+	 * @param   string                $slug Menu slug, unique across registered pages.
+	 * @param   string                $page_title Title rendered at the top of the page.
+	 * @param   string                $menu_title Label shown in the admin menu.
+	 * @param   string                $capability Capability required to view and save the page.
+	 * @param   ?string               $location Backend-interpreted placement (WordPress parent slug, WooCommerce tab id); null uses the backend default.
 	 * @param   list<SettingsSection> $sections Sections composing the page, in display order.
 	 */
 	public function __construct(

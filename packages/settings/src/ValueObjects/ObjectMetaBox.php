@@ -68,12 +68,12 @@ final readonly class ObjectMetaBox {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $id Meta-box identifier, unique on its screen.
-	 * @param   string $title Meta-box heading.
-	 * @param   string $screen Screen or object type the box attaches to.
-	 * @param   string $context WordPress meta-box context (normal, side, advanced).
-	 * @param   string $priority WordPress meta-box priority (default, high, low).
-	 * @param   callable $fields_provider Builds the fields for an object id; stored as a Closure.
+	 * @param   string    $id Meta-box identifier, unique on its screen.
+	 * @param   string    $title Meta-box heading.
+	 * @param   string    $screen Screen or object type the box attaches to.
+	 * @param   string    $context WordPress meta-box context (normal, side, advanced).
+	 * @param   string    $priority WordPress meta-box priority (default, high, low).
+	 * @param   callable  $fields_provider Builds the fields for an object id; stored as a Closure.
 	 * @param   ?callable $render Bespoke renderer; stored as a Closure.
 	 * @param   ?callable $save Bespoke save handler; stored as a Closure.
 	 *

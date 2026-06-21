@@ -61,19 +61,19 @@ final readonly class SettingsField {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $id Page-unique field identifier; a lowercase token matching the field-id charset.
-	 * @param   string $type Field-type token resolved against the framework taxonomy when rendered or processed.
-	 * @param   string $label Human-readable field label.
-	 * @param   mixed $default Default value used when nothing is stored.
-	 * @param   ?callable $sanitize Sanitizer for the submitted value; stored as a Closure.
-	 * @param   ?callable $validate Validator for the sanitized value; stored as a Closure.
-	 * @param   ?string $capability Capability required to edit the field; null inherits the section/page capability.
-	 * @param   bool $show_in_rest Whether the field is exposed via REST where the backend supports it; the WordPress options backend does not currently honor it.
-	 * @param   ?int $position Sort position within the section; null keeps declaration order.
+	 * @param   string                                                            $id Page-unique field identifier; a lowercase token matching the field-id charset.
+	 * @param   string                                                            $type Field-type token resolved against the framework taxonomy when rendered or processed.
+	 * @param   string                                                            $label Human-readable field label.
+	 * @param   mixed                                                             $default Default value used when nothing is stored.
+	 * @param   ?callable                                                         $sanitize Sanitizer for the submitted value; stored as a Closure.
+	 * @param   ?callable                                                         $validate Validator for the sanitized value; stored as a Closure.
+	 * @param   ?string                                                           $capability Capability required to edit the field; null inherits the section/page capability.
+	 * @param   bool                                                              $show_in_rest Whether the field is exposed via REST where the backend supports it; the WordPress options backend does not currently honor it.
+	 * @param   ?int                                                              $position Sort position within the section; null keeps declaration order.
 	 * @param   array<array-key, mixed>|\Closure|SettingsOptionsProviderInterface $options Option set for choice-typed fields: a literal array, a Closure (not a bare callable, so an array is always the option set), or a provider; labels are stringified at render.
-	 * @param   array<string, scalar> $attributes Extra HTML attributes passed through to the rendered control.
-	 * @param   ?string $meta_key Object-field storage key; may be underscore-prefixed, and null for option settings.
-	 * @param   ?string $description Help text rendered beneath the control; null renders none.
+	 * @param   array<string, scalar>                                             $attributes Extra HTML attributes passed through to the rendered control.
+	 * @param   ?string                                                           $meta_key Object-field storage key; may be underscore-prefixed, and null for option settings.
+	 * @param   ?string                                                           $description Help text rendered beneath the control; null renders none.
 	 *
 	 * @throws  InvalidSettingsFieldException If $id does not match the field-id charset.
 	 */

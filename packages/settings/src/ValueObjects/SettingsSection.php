@@ -22,8 +22,8 @@ final readonly class SettingsSection {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $id Section identifier, unique within its page.
-	 * @param   string $title Human-readable section heading.
+	 * @param   string              $id Section identifier, unique within its page.
+	 * @param   string              $title Human-readable section heading.
 	 * @param   list<SettingsField> $fields Fields belonging to the section, in display order.
 	 */
 	public function __construct(
