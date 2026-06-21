@@ -1,0 +1,9 @@
+# Consumer workflows call wordpress-configs' reusable workflows by @trunk on
+# purpose — they track the latest shared CI. Allow ref-pinning for that repo;
+# every other action must stay hash-pinned (the default since zizmor v1.20).
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        ahegyes/wordpress-configs/*: ref-pin
+        "*": hash-pin
