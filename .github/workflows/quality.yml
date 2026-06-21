@@ -11,7 +11,7 @@ permissions:
 jobs:
   php-qa:
     name: PHP QA
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-qa.yml@trunk
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-qa.yml@1b3ecbb2ba87e6c10b52e91b6d0816f420c2dca6
     with:
       php-version: '8.5'
 
@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
         with:
           php-version: '8.5'
@@ -33,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
         with:
           php-version: '8.5'
