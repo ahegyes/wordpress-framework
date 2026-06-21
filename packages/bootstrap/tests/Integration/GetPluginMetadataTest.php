@@ -59,7 +59,7 @@ final class GetPluginMetadataTest extends TestCase {
 		self::assertSame( '', $metadata['RequiresPHP'] );
 		self::assertSame( '', $metadata['RequiresWP'] );
 		self::assertFalse( $metadata['Network'] );
-		// get_plugin_data() falls a missing TextDomain back to the plugin slug.
+		// Missing file: the metadata reader derives TextDomain from the plugin slug.
 		self::assertSame( 'dws-does-not-exist', $metadata['TextDomain'] );
 	}
 
@@ -87,5 +87,19 @@ final class GetPluginMetadataTest extends TestCase {
 
 		self::assertSame( 'Translate Original', $raw_first['Name'] );
 		self::assertSame( 'Translate Mutated', $translated_first['Name'] );
+	}
+
+	public function test_missing_directoryless_basename_leaves_text_domain_empty(): void {
+		$metadata = get_plugin_metadata( 'dws-loose.php' );
+
+		self::assertSame( '', $metadata['Name'] );
+		self::assertSame( '', $metadata['TextDomain'] );
+	}
+
+	public function test_missing_nested_basename_leaves_text_domain_empty(): void {
+		$metadata = get_plugin_metadata( 'vendor/dws-nested/plugin.php' );
+
+		self::assertSame( '', $metadata['Name'] );
+		self::assertSame( '', $metadata['TextDomain'] );
 	}
 }

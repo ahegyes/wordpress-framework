@@ -26,13 +26,15 @@ function output_requirements_error( $plugin_basename, \WP_Error $error ) {
 		function () use ( $plugin_basename, $error ) {
 			$metadata = get_plugin_metadata( $plugin_basename, true );
 
-			$name    = isset( $metadata['Name'] ) && '' !== $metadata['Name'] ? $metadata['Name'] : $plugin_basename;
+			// Name is already wp_kses'd by get_plugin_data() to a safe formatting allow-list,
+			// so render it as-is to keep that markup; the raw basename fallback is escaped.
+			$name    = isset( $metadata['Name'] ) && '' !== $metadata['Name'] ? $metadata['Name'] : \esc_html( $plugin_basename );
 			$version = isset( $metadata['Version'] ) ? $metadata['Version'] : '';
 
 			$intro = \sprintf(
 				/* translators: 1: plugin name, 2: plugin version */
 				\__( '<strong>%1$s (version %2$s)</strong> could not be initialized. Your environment does not meet all the requirements:', 'wp-framework-bootstrap' ),
-				\esc_html( $name ),
+				$name,
 				\esc_html( $version )
 			);
 
