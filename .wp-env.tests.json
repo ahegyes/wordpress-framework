@@ -1,6 +1,6 @@
 {
     "$schema": "https://schemas.wp.org/trunk/wp-env.schema.json",
-    "core": "https://wordpress.org/nightly-builds/wordpress-latest.zip",
+    "core": "WordPress/WordPress#tags/7.0",
     "phpVersion": "8.5",
     "port": 8801,
     "testsEnvironment": false,

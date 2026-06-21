@@ -24,10 +24,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Happy path: WP nightly trunk meets framework's WP 7.0+ floor.
-          - label: 'WP nightly (compatible)'
+          # Pinned for a deterministic gate.
+          - label: 'WP 7.0 (floor)'
             php-version: '8.5'
-            wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+            wp-env-core: 'WordPress/WordPress#tags/7.0'
           # Graceful-failure path: WP 6.9.4 is below the framework's 7.0 floor.
           # Exercises check_requirements returning WP_Error with
           # plugin_wp_incompatible. Validates that the framework correctly

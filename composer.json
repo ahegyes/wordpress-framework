@@ -112,6 +112,7 @@
     "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
     "lint:php:deptrac": "deptrac analyse --no-interaction --cache-file=tests/.cache/deptrac",
 
+    "test:wp-env:ensure": "node_modules/.bin/wp-env --config .wp-env.tests.json run cli true >/dev/null 2>&1 || npm --prefix=. run wp-env:start",
     "test": [
       "@test:unit",
       "@test:integration"
@@ -119,7 +120,7 @@
     "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
     "test:integration": [
       "@putenv CI=1",
-      "npm --prefix=. run wp-env:start",
+      "@test:wp-env:ensure",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration"
     ],
     "test:mutation": "@php vendor/bin/infection --threads=max",
@@ -145,7 +146,7 @@
     "packages:bootstrap:test:unit": "@php vendor/bin/phpunit packages/bootstrap/tests/Unit",
     "packages:bootstrap:test:integration": [
       "@putenv CI=1",
-      "npm --prefix=. run wp-env:start",
+      "@wp-env:ensure",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/bootstrap/tests/Integration"
     ],
     "packages:bootstrap:changelog:add": "cd packages/bootstrap && ../../vendor/bin/changelogger add",
@@ -159,7 +160,7 @@
     "packages:core:test:unit": "@php vendor/bin/phpunit packages/core/tests/Unit",
     "packages:core:test:integration": [
       "@putenv CI=1",
-      "npm --prefix=. run wp-env:start",
+      "@wp-env:ensure",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/core/tests/Integration"
     ],
     "packages:core:changelog:add": "cd packages/core && ../../vendor/bin/changelogger add",
@@ -173,7 +174,7 @@
     "packages:settings:test:unit": "@php vendor/bin/phpunit packages/settings/tests/Unit",
     "packages:settings:test:integration": [
       "@putenv CI=1",
-      "npm --prefix=. run wp-env:start",
+      "@wp-env:ensure",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/settings/tests/Integration"
     ],
     "packages:settings:changelog:add": "cd packages/settings && ../../vendor/bin/changelogger add",
@@ -187,7 +188,7 @@
     "packages:shared:test:unit": "@php vendor/bin/phpunit packages/shared/tests/Unit",
     "packages:shared:test:integration": [
       "@putenv CI=1",
-      "npm --prefix=. run wp-env:start",
+      "@wp-env:ensure",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/shared/tests/Integration"
     ],
     "packages:shared:changelog:add": "cd packages/shared && ../../vendor/bin/changelogger add",
@@ -201,7 +202,7 @@
     "packages:storage:test:unit": "@php vendor/bin/phpunit packages/storage/tests/Unit",
     "packages:storage:test:integration": [
       "@putenv CI=1",
-      "npm --prefix=. run wp-env:start",
+      "@wp-env:ensure",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/storage/tests/Integration"
     ],
     "packages:storage:changelog:add": "cd packages/storage && ../../vendor/bin/changelogger add",
@@ -215,7 +216,7 @@
     "packages:utilities:test:unit": "@php vendor/bin/phpunit packages/utilities/tests/Unit",
     "packages:utilities:test:integration": [
       "@putenv CI=1",
-      "npm --prefix=. run wp-env:start",
+      "@wp-env:ensure",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/utilities/tests/Integration"
     ],
     "packages:utilities:changelog:add": "cd packages/utilities && ../../vendor/bin/changelogger add",
@@ -229,7 +230,7 @@
     "packages:woocommerce:test:unit": "@php vendor/bin/phpunit packages/woocommerce/tests/Unit",
     "packages:woocommerce:test:integration": [
       "@putenv CI=1",
-      "npm --prefix=. run wp-env:start",
+      "@wp-env:ensure",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/woocommerce/tests/Integration"
     ],
     "packages:woocommerce:changelog:add": "cd packages/woocommerce && ../../vendor/bin/changelogger add",
