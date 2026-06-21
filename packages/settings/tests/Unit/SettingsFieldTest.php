@@ -2,9 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\SettingsOptionsProviderInterface;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\SettingsOptionsProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

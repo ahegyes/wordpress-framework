@@ -2,10 +2,10 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\DuplicateSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\SettingsFieldAggregator;
-use DeepWebSolutions\Framework\Settings\SettingsFieldProviderInterface;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\SettingsFieldAggregator;
+use DeepWebSolutions\Framework\Settings\Schema\SettingsFieldProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\ValueObjects;
+namespace DeepWebSolutions\Framework\Settings\Schema\ValueObjects;
 
 /**
  * Descriptor for a settings section: a titled group of fields.

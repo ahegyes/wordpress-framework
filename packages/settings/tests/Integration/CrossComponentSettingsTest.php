@@ -2,13 +2,13 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\DuplicateSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\SettingsFieldAggregator;
-use DeepWebSolutions\Framework\Settings\SettingsFieldProviderInterface;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsPage;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsSection;
-use DeepWebSolutions\Framework\Settings\WordPressSettingsBackend;
+use DeepWebSolutions\Framework\Settings\Backend\WordPressSettingsBackend;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\SettingsFieldAggregator;
+use DeepWebSolutions\Framework\Settings\Schema\SettingsFieldProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

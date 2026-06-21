@@ -47,8 +47,8 @@ if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Stor
 }
 
 // Settings PSR-4: the descriptor value objects resolve under the scoped prefix.
-if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Settings\\ValueObjects\\SettingsField' ) ) {
-	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Settings\\ValueObjects\\SettingsField';
+if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Settings\\Schema\\ValueObjects\\SettingsField' ) ) {
+	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Settings\\Schema\\ValueObjects\\SettingsField';
 }
 
 // WooCommerce order-field store: the class that references WooCommerce symbols resolves under the

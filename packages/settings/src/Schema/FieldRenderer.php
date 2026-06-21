@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\Schema;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\UnknownFieldTypeException;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
 /**
  * Renders a field descriptor to an escaped HTML control with its value bound.

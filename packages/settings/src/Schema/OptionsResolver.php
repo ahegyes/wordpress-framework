@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\Schema;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidSettingsOptionsException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsOptionsException;
 
 /**
  * Resolves a field's options source into a concrete value-to-label map.

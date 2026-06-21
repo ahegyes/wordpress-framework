@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsSection;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

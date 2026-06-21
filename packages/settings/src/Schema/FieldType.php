@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\Schema;
 
 /**
  * The framework's settings field-type taxonomy.

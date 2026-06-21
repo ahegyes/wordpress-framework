@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\ValueObjects;
+namespace DeepWebSolutions\Framework\Settings\Schema\ValueObjects;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\SettingsOptionsProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\SettingsOptionsProviderInterface;
 
 /**
  * Descriptor for a single settings field, storage- and UI-agnostic.

@@ -2,9 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\UnknownFieldTypeException;
-use DeepWebSolutions\Framework\Settings\FieldRenderer;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
+use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

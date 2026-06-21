@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\Schema;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\DuplicateSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
 /**
  * Merges field providers into one ordered, duplicate-free field list.

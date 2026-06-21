@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\Backend;
 
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsPage;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 
 /**
  * Registers and persists one option-scoped settings page.
