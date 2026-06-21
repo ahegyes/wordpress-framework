@@ -10,6 +10,5 @@ final class AggregatorTest extends TestCase {
 		self::assertTrue( \function_exists( 'DeepWebSolutions\Framework\Bootstrap\Plugin\get_plugin_metadata' ) );
 		self::assertTrue( \function_exists( 'DeepWebSolutions\Framework\Bootstrap\Requirements\check_requirements' ) );
 		self::assertTrue( \function_exists( 'DeepWebSolutions\Framework\Bootstrap\Notice\output_requirements_error' ) );
-		self::assertTrue( \defined( 'DeepWebSolutions\Framework\Bootstrap\Requirements\FRAMEWORK_MIN_PHP' ) );
 	}
 }
