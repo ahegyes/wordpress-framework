@@ -16,10 +16,12 @@ The framework targets PHP 8.5+, but if a consumer plugin ships to a site running
 
 ## Usage
 
-In your plugin's main file, after `defined( 'ABSPATH' ) || exit;` and your `define( 'YOUR_PLUGIN_FILE', __FILE__ );` constants:
+In your plugin's main file, after `defined( 'ABSPATH' ) || exit;` and your `define( 'YOUR_PLUGIN_FILE', __FILE__ );` constants, require this package on its own and run the check **before** the autoloader that pulls in the framework's modern code:
 
 ```php
-require_once __DIR__ . '/vendor/autoload.php';
+// This package parses on PHP 5.6+, so it can be required ahead of the
+// autoloader that loads the framework's PHP 8.5 code.
+require_once __DIR__ . '/vendor/ahegyes/wp-framework-bootstrap/functions.php';
 
 $requirements = \DeepWebSolutions\Framework\Bootstrap\Requirements\check_requirements( plugin_basename( __FILE__ ) );
 if ( $requirements instanceof \WP_Error ) {
@@ -27,10 +29,15 @@ if ( $requirements instanceof \WP_Error ) {
     return;
 }
 
+// The runtime clears the floor — now it's safe to load the rest of the framework.
+require_once __DIR__ . '/vendor/autoload.php';
+
 // Continue plugin bootstrap from here.
 ```
 
 `check_requirements()` reads `Requires PHP` and `Requires at least` from the plugin's header, applies the framework's own PHP 8.5 / WordPress 7.0 floor, and compares against the runtime. On success it returns `true`; on failure it returns a `WP_Error` carrying `plugin_php_incompatible` / `plugin_wp_incompatible` codes with `min` and `current` data. `output_requirements_error()` queues an admin notice describing what's missing.
+
+When the plugin is built through the framework's per-plugin php-scoper pipeline, the require path moves into the plugin's scoped-dependencies directory and the `DeepWebSolutions\Framework\Bootstrap\…` namespace gains the plugin's scope prefix.
 
 For dependency checks beyond PHP/WP versions — e.g. requiring WooCommerce, a PHP extension, or a custom predicate — use the framework's Conditionals system in `wp-framework-core` / `wp-framework-utilities`, which runs after the autoloader and integrates with Feature gating and `AdminNoticesService`. Bootstrap stays narrowly scoped to "make the autoloader safe to require."
 
@@ -41,7 +48,7 @@ For dependency checks beyond PHP/WP versions — e.g. requiring WooCommerce, a P
 
 ## Requirements
 
-PHP 5.6 or higher. WordPress is detected at runtime; the wrappers degrade gracefully when WP isn't loaded.
+PHP 5.6 or higher. The version-check wrappers fall back to a direct `version_compare()` when WordPress's native compatibility helpers are unavailable (WordPress before 5.2).
 
 ## License
 

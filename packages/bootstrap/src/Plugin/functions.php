@@ -25,6 +25,7 @@ function get_plugin_metadata( $plugin_basename, $translate = false ) {
 		$plugin_file = WP_PLUGIN_DIR . '/' . $plugin_basename;
 
 		if ( ! \is_readable( $plugin_file ) ) {
+			$text_domain = '';
 			$plugin_slug = \dirname( $plugin_basename );
 			if ( '.' !== $plugin_slug && false === \strpos( $plugin_slug, '/' ) ) {
 				$text_domain = $plugin_slug;
@@ -37,7 +38,7 @@ function get_plugin_metadata( $plugin_basename, $translate = false ) {
 				'Description'     => '',
 				'Author'          => '',
 				'AuthorURI'       => '',
-				'TextDomain'      => $text_domain ?? '',
+				'TextDomain'      => $text_domain,
 				'DomainPath'      => '',
 				'Network'         => false,
 				'RequiresWP'      => '',

@@ -26,7 +26,7 @@
     "automattic/jetpack-changelogger": "^6.0",
     "deptrac/deptrac": "^4.6",
     "infection/infection": "^0.32",
-    "johnpbloch/wordpress-core": "^7.0@dev",
+    "johnpbloch/wordpress-core": "^7.0",
     "php-stubs/woocommerce-stubs": "^10.8",
     "phpunit/phpunit": "^13",
     "wp-plugin/woocommerce": "*"
