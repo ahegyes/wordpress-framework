@@ -1,15 +1,21 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\WooCommerce\OrderData;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\Framework\Settings\Exceptions\DuplicateSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidObjectMetaBoxException;
-use DeepWebSolutions\Framework\Settings\ValueObjects\ObjectMetaBox;
+use DeepWebSolutions\Framework\Settings\FieldProcessor;
+use DeepWebSolutions\Framework\Settings\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\ObjectField\Exceptions\InvalidObjectMetaBoxException;
+use DeepWebSolutions\Framework\Settings\ObjectField\ObjectFieldStoreInterface;
+use DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects\ObjectMetaBox;
 use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
 
 /**
  * WooCommerce-order object-field store: an order meta box plus per-object meta CRUD.
+ *
+ * Accepted scope is WooCommerce order meta, with a post-meta fallback for an object
+ * id that is not an order.
  *
  * Registers a meta box on the order edit screen — the legacy post screen or the
  * HPOS orders page, resolved at registration so the box renders under either
@@ -24,7 +30,7 @@ use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class WordPressObjectFieldStore implements ObjectFieldStoreInterface {
+final class OrderFieldStore implements ObjectFieldStoreInterface {
 	// region FIELDS AND CONSTANTS
 
 	/**
@@ -186,7 +192,7 @@ final class WordPressObjectFieldStore implements ObjectFieldStoreInterface {
 	private function resolve_screens( string $screen ): array {
 		if ( self::ORDER_SCREEN !== $screen ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidObjectMetaBoxException( "WordPressObjectFieldStore registers meta boxes on the WooCommerce order screen ('shop_order') only; got '$screen'." );
+			throw new InvalidObjectMetaBoxException( "OrderFieldStore registers meta boxes on the WooCommerce order screen ('shop_order') only; got '$screen'." );
 		}
 		if ( ! OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			return array( self::ORDER_SCREEN );

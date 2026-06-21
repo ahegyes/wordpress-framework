@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidObjectMetaBoxException;
-use DeepWebSolutions\Framework\Settings\ValueObjects\ObjectMetaBox;
+use DeepWebSolutions\Framework\Settings\ObjectField\Exceptions\InvalidObjectMetaBoxException;
+use DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects\ObjectMetaBox;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

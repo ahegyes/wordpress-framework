@@ -51,10 +51,10 @@ if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Sett
 	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Settings\\ValueObjects\\SettingsField';
 }
 
-// Settings WooCommerce-coupled backend: the class that references WooCommerce symbols resolves under
-// the scoped prefix, with those symbols left unprefixed via the fixture's woocommerce-stubs catalog.
-if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Settings\\WordPressObjectFieldStore' ) ) {
-	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Settings\\WordPressObjectFieldStore';
+// WooCommerce order-field store: the class that references WooCommerce symbols resolves under the
+// scoped prefix, with those symbols left unprefixed via the fixture's woocommerce-stubs catalog.
+if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldStore' ) ) {
+	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldStore';
 }
 
 // PHP-DI PSR-4 + files-autoloaded factory().

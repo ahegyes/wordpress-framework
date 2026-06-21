@@ -1,29 +1,29 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
+namespace DeepWebSolutions\Framework\WooCommerce\Tests\Integration\OrderData;
 
 use Automattic\WooCommerce\Utilities\OrderUtil;
 use DeepWebSolutions\Framework\Settings\Exceptions\DuplicateSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidObjectMetaBoxException;
 use DeepWebSolutions\Framework\Settings\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\FieldType;
+use DeepWebSolutions\Framework\Settings\ObjectField\Exceptions\InvalidObjectMetaBoxException;
+use DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects\ObjectMetaBox;
 use DeepWebSolutions\Framework\Settings\OptionsResolver;
-use DeepWebSolutions\Framework\Settings\ValueObjects\ObjectMetaBox;
 use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
-use DeepWebSolutions\Framework\Settings\WordPressObjectFieldStore;
+use DeepWebSolutions\Framework\WooCommerce\OrderData\OrderFieldStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass( WordPressObjectFieldStore::class )]
+#[CoversClass( OrderFieldStore::class )]
 #[UsesClass( ObjectMetaBox::class )]
 #[UsesClass( SettingsField::class )]
 #[UsesClass( FieldRenderer::class )]
 #[UsesClass( FieldProcessor::class )]
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
-final class WordPressObjectFieldStoreTest extends TestCase {
+final class OrderFieldStoreTest extends TestCase {
 	private const BOX_ID       = 'dws_unlock';
 	private const NONCE_NAME   = 'dws_object_field_dws_unlock_nonce';
 	private const NONCE_ACTION = 'dws_object_field_dws_unlock';
@@ -97,7 +97,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 	}
 
 	public function test_set_and_get_round_trip_on_an_order(): void {
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 
 		$store->set( $this->order_id, '_dws_unlocked', 'yes' );
 
@@ -105,13 +105,13 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 	}
 
 	public function test_get_returns_the_default_when_nothing_is_stored(): void {
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 
 		self::assertSame( 'fallback', $store->get( $this->order_id, '_dws_absent', 'fallback' ) );
 	}
 
 	public function test_has_reports_presence_and_delete_removes_the_value(): void {
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 
 		self::assertFalse( $store->has( $this->order_id, '_dws_flag' ) );
 
@@ -127,7 +127,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 		$post_id = \wp_insert_post( array( 'post_title' => 'Probe', 'post_status' => 'publish' ) );
 		\assert( \is_int( $post_id ) );
 		self::assertFalse( \wc_get_order( $post_id ) ); // guarantee the non-order fallback branch, not an id collision
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 
 		$store->set( $post_id, '_dws_post_key', 'value' );
 
@@ -144,7 +144,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 		$screen = OrderUtil::custom_orders_table_usage_is_enabled() ? 'woocommerce_page_wc-orders' : 'shop_order';
 		\set_current_screen( $screen );
 
-		( new WordPressObjectFieldStore() )->register_meta_box( $this->box() );
+		( new OrderFieldStore() )->register_meta_box( $this->box() );
 		\do_action( "add_meta_boxes_$screen" );
 
 		self::assertArrayHasKey( self::BOX_ID, $this->boxes_on( $screen ) );
@@ -162,7 +162,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 		$screen = OrderUtil::custom_orders_table_usage_is_enabled() ? 'woocommerce_page_wc-orders' : 'shop_order';
 		\set_current_screen( $screen );
 
-		( new WordPressObjectFieldStore() )->register_meta_box( $this->box() );
+		( new OrderFieldStore() )->register_meta_box( $this->box() );
 		\do_action( "add_meta_boxes_$screen" );
 
 		$definition = (array) ( $this->boxes_on( $screen )[ self::BOX_ID ] ?? array() );
@@ -194,7 +194,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 				$saved_for = $object_id;
 			},
 		);
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $box );
 		\do_action( "add_meta_boxes_$screen" );
 
@@ -215,7 +215,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 	}
 
 	public function test_a_truthy_submission_is_stored_and_a_falsy_one_deletes_the_meta(): void {
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $this->box() );
 
 		// Checkbox checked → meta stored.
@@ -243,7 +243,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 				new SettingsField( id: 'note', type: 'text', label: 'Note' ),
 			),
 		);
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $box );
 
 		// A literal "0" is a real value, not an empty submission, so it must persist rather than revoke.
@@ -258,7 +258,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 	}
 
 	public function test_save_is_skipped_without_a_valid_nonce(): void {
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $this->box() );
 
 		$_POST = array( self::BOX_ID => array( 'unlocked' => '1' ) );
@@ -281,7 +281,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 		$post_id = \wp_insert_post( array( 'post_title' => 'Probe', 'post_status' => 'publish' ) );
 		\assert( \is_int( $post_id ) );
 		self::assertFalse( \wc_get_order( $post_id ) );
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 
 		$store->set( $post_id, '_dws_path', 'C:\\Users\\dev\\file.txt' );
 
@@ -305,7 +305,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 				new SettingsField( id: 'note', type: 'text', label: 'Note', default: 'preset' ),
 			),
 		);
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $box );
 
 		// Store a value, then submit it empty: delete-on-falsy revokes the meta.
@@ -334,7 +334,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 		}
 		\set_current_screen( 'admin_page_wc-orders' );
 
-		( new WordPressObjectFieldStore() )->register_meta_box( $this->box() );
+		( new OrderFieldStore() )->register_meta_box( $this->box() );
 		\do_action( 'add_meta_boxes_admin_page_wc-orders' );
 
 		self::assertArrayHasKey( self::BOX_ID, $this->boxes_on( 'admin_page_wc-orders' ) );
@@ -351,7 +351,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 				new SettingsField( id: 'unlocked', type: 'checkbox', label: 'Unlocked', meta_key: '_lpm_unlocked' ),
 			),
 		);
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $box );
 
 		$_POST = array( self::NONCE_NAME => $this->nonce(), self::BOX_ID => array( 'unlocked' => '1' ) );
@@ -369,7 +369,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 		\assert( \is_int( $subscriber ) );
 		\wp_set_current_user( $subscriber );
 
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $this->box() );
 
 		// A valid nonce for this user, but the user lacks edit_shop_orders: the save must be refused.
@@ -392,7 +392,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 				new SettingsField( id: 'second', type: 'text', label: 'Second' ),
 			),
 		);
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $box );
 
 		$saves = 0;
@@ -416,7 +416,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 	}
 
 	public function test_a_no_op_save_does_not_persist_the_order(): void {
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $this->box() );
 
 		$saves = 0;
@@ -446,7 +446,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 				new SettingsField( id: 'flag', type: 'checkbox', label: 'B' ),
 			),
 		);
-		$store = new WordPressObjectFieldStore();
+		$store = new OrderFieldStore();
 		$store->register_meta_box( $box );
 
 		$_POST = array( self::NONCE_NAME => $this->nonce(), self::BOX_ID => array( 'flag' => '1' ) );
@@ -467,7 +467,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 
 		$this->expectException( InvalidObjectMetaBoxException::class );
 
-		( new WordPressObjectFieldStore() )->register_meta_box( $box );
+		( new OrderFieldStore() )->register_meta_box( $box );
 	}
 
 	public function test_a_meta_box_title_is_escaped_before_registration(): void {
@@ -482,7 +482,7 @@ final class WordPressObjectFieldStoreTest extends TestCase {
 			priority: 'default',
 			fields_provider: static fn ( int $object_id ): array => array(),
 		);
-		( new WordPressObjectFieldStore() )->register_meta_box( $box );
+		( new OrderFieldStore() )->register_meta_box( $box );
 		\do_action( "add_meta_boxes_$screen" );
 
 		// WordPress echoes the stored title raw in do_meta_boxes(), so the store hands it pre-escaped.

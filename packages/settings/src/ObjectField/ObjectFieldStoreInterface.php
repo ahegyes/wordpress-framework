@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\ObjectField;
 
-use DeepWebSolutions\Framework\Settings\ValueObjects\ObjectMetaBox;
+use DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects\ObjectMetaBox;
 
 /**
  * Registers a per-entity meta box and reads/writes its fields as object meta.
@@ -10,6 +10,11 @@ use DeepWebSolutions\Framework\Settings\ValueObjects\ObjectMetaBox;
  * Fields are addressed by an explicit object id (an order or post) and an
  * explicit meta key. The field id and the storage key are kept distinct, so a
  * consumer can persist under runtime keys the settings id charset forbids.
+ *
+ * Contract-only in this package: its sole implementation is the WooCommerce-order
+ * store in the woocommerce package, kept there so this package stays WooCommerce-free.
+ * The cross-package WooCommerce/WC-free split justifies this lone-implementation
+ * interface — do not remove it on a single-implementation count.
  *
  * @since   2.0.0
  * @version 2.0.0

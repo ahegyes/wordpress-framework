@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\ValueObjects;
+namespace DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidObjectMetaBoxException;
+use DeepWebSolutions\Framework\Settings\ObjectField\Exceptions\InvalidObjectMetaBoxException;
 
 /**
  * Declarative description of a per-entity meta box (object fields).

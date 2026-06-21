@@ -23,10 +23,6 @@
     "psr/log": "^3"
   },
 
-  "suggest": {
-    "wp-plugin/woocommerce": "Required at runtime by WordPressObjectFieldStore, which stores fields as WooCommerce order meta."
-  },
-
   "minimum-stability": "dev",
   "prefer-stable": true,
 
@@ -49,8 +45,7 @@
       "dev-trunk": "2.0.x-dev"
     },
     "scoping-stubs": [
-      "php-stubs/wordpress-stubs",
-      "php-stubs/woocommerce-stubs"
+      "php-stubs/wordpress-stubs"
     ],
     "changelogger": {
       "versioning": "semver",

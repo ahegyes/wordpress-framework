@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Exceptions;
+namespace DeepWebSolutions\Framework\Settings\ObjectField\Exceptions;
 
 use DeepWebSolutions\Framework\Shared\Exception\AbstractRuntimeException;
 
