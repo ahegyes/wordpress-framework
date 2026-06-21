@@ -1,0 +1,44 @@
+name: PHP Syntax
+
+# Parse-lints the pre-autoload bootstrap package across its full PHP floor so a
+# modern-syntax token can't slip in and parse-fatal on a legacy runtime — the
+# one place that would defeat the package's graceful-degradation job. index.php
+# guards are excluded on purpose: they may fatal on a stray direct hit.
+
+on:
+  push:
+    branches: [trunk]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap-syntax:
+    name: Bootstrap (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Lint bootstrap functional files
+        shell: bash
+        run: |
+          set -eo pipefail
+          find packages/bootstrap \
+            -type d -name tests -prune -o \
+            -type f -name index.php -prune -o \
+            -type f -name '*.php' -print0 \
+            | xargs -0 -P4 -n1 -- php -l
