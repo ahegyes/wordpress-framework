@@ -5,7 +5,12 @@ namespace DeepWebSolutions\Framework\Bootstrap\Tests\Integration;
 use DeepWebSolutions\Framework\Bootstrap\Tests\Support\WritesPluginFixtures;
 use PHPUnit\Framework\TestCase;
 
+use function DeepWebSolutions\Framework\Bootstrap\Environment\is_php_compatible;
+use function DeepWebSolutions\Framework\Bootstrap\Environment\is_wp_compatible;
 use function DeepWebSolutions\Framework\Bootstrap\Requirements\check_requirements;
+
+use const DeepWebSolutions\Framework\Bootstrap\Requirements\FRAMEWORK_MIN_PHP;
+use const DeepWebSolutions\Framework\Bootstrap\Requirements\FRAMEWORK_MIN_WP;
 
 final class CheckRequirementsTest extends TestCase {
 	use WritesPluginFixtures;
@@ -22,7 +27,7 @@ final class CheckRequirementsTest extends TestCase {
 			)
 		);
 
-		self::assertTrue( check_requirements( $basename ) );
+		$this->assert_satisfied_or_floor_error( check_requirements( $basename ) );
 	}
 
 	public function test_returns_wp_error_when_php_min_above_runtime(): void {
@@ -40,7 +45,7 @@ final class CheckRequirementsTest extends TestCase {
 		$result = check_requirements( $basename );
 
 		self::assertInstanceOf( \WP_Error::class, $result );
-		self::assertSame( array( 'plugin_php_incompatible' ), $result->get_error_codes() );
+		self::assertContains( 'plugin_php_incompatible', $result->get_error_codes() );
 
 		$data = $result->get_error_data( 'plugin_php_incompatible' );
 		self::assertSame( '99.99', $data['min'] );
@@ -62,7 +67,7 @@ final class CheckRequirementsTest extends TestCase {
 		$result = check_requirements( $basename );
 
 		self::assertInstanceOf( \WP_Error::class, $result );
-		self::assertSame( array( 'plugin_wp_incompatible' ), $result->get_error_codes() );
+		self::assertContains( 'plugin_wp_incompatible', $result->get_error_codes() );
 
 		$data = $result->get_error_data( 'plugin_wp_incompatible' );
 		self::assertSame( '99.99', $data['min'] );
@@ -100,7 +105,7 @@ final class CheckRequirementsTest extends TestCase {
 			)
 		);
 
-		self::assertTrue( check_requirements( $basename ) );
+		$this->assert_satisfied_or_floor_error( check_requirements( $basename ) );
 	}
 
 	public function test_framework_floor_applies_when_requires_php_header_missing(): void {
@@ -114,11 +119,11 @@ final class CheckRequirementsTest extends TestCase {
 			)
 		);
 
-		self::assertTrue( check_requirements( $basename ) );
+		$this->assert_satisfied_or_floor_error( check_requirements( $basename ) );
 	}
 
 	public function test_framework_floor_applies_when_plugin_file_does_not_exist(): void {
-		self::assertTrue( check_requirements( 'dws-missing-plugin/dws-missing-plugin.php' ) );
+		$this->assert_satisfied_or_floor_error( check_requirements( 'dws-missing-plugin/dws-missing-plugin.php' ) );
 	}
 
 	public function test_framework_floor_applies_when_requires_wp_header_missing(): void {
@@ -132,6 +137,28 @@ final class CheckRequirementsTest extends TestCase {
 			)
 		);
 
-		self::assertTrue( check_requirements( $basename ) );
+		$this->assert_satisfied_or_floor_error( check_requirements( $basename ) );
+	}
+
+	// Passes on a floor-meeting runtime; on the below-floor CI lane the framework
+	// floor itself yields the WP_Error, so tolerate that and assert its code(s).
+	protected function assert_satisfied_or_floor_error( true|\WP_Error $result ): void {
+		$php_ok = is_php_compatible( FRAMEWORK_MIN_PHP );
+		$wp_ok  = is_wp_compatible( FRAMEWORK_MIN_WP );
+
+		if ( $php_ok && $wp_ok ) {
+			self::assertTrue( $result );
+			return;
+		}
+
+		self::assertInstanceOf( \WP_Error::class, $result );
+
+		$codes = $result->get_error_codes();
+		if ( ! $php_ok ) {
+			self::assertContains( 'plugin_php_incompatible', $codes );
+		}
+		if ( ! $wp_ok ) {
+			self::assertContains( 'plugin_wp_incompatible', $codes );
+		}
 	}
 }
