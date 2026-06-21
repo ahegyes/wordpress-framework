@@ -4,6 +4,8 @@ namespace DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects;
 
 use DeepWebSolutions\Framework\Settings\ObjectField\Exceptions\InvalidObjectMetaBoxException;
 
+use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
+
 /**
  * Descriptor for a per-entity meta box (object fields).
  *
@@ -17,16 +19,6 @@ use DeepWebSolutions\Framework\Settings\ObjectField\Exceptions\InvalidObjectMeta
  */
 final readonly class ObjectMetaBox {
 	// region FIELDS AND CONSTANTS
-
-	/**
-	 * Meta-box id charset: a lowercase token safe to emit into WordPress meta-box markup unescaped.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     string
-	 */
-	private const ID_PATTERN = '/\A[a-z][a-z0-9_-]*\z/';
 
 	/**
 	 * Builds the fields for a given object id: signature `(int $object_id): list<SettingsField>`.
@@ -89,7 +81,7 @@ final readonly class ObjectMetaBox {
 		?callable $render = null,
 		?callable $save = null,
 	) {
-		if ( 1 !== \preg_match( self::ID_PATTERN, $id ) ) {
+		if ( ! is_valid_identifier( $id ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new InvalidObjectMetaBoxException( "Invalid object meta-box id: '$id'" );
 		}

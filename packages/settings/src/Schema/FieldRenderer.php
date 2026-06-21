@@ -5,6 +5,9 @@ namespace DeepWebSolutions\Framework\Settings\Schema;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
+use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
+use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
+
 /**
  * Renders a field descriptor to an escaped HTML control with its value bound.
  *
@@ -133,7 +136,7 @@ final class FieldRenderer {
 		return \sprintf(
 			'<input type="checkbox" name="%s" value="1"%s%s />',
 			\esc_attr( $name ),
-			\checked( (bool) $value, true, false ),
+			\checked( is_checkbox_checked( $value ), true, false ),
 			$this->render_attributes( $field->attributes ),
 		);
 	}
@@ -217,15 +220,7 @@ final class FieldRenderer {
 	 */
 	private function render_attributes( array $attributes ): string {
 		$rendered = '';
-		foreach ( $attributes as $attribute => $attribute_value ) {
-			$attribute = (string) $attribute;
-
-			// Emit only plain attribute names, never an event handler: a descriptor must not be able to inject
-			// an executable on* attribute, nor a space-separated second attribute through a crafted key.
-			if ( 1 !== \preg_match( '/\A[a-z][a-z0-9-]*\z/i', $attribute ) || 0 === \stripos( $attribute, 'on' ) ) {
-				continue;
-			}
-
+		foreach ( filter_field_attributes( $attributes ) as $attribute => $attribute_value ) {
 			$rendered .= \sprintf( ' %s="%s"', \esc_attr( $attribute ), \esc_attr( (string) $attribute_value ) );
 		}
 

@@ -13,6 +13,8 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
 use DeepWebSolutions\Framework\Storage\OptionsStore;
 use Psr\Log\LoggerInterface;
 
+use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
+
 /**
  * WordPress options-backed settings backend for a single page.
  *
@@ -292,7 +294,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 			\settings_fields( $option_name );
 			echo '<table class="form-table" role="presentation"><tbody>';
 			foreach ( $section->fields as $field ) {
-				if ( ! $this->can_edit( $field ) ) {
+				if ( ! is_field_editable_by_current_user( $field ) ) {
 					continue;
 				}
 				echo '<tr><th scope="row">' . \esc_html( $field->label ) . '</th><td>';
@@ -353,7 +355,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 
 		$output = array();
 		foreach ( $section->fields as $field ) {
-			if ( ! $this->can_edit( $field ) ) {
+			if ( ! is_field_editable_by_current_user( $field ) ) {
 				if ( \array_key_exists( $field->id, $existing ) ) {
 					$output[ $field->id ] = $existing[ $field->id ];
 				}
@@ -363,20 +365,6 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 		}
 
 		return $output;
-	}
-
-	/**
-	 * Whether the current user may edit the given field.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   SettingsField $field Field to check.
-	 *
-	 * @return  bool
-	 */
-	private function can_edit( SettingsField $field ): bool {
-		return null === $field->capability || \current_user_can( $field->capability );
 	}
 
 	// endregion

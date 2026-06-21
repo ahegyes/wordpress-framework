@@ -5,6 +5,8 @@ namespace DeepWebSolutions\Framework\Settings\Schema\ValueObjects;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\SettingsOptionsProviderInterface;
 
+use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
+
 /**
  * Descriptor for a single settings field, storage- and UI-agnostic.
  *
@@ -20,16 +22,6 @@ use DeepWebSolutions\Framework\Settings\Schema\SettingsOptionsProviderInterface;
  */
 final readonly class SettingsField {
 	// region FIELDS AND CONSTANTS
-
-	/**
-	 * Identifier charset: a lowercase letter followed by lowercase letters, digits, underscores, or hyphens.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     string
-	 */
-	private const ID_PATTERN = '/\A[a-z][a-z0-9_-]*\z/';
 
 	/**
 	 * Sanitizer applied to the submitted value before validation; null leaves the value untouched.
@@ -92,7 +84,7 @@ final readonly class SettingsField {
 		public ?string $meta_key = null,
 		public ?string $description = null,
 	) {
-		if ( 1 !== \preg_match( self::ID_PATTERN, $id ) ) {
+		if ( ! is_valid_identifier( $id ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new InvalidSettingsFieldException( "Invalid settings field id: '$id'" );
 		}

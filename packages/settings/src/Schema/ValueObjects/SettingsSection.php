@@ -2,6 +2,10 @@
 
 namespace DeepWebSolutions\Framework\Settings\Schema\ValueObjects;
 
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsSectionException;
+
+use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
+
 /**
  * Descriptor for a settings section: a titled group of fields.
  *
@@ -22,15 +26,22 @@ final readonly class SettingsSection {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string              $id Section identifier, unique within its page.
+	 * @param   string              $id Section identifier, unique within its page; a lowercase token matching the id charset.
 	 * @param   string              $title Human-readable section heading.
 	 * @param   list<SettingsField> $fields Fields belonging to the section, in display order.
+	 *
+	 * @throws  InvalidSettingsSectionException If $id does not match the id charset.
 	 */
 	public function __construct(
 		public string $id,
 		public string $title,
 		public array $fields,
-	) {}
+	) {
+		if ( ! is_valid_identifier( $id ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new InvalidSettingsSectionException( "Invalid settings section id: '$id'" );
+		}
+	}
 
 	// endregion
 }
