@@ -5,6 +5,7 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
 use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\OptionsResolver;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -13,11 +14,82 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( FieldProcessor::class )]
 #[UsesClass( SettingsField::class )]
 #[UsesClass( OptionsResolver::class )]
+#[UsesClass( CustomFieldType::class )]
 final class FieldProcessorTest extends TestCase {
 	public function test_an_unknown_field_type_throws(): void {
 		$this->expectException( UnknownFieldTypeException::class );
 
 		( new FieldProcessor() )->process( $this->field( 'f', 'bogus' ), array( 'f' => 'x' ) );
+	}
+
+	public function test_an_unregistered_custom_type_still_throws(): void {
+		// The registry is an allowlist: a type absent from it stays loud, so a typo is caught, not silently persisted.
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+
+		$this->expectException( UnknownFieldTypeException::class );
+
+		$processor->process( $this->field( 'f', 'bogus' ), array( 'f' => 'x' ) );
+	}
+
+	public function test_a_registered_custom_type_applies_the_fields_sanitize(): void {
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', sanitize: 'trim' );
+
+		self::assertSame( '#abc', $processor->process( $field, array( 'shade' => '  #abc  ' ) ) );
+	}
+
+	public function test_a_registered_custom_type_with_no_submission_returns_the_default(): void {
+		// A custom type follows the established custom-save shape (ProductData): an absent submission falls
+		// back to the field's default, not the scalar-empty false the taxonomy branch coerces to.
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', default: '#000' );
+
+		self::assertSame( '#000', $processor->process( $field, array() ) );
+	}
+
+	public function test_a_registered_custom_type_failing_validation_returns_the_default(): void {
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+		$field     = new SettingsField(
+			id: 'shade',
+			type: 'color_picker',
+			label: 'Shade',
+			default: '#fallback',
+			validate: static fn ( mixed $value ): bool => false,
+		);
+
+		self::assertSame( '#fallback', $processor->process( $field, array( 'shade' => '#abc' ) ) );
+	}
+
+	public function test_a_registered_custom_type_applies_sanitize_before_validate(): void {
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+		// The validator accepts only the trimmed value; were it run before sanitize, it would reject to the default.
+		$field = new SettingsField(
+			id: 'shade',
+			type: 'color_picker',
+			label: 'Shade',
+			default: '#fallback',
+			sanitize: 'trim',
+			validate: static fn ( mixed $value ): bool => '#abc' === $value,
+		);
+
+		self::assertSame( '#abc', $processor->process( $field, array( 'shade' => '  #abc  ' ) ) );
+	}
+
+	private function custom_type( string $type ): CustomFieldType {
+		return new CustomFieldType(
+			type: $type,
+			render: static fn ( SettingsField $field, mixed $value, string $name ): string => '',
+		);
 	}
 
 	public function test_an_absent_checkbox_coerces_to_false(): void {

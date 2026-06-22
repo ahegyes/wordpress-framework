@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Settings\Schema;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
 /**
@@ -13,7 +14,10 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
  * value (an empty array for a multi-value field, otherwise false — never null),
  * and for a present value applies the field's sanitizer, gates a choice value
  * against its resolved option set, then applies the field's own validator; a
- * value any step rejects falls back to the empty value.
+ * value any step rejects falls back to the empty value. A type outside the
+ * taxonomy but present in the injected custom-type registry is processed as a
+ * plain scalar through the field's own sanitize/validate, falling back to the
+ * field's default; a type in neither still throws.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -27,10 +31,12 @@ final class FieldProcessor {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   OptionsResolver $resolver Resolver for choice fields' option sets.
+	 * @param   OptionsResolver                $resolver     Resolver for choice fields' option sets.
+	 * @param   array<string, CustomFieldType> $custom_types Registry of types outside the taxonomy whose submissions are accepted, keyed by type token.
 	 */
 	public function __construct(
 		private OptionsResolver $resolver = new OptionsResolver(),
+		private array $custom_types = array(),
 	) {}
 
 	// endregion
@@ -46,13 +52,16 @@ final class FieldProcessor {
 	 * @param   SettingsField        $field Field whose value is processed.
 	 * @param   array<string, mixed> $input Raw submitted values keyed by field id; a missing key means the field was not submitted.
 	 *
-	 * @throws  UnknownFieldTypeException If the field declares a type outside the taxonomy.
+	 * @throws  UnknownFieldTypeException If the field declares a type outside both the taxonomy and the custom-type registry.
 	 *
 	 * @return  mixed
 	 */
 	public function process( SettingsField $field, array $input ): mixed {
 		$type = FieldType::tryFrom( $field->type );
 		if ( null === $type ) {
+			if ( isset( $this->custom_types[ $field->type ] ) ) {
+				return $this->process_custom( $field, $input );
+			}
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new UnknownFieldTypeException( "Unknown settings field type: '$field->type'" );
 		}
@@ -93,6 +102,49 @@ final class FieldProcessor {
 	// endregion
 
 	// region HELPERS
+
+	/**
+	 * Processes a custom-typed field as a plain scalar: an absent submission yields the field's default, a
+	 * present one runs the field's own sanitize then validate, falling back to the default when validation rejects.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsField        $field Field whose value is processed.
+	 * @param   array<string, mixed> $input Raw submitted values keyed by field id.
+	 *
+	 * @return  mixed
+	 */
+	private function process_custom( SettingsField $field, array $input ): mixed {
+		if ( ! \array_key_exists( $field->id, $input ) ) {
+			return $field->default;
+		}
+
+		return $this->sanitize_and_validate( $field, $input[ $field->id ], $field->default );
+	}
+
+	/**
+	 * Runs a field's sanitize then validate, returning the fallback when validation rejects the value.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsField $field    Field whose closures to apply.
+	 * @param   mixed         $value    Value to sanitize and validate.
+	 * @param   mixed         $rejected Value returned when validation rejects.
+	 *
+	 * @return  mixed
+	 */
+	private function sanitize_and_validate( SettingsField $field, mixed $value, mixed $rejected ): mixed {
+		if ( null !== $field->sanitize ) {
+			$value = ( $field->sanitize )( $value );
+		}
+		if ( null !== $field->validate && ! ( $field->validate )( $value ) ) {
+			return $rejected;
+		}
+
+		return $value;
+	}
 
 	/**
 	 * Whether a single submitted value is a key in the field's resolved options.

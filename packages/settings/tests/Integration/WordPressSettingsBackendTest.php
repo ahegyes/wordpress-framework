@@ -5,6 +5,9 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 use DeepWebSolutions\Framework\Settings\Backend\WordPressSettingsBackend;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
+use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
+use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
@@ -16,6 +19,9 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( SettingsField::class )]
 #[UsesClass( SettingsSection::class )]
 #[UsesClass( SettingsPage::class )]
+#[UsesClass( CustomFieldType::class )]
+#[UsesClass( FieldRenderer::class )]
+#[UsesClass( FieldProcessor::class )]
 final class WordPressSettingsBackendTest extends TestCase {
 	private const SLUG            = 'dws-test-settings';
 	private const GENERAL_OPTION  = 'dws-test-settings-general';
@@ -313,11 +319,108 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertNull( $backend->get( 'site_name', 'sentinel' ) );
 	}
 
+	public function test_a_custom_field_type_renders_through_an_injected_renderer(): void {
+		// The page render emits a full admin form; its helpers (submit_button, settings_fields) live in the
+		// admin includes loaded on real admin requests, so the CLI context must require them.
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$this->register_with_custom( $this->custom_page() );
+		\do_action( 'admin_menu' );
+
+		// The page render callback is registered on the page's resolved menu hook; invoke that hook to render
+		// the whole page, proving the injected renderer's custom-type control reaches the page markup.
+		\ob_start();
+		\do_action( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		$html = (string) \ob_get_clean();
+
+		self::assertStringContainsString( 'class="dws-page-select"', $html );
+		self::assertStringContainsString( 'name="' . self::GENERAL_OPTION . '[home_page]"', $html );
+	}
+
+	public function test_a_custom_field_type_value_round_trips_through_sanitize_option_and_get(): void {
+		$backend = $this->register_with_custom( $this->custom_page() );
+		\do_action( 'admin_init' );
+
+		// A form save routes through register_setting's sanitize_callback (sanitize_option), where the injected
+		// processor accepts the custom type's submission; the stored value reads back through get().
+		$this->form_save( self::GENERAL_OPTION, array( 'home_page' => '42' ) );
+
+		self::assertSame( '42', $backend->get( 'home_page' ) );
+		self::assertSame( '42', \get_option( self::GENERAL_OPTION )['home_page'] ?? null );
+	}
+
+	public function test_a_custom_field_type_falls_back_to_its_default_when_validation_rejects(): void {
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			sections: array(
+				new SettingsSection(
+					'general',
+					'General',
+					array(
+						new SettingsField(
+							id: 'home_page',
+							type: 'single_select_page',
+							label: 'Home Page',
+							default: '7',
+							validate: static fn ( mixed $value ): bool => false,
+						),
+					),
+				),
+			),
+		);
+		$backend = $this->register_with_custom( $page );
+		\do_action( 'admin_init' );
+
+		$this->form_save( self::GENERAL_OPTION, array( 'home_page' => '999' ) );
+
+		self::assertSame( '7', $backend->get( 'home_page' ) );
+	}
+
 	private function register( SettingsPage $page ): WordPressSettingsBackend {
 		$backend = new WordPressSettingsBackend();
 		$backend->register_page( $page );
 
 		return $backend;
+	}
+
+	private function register_with_custom( SettingsPage $page ): WordPressSettingsBackend {
+		$custom_types = array(
+			'single_select_page' => new CustomFieldType(
+				type: 'single_select_page',
+				render: static fn ( SettingsField $field, mixed $value, string $name ): string => \sprintf(
+					'<select class="dws-page-select" name="%s"><option value="42"%s>Sample Page</option></select>',
+					\esc_attr( $name ),
+					\selected( '42', (string) $value, false ),
+				),
+			),
+		);
+
+		$backend = new WordPressSettingsBackend(
+			renderer: new FieldRenderer( custom_types: $custom_types ),
+			processor: new FieldProcessor( custom_types: $custom_types ),
+		);
+		$backend->register_page( $page );
+
+		return $backend;
+	}
+
+	private function custom_page(): SettingsPage {
+		return new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			sections: array(
+				new SettingsSection(
+					'general',
+					'General',
+					array( new SettingsField( id: 'home_page', type: 'single_select_page', label: 'Home Page' ) ),
+				),
+			),
+		);
 	}
 
 	/**

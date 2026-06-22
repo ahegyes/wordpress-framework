@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Settings\Schema;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
 use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
@@ -15,7 +16,8 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
  * backends (WooCommerce renders its own). Resolves a field's options through the
  * same {@see OptionsResolver} the processor validates against, so the rendered
  * choices and the accepted values always agree. The caller supplies the control's
- * HTML name; an unknown field type throws.
+ * HTML name; a field type outside the taxonomy and the injected custom-type
+ * registry throws.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -29,10 +31,12 @@ final class FieldRenderer {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   OptionsResolver $resolver Resolver for choice fields' option sets.
+	 * @param   OptionsResolver                $resolver     Resolver for choice fields' option sets.
+	 * @param   array<string, CustomFieldType> $custom_types Registry of render seams for types outside the taxonomy, keyed by type token.
 	 */
 	public function __construct(
 		private OptionsResolver $resolver = new OptionsResolver(),
+		private array $custom_types = array(),
 	) {}
 
 	// endregion
@@ -49,13 +53,16 @@ final class FieldRenderer {
 	 * @param   mixed         $value Current value to bind into the control.
 	 * @param   string        $name  HTML name attribute for the control.
 	 *
-	 * @throws  UnknownFieldTypeException If the field declares a type outside the taxonomy.
+	 * @throws  UnknownFieldTypeException If the field declares a type outside both the taxonomy and the custom-type registry.
 	 *
 	 * @return  string
 	 */
 	public function render( SettingsField $field, mixed $value, string $name ): string {
 		$type = FieldType::tryFrom( $field->type );
 		if ( null === $type ) {
+			if ( isset( $this->custom_types[ $field->type ] ) ) {
+				return ( $this->custom_types[ $field->type ]->render )( $field, $value, $name ) . $this->render_description( $field );
+			}
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new UnknownFieldTypeException( "Unknown settings field type: '$field->type'" );
 		}
