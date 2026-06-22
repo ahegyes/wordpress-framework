@@ -4,8 +4,11 @@ includes:
 parameters:
     # WooCommerce symbols (OrderUtil, WC_Order, wc_get_order) used by the woocommerce
     # package's order-field store and settings page; the shared config only wires the WordPress stubs.
+    # The packages-stubs file additionally defines the Action Scheduler as_* functions the
+    # utilities scheduling backend calls (woocommerce-stubs.php does not).
     bootstrapFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
     # PHPStan does not expand globs in `paths`; each package is enumerated literally.
     paths:
         - packages/bootstrap/functions.php
