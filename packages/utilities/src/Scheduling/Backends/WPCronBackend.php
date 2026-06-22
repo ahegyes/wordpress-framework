@@ -20,7 +20,7 @@ use WP_Error;
  * exactly once (WordPress cannot de-duplicate fresh closures, so a stable reference and a
  * one-time guard are both required); it reads an internal interval registry, so later
  * intervals are covered without re-adding the filter. WordPress cron has no grouping, so a
- * non-empty group is rejected on every mutation.
+ * non-empty group is rejected on every mutation and treated as never-scheduled by every query.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -138,8 +138,8 @@ final class WPCronBackend implements SchedulerBackendInterface {
 			return $rejection;
 		}
 
-		\wp_clear_scheduled_hook( $hook, $args, true );
-		return Success::from( true );
+		$cleared = \wp_clear_scheduled_hook( $hook, $args, true );
+		return $this->result_for_unschedule( $cleared, $hook );
 	}
 
 	/**
@@ -149,6 +149,11 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	public function is_scheduled( string $hook, array $args = array(), string $group = '' ): bool {
+		// A grouped schedule can never exist on WP-Cron, so a query naming a group is consistently false.
+		if ( '' !== $group ) {
+			return false;
+		}
+
 		return false !== \wp_next_scheduled( $hook, $args );
 	}
 
@@ -159,6 +164,11 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	public function get_next_scheduled( string $hook, array $args = array(), string $group = '' ): ?int {
+		// A grouped schedule can never exist on WP-Cron, so a query naming a group has no next run.
+		if ( '' !== $group ) {
+			return null;
+		}
+
 		$next = \wp_next_scheduled( $hook, $args );
 		return \is_int( $next ) ? $next : null;
 	}
@@ -279,6 +289,39 @@ final class WPCronBackend implements SchedulerBackendInterface {
 		}
 
 		$message = 'WordPress cron rejected the scheduling request.';
+		$this->logger?->error( $message, $context );
+
+		return Failure::from(
+			new SchedulingError( SchedulingErrorReason::ScheduleFailed, $message, $context ),
+		);
+	}
+
+	/**
+	 * Maps a WordPress cron clear return to a result — an int count is a success, a WP_Error (or any non-int) a failure.
+	 *
+	 * With $wp_error = true, wp_clear_scheduled_hook returns the count of unscheduled events (zero when none
+	 * matched) on success, or a WP_Error when one or more events failed to unschedule; a count of zero is not a
+	 * failure, so only a non-int return surfaces as one.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int|WP_Error $cleared Return of wp_clear_scheduled_hook with $wp_error = true.
+	 * @param   string       $hook    Hook that was being unscheduled, for the error context.
+	 *
+	 * @return  Success<true>|Failure<SchedulingError> Success on an int count, a failure on a WP_Error / non-int return.
+	 */
+	private function result_for_unschedule( int|WP_Error $cleared, string $hook ): AbstractResult {
+		if ( \is_int( $cleared ) ) {
+			return Success::from( true );
+		}
+
+		$context = array(
+			'hook'     => $hook,
+			'wp_error' => $cleared->get_error_message(),
+		);
+
+		$message = 'WordPress cron failed to clear the scheduled hook.';
 		$this->logger?->error( $message, $context );
 
 		return Failure::from(

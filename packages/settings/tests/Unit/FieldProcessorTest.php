@@ -85,6 +85,17 @@ final class FieldProcessorTest extends TestCase {
 		self::assertSame( '#abc', $processor->process( $field, array( 'shade' => '  #abc  ' ) ) );
 	}
 
+	public function test_a_registered_custom_type_with_a_non_scalar_submission_returns_the_default(): void {
+		// A tampered array submission (shade[]=x) to a scalar custom field whose sanitize is a scalar callable
+		// (trim) must coerce to the default, not fatal the sanitizer with a TypeError.
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', default: '#000', sanitize: 'trim' );
+
+		self::assertSame( '#000', $processor->process( $field, array( 'shade' => array( 'x' ) ) ) );
+	}
+
 	private function custom_type( string $type ): CustomFieldType {
 		return new CustomFieldType(
 			type: $type,

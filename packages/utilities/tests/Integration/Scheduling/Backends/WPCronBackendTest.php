@@ -87,6 +87,44 @@ final class WPCronBackendTest extends TestCase {
 		self::assertFalse( $backend->is_scheduled( self::HOOK ) );
 	}
 
+	public function test_unschedule_returns_a_failure_when_the_clear_fails(): void {
+		$backend = $this->backend();
+		$backend->schedule_single( self::HOOK, \time() + 3600 );
+
+		// pre_clear_scheduled_hook short-circuits wp_clear_scheduled_hook; a WP_Error return models a backend
+		// (e.g. a wp-cron replacement) failing to unschedule, the exact failure case unschedule must surface.
+		$wp_error = new \WP_Error( 'clear_failed', 'Could not clear the hook.' );
+		$filter   = static fn (): \WP_Error => $wp_error;
+		\add_filter( 'pre_clear_scheduled_hook', $filter );
+
+		try {
+			$result = $backend->unschedule( self::HOOK );
+		} finally {
+			\remove_filter( 'pre_clear_scheduled_hook', $filter );
+		}
+
+		self::assertInstanceOf( Failure::class, $result );
+		self::assertInstanceOf( SchedulingError::class, $result->error );
+		self::assertSame( SchedulingErrorReason::ScheduleFailed, $result->error->reason );
+		self::assertSame( 'Could not clear the hook.', $result->error->context['wp_error'] );
+	}
+
+	public function test_is_scheduled_rejects_a_non_empty_group(): void {
+		$backend = $this->backend();
+		$backend->schedule_single( self::HOOK, \time() + 3600 );
+
+		// A grouped schedule can never exist on WP-Cron, so a query naming a group is consistently false.
+		self::assertFalse( $backend->is_scheduled( self::HOOK, array(), 'reports' ) );
+	}
+
+	public function test_get_next_scheduled_rejects_a_non_empty_group(): void {
+		$backend   = $this->backend();
+		$timestamp = \time() + 3600;
+		$backend->schedule_single( self::HOOK, $timestamp );
+
+		self::assertNull( $backend->get_next_scheduled( self::HOOK, array(), 'reports' ) );
+	}
+
 	public function test_recurring_registers_a_synthetic_named_schedule(): void {
 		$backend = $this->backend();
 

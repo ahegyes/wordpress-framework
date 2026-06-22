@@ -17,7 +17,8 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
  * value any step rejects falls back to the empty value. A type outside the
  * taxonomy but present in the injected custom-type registry is processed as a
  * plain scalar through the field's own sanitize/validate, falling back to the
- * field's default; a type in neither still throws.
+ * field's default (a non-scalar submission is coerced to the default before the
+ * sanitizer runs, mirroring the built-in scalar guard); a type in neither still throws.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -104,8 +105,8 @@ final class FieldProcessor {
 	// region HELPERS
 
 	/**
-	 * Processes a custom-typed field as a plain scalar: an absent submission yields the field's default, a
-	 * present one runs the field's own sanitize then validate, falling back to the default when validation rejects.
+	 * Processes a custom-typed field as a plain scalar: an absent or non-scalar submission yields the field's
+	 * default, a present scalar runs the field's own sanitize then validate, falling back to the default when validation rejects.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -120,7 +121,15 @@ final class FieldProcessor {
 			return $field->default;
 		}
 
-		return $this->sanitize_and_validate( $field, $input[ $field->id ], $field->default );
+		$value = $input[ $field->id ];
+
+		// A custom type is treated as scalar: a tampered array submission would fatal a scalar sanitizer
+		// (e.g. trim), so coerce a non-scalar to the field's default — mirroring the built-in scalar guard.
+		if ( ! \is_scalar( $value ) ) {
+			return $field->default;
+		}
+
+		return $this->sanitize_and_validate( $field, $value, $field->default );
 	}
 
 	/**
