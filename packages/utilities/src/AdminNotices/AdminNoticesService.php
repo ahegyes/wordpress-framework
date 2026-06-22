@@ -38,7 +38,7 @@ final class AdminNoticesService {
 	 *
 	 * @var     array<string, NoticeStore>
 	 */
-	private(set) array $stores;
+	protected(set) array $stores;
 
 	// endregion
 

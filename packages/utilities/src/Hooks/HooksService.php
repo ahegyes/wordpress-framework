@@ -31,7 +31,7 @@ final class HooksService {
 	 *
 	 * @var     array<string, HookHandlerInterface>
 	 */
-	private(set) array $handlers = array();
+	protected(set) array $handlers = array();
 
 	// endregion
 
