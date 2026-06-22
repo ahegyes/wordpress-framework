@@ -83,7 +83,7 @@
     "humbug/php-scoper": "^0.18",
     "php-di/php-di": "^7",
     "php-stubs/wordpress-stubs": "*",
-    "php-stubs/woocommerce-stubs": "*"
+    "php-stubs/woocommerce-stubs": "^10.8"
   },
 
   "minimum-stability": "dev",
