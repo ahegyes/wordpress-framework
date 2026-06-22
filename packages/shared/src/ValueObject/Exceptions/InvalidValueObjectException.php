@@ -7,6 +7,10 @@ use DeepWebSolutions\Framework\Shared\Exception\AbstractInvalidArgumentException
 /**
  * Base class for exceptions raised when a value object invariant is violated.
  *
+ * Each value object's invalidity exception extends this and supplies its
+ * `value_object_type`, so the family shares one message format and a single
+ * catch point (`catch ( InvalidValueObjectException )`).
+ *
  * @since   2.0.0
  * @version 2.0.0
  */

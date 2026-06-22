@@ -109,7 +109,7 @@ final readonly class Version extends AbstractValueObject {
 		$pattern = '/^\d+(\.\d+){0,2}(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/';
 		if ( 1 !== \preg_match( $pattern, $value ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidVersionException( "Invalid version string: '$value'" );
+			throw new InvalidVersionException( "'$value' does not parse as a version" );
 		}
 
 		return new self( $value );
@@ -136,7 +136,7 @@ final readonly class Version extends AbstractValueObject {
 	 */
 	public static function from_parts( int $major, ?int $minor = null, ?int $patch = null, ?string $prerelease = null, ?string $build = null ): self {
 		if ( null === $minor && null !== $patch ) {
-			throw new InvalidVersionException( 'Patch version requires a minor version.' );
+			throw new InvalidVersionException( 'a patch version requires a minor version' );
 		}
 
 		$value  = (string) $major;

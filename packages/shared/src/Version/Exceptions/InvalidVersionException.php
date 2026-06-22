@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Shared\Version\Exceptions;
 
-use DeepWebSolutions\Framework\Shared\Exception\AbstractInvalidArgumentException;
+use DeepWebSolutions\Framework\Shared\ValueObject\Exceptions\InvalidValueObjectException;
 
 /**
  * Thrown when a string cannot be parsed into a valid Version value object.
@@ -10,4 +10,16 @@ use DeepWebSolutions\Framework\Shared\Exception\AbstractInvalidArgumentException
  * @since   2.0.0
  * @version 2.0.0
  */
-final class InvalidVersionException extends AbstractInvalidArgumentException {}
+final class InvalidVersionException extends InvalidValueObjectException {
+	/**
+	 * Identifies the owning value object in invalidity messages.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	protected string $value_object_type {
+		get => 'Version';
+	}
+}
