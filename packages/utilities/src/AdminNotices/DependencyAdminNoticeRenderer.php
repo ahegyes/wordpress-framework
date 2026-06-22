@@ -118,7 +118,7 @@ final class DependencyAdminNoticeRenderer {
 			id: $requirement->get_notice_id(),
 			message: $this->build_message( $requirement ),
 			type: $requirement->get_notice_type(),
-			dismissible: $requirement->is_dismissible(),
+			is_dismissible: $requirement->is_dismissible(),
 			is_persistent: $requirement->is_persistent(),
 			capability: $this->capability,
 		);

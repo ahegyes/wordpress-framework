@@ -9,7 +9,7 @@ use DeepWebSolutions\Framework\Utilities\AdminNotices\DismissedNoticesTracker;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\DependencyRequirement;
-use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\NoticeType;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 use DeepWebSolutions\Framework\Utilities\Conditionals\Dependencies\WPPluginActiveConditional;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
 use DeepWebSolutions\Framework\Storage\OptionsStore;
@@ -76,7 +76,7 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 
 		self::assertInstanceOf( AdminNotice::class, $notice );
 		self::assertSame( NoticeType::Error, $notice->type );
-		self::assertFalse( $notice->dismissible );
+		self::assertFalse( $notice->is_dismissible );
 		self::assertFalse( $notice->is_persistent );
 		self::assertSame( 'activate_plugins', $notice->capability );
 		self::assertSame( 'Linked Orders requires WooCommerce to be active.', $notice->message );
@@ -94,7 +94,7 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 
 		self::assertInstanceOf( AdminNotice::class, $notice );
 		self::assertSame( NoticeType::Warning, $notice->type );
-		self::assertTrue( $notice->dismissible );
+		self::assertTrue( $notice->is_dismissible );
 		self::assertTrue( $notice->is_persistent );
 		self::assertSame( 'Jetpack is recommended for Linked Orders.', $notice->message );
 	}

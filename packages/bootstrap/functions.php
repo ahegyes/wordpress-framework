@@ -1,11 +1,5 @@
 <?php
-/**
- * Pre-autoload aggregator for the bootstrap package. Requires the per-concern
- * function files below. Composer autoloads only this file via autoload-files.
- *
- * @since   2.0.0
- * @version 2.0.0
- */
+// Aggregator: requires this package's nested src/<namespace>/functions.php files (composer autoloads only this file).
 
 require_once __DIR__ . '/src/Environment/functions.php';
 require_once __DIR__ . '/src/Plugin/functions.php';

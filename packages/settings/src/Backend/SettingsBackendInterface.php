@@ -26,7 +26,8 @@ interface SettingsBackendInterface {
 	public function register_page( SettingsPage $page ): void;
 
 	/**
-	 * Retrieves a field's stored value, or the default if none is stored.
+	 * Retrieves a field's stored value, or $default_value when nothing is stored. The field's
+	 * declared default is a render-time concern, not a read-time fallback here.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

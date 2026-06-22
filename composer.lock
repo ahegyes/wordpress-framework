@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "45c9da7415957a2cafc149881a7eb147",
+    "content-hash": "9ebeab9b8d0cd3c3e827a8374a1932c4",
     "packages": [
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -83,7 +83,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "8d1b39d07cd26bbccbf3ef38f4d0c61791576318"
+                "reference": "85894d9c704a66a1b2b6f0464eb7bd91512d1224"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0@dev",
@@ -118,10 +118,7 @@
             "autoload": {
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\Core\\": "src/"
-                },
-                "files": [
-                    "functions.php"
-                ]
+                }
             },
             "autoload-dev": {
                 "psr-4": {
@@ -137,7 +134,7 @@
                     "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
                 }
             ],
-            "description": "PSR-11-based plugin kernel and lifecycle framework for WordPress — interface-driven components, three-pass boot dispatch.",
+            "description": "PSR-11-based plugin kernel and lifecycle framework for WordPress — interface-driven components, two-pass boot dispatch.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "keywords": [
                 "framework",
@@ -161,7 +158,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/settings",
-                "reference": "790c8cc1bb38065f29aaba2a4320b4326a28d522"
+                "reference": "e33f74f739baf1f52e8de46c6228c338e877b150"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0@dev",
@@ -169,17 +166,13 @@
                 "php": ">=8.5",
                 "psr/log": "^3"
             },
-            "suggest": {
-                "wp-plugin/woocommerce": "Required at runtime by WordPressObjectFieldStore, which stores fields as WooCommerce order meta."
-            },
             "type": "library",
             "extra": {
                 "branch-alias": {
                     "dev-trunk": "2.0.x-dev"
                 },
                 "scoping-stubs": [
-                    "php-stubs/wordpress-stubs",
-                    "php-stubs/woocommerce-stubs"
+                    "php-stubs/wordpress-stubs"
                 ],
                 "changelogger": {
                     "versioning": "semver",
@@ -313,7 +306,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/storage",
-                "reference": "bca0455241dd8fdfa8de5995904a19341d5c1107"
+                "reference": "fe7985a381301804b0a851bb5f5dd8d392851b0f"
             },
             "require": {
                 "php": ">=8.5"
@@ -344,10 +337,7 @@
             "autoload": {
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\Storage\\": "src/"
-                },
-                "files": [
-                    "functions.php"
-                ]
+                }
             },
             "autoload-dev": {
                 "psr-4": {
@@ -387,7 +377,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/utilities",
-                "reference": "274495096e66b5e9b1d0a7020c75f1318638eb10"
+                "reference": "02095b3ed758e1bd20507324f619f948ed18c1d3"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
@@ -401,7 +391,8 @@
                     "dev-trunk": "2.0.x-dev"
                 },
                 "scoping-stubs": [
-                    "php-stubs/wordpress-stubs"
+                    "php-stubs/wordpress-stubs",
+                    "php-stubs/woocommerce-stubs:woocommerce-packages-stubs.php"
                 ],
                 "changelogger": {
                     "versioning": "semver",
@@ -8645,8 +8636,7 @@
         "ahegyes/wp-framework-shared": 20,
         "ahegyes/wp-framework-storage": 20,
         "ahegyes/wp-framework-utilities": 20,
-        "ahegyes/wp-framework-woocommerce": 20,
-        "johnpbloch/wordpress-core": 20
+        "ahegyes/wp-framework-woocommerce": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

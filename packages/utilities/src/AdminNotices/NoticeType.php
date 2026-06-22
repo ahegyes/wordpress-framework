@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects;
+namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
 /**
  * Severity level for an admin notice.

@@ -40,6 +40,19 @@ final class IsCompatibleTest extends TestCase {
 		}
 	}
 
+	public function test_is_wp_compatible_drops_trailing_zero_from_three_part_minimum_in_fallback(): void {
+		self::assertFalse( \function_exists( '\is_wp_version_compatible' ), 'WP must not be loaded for unit tests.' );
+
+		$GLOBALS['wp_version'] = '7.0';
+		try {
+			// A 2-part current satisfies a 3-part ".0" minimum, mirroring is_wp_version_compatible().
+			self::assertTrue( is_wp_compatible( '7.0.0' ) );
+			self::assertFalse( is_wp_compatible( '7.0.1' ) );
+		} finally {
+			unset( $GLOBALS['wp_version'] );
+		}
+	}
+
 	public function test_is_wp_compatible_treats_missing_wp_version_global_as_zero(): void {
 		self::assertFalse( \function_exists( '\is_wp_version_compatible' ), 'WP must not be loaded for unit tests.' );
 		self::assertArrayNotHasKey( 'wp_version', $GLOBALS );

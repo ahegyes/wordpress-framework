@@ -4,7 +4,7 @@ DWS v2 WordPress framework — monorepo for 7 packages (bootstrap, shared, stora
 
 ## Status
 
-`bootstrap`, `shared` (Error / Exception / Result / ValueObject scaffolding + Reflection helpers), `storage` (KeyValueStore + Memory / Options / UserMeta backends), `core`, `utilities` (Hooks + AdminNotices + Conditionals + Caching), and `settings` (descriptors + aggregator / dispatcher + WordPress options & object-field backends) have implementations. `woocommerce` has a settings-backend implementation (`WooCommerceSettingsBackend` + `DescriptorBackedWCSettingsPage` + `WCSettingsBuilder`, Spec C Task 3.2) and a **product-data settings tab** primitive (`ProductData/` — `ProductDataTab` + `ProductDataFieldRenderer` + `ProductDataFieldStore`, 2026-06-15); its remaining WC helpers (version conditionals, `WC_Logger` PSR-3 bridge) await plugin-migration demand.
+`bootstrap`, `shared` (Error / Exception / Result / ValueObject scaffolding + Reflection helpers), `storage` (KeyValueStore + Memory / Options / UserMeta backends), `core`, `utilities` (Hooks + AdminNotices + Conditionals + Caching), and `settings` (descriptors + aggregator + WordPress options & object-field backends) have implementations. `woocommerce` has a settings-backend implementation (`WooCommerceSettingsBackend` + `DescriptorBackedWCSettingsPage` + `WCSettingsBuilder`, Spec C Task 3.2) and a **product-data settings tab** primitive (`ProductData/` — `ProductDataTab` + `ProductDataFieldRenderer` + `ProductDataFieldStore`, 2026-06-15); its remaining WC helpers (version conditionals, `WC_Logger` PSR-3 bridge) await plugin-migration demand.
 
 ## Monorepo structure
 
@@ -46,7 +46,7 @@ wordpress-framework/
 │   │       ├── Lifecycle/                   # per-action markers: Hookable/, Initializable/, Renderable/, Outputtable/
 │   │       └── Installer/                   # install/update/activate/deactivate/uninstall + version I/O (get/set stored, get current)
 │   ├── utilities/          # ahegyes/wp-framework-utilities (Hooks + AdminNotices + Conditionals + Caching)
-│   ├── settings/           # ahegyes/wp-framework-settings (declarative settings: descriptors + aggregator/dispatcher + WP options & object-field backends; depends on storage + shared)
+│   ├── settings/           # ahegyes/wp-framework-settings (declarative settings: descriptors + aggregator + WP options & object-field backends; depends on storage + shared)
 │   └── woocommerce/        # ahegyes/wp-framework-woocommerce (WooCommerceSettingsBackend + page base + WCSettingsBuilder; ProductData/ tab primitive)
 ├── tests/Fixtures/consumer-smoke/  # plugin-template-shaped scoping smoke fixture
 ├── composer.json                   # path repos for all 7 packages + VCS for wordpress-configs + WP Packages registry for wp-plugin/woocommerce

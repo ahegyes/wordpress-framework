@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects;
 
+use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
+
 /**
  * Descriptor for a single WordPress admin notice.
  *
@@ -23,18 +25,18 @@ final readonly class AdminNotice {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string     $id            Unique identifier (used for dismissal tracking, storage keying, and removal). Keep it sanitize_key-stable (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips.
-	 * @param   string     $message       Notice message (inline HTML allowed; sanitized and paragraph-wrapped at render time).
-	 * @param   NoticeType $type          Severity level. Defaults to NoticeType::Info.
-	 * @param   bool       $dismissible   Whether the notice shows a dismiss button. Defaults to true.
-	 * @param   bool       $is_persistent Whether the notice recurs across renders (true) or is consumed after rendering once (false). Defaults to false.
-	 * @param   string     $capability    Capability required to see the notice. Defaults to 'manage_options'.
+	 * @param   string     $id             Unique identifier (used for dismissal tracking, storage keying, and removal). Keep it sanitize_key-stable (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips.
+	 * @param   string     $message        Notice message (inline HTML allowed; sanitized and paragraph-wrapped at render time).
+	 * @param   NoticeType $type           Severity level. Defaults to NoticeType::Info.
+	 * @param   bool       $is_dismissible Whether the notice shows a dismiss button. Defaults to true.
+	 * @param   bool       $is_persistent  Whether the notice recurs across renders (true) or is consumed after rendering once (false). Defaults to false.
+	 * @param   string     $capability     Capability required to see the notice. Defaults to 'manage_options'.
 	 */
 	public function __construct(
 		public string $id,
 		public string $message,
 		public NoticeType $type = NoticeType::Info,
-		public bool $dismissible = true,
+		public bool $is_dismissible = true,
 		public bool $is_persistent = false,
 		public string $capability = 'manage_options',
 	) {}
@@ -53,12 +55,12 @@ final readonly class AdminNotice {
 	 */
 	public function to_array(): array {
 		return array(
-			'id'            => $this->id,
-			'message'       => $this->message,
-			'type'          => $this->type->value,
-			'dismissible'   => $this->dismissible,
-			'is_persistent' => $this->is_persistent,
-			'capability'    => $this->capability,
+			'id'             => $this->id,
+			'message'        => $this->message,
+			'type'           => $this->type->value,
+			'is_dismissible' => $this->is_dismissible,
+			'is_persistent'  => $this->is_persistent,
+			'capability'     => $this->capability,
 		);
 	}
 
@@ -86,7 +88,7 @@ final readonly class AdminNotice {
 			id: \is_string( $data['id'] ?? null ) ? $data['id'] : '',
 			message: \is_string( $data['message'] ?? null ) ? $data['message'] : '',
 			type: $type,
-			dismissible: \is_bool( $data['dismissible'] ?? null ) ? $data['dismissible'] : true,
+			is_dismissible: \is_bool( $data['is_dismissible'] ?? null ) ? $data['is_dismissible'] : true,
 			is_persistent: \is_bool( $data['is_persistent'] ?? null ) ? $data['is_persistent'] : false,
 			capability: \is_string( $data['capability'] ?? null ) ? $data['capability'] : 'manage_options',
 		);

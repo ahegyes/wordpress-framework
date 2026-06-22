@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects;
 
 use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 
 /**
  * Descriptor for a dependency a plugin declares for missing-dependency admin notices: the conditional

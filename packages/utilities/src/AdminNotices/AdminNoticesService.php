@@ -146,7 +146,7 @@ final class AdminNoticesService {
 					continue;
 				}
 
-				$suppressed = $notice->is_persistent && $notice->dismissible
+				$suppressed = $notice->is_persistent && $notice->is_dismissible
 					&& true === $this->dismissals?->is_dismissed( $notice->id );
 				if ( ! $suppressed ) {
 					$this->render_one( $notice );
@@ -242,7 +242,7 @@ final class AdminNoticesService {
 		// The transport marker only goes on notices a dismissal would actually suppress (persistent +
 		// dismissible), so clicking a one-shot's dismiss never records a stale, never-consulted row.
 		if ( null !== $this->dismiss_action && null !== $this->dismissals
-			&& $notice->is_persistent && $notice->dismissible
+			&& $notice->is_persistent && $notice->is_dismissible
 		) {
 			$data_attributes['data-dismiss-action'] = $this->dismiss_action;
 		}
@@ -250,7 +250,7 @@ final class AdminNoticesService {
 		$attributes = array(
 			'id'             => 'dws-notice-' . $notice->id,
 			'type'           => $notice->type->value,
-			'dismissible'    => $notice->dismissible,
+			'dismissible'    => $notice->is_dismissible,
 			'paragraph_wrap' => true,
 			'attributes'     => $data_attributes,
 		);
@@ -263,7 +263,7 @@ final class AdminNoticesService {
 		// Dead at the WP 7.0 floor: wp_admin_notice() and its data-attribute support ship in WP 6.4, so
 		// the dismiss transport cannot run on the pre-6.4 path reached here.
 		$classes = 'notice notice-' . $notice->type->value;
-		if ( $notice->dismissible ) {
+		if ( $notice->is_dismissible ) {
 			$classes .= ' is-dismissible';
 		}
 		printf(

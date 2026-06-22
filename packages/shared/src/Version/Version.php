@@ -24,7 +24,7 @@ final readonly class Version extends AbstractValueObject {
 	 *
 	 * @param   string $value Pre-validated version string; the original representation supplied to the factory.
 	 */
-	protected function __construct(
+	private function __construct(
 		public string $value
 	) {}
 
