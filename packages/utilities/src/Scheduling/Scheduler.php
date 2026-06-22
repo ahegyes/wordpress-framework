@@ -27,7 +27,7 @@ final class Scheduler implements SchedulerBackendInterface {
 	 * @param   SchedulerBackendInterface $backend Backend that performs the scheduling.
 	 */
 	public function __construct(
-		private SchedulerBackendInterface $backend,
+		protected SchedulerBackendInterface $backend,
 	) {}
 
 	// endregion

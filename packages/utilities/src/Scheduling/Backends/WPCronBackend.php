@@ -36,7 +36,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 *
 	 * @var     LoggerInterface|null
 	 */
-	private ?LoggerInterface $logger;
+	protected ?LoggerInterface $logger;
 
 	/**
 	 * Intervals (in seconds) for which a synthetic schedule has been registered, used as a set.
@@ -46,7 +46,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 *
 	 * @var     array<int, bool>
 	 */
-	private array $registered_intervals = array();
+	protected array $registered_intervals = array();
 
 	/**
 	 * Whether the 'cron_schedules' filter callback has been wired this request.
@@ -56,7 +56,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 *
 	 * @var     bool
 	 */
-	private bool $schedules_filter_registered = false;
+	protected bool $schedules_filter_registered = false;
 
 	// endregion
 
@@ -216,7 +216,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 *
 	 * @return  Failure<SchedulingError>|null A failure when the group is non-empty, null when it is empty.
 	 */
-	private function reject_group( string $group ): ?Failure {
+	protected function reject_group( string $group ): ?Failure {
 		if ( '' === $group ) {
 			return null;
 		}
@@ -243,7 +243,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 *
 	 * @return  string
 	 */
-	private function ensure_schedule( int $interval ): string {
+	protected function ensure_schedule( int $interval ): string {
 		$this->registered_intervals[ $interval ] = true;
 		if ( ! $this->schedules_filter_registered ) {
 			\add_filter( 'cron_schedules', array( $this, 'register_synthetic_schedules' ) );
@@ -263,7 +263,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 *
 	 * @return  string
 	 */
-	private function schedule_name( int $interval ): string {
+	protected function schedule_name( int $interval ): string {
 		return 'dws_every_' . $interval . 's';
 	}
 
@@ -278,7 +278,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 *
 	 * @return  Success<true>|Failure<SchedulingError> Success, or a failure on a false / WP_Error return.
 	 */
-	private function result_for_schedule( bool|WP_Error $scheduled, string $hook ): AbstractResult {
+	protected function result_for_schedule( bool|WP_Error $scheduled, string $hook ): AbstractResult {
 		if ( true === $scheduled ) {
 			return Success::from( true );
 		}
@@ -311,7 +311,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 *
 	 * @return  Success<true>|Failure<SchedulingError> Success on an int count, a failure on a WP_Error / non-int return.
 	 */
-	private function result_for_unschedule( int|WP_Error $cleared, string $hook ): AbstractResult {
+	protected function result_for_unschedule( int|WP_Error $cleared, string $hook ): AbstractResult {
 		if ( \is_int( $cleared ) ) {
 			return Success::from( true );
 		}

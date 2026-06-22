@@ -36,8 +36,8 @@ final class FieldProcessor {
 	 * @param   array<string, CustomFieldType> $custom_types Registry of types outside the taxonomy whose submissions are accepted, keyed by type token.
 	 */
 	public function __construct(
-		private OptionsResolver $resolver = new OptionsResolver(),
-		private array $custom_types = array(),
+		protected OptionsResolver $resolver = new OptionsResolver(),
+		protected array $custom_types = array(),
 	) {}
 
 	// endregion
@@ -116,7 +116,7 @@ final class FieldProcessor {
 	 *
 	 * @return  mixed
 	 */
-	private function process_custom( SettingsField $field, array $input ): mixed {
+	protected function process_custom( SettingsField $field, array $input ): mixed {
 		if ( ! \array_key_exists( $field->id, $input ) ) {
 			return $field->default;
 		}
@@ -144,7 +144,7 @@ final class FieldProcessor {
 	 *
 	 * @return  mixed
 	 */
-	private function sanitize_and_validate( SettingsField $field, mixed $value, mixed $rejected ): mixed {
+	protected function sanitize_and_validate( SettingsField $field, mixed $value, mixed $rejected ): mixed {
 		if ( null !== $field->sanitize ) {
 			$value = ( $field->sanitize )( $value );
 		}
@@ -166,7 +166,7 @@ final class FieldProcessor {
 	 *
 	 * @return  bool
 	 */
-	private function is_option( mixed $value, SettingsField $field ): bool {
+	protected function is_option( mixed $value, SettingsField $field ): bool {
 		return ( \is_string( $value ) || \is_int( $value ) )
 			&& \array_key_exists( $value, $this->resolver->resolve( $field->options ) );
 	}
@@ -182,7 +182,7 @@ final class FieldProcessor {
 	 *
 	 * @return  list<int|string>
 	 */
-	private function filter_to_options( mixed $value, SettingsField $field ): array {
+	protected function filter_to_options( mixed $value, SettingsField $field ): array {
 		$options = $this->resolver->resolve( $field->options );
 		$values  = \is_array( $value ) ? $value : array();
 

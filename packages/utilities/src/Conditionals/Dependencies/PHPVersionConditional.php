@@ -23,7 +23,7 @@ final class PHPVersionConditional implements ConditionalInterface {
 	 * @param   Version $minimum Minimum PHP version that satisfies the gate.
 	 */
 	public function __construct(
-		private readonly Version $minimum,
+		protected readonly Version $minimum,
 	) {}
 
 	// endregion

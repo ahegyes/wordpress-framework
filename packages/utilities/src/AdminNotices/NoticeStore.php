@@ -26,7 +26,7 @@ final readonly class NoticeStore {
 	 * @param   KeyValueStoreInterface<array<string, mixed>> $store Backend the notices are persisted through.
 	 */
 	public function __construct(
-		private KeyValueStoreInterface $store,
+		protected KeyValueStoreInterface $store,
 	) {}
 
 	// endregion
@@ -132,7 +132,7 @@ final readonly class NoticeStore {
 	 *
 	 * @return  AdminNotice|null
 	 */
-	private function from_row( string $key, mixed $row ): ?AdminNotice {
+	protected function from_row( string $key, mixed $row ): ?AdminNotice {
 		if ( ! \is_array( $row ) ) {
 			return null;
 		}

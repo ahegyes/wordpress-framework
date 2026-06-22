@@ -34,7 +34,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 * @param   LoggerInterface|null $logger Optional PSR-3 logger for the absent-scheduler condition.
 	 */
 	public function __construct(
-		private ?LoggerInterface $logger = null,
+		protected ?LoggerInterface $logger = null,
 	) {}
 
 	// endregion
@@ -142,7 +142,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 *
 	 * @return  bool
 	 */
-	private function is_available(): bool {
+	protected function is_available(): bool {
 		return \function_exists( 'as_schedule_recurring_action' );
 	}
 
@@ -154,7 +154,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 *
 	 * @return  Failure<SchedulingError>
 	 */
-	private function unavailable(): Failure {
+	protected function unavailable(): Failure {
 		$message = 'Action Scheduler is not loaded; cannot schedule the action.';
 		$this->logger?->error( $message );
 
@@ -174,7 +174,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 *
 	 * @return  Success<true>|Failure<SchedulingError> Success, or a failure when the id is zero.
 	 */
-	private function result_for_action_id( int $action_id, string $hook ): AbstractResult {
+	protected function result_for_action_id( int $action_id, string $hook ): AbstractResult {
 		if ( 0 === $action_id ) {
 			return Failure::from(
 				new SchedulingError(

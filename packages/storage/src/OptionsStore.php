@@ -30,8 +30,8 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @param   ?bool  $autoload   Autoload policy for the option row: true/false to force, null to let WordPress decide.
 	 */
 	public function __construct(
-		private string $option_key,
-		private ?bool $autoload = null,
+		protected string $option_key,
+		protected ?bool $autoload = null,
 	) {}
 
 	// endregion
@@ -120,7 +120,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 *
 	 * @return  array<string, T>
 	 */
-	private function load(): array {
+	protected function load(): array {
 		$value = \get_option( $this->option_key, array() );
 		return \is_array( $value ) ? $value : array();
 	}
@@ -133,7 +133,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 *
 	 * @param   array<string, T> $entries Entries to persist.
 	 */
-	private function save( array $entries ): void {
+	protected function save( array $entries ): void {
 		\update_option( $this->option_key, $entries, $this->autoload );
 	}
 

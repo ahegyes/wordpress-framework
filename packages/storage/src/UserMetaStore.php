@@ -36,7 +36,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 * @param   string $meta_key User_meta key under which all entries for this store live.
 	 */
 	public function __construct(
-		private string $meta_key,
+		protected string $meta_key,
 	) {}
 
 	// endregion
@@ -177,7 +177,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 *
 	 * @return  int
 	 */
-	private function resolve_user_id( int $user_id ): int {
+	protected function resolve_user_id( int $user_id ): int {
 		return 0 === $user_id ? \get_current_user_id() : $user_id;
 	}
 
@@ -192,7 +192,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 *
 	 * @return  array<string, T>
 	 */
-	private function load( int $user_id ): array {
+	protected function load( int $user_id ): array {
 		$value = \get_user_meta( $user_id, $this->meta_key, true );
 		return \is_array( $value ) ? $value : array();
 	}
@@ -206,7 +206,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 * @param   int              $user_id User ID to persist entries for.
 	 * @param   array<string, T> $entries Entries to persist.
 	 */
-	private function save( int $user_id, array $entries ): void {
+	protected function save( int $user_id, array $entries ): void {
 		// update_user_meta() runs the value through wp_unslash(); slash first so backslashes survive the round-trip.
 		\update_user_meta( $user_id, $this->meta_key, \wp_slash( $entries ) );
 	}

@@ -38,7 +38,7 @@ final readonly class TransientCache {
 	 *
 	 * @var     int
 	 */
-	private const MAX_KEY_LENGTH = 172;
+	protected const MAX_KEY_LENGTH = 172;
 
 	// endregion
 
@@ -53,7 +53,7 @@ final readonly class TransientCache {
 	 * @param   string $key_prefix Per-plugin namespace prepended to every key (a safe slug).
 	 */
 	public function __construct(
-		private string $key_prefix,
+		protected string $key_prefix,
 	) {}
 
 	// endregion
@@ -173,7 +173,7 @@ final readonly class TransientCache {
 	 * @param   mixed  $value      Value to wrap and store.
 	 * @param   int    $expiration Positive lifetime in seconds.
 	 */
-	private function store( string $full_key, mixed $value, int $expiration ): void {
+	protected function store( string $full_key, mixed $value, int $expiration ): void {
 		if ( ! $this->is_positive_expiration( $expiration ) ) {
 			return;
 		}
@@ -191,7 +191,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  array{hit: bool, value: mixed}
 	 */
-	private function probe( string $full_key ): array {
+	protected function probe( string $full_key ): array {
 		$raw = \get_transient( $full_key );
 		if ( \is_array( $raw ) && \array_key_exists( self::PAYLOAD, $raw ) && \count( $raw ) === 1 ) {
 			return array(
@@ -216,7 +216,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  string
 	 */
-	private function full_key( string $key ): string {
+	protected function full_key( string $key ): string {
 		return $this->key_prefix . '/' . $key . '__' . $this->suffix();
 	}
 
@@ -228,7 +228,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  int
 	 */
-	private function suffix(): int {
+	protected function suffix(): int {
 		return \max( 1, (int) \get_option( $this->suffix_key(), 1 ) );
 	}
 
@@ -240,7 +240,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  string
 	 */
-	private function suffix_key(): string {
+	protected function suffix_key(): string {
 		return $this->key_prefix . '_cache_invalidation_suffix';
 	}
 
@@ -254,7 +254,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  bool
 	 */
-	private function is_within_length( string $full_key ): bool {
+	protected function is_within_length( string $full_key ): bool {
 		if ( \strlen( $full_key ) <= self::MAX_KEY_LENGTH ) {
 			return true;
 		}
@@ -282,7 +282,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  bool
 	 */
-	private function is_positive_expiration( int $expiration ): bool {
+	protected function is_positive_expiration( int $expiration ): bool {
 		if ( $expiration >= 1 ) {
 			return true;
 		}

@@ -36,8 +36,8 @@ final readonly class BufferedHookHandler implements HookHandlerInterface {
 	 * @param   HookRegistry $registry  Internal record store. Defaults to a fresh HookRegistry.
 	 */
 	public function __construct(
-		private string $id = 'buffered',
-		private HookRegistry $registry = new HookRegistry(),
+		protected string $id = 'buffered',
+		protected HookRegistry $registry = new HookRegistry(),
 	) {}
 
 	// endregion

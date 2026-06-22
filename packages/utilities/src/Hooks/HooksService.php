@@ -193,7 +193,7 @@ final class HooksService {
 	 *
 	 * @throws  OutOfBoundsException When no handler is registered under $id.
 	 */
-	private function resolve_handler( string $id ): HookHandlerInterface {
+	protected function resolve_handler( string $id ): HookHandlerInterface {
 		$handler = $this->get_handler( $id );
 		if ( null === $handler ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.

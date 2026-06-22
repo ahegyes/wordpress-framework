@@ -23,7 +23,7 @@ final class WPPluginActiveConditional implements ConditionalInterface {
 	 * @param   string $plugin_basename WordPress plugin basename (e.g., `woocommerce/woocommerce.php`).
 	 */
 	public function __construct(
-		private readonly string $plugin_basename,
+		protected readonly string $plugin_basename,
 	) {}
 
 	// endregion

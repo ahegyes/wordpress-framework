@@ -22,7 +22,7 @@ final class PHPExtensionLoadedConditional implements ConditionalInterface {
 	 * @param   string $extension PHP extension name (e.g., `json`, `mbstring`).
 	 */
 	public function __construct(
-		private readonly string $extension,
+		protected readonly string $extension,
 	) {}
 
 	// endregion

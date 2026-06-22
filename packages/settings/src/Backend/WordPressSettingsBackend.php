@@ -37,7 +37,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @var     ?SettingsPage
 	 */
-	private ?SettingsPage $page = null;
+	protected ?SettingsPage $page = null;
 
 	/**
 	 * Map of field id to the id of the section that declares it.
@@ -47,7 +47,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @var     array<string, string>
 	 */
-	private array $field_section = array();
+	protected array $field_section = array();
 
 	/**
 	 * Per-section option-store cache, keyed by section id.
@@ -57,7 +57,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @var     array<string, OptionsStore<mixed>>
 	 */
-	private array $stores = array();
+	protected array $stores = array();
 
 	/**
 	 * Depth of in-progress programmatic writes; the backend's own writes, which may nest, bypass the form sanitizer.
@@ -67,7 +67,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @var     int
 	 */
-	private int $writing = 0;
+	protected int $writing = 0;
 
 	// endregion
 
@@ -84,9 +84,9 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @param   FieldProcessor   $processor Processor for sanitizing submitted values.
 	 */
 	public function __construct(
-		private ?LoggerInterface $logger = null,
-		private FieldRenderer $renderer = new FieldRenderer(),
-		private FieldProcessor $processor = new FieldProcessor(),
+		protected ?LoggerInterface $logger = null,
+		protected FieldRenderer $renderer = new FieldRenderer(),
+		protected FieldProcessor $processor = new FieldProcessor(),
 	) {}
 
 	// endregion
@@ -184,7 +184,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @return  array<string, string>
 	 */
-	private function map_fields( SettingsPage $page ): array {
+	protected function map_fields( SettingsPage $page ): array {
 		$map      = array();
 		$sections = array();
 		foreach ( $page->sections as $section ) {
@@ -218,7 +218,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @return  OptionsStore<mixed>
 	 */
-	private function store_for( string $field_id ): OptionsStore {
+	protected function store_for( string $field_id ): OptionsStore {
 		if ( null === $this->page || ! \array_key_exists( $field_id, $this->field_section ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new InvalidSettingsFieldException( "Settings field '$field_id' is not registered on this page." );
@@ -237,7 +237,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @param   SettingsPage $page Page to add.
 	 */
-	private function add_menu( SettingsPage $page ): void {
+	protected function add_menu( SettingsPage $page ): void {
 		// WordPress only wptexturizes the submenu menu_title before printing it (page_title is strip_tagged
 		// for the document title and escaped in render_page), so the menu title is escaped here.
 		\add_submenu_page(
@@ -258,7 +258,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @param   SettingsPage $page Page whose sections to register.
 	 */
-	private function register_settings( SettingsPage $page ): void {
+	protected function register_settings( SettingsPage $page ): void {
 		foreach ( $page->sections as $section ) {
 			$option_name = $page->slug . '-' . $section->id;
 
@@ -283,7 +283,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @param   SettingsPage $page Page to render.
 	 */
-	private function render_page( SettingsPage $page ): void {
+	protected function render_page( SettingsPage $page ): void {
 		echo '<div class="wrap"><h1>' . \esc_html( $page->page_title ) . '</h1>';
 
 		foreach ( $page->sections as $section ) {
@@ -318,7 +318,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @param   string        $option_name Section option the field persists into.
 	 * @param   SettingsField $field       Field to render.
 	 */
-	private function render_field( string $option_name, SettingsField $field ): void {
+	protected function render_field( string $option_name, SettingsField $field ): void {
 		$stored = \get_option( $option_name, array() );
 		$value  = \is_array( $stored ) && \array_key_exists( $field->id, $stored ) ? $stored[ $field->id ] : $field->default;
 
@@ -344,7 +344,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @return  mixed
 	 */
-	private function sanitize( SettingsSection $section, string $option_name, mixed $input ): mixed {
+	protected function sanitize( SettingsSection $section, string $option_name, mixed $input ): mixed {
 		if ( $this->writing > 0 ) {
 			return $input;
 		}

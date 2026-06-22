@@ -37,10 +37,10 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @param   BufferedHookHandler $buffer      Underlying buffered handler. Defaults to a fresh BufferedHookHandler with id "scoped-buffer".
 	 */
 	public function __construct(
-		private string $id,
-		private string $start_hook,
-		private string $end_hook = '',
-		private BufferedHookHandler $buffer = new BufferedHookHandler( 'scoped-buffer', new HookRegistry() ),
+		protected string $id,
+		protected string $start_hook,
+		protected string $end_hook = '',
+		protected BufferedHookHandler $buffer = new BufferedHookHandler( 'scoped-buffer', new HookRegistry() ),
 	) {}
 
 	// endregion

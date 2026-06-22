@@ -22,7 +22,7 @@ final class CurrentUserCanConditional implements ConditionalInterface {
 	 * @param   string $capability WordPress capability slug (e.g., `manage_options`).
 	 */
 	public function __construct(
-		private readonly string $capability,
+		protected readonly string $capability,
 	) {}
 
 	// endregion

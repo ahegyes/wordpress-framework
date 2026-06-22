@@ -35,8 +35,8 @@ final class FieldRenderer {
 	 * @param   array<string, CustomFieldType> $custom_types Registry of render seams for types outside the taxonomy, keyed by type token.
 	 */
 	public function __construct(
-		private OptionsResolver $resolver = new OptionsResolver(),
-		private array $custom_types = array(),
+		protected OptionsResolver $resolver = new OptionsResolver(),
+		protected array $custom_types = array(),
 	) {}
 
 	// endregion
@@ -96,7 +96,7 @@ final class FieldRenderer {
 	 *
 	 * @return  string
 	 */
-	private function render_input( SettingsField $field, mixed $value, string $name, FieldType $type ): string {
+	protected function render_input( SettingsField $field, mixed $value, string $name, FieldType $type ): string {
 		return \sprintf(
 			'<input type="%s" name="%s" value="%s"%s />',
 			\esc_attr( $type->value ),
@@ -118,7 +118,7 @@ final class FieldRenderer {
 	 *
 	 * @return  string
 	 */
-	private function render_textarea( SettingsField $field, mixed $value, string $name ): string {
+	protected function render_textarea( SettingsField $field, mixed $value, string $name ): string {
 		return \sprintf(
 			'<textarea name="%s"%s>%s</textarea>',
 			\esc_attr( $name ),
@@ -139,7 +139,7 @@ final class FieldRenderer {
 	 *
 	 * @return  string
 	 */
-	private function render_checkbox( SettingsField $field, mixed $value, string $name ): string {
+	protected function render_checkbox( SettingsField $field, mixed $value, string $name ): string {
 		return \sprintf(
 			'<input type="checkbox" name="%s" value="1"%s%s />',
 			\esc_attr( $name ),
@@ -161,7 +161,7 @@ final class FieldRenderer {
 	 *
 	 * @return  string
 	 */
-	private function render_select( SettingsField $field, mixed $value, string $name, bool $multiple ): string {
+	protected function render_select( SettingsField $field, mixed $value, string $name, bool $multiple ): string {
 		$selected = array();
 		foreach ( $multiple ? ( \is_array( $value ) ? $value : array() ) : array( $value ) as $selected_value ) {
 			$selected[] = $this->stringify( $selected_value );
@@ -198,7 +198,7 @@ final class FieldRenderer {
 	 *
 	 * @return  string
 	 */
-	private function render_radio( SettingsField $field, mixed $value, string $name ): string {
+	protected function render_radio( SettingsField $field, mixed $value, string $name ): string {
 		$current  = $this->stringify( $value );
 		$rendered = '';
 		foreach ( $this->resolver->resolve( $field->options ) as $option_value => $label ) {
@@ -225,7 +225,7 @@ final class FieldRenderer {
 	 *
 	 * @return  string
 	 */
-	private function render_attributes( array $attributes ): string {
+	protected function render_attributes( array $attributes ): string {
 		$rendered = '';
 		foreach ( filter_field_attributes( $attributes ) as $attribute => $attribute_value ) {
 			$rendered .= \sprintf( ' %s="%s"', \esc_attr( $attribute ), \esc_attr( (string) $attribute_value ) );
@@ -244,7 +244,7 @@ final class FieldRenderer {
 	 *
 	 * @return  string
 	 */
-	private function stringify( mixed $value ): string {
+	protected function stringify( mixed $value ): string {
 		return \is_scalar( $value ) ? (string) $value : '';
 	}
 
@@ -258,7 +258,7 @@ final class FieldRenderer {
 	 *
 	 * @return  string
 	 */
-	private function render_description( SettingsField $field ): string {
+	protected function render_description( SettingsField $field ): string {
 		if ( null === $field->description ) {
 			return '';
 		}

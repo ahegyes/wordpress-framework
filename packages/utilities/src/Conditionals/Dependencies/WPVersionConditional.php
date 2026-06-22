@@ -23,7 +23,7 @@ final class WPVersionConditional implements ConditionalInterface {
 	 * @param   Version $minimum Minimum WordPress version that satisfies the gate.
 	 */
 	public function __construct(
-		private readonly Version $minimum,
+		protected readonly Version $minimum,
 	) {}
 
 	// endregion

@@ -56,8 +56,8 @@ final class AdminNoticesService {
 	 */
 	public function __construct(
 		?array $stores = null,
-		private ?DismissedNoticesTracker $dismissals = null,
-		private ?string $dismiss_action = null,
+		protected ?DismissedNoticesTracker $dismissals = null,
+		protected ?string $dismiss_action = null,
 	) {
 		$this->stores = $stores ?? array( self::DEFAULT_STORE => new NoticeStore( new MemoryStore() ) );
 	}
@@ -237,7 +237,7 @@ final class AdminNoticesService {
 	 *
 	 * @param   AdminNotice $notice Notice to render.
 	 */
-	private function render_one( AdminNotice $notice ): void {
+	protected function render_one( AdminNotice $notice ): void {
 		$data_attributes = array( 'data-notice-id' => $notice->id );
 		// The transport marker only goes on notices a dismissal would actually suppress (persistent +
 		// dismissible), so clicking a one-shot's dismiss never records a stale, never-consulted row.
