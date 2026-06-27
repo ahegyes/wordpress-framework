@@ -13,12 +13,11 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
  * Renders a field descriptor to an escaped HTML control with its value bound.
  *
  * The shared field-type render layer for backends that render the framework's own
- * field controls; a backend that provides its own rendering does not use it.
- * Resolves a field's options through the same {@see OptionsResolver} the processor
- * validates against, so the rendered
- * choices and the accepted values always agree. The caller supplies the control's
- * HTML name; a field type outside the taxonomy and the injected custom-type
- * registry throws.
+ * field controls; a backend that provides its own rendering does not use it. Resolves
+ * a field's options through the same {@see OptionsResolver} the processor validates
+ * against, so the rendered choices and the accepted values always agree. The caller
+ * supplies the control's HTML name; a field type outside the taxonomy and the injected
+ * custom-type registry throws.
  *
  * @since   2.0.0
  * @version 2.0.0

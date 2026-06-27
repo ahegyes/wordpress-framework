@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
+use DeepWebSolutions\Framework\Settings\Schema\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
@@ -16,14 +17,17 @@ use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_an
 use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
 use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
+use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers' )]
 #[UsesClass( SettingsField::class )]
 #[UsesClass( SettingsSection::class )]
 #[UsesClass( SettingsPage::class )]
+#[UsesClass( FieldType::class )]
 #[UsesClass( DuplicateSettingsSectionException::class )]
 #[UsesClass( DuplicateSettingsFieldException::class )]
 final class SchemaFunctionsTest extends TestCase {
@@ -241,5 +245,16 @@ final class SchemaFunctionsTest extends TestCase {
 				),
 			),
 		);
+	}
+
+	public function test_the_number_type_sanitizer_coerces_numeric_input_and_rejects_the_rest(): void {
+		$number = wordpress_field_type_sanitizers()[ FieldType::Number->value ];
+
+		self::assertSame( 42, $number( '42' ) );
+		self::assertSame( 3.14, $number( '3.14' ) );
+		self::assertSame( '', $number( '0x1A' ) );
+		self::assertSame( '', $number( 'not a number' ) );
+		// An out-of-range exponent coerces to a non-finite float, which is never a settings value.
+		self::assertSame( '', $number( '1e309' ) );
 	}
 }

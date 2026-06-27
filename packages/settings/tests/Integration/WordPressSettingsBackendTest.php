@@ -445,6 +445,8 @@ final class WordPressSettingsBackendTest extends TestCase {
 					array(
 						new SettingsField( id: 'site_name', type: 'text', label: 'Site Name' ),
 						new SettingsField( id: 'contact', type: 'email', label: 'Contact' ),
+						new SettingsField( id: 'website', type: 'url', label: 'Website' ),
+						new SettingsField( id: 'notes', type: 'textarea', label: 'Notes' ),
 					),
 				),
 			),
@@ -454,14 +456,21 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 		$this->form_save(
 			self::GENERAL_OPTION,
-			array( 'site_name' => '  Acme <b>Co</b>  ', 'contact' => ' john@example.com ' ),
+			array(
+				'site_name' => '  Acme <b>Co</b>  ',
+				'contact'   => ' john@example.com ',
+				'website'   => 'javascript:alert(1)',
+				'notes'     => 'Plain <b>text</b>',
+			),
 		);
 
 		$stored = \get_option( self::GENERAL_OPTION );
-		// The text field runs through sanitize_text_field and the email field through sanitize_email, the
-		// per-type defaults the backend supplies, though neither field declares a sanitizer of its own.
+		// Each built-in semantic field runs through its per-type default sanitizer (sanitize_text_field,
+		// sanitize_email, esc_url_raw, sanitize_textarea_field), though none declares a sanitizer of its own.
 		self::assertSame( 'Acme Co', $stored['site_name'] );
 		self::assertSame( 'john@example.com', $stored['contact'] );
+		self::assertSame( '', $stored['website'] );
+		self::assertSame( 'Plain text', $stored['notes'] );
 	}
 
 	private function register( SettingsPage $page ): WordPressSettingsBackend {

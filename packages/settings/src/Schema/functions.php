@@ -132,6 +132,13 @@ function wordpress_field_type_sanitizers(): array {
 		FieldType::Textarea->value => static fn ( mixed $value ): string => \sanitize_textarea_field( (string) $value ),
 		FieldType::Email->value    => static fn ( mixed $value ): string => \sanitize_email( (string) $value ),
 		FieldType::Url->value      => static fn ( mixed $value ): string => \esc_url_raw( (string) $value ),
-		FieldType::Number->value   => static fn ( mixed $value ): int|float|string => \is_numeric( $value ) ? $value + 0 : '',
+		FieldType::Number->value   => static function ( mixed $value ): int|float|string {
+			if ( ! \is_numeric( $value ) ) {
+				return '';
+			}
+			$number = $value + 0;
+			// Reject a non-finite float (e.g. an out-of-range exponent coerced to INF) — never a settings value.
+			return \is_int( $number ) || \is_finite( $number ) ? $number : '';
+		},
 	);
 }
