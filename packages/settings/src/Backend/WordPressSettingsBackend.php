@@ -320,7 +320,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 */
 	protected function render_field( string $option_name, SettingsField $field ): void {
 		$stored = \get_option( $option_name, array() );
-		$value  = \is_array( $stored ) && \array_key_exists( $field->id, $stored ) ? $stored[ $field->id ] : $field->default;
+		$value  = \is_array( $stored ) && \array_key_exists( $field->id, $stored ) ? $stored[ $field->id ] : $field->default_value;
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldRenderer returns markup already escaped at each interpolation point.
 		echo $this->renderer->render( $field, $value, $option_name . '[' . $field->id . ']' );

@@ -19,7 +19,7 @@ final class InvalidVersionException extends InvalidValueObjectException {
 	 *
 	 * @var     string
 	 */
-	protected string $value_object_type {
+	protected string $value_object_type { // phpcs:ignore PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess.Removed -- PHP 8.4 property hook, not array access.
 		get => 'Version';
 	}
 }

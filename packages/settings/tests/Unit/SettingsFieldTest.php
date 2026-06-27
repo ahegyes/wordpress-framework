@@ -17,7 +17,7 @@ final class SettingsFieldTest extends TestCase {
 		self::assertSame( 'my_field', $field->id );
 		self::assertSame( 'text', $field->type );
 		self::assertSame( 'My Field', $field->label );
-		self::assertNull( $field->default );
+		self::assertNull( $field->default_value );
 		self::assertNull( $field->sanitize );
 		self::assertNull( $field->validate );
 		self::assertNull( $field->capability );
@@ -35,7 +35,7 @@ final class SettingsFieldTest extends TestCase {
 			id: 'field-2',
 			type: 'select',
 			label: 'Field 2',
-			default: 'a',
+			default_value: 'a',
 			sanitize: 'trim',
 			validate: 'is_string',
 			capability: 'manage_options',
@@ -47,7 +47,7 @@ final class SettingsFieldTest extends TestCase {
 			description: 'Helpful hint',
 		);
 
-		self::assertSame( 'a', $field->default );
+		self::assertSame( 'a', $field->default_value );
 		self::assertSame( 'manage_options', $field->capability );
 		self::assertTrue( $field->show_in_rest );
 		self::assertSame( 5, $field->position );

@@ -2,10 +2,7 @@ includes:
     - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
 
 parameters:
-    # WooCommerce symbols (OrderUtil, WC_Order, wc_get_order) used by the woocommerce
-    # package's order-field store and settings page; the shared config only wires the WordPress stubs.
-    # The packages-stubs file additionally defines the Action Scheduler as_* functions the
-    # utilities scheduling backend calls (woocommerce-stubs.php does not).
+    # The shared config wires only the WordPress stubs; the packages-stubs file adds Action Scheduler's as_* functions (the woocommerce-stubs file does not).
     bootstrapFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
         - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
@@ -17,8 +14,10 @@ parameters:
         - packages/shared/functions.php
         - packages/shared/src
         - packages/shared/tests
+        - packages/storage/functions.php
         - packages/storage/src
         - packages/storage/tests
+        - packages/core/functions.php
         - packages/core/src
         - packages/core/tests
         - packages/utilities/functions.php

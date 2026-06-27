@@ -56,7 +56,7 @@ final readonly class SettingsField {
 	 * @param   string                                                            $id Page-unique field identifier; a lowercase token matching the field-id charset.
 	 * @param   string                                                            $type Field-type token resolved against the framework taxonomy when rendered or processed.
 	 * @param   string                                                            $label Human-readable field label.
-	 * @param   mixed                                                             $default Default value used when nothing is stored.
+	 * @param   mixed                                                             $default_value Default value used when nothing is stored.
 	 * @param   ?callable                                                         $sanitize Sanitizer for the submitted value; stored as a Closure.
 	 * @param   ?callable                                                         $validate Validator for the sanitized value; stored as a Closure.
 	 * @param   ?string                                                           $capability Capability required to edit the field; null inherits the section/page capability.
@@ -73,7 +73,7 @@ final readonly class SettingsField {
 		public string $id,
 		public string $type,
 		public string $label,
-		public mixed $default = null,
+		public mixed $default_value = null,
 		?callable $sanitize = null,
 		?callable $validate = null,
 		public ?string $capability = null,

@@ -246,7 +246,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	protected function ensure_schedule( int $interval ): string {
 		$this->registered_intervals[ $interval ] = true;
 		if ( ! $this->schedules_filter_registered ) {
-			\add_filter( 'cron_schedules', array( $this, 'register_synthetic_schedules' ) );
+			\add_filter( 'cron_schedules', array( $this, 'register_synthetic_schedules' ) ); // phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- synthetic intervals are registered dynamically; each is a positive int validated before scheduling.
 			$this->schedules_filter_registered = true;
 		}
 

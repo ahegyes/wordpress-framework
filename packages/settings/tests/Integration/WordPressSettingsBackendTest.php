@@ -364,7 +364,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 							id: 'home_page',
 							type: 'single_select_page',
 							label: 'Home Page',
-							default: '7',
+							default_value: '7',
 							validate: static fn ( mixed $value ): bool => false,
 						),
 					),

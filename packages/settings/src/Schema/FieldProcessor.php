@@ -118,7 +118,7 @@ final class FieldProcessor {
 	 */
 	protected function process_custom( SettingsField $field, array $input ): mixed {
 		if ( ! \array_key_exists( $field->id, $input ) ) {
-			return $field->default;
+			return $field->default_value;
 		}
 
 		$value = $input[ $field->id ];
@@ -126,10 +126,10 @@ final class FieldProcessor {
 		// A custom type is treated as scalar: a tampered array submission would fatal a scalar sanitizer
 		// (e.g. trim), so coerce a non-scalar to the field's default — mirroring the built-in scalar guard.
 		if ( ! \is_scalar( $value ) ) {
-			return $field->default;
+			return $field->default_value;
 		}
 
-		return $this->sanitize_and_validate( $field, $value, $field->default );
+		return $this->sanitize_and_validate( $field, $value, $field->default_value );
 	}
 
 	/**

@@ -48,7 +48,7 @@ final class FieldProcessorTest extends TestCase {
 		$processor = new FieldProcessor(
 			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
 		);
-		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', default: '#000' );
+		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', default_value: '#000' );
 
 		self::assertSame( '#000', $processor->process( $field, array() ) );
 	}
@@ -61,7 +61,7 @@ final class FieldProcessorTest extends TestCase {
 			id: 'shade',
 			type: 'color_picker',
 			label: 'Shade',
-			default: '#fallback',
+			default_value: '#fallback',
 			validate: static fn ( mixed $value ): bool => false,
 		);
 
@@ -77,7 +77,7 @@ final class FieldProcessorTest extends TestCase {
 			id: 'shade',
 			type: 'color_picker',
 			label: 'Shade',
-			default: '#fallback',
+			default_value: '#fallback',
 			sanitize: 'trim',
 			validate: static fn ( mixed $value ): bool => '#abc' === $value,
 		);
@@ -91,7 +91,7 @@ final class FieldProcessorTest extends TestCase {
 		$processor = new FieldProcessor(
 			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
 		);
-		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', default: '#000', sanitize: 'trim' );
+		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', default_value: '#000', sanitize: 'trim' );
 
 		self::assertSame( '#000', $processor->process( $field, array( 'shade' => array( 'x' ) ) ) );
 	}

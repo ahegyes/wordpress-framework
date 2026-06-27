@@ -95,7 +95,7 @@ final class AdminNoticesService {
 		if ( ! isset( $this->stores[ $store ] ) ) {
 			\_doing_it_wrong(
 				__METHOD__,
-				\sprintf( 'Unknown notice store "%s"; the notice was not queued.', $store ),
+				\esc_html( \sprintf( 'Unknown notice store "%s"; the notice was not queued.', $store ) ),
 				'2.0.0'
 			);
 			return;
@@ -215,7 +215,7 @@ final class AdminNoticesService {
 			$posted = \is_string( $posted ) ? \wp_unslash( $posted ) : '';
 			// Accept the posted ID only when it is already sanitize_key-stable, so it matches the stored
 			// notice ID exactly; reject (do not lossily normalize) anything else.
-			$id = ( \is_string( $posted ) && $posted === \sanitize_key( $posted ) ) ? $posted : '';
+			$id = ( \is_string( $posted ) && \sanitize_key( $posted ) === $posted ) ? $posted : '';
 			if ( '' !== $id ) {
 				$this->dismissals->dismiss( $id );
 			}

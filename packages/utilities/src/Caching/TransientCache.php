@@ -261,11 +261,13 @@ final readonly class TransientCache {
 
 		\_doing_it_wrong(
 			__METHOD__,
-			\sprintf(
-				'A transient key for prefix "%s" is %d characters, over the %d-character limit; caching is skipped.',
-				$this->key_prefix,
-				\strlen( $full_key ),
-				self::MAX_KEY_LENGTH
+			\esc_html(
+				\sprintf(
+					'A transient key for prefix "%s" is %d characters, over the %d-character limit; caching is skipped.',
+					$this->key_prefix,
+					\strlen( $full_key ),
+					self::MAX_KEY_LENGTH
+				)
 			),
 			'2.0.0'
 		);
@@ -289,10 +291,12 @@ final readonly class TransientCache {
 
 		\_doing_it_wrong(
 			__METHOD__,
-			\sprintf(
-				'A transient for prefix "%s" needs a positive expiration; %d given, so caching is skipped.',
-				$this->key_prefix,
-				$expiration
+			\esc_html(
+				\sprintf(
+					'A transient for prefix "%s" needs a positive expiration; %d given, so caching is skipped.',
+					$this->key_prefix,
+					$expiration
+				)
 			),
 			'2.0.0'
 		);
