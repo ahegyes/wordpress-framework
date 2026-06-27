@@ -5,5 +5,3 @@
  * @since   2.0.0
  * @version 2.0.0
  */
-
-require_once __DIR__ . '/src/Scheduling/functions.php';
