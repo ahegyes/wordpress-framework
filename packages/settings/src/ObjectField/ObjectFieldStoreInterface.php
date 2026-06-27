@@ -11,10 +11,10 @@ use DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects\ObjectMetaBox;
  * explicit meta key. The field id and the storage key are kept distinct, so a
  * consumer can persist under runtime keys the settings id charset forbids.
  *
- * Contract-only in this package: its sole implementation is the WooCommerce-order
- * store in the woocommerce package, kept there so this package stays WooCommerce-free.
- * The cross-package WooCommerce/WC-free split justifies this lone-implementation
- * interface — do not remove it on a single-implementation count.
+ * Contract-only in this package: its sole implementation lives in a higher consumer
+ * package, kept there so this package takes on no dependency of its own. That
+ * cross-package split justifies this lone-implementation interface — do not remove
+ * it on a single-implementation count.
  *
  * @since   2.0.0
  * @version 2.0.0

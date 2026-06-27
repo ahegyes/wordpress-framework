@@ -10,8 +10,8 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
  * Descriptor for a settings page: a titled, capability-gated screen composed
  * of sections.
  *
- * The location is interpreted by the backend the page is registered with — a
- * WordPress parent slug for the options backend, a tab id for the WooCommerce
+ * The location is interpreted by the backend the page is registered with — an
+ * admin parent-menu slug for a menu-based backend, a tab id for a tab-based
  * backend — so one descriptor serves either without change.
  *
  * @since   2.0.0
@@ -30,7 +30,7 @@ final readonly class SettingsPage {
 	 * @param   string                $page_title Title rendered at the top of the page.
 	 * @param   string                $menu_title Label shown in the admin menu.
 	 * @param   string                $capability Capability required to view and save the page.
-	 * @param   ?string               $location Backend-interpreted placement (WordPress parent slug, WooCommerce tab id); null uses the backend default.
+	 * @param   ?string               $location Backend-interpreted placement (an admin parent-menu slug, or a settings-tab id); null uses the backend default.
 	 * @param   list<SettingsSection> $sections Sections composing the page, in display order.
 	 *
 	 * @throws  InvalidSettingsPageException If $slug does not match the slug charset.
