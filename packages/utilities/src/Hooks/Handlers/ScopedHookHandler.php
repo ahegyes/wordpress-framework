@@ -53,6 +53,7 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function get_id(): string {
 		return $this->id;
 	}
@@ -63,6 +64,7 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function add_action( string $hook, callable $callback, int $priority, int $accepted_args ): void {
 		$this->buffer->add_action( $hook, $callback, $priority, $accepted_args );
 	}
@@ -73,6 +75,7 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function add_filter( string $hook, callable $callback, int $priority, int $accepted_args ): void {
 		$this->buffer->add_filter( $hook, $callback, $priority, $accepted_args );
 	}
@@ -83,6 +86,7 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function remove_action( string $hook, callable $callback, int $priority ): bool {
 		return $this->buffer->remove_action( $hook, $callback, $priority );
 	}
@@ -93,6 +97,7 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function remove_filter( string $hook, callable $callback, int $priority ): bool {
 		return $this->buffer->remove_filter( $hook, $callback, $priority );
 	}
@@ -103,6 +108,7 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function remove_all_actions(): void {
 		$this->buffer->remove_all_actions();
 	}
@@ -113,6 +119,7 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function remove_all_filters(): void {
 		$this->buffer->remove_all_filters();
 	}

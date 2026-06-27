@@ -38,6 +38,7 @@ final class Success extends AbstractResult {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function is_success(): bool {
 		return true;
 	}
@@ -48,6 +49,7 @@ final class Success extends AbstractResult {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function match( callable $on_success, callable $on_failure ): mixed { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
 		return $on_success( $this->value );
 	}

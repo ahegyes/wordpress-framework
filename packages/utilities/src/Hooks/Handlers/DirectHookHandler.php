@@ -53,6 +53,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function get_id(): string {
 		return $this->id;
 	}
@@ -63,6 +64,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function add_action( string $hook, callable $callback, int $priority, int $accepted_args ): void {
 		$this->registry->record_action( $hook, $callback, $priority, $accepted_args );
 		\add_action( $hook, $callback, $priority, $accepted_args );
@@ -74,6 +76,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function add_filter( string $hook, callable $callback, int $priority, int $accepted_args ): void {
 		$this->registry->record_filter( $hook, $callback, $priority, $accepted_args );
 		\add_filter( $hook, $callback, $priority, $accepted_args );
@@ -85,6 +88,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function remove_action( string $hook, callable $callback, int $priority ): bool {
 		$forgotten = $this->registry->forget_action( $hook, $callback, $priority );
 		\remove_action( $hook, $callback, $priority );
@@ -97,6 +101,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function remove_filter( string $hook, callable $callback, int $priority ): bool {
 		$forgotten = $this->registry->forget_filter( $hook, $callback, $priority );
 		\remove_filter( $hook, $callback, $priority );
@@ -109,6 +114,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function remove_all_actions(): void {
 		foreach ( $this->registry->get_actions() as $record ) {
 			\remove_action( $record['hook'], $record['callback'], $record['priority'] );
@@ -122,6 +128,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function remove_all_filters(): void {
 		foreach ( $this->registry->get_filters() as $record ) {
 			\remove_filter( $record['hook'], $record['callback'], $record['priority'] );

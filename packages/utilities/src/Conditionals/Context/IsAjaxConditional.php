@@ -19,6 +19,7 @@ final class IsAjaxConditional implements ConditionalInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function is_met(): bool {
 		return \wp_doing_ajax();
 	}

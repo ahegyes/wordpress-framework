@@ -22,6 +22,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	 *
 	 * @return  string
 	 */
+	#[\Override]
 	public function __toString(): string {
 		try {
 			$json = \wp_json_encode( $this, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE );
@@ -41,6 +42,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	final public function equals( ValueObjectInterface $other ): bool {
 		if ( \get_class( $other ) !== \get_class( $this ) ) {
 			return false;
@@ -57,6 +59,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	 *
 	 * @return  array<string, mixed>
 	 */
+	#[\Override]
 	final public function jsonSerialize(): array {
 		return convert_to_primitives( $this );
 	}

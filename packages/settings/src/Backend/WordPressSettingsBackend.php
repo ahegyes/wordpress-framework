@@ -102,6 +102,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @throws  DuplicateSettingsSectionException If two sections on the page share an id.
 	 * @throws  DuplicateSettingsFieldException If two fields on the page share an id.
 	 */
+	#[\Override]
 	public function register_page( SettingsPage $page ): void {
 		$this->page          = $page;
 		$this->field_section = $this->map_fields( $page );
@@ -123,6 +124,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function get( string $field_id, mixed $default_value = null ): mixed {
 		return $this->store_for( $field_id )->get( $field_id, $default_value );
 	}
@@ -133,6 +135,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function set( string $field_id, mixed $value ): void {
 		++$this->writing;
 		try {
@@ -148,6 +151,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function has( string $field_id ): bool {
 		return $this->store_for( $field_id )->has( $field_id );
 	}
@@ -158,6 +162,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function delete( string $field_id ): bool {
 		++$this->writing;
 		try {

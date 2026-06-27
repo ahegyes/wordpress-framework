@@ -53,6 +53,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 * @param   mixed  $value   Value to persist.
 	 * @param   int    $user_id User to target, or 0 for the current user. Defaults to 0.
 	 */
+	#[\Override]
 	public function set( string $key, mixed $value, int $user_id = 0 ): void {
 		$user_id = $this->resolve_user_id( $user_id );
 		if ( $user_id < 1 ) {
@@ -75,6 +76,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 *
 	 * @return  mixed
 	 */
+	#[\Override]
 	public function get( string $key, mixed $default_value = null, int $user_id = 0 ): mixed {
 		$user_id = $this->resolve_user_id( $user_id );
 		if ( $user_id < 1 ) {
@@ -95,6 +97,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 *
 	 * @return  bool
 	 */
+	#[\Override]
 	public function has( string $key, int $user_id = 0 ): bool {
 		$user_id = $this->resolve_user_id( $user_id );
 		if ( $user_id < 1 ) {
@@ -114,6 +117,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 *
 	 * @return  bool True if a value was deleted, false if no value existed under the key.
 	 */
+	#[\Override]
 	public function delete( string $key, int $user_id = 0 ): bool {
 		$user_id = $this->resolve_user_id( $user_id );
 		if ( $user_id < 1 ) {
@@ -138,6 +142,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 *
 	 * @return  array<string, T>
 	 */
+	#[\Override]
 	public function get_all( int $user_id = 0 ): array {
 		$user_id = $this->resolve_user_id( $user_id );
 		if ( $user_id < 1 ) {
@@ -154,6 +159,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 *
 	 * @param   int $user_id User to target, or 0 for the current user. Defaults to 0.
 	 */
+	#[\Override]
 	public function clear( int $user_id = 0 ): void {
 		$user_id = $this->resolve_user_id( $user_id );
 		if ( $user_id < 1 ) {

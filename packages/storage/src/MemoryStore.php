@@ -38,6 +38,7 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function set( string $key, mixed $value ): void {
 		$this->entries[ $key ] = $value;
 	}
@@ -48,6 +49,7 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function get( string $key, mixed $default_value = null ): mixed {
 		return \array_key_exists( $key, $this->entries ) ? $this->entries[ $key ] : $default_value;
 	}
@@ -58,6 +60,7 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function has( string $key ): bool {
 		return \array_key_exists( $key, $this->entries );
 	}
@@ -68,6 +71,7 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function delete( string $key ): bool {
 		if ( ! \array_key_exists( $key, $this->entries ) ) {
 			return false;
@@ -82,6 +86,7 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function get_all(): array {
 		return $this->entries;
 	}
@@ -92,6 +97,7 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function clear(): void {
 		$this->entries = array();
 	}

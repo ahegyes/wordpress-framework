@@ -36,6 +36,7 @@ final class PHPVersionConditional implements ConditionalInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function is_met(): bool {
 		// Compare the raw runtime string rather than parsing it into a Version: PHP encodes
 		// pre-releases without a dash (e.g. "8.5.0RC1"), which the Version grammar rejects, and

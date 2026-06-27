@@ -44,6 +44,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function set( string $key, mixed $value ): void {
 		$entries         = $this->load();
 		$entries[ $key ] = $value;
@@ -56,6 +57,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function get( string $key, mixed $default_value = null ): mixed {
 		$entries = $this->load();
 		return \array_key_exists( $key, $entries ) ? $entries[ $key ] : $default_value;
@@ -67,6 +69,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function has( string $key ): bool {
 		return \array_key_exists( $key, $this->load() );
 	}
@@ -77,6 +80,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function delete( string $key ): bool {
 		$entries = $this->load();
 		if ( ! \array_key_exists( $key, $entries ) ) {
@@ -93,6 +97,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function get_all(): array {
 		return $this->load();
 	}
@@ -103,6 +108,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function clear(): void {
 		\delete_option( $this->option_key );
 	}

@@ -47,6 +47,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function schedule_recurring( string $hook, int $interval, array $args = array(), ?int $first_run_timestamp = null, string $group = '' ): AbstractResult {
 		if ( ! $this->is_available() ) {
 			return $this->unavailable();
@@ -74,6 +75,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function schedule_single( string $hook, int $timestamp, array $args = array(), string $group = '' ): AbstractResult {
 		if ( ! $this->is_available() ) {
 			return $this->unavailable();
@@ -92,6 +94,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function unschedule( string $hook, array $args = array(), string $group = '' ): AbstractResult {
 		if ( ! $this->is_available() ) {
 			return $this->unavailable();
@@ -107,6 +110,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function is_scheduled( string $hook, array $args = array(), string $group = '' ): bool {
 		if ( ! $this->is_available() ) {
 			return false;
@@ -121,6 +125,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function get_next_scheduled( string $hook, array $args = array(), string $group = '' ): ?int {
 		if ( ! $this->is_available() ) {
 			return null;

@@ -35,6 +35,7 @@ final class CurrentUserCanConditional implements ConditionalInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function is_met(): bool {
 		return \current_user_can( $this->capability );
 	}
