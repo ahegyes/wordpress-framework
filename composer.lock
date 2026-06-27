@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9ebeab9b8d0cd3c3e827a8374a1932c4",
+    "content-hash": "a84259973c16a58a7f285dc829127997",
     "packages": [
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -383,13 +383,14 @@
             "dist": {
                 "type": "path",
                 "url": "packages/utilities",
-                "reference": "02095b3ed758e1bd20507324f619f948ed18c1d3"
+                "reference": "80b67b1420a8aaab99a9d38fe934cb6ac8dd2a89"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
                 "ahegyes/wp-framework-shared": "^2.0@dev",
                 "ahegyes/wp-framework-storage": "^2.0@dev",
-                "php": ">=8.5"
+                "php": ">=8.5",
+                "psr/log": "^3"
             },
             "type": "library",
             "extra": {
@@ -2542,16 +2543,16 @@
         },
         {
             "name": "php-stubs/wordpress-stubs",
-            "version": "v6.9.4",
+            "version": "v7.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-stubs/wordpress-stubs.git",
-                "reference": "90a9412826b9944f93b10bf41d795b5fe68abcd5"
+                "reference": "d74b963ed4f47303859bf73c741c80f554c83dc6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-stubs/wordpress-stubs/zipball/90a9412826b9944f93b10bf41d795b5fe68abcd5",
-                "reference": "90a9412826b9944f93b10bf41d795b5fe68abcd5",
+                "url": "https://api.github.com/repos/php-stubs/wordpress-stubs/zipball/d74b963ed4f47303859bf73c741c80f554c83dc6",
+                "reference": "d74b963ed4f47303859bf73c741c80f554c83dc6",
                 "shasum": ""
             },
             "conflict": {
@@ -2588,9 +2589,9 @@
             ],
             "support": {
                 "issues": "https://github.com/php-stubs/wordpress-stubs/issues",
-                "source": "https://github.com/php-stubs/wordpress-stubs/tree/v6.9.4"
+                "source": "https://github.com/php-stubs/wordpress-stubs/tree/v7.0.0"
             },
-            "time": "2026-05-01T20:36:01+00:00"
+            "time": "2026-05-21T21:41:34+00:00"
         },
         {
             "name": "phpcompatibility/php-compatibility",
@@ -8640,7 +8641,14 @@
             "time": "2026-06-24T19:16:29+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "php-stubs/wordpress-stubs",
+            "version": "7.0.0.0",
+            "alias": "6.9999.0",
+            "alias_normalized": "6.9999.0.0"
+        }
+    ],
     "minimum-stability": "dev",
     "stability-flags": {
         "ahegyes/wordpress-configs": 20,

@@ -27,9 +27,10 @@
     "deptrac/deptrac": "^4.6",
     "infection/infection": "^0.32",
     "johnpbloch/wordpress-core": "^7.0",
-    "php-stubs/woocommerce-stubs": "^10.8",
+    "php-stubs/woocommerce-stubs": "^10.9",
+    "php-stubs/wordpress-stubs": "7.0.0 as 6.9999.0",
     "phpunit/phpunit": "^13",
-    "wp-plugin/woocommerce": "*"
+    "wp-plugin/woocommerce": "^10.9"
   },
 
   "repositories": [
