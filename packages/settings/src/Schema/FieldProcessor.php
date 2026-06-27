@@ -22,7 +22,7 @@ use DeepWebSolutions\Framework\Shared\Result\Success;
  * resolved option set, then applies the field's own validator. {@see self::process_or_reject()}
  * returns a {@see Success} carrying the value, or a {@see Failure} naming the field when a present
  * value fails one of those gates; {@see self::process()} folds that rejection back to the type's
- * empty value. A type outside the
+ * empty value, or to a custom type's declared default. A type outside the
  * taxonomy but present in the injected custom-type registry is processed as a
  * plain scalar through the field's own sanitize/validate, falling back to the
  * field's default (a non-scalar submission is coerced to the default before the
@@ -55,10 +55,11 @@ final class FieldProcessor {
 	// region METHODS
 
 	/**
-	 * Processes a field's submitted value into the value to persist, folding a rejection to the empty value.
+	 * Processes a field's submitted value into the value to persist, folding a rejection to a fallback value.
 	 *
 	 * Convenience over {@see self::process_or_reject()} for callers that do not distinguish a rejected
-	 * submission from a valid-empty one; a rejected value becomes the field type's empty value.
+	 * submission from a valid-empty one; a rejected value becomes the field type's empty value, or the field's
+	 * declared default for a custom type.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
