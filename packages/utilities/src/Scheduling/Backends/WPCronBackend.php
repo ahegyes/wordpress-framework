@@ -16,11 +16,12 @@ use WP_Error;
  *
  * WordPress cron addresses a recurring event by a named schedule, not a raw interval, so
  * each distinct interval gets a synthetic schedule 'dws_every_{N}s' injected through the
- * 'cron_schedules' filter. The filter callback is a stable [object, method] pair wired
- * exactly once (WordPress cannot de-duplicate fresh closures, so a stable reference and a
- * one-time guard are both required); it reads an internal interval registry, so later
- * intervals are covered without re-adding the filter. WordPress cron has no grouping, so a
- * non-empty group is rejected on every mutation and treated as never-scheduled by every query.
+ * 'cron_schedules' filter. WordPress resolves that schedule again whenever it reschedules the
+ * event — on a request that never touches this backend, wp-cron included — so the filter is
+ * wired by {@see self::register_lifecycle()} on every load, independent of any schedule call,
+ * and its callback rebuilds the interval set from the cron array so an event scheduled on an
+ * earlier request still resolves. WordPress cron has no grouping, so a non-empty group is
+ * rejected on every mutation and treated as never-scheduled by every query.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -100,12 +101,14 @@ final class WPCronBackend implements SchedulerBackendInterface {
 				),
 			);
 		}
+		// Wire the schedule filter before the idempotency fast-path: an already-scheduled hook must
+		// still gain a resolvable synthetic schedule on this request so WordPress can reschedule it.
+		$schedule_name = $this->ensure_schedule( $interval );
 		if ( false !== \wp_next_scheduled( $hook, $args ) ) {
 			return Success::from( true );
 		}
 
-		$schedule_name = $this->ensure_schedule( $interval );
-		$scheduled     = \wp_schedule_event( $first_run_timestamp ?? \time(), $schedule_name, $hook, $args, true );
+		$scheduled = \wp_schedule_event( $first_run_timestamp ?? \time(), $schedule_name, $hook, $args, true );
 		return $this->result_for_schedule( $scheduled, $hook );
 	}
 
@@ -183,14 +186,34 @@ final class WPCronBackend implements SchedulerBackendInterface {
 
 	// endregion
 
+	// region METHODS
+
+	/**
+	 * Wires the 'cron_schedules' filter so a synthetic schedule resolves on every request.
+	 *
+	 * WordPress reschedules a recurring event by resolving its named schedule through
+	 * 'cron_schedules', and that lookup runs on requests — wp-cron itself — that never call a
+	 * schedule method, so the filter is wired here rather than only when scheduling. Consumers
+	 * call this on each load; the callback rebuilds the interval set from the cron array, so an
+	 * event scheduled on an earlier request still resolves.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function register_lifecycle(): void {
+		$this->ensure_filter_registered();
+	}
+
+	// endregion
+
 	// region HOOKS
 
 	/**
-	 * Injects a synthetic 'dws_every_{N}s' schedule for every registered interval.
+	 * Injects a synthetic 'dws_every_{N}s' schedule for every active interval.
 	 *
-	 * Filter callback for 'cron_schedules'. A stable [object, method] reference so WordPress
-	 * de-duplicates it and the one-time wiring holds; it reads the interval registry, so a
-	 * single registration covers every interval scheduled this request.
+	 * Filter callback for 'cron_schedules'. The active set unions intervals scheduled this
+	 * request with intervals rebuilt from recurring events already in the cron array, so the
+	 * synthetic schedule resolves even on a request whose backend instance never scheduled it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -200,7 +223,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 * @return  array<string, array{interval: int, display: string}>
 	 */
 	public function register_synthetic_schedules( array $schedules ): array {
-		foreach ( \array_keys( $this->registered_intervals ) as $interval ) {
+		foreach ( $this->active_intervals() as $interval ) {
 			$schedules[ $this->schedule_name( $interval ) ] = array(
 				'interval' => $interval,
 				'display'  => \sprintf( 'Every %d seconds (DWS)', $interval ),
@@ -242,7 +265,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	}
 
 	/**
-	 * Registers a synthetic schedule for an interval and returns its name.
+	 * Records an interval and ensures the schedule filter is wired, returning the interval's name.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -253,12 +276,25 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 */
 	protected function ensure_schedule( int $interval ): string {
 		$this->registered_intervals[ $interval ] = true;
-		if ( ! $this->schedules_filter_registered ) {
-			\add_filter( 'cron_schedules', array( $this, 'register_synthetic_schedules' ) ); // phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- synthetic intervals are registered dynamically; each is a positive int validated before scheduling.
-			$this->schedules_filter_registered = true;
-		}
+		$this->ensure_filter_registered();
 
 		return $this->schedule_name( $interval );
+	}
+
+	/**
+	 * Wires the 'cron_schedules' filter at most once per request via a stable [object, method] pair —
+	 * a fresh closure, which WordPress cannot de-duplicate, would stack a new listener on every wiring.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	protected function ensure_filter_registered(): void {
+		if ( $this->schedules_filter_registered ) {
+			return;
+		}
+
+		\add_filter( 'cron_schedules', array( $this, 'register_synthetic_schedules' ) ); // phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- synthetic intervals are positive ints validated before scheduling.
+		$this->schedules_filter_registered = true;
 	}
 
 	/**
@@ -273,6 +309,52 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 */
 	protected function schedule_name( int $interval ): string {
 		return 'dws_every_' . $interval . 's';
+	}
+
+	/**
+	 * The intervals needing a synthetic schedule this request: those scheduled this request,
+	 * unioned with those rebuilt from recurring events already stored in the cron array.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  list<int>
+	 */
+	protected function active_intervals(): array {
+		$intervals = $this->registered_intervals;
+		foreach ( $this->scheduled_intervals() as $interval ) {
+			$intervals[ $interval ] = true;
+		}
+
+		return \array_keys( $intervals );
+	}
+
+	/**
+	 * Reads the intervals of synthetic 'dws_every_{N}s' events already stored in the cron array,
+	 * so a recurring event scheduled on an earlier request keeps a resolvable schedule.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  list<int>
+	 */
+	protected function scheduled_intervals(): array {
+		$intervals = array();
+		foreach ( \_get_cron_array() as $hooks ) {
+			foreach ( $hooks as $events ) {
+				if ( ! \is_array( $events ) ) {
+					continue;
+				}
+				foreach ( $events as $event ) {
+					$schedule = \is_array( $event ) ? ( $event['schedule'] ?? null ) : null;
+					if ( \is_string( $schedule ) && 1 === \preg_match( '/^dws_every_(\d+)s$/', $schedule, $matches ) ) {
+						$intervals[] = (int) $matches[1];
+					}
+				}
+			}
+		}
+
+		return $intervals;
 	}
 
 	/**

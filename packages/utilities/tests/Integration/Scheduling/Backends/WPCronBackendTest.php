@@ -182,6 +182,52 @@ final class WPCronBackendTest extends TestCase {
 		self::assertSame( SchedulingErrorReason::InvalidInterval, $result->error->reason );
 	}
 
+	public function test_register_synthetic_schedules_reconstructs_existing_intervals_from_cron(): void {
+		self::assertInstanceOf( Success::class, $this->backend()->schedule_recurring( self::HOOK, 300 ) );
+
+		// A backend with an empty interval registry — the state on every request after the one that
+		// scheduled the event — must still surface the synthetic schedule from the cron array, or
+		// WordPress cannot resolve 'dws_every_300s' when it reschedules the recurring event.
+		$schedules = $this->backend()->register_synthetic_schedules( array() );
+
+		self::assertArrayHasKey( 'dws_every_300s', $schedules );
+		self::assertSame( 300, $schedules['dws_every_300s']['interval'] );
+	}
+
+	public function test_register_lifecycle_wires_the_schedule_filter_without_a_schedule_call(): void {
+		$backend = $this->backend();
+		$backend->register_lifecycle();
+
+		// The filter must be present on a request that only boots — wp-cron itself never schedules —
+		// so a recurring event's named schedule resolves when WordPress reschedules it.
+		self::assertSame( 10, \has_filter( 'cron_schedules', array( $backend, 'register_synthetic_schedules' ) ) );
+	}
+
+	public function test_schedule_recurring_wires_the_filter_on_the_idempotent_fast_path(): void {
+		self::assertInstanceOf( Success::class, $this->backend()->schedule_recurring( self::HOOK, 300 ) );
+
+		// A fresh backend re-scheduling an already-scheduled hook takes the idempotent fast-path; it
+		// must still wire the schedule filter, or the existing event loses its schedule this request.
+		$fresh = $this->backend();
+		self::assertInstanceOf( Success::class, $fresh->schedule_recurring( self::HOOK, 300 ) );
+		self::assertSame( 10, \has_filter( 'cron_schedules', array( $fresh, 'register_synthetic_schedules' ) ) );
+	}
+
+	public function test_wp_reschedule_event_resolves_the_reconstructed_schedule(): void {
+		$scheduler = $this->backend();
+		self::assertInstanceOf( Success::class, $scheduler->schedule_recurring( self::HOOK, 300 ) );
+		$timestamp = \wp_next_scheduled( self::HOOK );
+		self::assertIsInt( $timestamp );
+
+		// Simulate a later request: drop the scheduling backend's filter, then wire only the lifecycle.
+		\remove_filter( 'cron_schedules', array( $scheduler, 'register_synthetic_schedules' ) );
+		$this->backend()->register_lifecycle();
+
+		// wp_reschedule_event re-validates the schedule name through wp_get_schedules(); the reconstructed
+		// 'dws_every_300s' must resolve, or it returns a WP_Error and WordPress drops the recurring event.
+		self::assertTrue( \wp_reschedule_event( $timestamp, 'dws_every_300s', self::HOOK, array(), true ) );
+	}
+
 	private function backend(): WPCronBackend {
 		$backend          = new WPCronBackend();
 		$this->backends[] = $backend;
