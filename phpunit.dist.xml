@@ -20,6 +20,12 @@
 		</testsuite>
 	</testsuites>
 
+	<php>
+		<!-- The integration suite boots WordPress + WooCommerce per process; raise the limit above the
+		     container default so the full run, and the shutdown error handlers, stay within budget. -->
+		<ini name="memory_limit" value="512M"/>
+	</php>
+
 	<source>
 		<include>
 			<directory>packages/*/src</directory>
