@@ -17,10 +17,10 @@ use WP_Error;
  * WordPress cron addresses a recurring event by a named schedule, not a raw interval, so
  * each distinct interval gets a synthetic schedule 'dws_every_{N}s' injected through the
  * 'cron_schedules' filter. WordPress resolves that schedule again whenever it reschedules the
- * event — on a request that never touches this backend, wp-cron included — so the filter is
- * wired by {@see self::register_lifecycle()} on every load, independent of any schedule call,
- * and its callback rebuilds the interval set from the cron array so an event scheduled on an
- * earlier request still resolves. WordPress cron has no grouping, so a non-empty group is
+ * event — on a request that never touches this backend, wp-cron included — so the caller wires
+ * the filter through {@see self::register_lifecycle()} on each load, independent of any schedule
+ * call, and its callback rebuilds the interval set from the cron array so an event scheduled on
+ * an earlier request still resolves. WordPress cron has no grouping, so a non-empty group is
  * rejected on every mutation and treated as never-scheduled by every query.
  *
  * @since   2.0.0
@@ -184,22 +184,18 @@ final class WPCronBackend implements SchedulerBackendInterface {
 		return \is_int( $next ) ? $next : null;
 	}
 
-	// endregion
-
-	// region METHODS
-
 	/**
-	 * Wires the 'cron_schedules' filter so a synthetic schedule resolves on every request.
+	 * {@inheritDoc}
 	 *
-	 * WordPress reschedules a recurring event by resolving its named schedule through
-	 * 'cron_schedules', and that lookup runs on requests — wp-cron itself — that never call a
-	 * schedule method, so the filter is wired here rather than only when scheduling. Consumers
-	 * call this on each load; the callback rebuilds the interval set from the cron array, so an
-	 * event scheduled on an earlier request still resolves.
+	 * Registers the 'cron_schedules' filter so a synthetic schedule resolves on a request that
+	 * never calls a schedule method — wp-cron itself — letting WordPress reschedule a recurring
+	 * event stored on an earlier request. The filter callback rebuilds the interval set from the
+	 * cron array, so the synthetic schedule resolves even though the registry is per-request.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
+	#[\Override]
 	public function register_lifecycle(): void {
 		$this->ensure_filter_registered();
 	}

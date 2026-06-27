@@ -7,24 +7,49 @@ use DeepWebSolutions\Framework\Utilities\Scheduling\Backends\WPCronBackend;
 use Psr\Log\LoggerInterface;
 
 /**
- * Selects the scheduler backend, preferring Action Scheduler when it is loaded.
+ * Builds a {@see Scheduler} wired to both backends and an Action Scheduler readiness probe.
  *
- * Returns an {@see ActionSchedulerBackend} when Action Scheduler's scheduling API is
- * available, otherwise a {@see WPCronBackend}. The availability probe is injectable so
- * both branches are testable without manipulating the global function table.
+ * The returned scheduler routes each call to Action Scheduler when the probe reports it ready, and to
+ * WordPress cron otherwise. The probe is injectable so the readiness branch is testable without
+ * driving the Action Scheduler runtime.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @param   LoggerInterface|null $logger                  Optional PSR-3 logger passed to the chosen backend.
- * @param   callable|null        $action_scheduler_probe  Predicate reporting whether Action Scheduler is available; defaults to a function_exists check.
+ * @param   LoggerInterface|null $logger                       Optional PSR-3 logger passed to both backends.
+ * @param   callable|null        $action_scheduler_ready_probe Predicate reporting whether Action Scheduler is ready; defaults to {@see action_scheduler_is_ready()}.
  *
- * @return  SchedulerBackendInterface
+ * @return  Scheduler
  */
-function select_scheduler_backend( ?LoggerInterface $logger = null, ?callable $action_scheduler_probe = null ): SchedulerBackendInterface {
-	$probe = $action_scheduler_probe ?? static fn (): bool => \function_exists( 'as_schedule_recurring_action' );
+function create_scheduler( ?LoggerInterface $logger = null, ?callable $action_scheduler_ready_probe = null ): Scheduler {
+	$probe = $action_scheduler_ready_probe ?? static fn (): bool => namespace\action_scheduler_is_ready();
 
-	return $probe()
-		? new ActionSchedulerBackend( $logger )
-		: new WPCronBackend( $logger );
+	return new Scheduler(
+		new ActionSchedulerBackend( $logger ),
+		new WPCronBackend( $logger ),
+		\Closure::fromCallable( $probe ),
+	);
+}
+
+/**
+ * Whether Action Scheduler is loaded and its data store has finished initializing.
+ *
+ * Action Scheduler's procedural API returns no-op values until 'action_scheduler_init' fires, which is
+ * later than the 'plugins_loaded' wiring, so readiness needs both the function table and the init
+ * signal. The two probes are injectable so every row of the readiness table is unit-testable without
+ * driving the Action Scheduler runtime.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   callable(string): bool $function_exists_probe Reports whether a named function exists; defaults to function_exists().
+ * @param   callable(string): int  $did_action_probe      Reports how many times an action has fired; defaults to did_action().
+ *
+ * @return  bool
+ */
+function action_scheduler_is_ready( ?callable $function_exists_probe = null, ?callable $did_action_probe = null ): bool {
+	$function_exists = $function_exists_probe ?? static fn ( string $name ): bool => \function_exists( $name );
+	$did_action      = $did_action_probe ?? static fn ( string $hook ): int => \did_action( $hook );
+
+	return $function_exists( 'as_schedule_recurring_action' ) && $did_action( 'action_scheduler_init' ) > 0;
 }

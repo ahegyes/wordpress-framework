@@ -157,6 +157,18 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 		return \is_int( $next ) ? $next : null;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Action Scheduler manages its own schedule storage and reschedules its actions internally,
+	 * so this backend needs no per-request wiring.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function register_lifecycle(): void {}
+
 	// endregion
 
 	// region HELPERS

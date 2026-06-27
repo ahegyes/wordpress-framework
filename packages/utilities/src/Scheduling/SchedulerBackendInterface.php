@@ -95,4 +95,16 @@ interface SchedulerBackendInterface {
 	 * @return  int|null
 	 */
 	public function get_next_scheduled( string $hook, array $args = array(), string $group = '' ): ?int;
+
+	/**
+	 * Wires any per-request setup the backend needs to keep its scheduled actions resolvable.
+	 *
+	 * A consumer calls this on every load. A backend that stores and reschedules its own actions
+	 * implements a no-op; the WordPress cron backend registers its synthetic-schedule filter here
+	 * so a recurring event scheduled on an earlier request still resolves when WordPress reschedules it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function register_lifecycle(): void;
 }
