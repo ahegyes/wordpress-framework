@@ -63,6 +63,6 @@ final class ActionSchedulerBackendTest extends TestCase {
 		$logger = $this->createMock( LoggerInterface::class );
 		$logger->expects( self::once() )->method( 'error' );
 
-		( new ActionSchedulerBackend( $logger ) )->schedule_recurring( 'dws_hook', 300 );
+		(void) ( new ActionSchedulerBackend( $logger ) )->schedule_recurring( 'dws_hook', 300 );
 	}
 }

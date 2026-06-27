@@ -71,7 +71,7 @@ final class WPCronBackendTest extends TestCase {
 		self::assertFalse( $backend->is_scheduled( self::HOOK ) );
 		self::assertNull( $backend->get_next_scheduled( self::HOOK ) );
 
-		$backend->schedule_single( self::HOOK, $timestamp );
+		(void) $backend->schedule_single( self::HOOK, $timestamp );
 
 		self::assertTrue( $backend->is_scheduled( self::HOOK ) );
 		self::assertSame( $timestamp, $backend->get_next_scheduled( self::HOOK ) );
@@ -79,7 +79,8 @@ final class WPCronBackendTest extends TestCase {
 
 	public function test_unschedule_clears_a_scheduled_event(): void {
 		$backend = $this->backend();
-		$backend->schedule_single( self::HOOK, \time() + 3600 );
+		self::assertInstanceOf( Success::class, $backend->schedule_single( self::HOOK, \time() + 3600 ) );
+		self::assertTrue( $backend->is_scheduled( self::HOOK ) );
 
 		$result = $backend->unschedule( self::HOOK );
 
@@ -89,7 +90,7 @@ final class WPCronBackendTest extends TestCase {
 
 	public function test_unschedule_returns_a_failure_when_the_clear_fails(): void {
 		$backend = $this->backend();
-		$backend->schedule_single( self::HOOK, \time() + 3600 );
+		(void) $backend->schedule_single( self::HOOK, \time() + 3600 );
 
 		// pre_clear_scheduled_hook short-circuits wp_clear_scheduled_hook; a WP_Error return models a backend
 		// (e.g. a wp-cron replacement) failing to unschedule, the exact failure case unschedule must surface.
@@ -111,7 +112,8 @@ final class WPCronBackendTest extends TestCase {
 
 	public function test_is_scheduled_rejects_a_non_empty_group(): void {
 		$backend = $this->backend();
-		$backend->schedule_single( self::HOOK, \time() + 3600 );
+		self::assertInstanceOf( Success::class, $backend->schedule_single( self::HOOK, \time() + 3600 ) );
+		self::assertTrue( $backend->is_scheduled( self::HOOK ) );
 
 		// A grouped schedule can never exist on WP-Cron, so a query naming a group is consistently false.
 		self::assertFalse( $backend->is_scheduled( self::HOOK, array(), 'reports' ) );
@@ -120,7 +122,8 @@ final class WPCronBackendTest extends TestCase {
 	public function test_get_next_scheduled_rejects_a_non_empty_group(): void {
 		$backend   = $this->backend();
 		$timestamp = \time() + 3600;
-		$backend->schedule_single( self::HOOK, $timestamp );
+		self::assertInstanceOf( Success::class, $backend->schedule_single( self::HOOK, $timestamp ) );
+		self::assertSame( $timestamp, $backend->get_next_scheduled( self::HOOK ) );
 
 		self::assertNull( $backend->get_next_scheduled( self::HOOK, array(), 'reports' ) );
 	}
@@ -128,7 +131,7 @@ final class WPCronBackendTest extends TestCase {
 	public function test_recurring_registers_a_synthetic_named_schedule(): void {
 		$backend = $this->backend();
 
-		$backend->schedule_recurring( self::HOOK, 900 );
+		(void) $backend->schedule_recurring( self::HOOK, 900 );
 
 		$schedules = \wp_get_schedules();
 		self::assertArrayHasKey( 'dws_every_900s', $schedules );
@@ -138,8 +141,8 @@ final class WPCronBackendTest extends TestCase {
 	public function test_args_distinguish_two_concurrent_recurring_events(): void {
 		$backend = $this->backend();
 
-		$backend->schedule_recurring( self::HOOK, 900, array( 'a' ) );
-		$backend->schedule_recurring( self::HOOK, 900, array( 'b' ) );
+		(void) $backend->schedule_recurring( self::HOOK, 900, array( 'a' ) );
+		(void) $backend->schedule_recurring( self::HOOK, 900, array( 'b' ) );
 
 		self::assertTrue( $backend->is_scheduled( self::HOOK, array( 'a' ) ) );
 		self::assertTrue( $backend->is_scheduled( self::HOOK, array( 'b' ) ) );

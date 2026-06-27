@@ -34,12 +34,13 @@ final class SchedulerTest extends TestCase {
 		$backend   = $this->recording_backend();
 		$scheduler = new Scheduler( $backend );
 
-		$scheduler->schedule_recurring( 'dws_hook', 300 );
+		$result = $scheduler->schedule_recurring( 'dws_hook', 300 );
 
 		self::assertSame(
 			array( array( 'schedule_recurring', 'dws_hook', 300, array(), null, '' ) ),
 			$backend->calls,
 		);
+		self::assertSame( $backend->next_result, $result );
 	}
 
 	public function test_schedule_single_delegates_with_all_arguments(): void {

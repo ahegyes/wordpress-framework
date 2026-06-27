@@ -60,7 +60,7 @@ final class ActionSchedulerBackendTest extends TestCase {
 
 		self::assertFalse( $backend->is_scheduled( self::HOOK, array(), self::GROUP ) );
 
-		$backend->schedule_single( self::HOOK, \time() + 3600, array(), self::GROUP );
+		(void) $backend->schedule_single( self::HOOK, \time() + 3600, array(), self::GROUP );
 
 		self::assertTrue( $backend->is_scheduled( self::HOOK, array(), self::GROUP ) );
 	}
@@ -71,14 +71,15 @@ final class ActionSchedulerBackendTest extends TestCase {
 
 		self::assertNull( $backend->get_next_scheduled( self::HOOK, array(), self::GROUP ) );
 
-		$backend->schedule_single( self::HOOK, $timestamp, array(), self::GROUP );
+		(void) $backend->schedule_single( self::HOOK, $timestamp, array(), self::GROUP );
 
 		self::assertSame( $timestamp, $backend->get_next_scheduled( self::HOOK, array(), self::GROUP ) );
 	}
 
 	public function test_unschedule_cancels_a_scheduled_action(): void {
 		$backend = new ActionSchedulerBackend();
-		$backend->schedule_single( self::HOOK, \time() + 3600, array(), self::GROUP );
+		self::assertInstanceOf( Success::class, $backend->schedule_single( self::HOOK, \time() + 3600, array(), self::GROUP ) );
+		self::assertTrue( $backend->is_scheduled( self::HOOK, array(), self::GROUP ) );
 
 		$result = $backend->unschedule( self::HOOK, array(), self::GROUP );
 
@@ -89,8 +90,8 @@ final class ActionSchedulerBackendTest extends TestCase {
 	public function test_args_distinguish_two_concurrent_actions(): void {
 		$backend = new ActionSchedulerBackend();
 
-		$backend->schedule_single( self::HOOK, \time() + 3600, array( 'a' ), self::GROUP );
-		$backend->schedule_single( self::HOOK, \time() + 3600, array( 'b' ), self::GROUP );
+		(void) $backend->schedule_single( self::HOOK, \time() + 3600, array( 'a' ), self::GROUP );
+		(void) $backend->schedule_single( self::HOOK, \time() + 3600, array( 'b' ), self::GROUP );
 
 		self::assertSame( 2, $this->count_pending( self::HOOK, self::GROUP ) );
 	}

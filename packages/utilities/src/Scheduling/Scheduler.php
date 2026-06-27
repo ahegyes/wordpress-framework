@@ -41,6 +41,7 @@ final class Scheduler implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function schedule_recurring( string $hook, int $interval, array $args = array(), ?int $first_run_timestamp = null, string $group = '' ): AbstractResult {
 		return $this->backend->schedule_recurring( $hook, $interval, $args, $first_run_timestamp, $group );
 	}
@@ -52,6 +53,7 @@ final class Scheduler implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function schedule_single( string $hook, int $timestamp, array $args = array(), string $group = '' ): AbstractResult {
 		return $this->backend->schedule_single( $hook, $timestamp, $args, $group );
 	}
@@ -63,6 +65,7 @@ final class Scheduler implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function unschedule( string $hook, array $args = array(), string $group = '' ): AbstractResult {
 		return $this->backend->unschedule( $hook, $args, $group );
 	}

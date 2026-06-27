@@ -85,6 +85,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function schedule_recurring( string $hook, int $interval, array $args = array(), ?int $first_run_timestamp = null, string $group = '' ): AbstractResult {
 		$rejection = $this->reject_group( $group );
 		if ( null !== $rejection ) {
@@ -115,6 +116,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function schedule_single( string $hook, int $timestamp, array $args = array(), string $group = '' ): AbstractResult {
 		$rejection = $this->reject_group( $group );
 		if ( null !== $rejection ) {
@@ -135,6 +137,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function unschedule( string $hook, array $args = array(), string $group = '' ): AbstractResult {
 		$rejection = $this->reject_group( $group );
 		if ( null !== $rejection ) {

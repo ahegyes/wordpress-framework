@@ -34,6 +34,7 @@ interface SchedulerBackendInterface {
 	 *
 	 * @return  Success<true>|Failure<SchedulingError> Success, or a failure carrying the cause.
 	 */
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function schedule_recurring( string $hook, int $interval, array $args = array(), ?int $first_run_timestamp = null, string $group = '' ): AbstractResult;
 
 	/**
@@ -49,6 +50,7 @@ interface SchedulerBackendInterface {
 	 *
 	 * @return  Success<true>|Failure<SchedulingError> Success, or a failure carrying the cause.
 	 */
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function schedule_single( string $hook, int $timestamp, array $args = array(), string $group = '' ): AbstractResult;
 
 	/**
@@ -63,6 +65,7 @@ interface SchedulerBackendInterface {
 	 *
 	 * @return  Success<true>|Failure<SchedulingError> Success, or a failure carrying the cause.
 	 */
+	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function unschedule( string $hook, array $args = array(), string $group = '' ): AbstractResult;
 
 	/**
