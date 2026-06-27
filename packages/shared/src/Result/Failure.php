@@ -24,7 +24,7 @@ final class Failure extends AbstractResult {
 	 *
 	 * @param   ErrorInterface $error Error payload carried by the failure.
 	 */
-	private function __construct(
+	protected function __construct(
 		public readonly ErrorInterface $error
 	) {
 		parent::__construct();

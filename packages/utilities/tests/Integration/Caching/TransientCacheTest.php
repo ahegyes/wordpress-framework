@@ -28,7 +28,7 @@ final class TransientCacheTest extends TestCase {
 
 	public function test_set_then_get_round_trips_an_array_payload(): void {
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', array( 'a' => 1, 'b' => 2 ) );
+		$cache->set( 'k', array( 'a' => 1, 'b' => 2 ), HOUR_IN_SECONDS );
 
 		self::assertSame( array( 'a' => 1, 'b' => 2 ), $cache->get( 'k' ) );
 	}
@@ -52,7 +52,7 @@ final class TransientCacheTest extends TestCase {
 	#[DataProvider( 'falsy_values' )]
 	public function test_get_returns_a_stored_falsy_value_as_a_hit( mixed $value ): void {
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', $value );
+		$cache->set( 'k', $value, HOUR_IN_SECONDS );
 
 		self::assertSame( $value, $cache->get( 'k', 'sentinel' ) );
 	}
@@ -67,42 +67,93 @@ final class TransientCacheTest extends TestCase {
 	public function test_get_unwraps_exactly_one_envelope_layer(): void {
 		$cache  = new TransientCache( self::PREFIX );
 		$shaped = array( TransientCache::PAYLOAD => 'inner' );
-		$cache->set( 'k', $shaped );
+		$cache->set( 'k', $shaped, HOUR_IN_SECONDS );
 
 		self::assertSame( $shaped, $cache->get( 'k' ) );
 	}
 
 	public function test_set_overwrites_an_existing_value(): void {
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', 'a' );
-		$cache->set( 'k', 'b' );
+		$cache->set( 'k', 'a', HOUR_IN_SECONDS );
+		$cache->set( 'k', 'b', HOUR_IN_SECONDS );
 
 		self::assertSame( 'b', $cache->get( 'k' ) );
 	}
 
-	public function test_set_with_zero_expiration_clears_a_prior_timeout(): void {
+	public function test_set_with_a_positive_ttl_writes_a_timeout_row(): void {
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', 'v', 3600 );
-		self::assertNotFalse( \get_option( '_transient_timeout_' . self::PREFIX . '/k__1' ) );
-
-		$cache->set( 'k', 'v2', 0 );
-
-		self::assertFalse( \get_option( '_transient_timeout_' . self::PREFIX . '/k__1' ) );
-		self::assertSame( 'v2', $cache->get( 'k' ) );
-	}
-
-	public function test_set_writes_a_timeout_for_a_ttl_and_none_for_zero(): void {
-		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'ttl', 'v', 3600 );
-		$cache->set( 'forever', 'v', 0 );
+		$cache->set( 'ttl', 'v', HOUR_IN_SECONDS );
 
 		self::assertNotFalse( \get_option( '_transient_timeout_' . self::PREFIX . '/ttl__1' ) );
-		self::assertFalse( \get_option( '_transient_timeout_' . self::PREFIX . '/forever__1' ) );
+	}
+
+	/**
+	 * @return array<string, array{int}>
+	 */
+	public static function non_positive_expirations(): array {
+		return array(
+			'zero'     => array( 0 ),
+			'negative' => array( -1 ),
+		);
+	}
+
+	#[DataProvider( 'non_positive_expirations' )]
+	public function test_set_with_a_non_positive_expiration_warns_and_stores_nothing( int $expiration ): void {
+		$fired = 0;
+		$spy   = static function () use ( &$fired ) {
+			++$fired;
+		};
+		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		\add_action( 'doing_it_wrong_run', $spy );
+
+		try {
+			$cache = new TransientCache( self::PREFIX );
+
+			$cache->set( 'k', 'v', $expiration );
+
+			// The write is skipped, so the transient never lands and a read is a miss.
+			self::assertFalse( \get_transient( self::PREFIX . '/k__1' ) );
+			self::assertSame( 'default', $cache->get( 'k', 'default' ) );
+			self::assertGreaterThan( 0, $fired );
+		} finally {
+			\remove_action( 'doing_it_wrong_run', $spy );
+			\remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		}
+	}
+
+	public function test_remember_with_a_non_positive_expiration_runs_once_warns_and_caches_nothing(): void {
+		$fired = 0;
+		$spy   = static function () use ( &$fired ) {
+			++$fired;
+		};
+		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		\add_action( 'doing_it_wrong_run', $spy );
+
+		try {
+			$cache  = new TransientCache( self::PREFIX );
+			$calls  = 0;
+			$result = $cache->remember(
+				'k',
+				static function () use ( &$calls ) {
+					++$calls;
+					return 'fresh';
+				},
+				0
+			);
+
+			self::assertSame( 'fresh', $result );
+			self::assertSame( 1, $calls );
+			self::assertGreaterThan( 0, $fired );
+			self::assertSame( 'miss', $cache->get( 'k', 'miss' ) );
+		} finally {
+			\remove_action( 'doing_it_wrong_run', $spy );
+			\remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		}
 	}
 
 	public function test_get_returns_default_after_expiry_and_remember_recomputes(): void {
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', 'v', 3600 );
+		$cache->set( 'k', 'v', HOUR_IN_SECONDS );
 
 		// Backdate the timeout so the next read sees an expired transient (no real sleep).
 		\update_option( '_transient_timeout_' . self::PREFIX . '/k__1', \time() - 1 );
@@ -114,7 +165,8 @@ final class TransientCacheTest extends TestCase {
 			static function () use ( &$calls ) {
 				++$calls;
 				return 'fresh';
-			}
+			},
+			HOUR_IN_SECONDS
 		);
 
 		self::assertSame( 'fresh', $result );
@@ -123,7 +175,7 @@ final class TransientCacheTest extends TestCase {
 
 	public function test_delete_returns_true_when_present_and_false_when_absent(): void {
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', 'v' );
+		$cache->set( 'k', 'v', HOUR_IN_SECONDS );
 
 		self::assertTrue( $cache->delete( 'k' ) );
 		self::assertSame( 'gone', $cache->get( 'k', 'gone' ) );
@@ -139,7 +191,8 @@ final class TransientCacheTest extends TestCase {
 			static function () use ( &$calls ) {
 				++$calls;
 				return 'computed';
-			}
+			},
+			HOUR_IN_SECONDS
 		);
 
 		self::assertSame( 'computed', $result );
@@ -155,8 +208,8 @@ final class TransientCacheTest extends TestCase {
 			return 'v';
 		};
 
-		$cache->remember( 'k', $callback );
-		$cache->remember( 'k', $callback );
+		$cache->remember( 'k', $callback, HOUR_IN_SECONDS );
+		$cache->remember( 'k', $callback, HOUR_IN_SECONDS );
 
 		self::assertSame( 1, $calls );
 	}
@@ -169,8 +222,8 @@ final class TransientCacheTest extends TestCase {
 			return false;
 		};
 
-		self::assertFalse( $cache->remember( 'k', $callback ) );
-		self::assertFalse( $cache->remember( 'k', $callback ) );
+		self::assertFalse( $cache->remember( 'k', $callback, HOUR_IN_SECONDS ) );
+		self::assertFalse( $cache->remember( 'k', $callback, HOUR_IN_SECONDS ) );
 		self::assertSame( 1, $calls );
 	}
 
@@ -182,7 +235,8 @@ final class TransientCacheTest extends TestCase {
 				'k',
 				static function (): never {
 					throw new \RuntimeException( 'boom' );
-				}
+				},
+				HOUR_IN_SECONDS
 			);
 			self::fail( 'Expected the callback exception to propagate.' );
 		} catch ( \RuntimeException $e ) {
@@ -194,7 +248,7 @@ final class TransientCacheTest extends TestCase {
 
 	public function test_flush_bumps_the_suffix_and_invalidates_the_group(): void {
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', 'v' );
+		$cache->set( 'k', 'v', HOUR_IN_SECONDS );
 
 		// Fresh prefix: the suffix defaults to 1 lazily, so no option row exists yet.
 		self::assertFalse( \get_option( self::PREFIX . '_cache_invalidation_suffix' ) );
@@ -210,7 +264,7 @@ final class TransientCacheTest extends TestCase {
 		\update_option( self::PREFIX . '_cache_invalidation_suffix', 'foo' );
 
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', 'v' );
+		$cache->set( 'k', 'v', HOUR_IN_SECONDS );
 
 		self::assertNotFalse( \get_transient( self::PREFIX . '/k__1' ) );
 		self::assertSame( 'v', $cache->get( 'k' ) );
@@ -220,10 +274,10 @@ final class TransientCacheTest extends TestCase {
 		$a = new TransientCache( self::PREFIX );
 		$b = new TransientCache( self::PREFIX2 );
 
-		$a->set( 'k', 'from-a' );
+		$a->set( 'k', 'from-a', HOUR_IN_SECONDS );
 		self::assertSame( 'none', $b->get( 'k', 'none' ) );
 
-		$b->set( 'k', 'from-b' );
+		$b->set( 'k', 'from-b', HOUR_IN_SECONDS );
 		$a->flush();
 
 		self::assertSame( 'from-b', $b->get( 'k', 'none' ) );
@@ -242,7 +296,7 @@ final class TransientCacheTest extends TestCase {
 			$cache = new TransientCache( self::PREFIX );
 			$long  = \str_repeat( 'x', 300 );
 
-			$cache->set( $long, 'v' );
+			$cache->set( $long, 'v', HOUR_IN_SECONDS );
 
 			// set() must skip the write entirely — nothing is stored under the over-long name.
 			self::assertFalse( \get_transient( self::PREFIX . '/' . $long . '__1' ) );

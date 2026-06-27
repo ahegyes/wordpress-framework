@@ -45,7 +45,8 @@
       "dev-trunk": "2.0.x-dev"
     },
     "scoping-stubs": [
-      "php-stubs/wordpress-stubs"
+      "php-stubs/wordpress-stubs",
+      "php-stubs/woocommerce-stubs:woocommerce-packages-stubs.php"
     ],
     "changelogger": {
       "versioning": "semver",

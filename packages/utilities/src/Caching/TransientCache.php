@@ -9,8 +9,10 @@ namespace DeepWebSolutions\Framework\Utilities\Caching;
  * {@see flush()} invalidates the whole group in one option write — no key enumeration. Stored values
  * are wrapped so a cached false/null/0/'' reads back as a hit rather than a transient miss. A key
  * whose full name would exceed WordPress' 172-character transient-name limit is skipped with a
- * _doing_it_wrong() notice; grouped caches should pass an $expiration so flushed rows are reclaimed
- * by WordPress' daily transient cleanup.
+ * _doing_it_wrong() notice. Every entry requires a positive expiration, so each row carries a timeout
+ * and is reclaimed by WordPress' daily transient cleanup once it lapses — including a prior generation
+ * left unreachable by a flush; the generation suffix gives instant group invalidation independent of
+ * that cleanup.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -36,7 +38,7 @@ final readonly class TransientCache {
 	 *
 	 * @var     int
 	 */
-	private const MAX_KEY_LENGTH = 172;
+	protected const MAX_KEY_LENGTH = 172;
 
 	// endregion
 
@@ -51,7 +53,7 @@ final readonly class TransientCache {
 	 * @param   string $key_prefix Per-plugin namespace prepended to every key (a safe slug).
 	 */
 	public function __construct(
-		private string $key_prefix,
+		protected string $key_prefix,
 	) {}
 
 	// endregion
@@ -80,16 +82,16 @@ final readonly class TransientCache {
 	}
 
 	/**
-	 * Stores a value under a key, optionally expiring it after a number of seconds.
+	 * Stores a value under a key, expiring it after a number of seconds.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   string $key        Key to store under.
 	 * @param   mixed  $value      Value to cache.
-	 * @param   int    $expiration Lifetime in seconds; 0 (default) never expires.
+	 * @param   int    $expiration Lifetime in seconds; must be positive — a non-positive value is rejected and the write skipped.
 	 */
-	public function set( string $key, mixed $value, int $expiration = 0 ): void {
+	public function set( string $key, mixed $value, int $expiration ): void {
 		$full_key = $this->full_key( $key );
 		if ( ! $this->is_within_length( $full_key ) ) {
 			return;
@@ -125,11 +127,11 @@ final readonly class TransientCache {
 	 *
 	 * @param   string   $key        Key to look up.
 	 * @param   callable $callback   Producer invoked only on a miss; its return is cached. A thrown exception propagates and caches nothing.
-	 * @param   int      $expiration Lifetime in seconds for a freshly computed value; 0 (default) never expires.
+	 * @param   int      $expiration Lifetime in seconds for a freshly computed value; must be positive — a non-positive value is rejected and the write skipped.
 	 *
 	 * @return  mixed
 	 */
-	public function remember( string $key, callable $callback, int $expiration = 0 ): mixed {
+	public function remember( string $key, callable $callback, int $expiration ): mixed {
 		// Resolve the key once so a concurrent flush() mid-call orphans the write cleanly instead of
 		// splitting the probe and the store across two generations.
 		$full_key = $this->full_key( $key );
@@ -169,13 +171,11 @@ final readonly class TransientCache {
 	 *
 	 * @param   string $full_key   Resolved transient name.
 	 * @param   mixed  $value      Value to wrap and store.
-	 * @param   int    $expiration Lifetime in seconds; 0 never expires.
+	 * @param   int    $expiration Positive lifetime in seconds.
 	 */
-	private function store( string $full_key, mixed $value, int $expiration ): void {
-		if ( 0 === $expiration ) {
-			// WordPress' transient-update path leaves a prior timeout in place, so a no-expiry
-			// re-set would still expire; delete first to keep "0 = no expiry" honest.
-			\delete_transient( $full_key );
+	protected function store( string $full_key, mixed $value, int $expiration ): void {
+		if ( ! $this->is_positive_expiration( $expiration ) ) {
+			return;
 		}
 
 		\set_transient( $full_key, array( self::PAYLOAD => $value ), $expiration );
@@ -191,7 +191,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  array{hit: bool, value: mixed}
 	 */
-	private function probe( string $full_key ): array {
+	protected function probe( string $full_key ): array {
 		$raw = \get_transient( $full_key );
 		if ( \is_array( $raw ) && \array_key_exists( self::PAYLOAD, $raw ) && \count( $raw ) === 1 ) {
 			return array(
@@ -216,7 +216,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  string
 	 */
-	private function full_key( string $key ): string {
+	protected function full_key( string $key ): string {
 		return $this->key_prefix . '/' . $key . '__' . $this->suffix();
 	}
 
@@ -228,7 +228,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  int
 	 */
-	private function suffix(): int {
+	protected function suffix(): int {
 		return \max( 1, (int) \get_option( $this->suffix_key(), 1 ) );
 	}
 
@@ -240,7 +240,7 @@ final readonly class TransientCache {
 	 *
 	 * @return  string
 	 */
-	private function suffix_key(): string {
+	protected function suffix_key(): string {
 		return $this->key_prefix . '_cache_invalidation_suffix';
 	}
 
@@ -254,18 +254,49 @@ final readonly class TransientCache {
 	 *
 	 * @return  bool
 	 */
-	private function is_within_length( string $full_key ): bool {
+	protected function is_within_length( string $full_key ): bool {
 		if ( \strlen( $full_key ) <= self::MAX_KEY_LENGTH ) {
 			return true;
 		}
 
 		\_doing_it_wrong(
 			__METHOD__,
-			\sprintf(
-				'A transient key for prefix "%s" is %d characters, over the %d-character limit; caching is skipped.',
-				$this->key_prefix,
-				\strlen( $full_key ),
-				self::MAX_KEY_LENGTH
+			\esc_html(
+				\sprintf(
+					'A transient key for prefix "%s" is %d characters, over the %d-character limit; caching is skipped.',
+					$this->key_prefix,
+					\strlen( $full_key ),
+					self::MAX_KEY_LENGTH
+				)
+			),
+			'2.0.0'
+		);
+		return false;
+	}
+
+	/**
+	 * Reports whether an expiration is positive, warning when it is not.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $expiration Lifetime in seconds.
+	 *
+	 * @return  bool
+	 */
+	protected function is_positive_expiration( int $expiration ): bool {
+		if ( $expiration >= 1 ) {
+			return true;
+		}
+
+		\_doing_it_wrong(
+			__METHOD__,
+			\esc_html(
+				\sprintf(
+					'A transient for prefix "%s" needs a positive expiration; %d given, so caching is skipped.',
+					$this->key_prefix,
+					$expiration
+				)
 			),
 			'2.0.0'
 		);

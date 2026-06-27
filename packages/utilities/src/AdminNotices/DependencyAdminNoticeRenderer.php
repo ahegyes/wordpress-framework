@@ -47,11 +47,11 @@ final class DependencyAdminNoticeRenderer {
 	 * @param   string                      $capability   Capability required to see the notices. Defaults to DEFAULT_CAPABILITY.
 	 */
 	public function __construct(
-		private AdminNoticesService $service,
-		private array $requirements,
-		private ?string $source = null,
-		private string $store = AdminNoticesService::DEFAULT_STORE,
-		private string $capability = self::DEFAULT_CAPABILITY,
+		protected AdminNoticesService $service,
+		protected array $requirements,
+		protected ?string $source = null,
+		protected string $store = AdminNoticesService::DEFAULT_STORE,
+		protected string $capability = self::DEFAULT_CAPABILITY,
 	) {}
 
 	// endregion
@@ -94,7 +94,7 @@ final class DependencyAdminNoticeRenderer {
 	 *
 	 * @return  bool
 	 */
-	private function is_met( DependencyRequirement $requirement ): bool {
+	protected function is_met( DependencyRequirement $requirement ): bool {
 		try {
 			return $requirement->conditional->is_met();
 		} catch ( \Throwable ) {
@@ -113,12 +113,12 @@ final class DependencyAdminNoticeRenderer {
 	 *
 	 * @return  AdminNotice
 	 */
-	private function build_notice( DependencyRequirement $requirement ): AdminNotice {
+	protected function build_notice( DependencyRequirement $requirement ): AdminNotice {
 		return new AdminNotice(
 			id: $requirement->get_notice_id(),
 			message: $this->build_message( $requirement ),
 			type: $requirement->get_notice_type(),
-			dismissible: $requirement->is_dismissible(),
+			is_dismissible: $requirement->is_dismissible(),
 			is_persistent: $requirement->is_persistent(),
 			capability: $this->capability,
 		);
@@ -134,7 +134,7 @@ final class DependencyAdminNoticeRenderer {
 	 *
 	 * @return  string
 	 */
-	private function build_message( DependencyRequirement $requirement ): string {
+	protected function build_message( DependencyRequirement $requirement ): string {
 		if ( $requirement->required ) {
 			$subject = $this->source ?? \__( 'This plugin', 'wp-framework-utilities' );
 			/* translators: 1: plugin or feature name, 2: required dependency label. */

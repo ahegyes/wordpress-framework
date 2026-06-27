@@ -26,8 +26,8 @@ final class PHPIniSizeConditional implements ConditionalInterface {
 	 * @param   string $minimum Minimum size as byte shorthand (e.g., `128M`, `1G`).
 	 */
 	public function __construct(
-		private readonly string $setting,
-		private readonly string $minimum,
+		protected readonly string $setting,
+		protected readonly string $minimum,
 	) {}
 
 	// endregion

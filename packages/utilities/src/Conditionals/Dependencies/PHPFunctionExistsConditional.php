@@ -22,7 +22,7 @@ final class PHPFunctionExistsConditional implements ConditionalInterface {
 	 * @param   string $function_name Fully-qualified function name to check.
 	 */
 	public function __construct(
-		private readonly string $function_name,
+		protected readonly string $function_name,
 	) {}
 
 	// endregion

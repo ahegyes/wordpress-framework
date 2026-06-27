@@ -25,7 +25,7 @@ final readonly class DismissedNoticesTracker {
 	 * @param   UserMetaStore<bool> $store Per-user backend the dismissed IDs are recorded in.
 	 */
 	public function __construct(
-		private UserMetaStore $store,
+		protected UserMetaStore $store,
 	) {}
 
 	// endregion

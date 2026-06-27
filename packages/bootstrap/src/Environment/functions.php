@@ -23,8 +23,10 @@ function is_php_compatible( $min_php ) {
 
 /**
  * Returns whether the running WordPress version meets the given minimum.
- * WP-native helper is unavailable on WP < 5.2; the fallback strips the
- * beta/alpha suffix the way `wp_get_wp_version()` does.
+ * WP-native helper is unavailable on WP < 5.2; the fallback mirrors
+ * `is_wp_version_compatible()` — it strips the current version's beta/alpha
+ * suffix and drops a trailing `.0` from a 3-part minimum, so a 2-part current
+ * like `7.0` still satisfies a `7.0.0` minimum.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -39,7 +41,12 @@ function is_wp_compatible( $min_wp ) {
 	}
 
 	$current = isset( $GLOBALS['wp_version'] ) ? $GLOBALS['wp_version'] : '0';
-	$parts   = \explode( '-', $current );
+	$current = \explode( '-', $current );
+	$current = $current[0];
 
-	return \version_compare( $parts[0], $min_wp, '>=' );
+	if ( \substr_count( $min_wp, '.' ) > 1 && \substr( $min_wp, -2 ) === '.0' ) {
+		$min_wp = \substr( $min_wp, 0, -2 );
+	}
+
+	return \version_compare( $current, $min_wp, '>=' );
 }

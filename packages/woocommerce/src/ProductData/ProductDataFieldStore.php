@@ -2,11 +2,14 @@
 
 namespace DeepWebSolutions\Framework\WooCommerce\ProductData;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\DuplicateSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\FieldProcessor;
-use DeepWebSolutions\Framework\Settings\FieldType;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
+use DeepWebSolutions\Framework\Settings\Schema\FieldType;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+
+use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
+use function DeepWebSolutions\Framework\WooCommerce\to_yes_no;
 
 /**
  * Registers a WooCommerce product-data settings tab and persists its fields as product meta.
@@ -31,7 +34,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @var     ?ProductDataTab
 	 */
-	private ?ProductDataTab $tab = null;
+	protected ?ProductDataTab $tab = null;
 
 	/**
 	 * Registered fields keyed by their resolved meta key, for default injection and the save sweep.
@@ -41,7 +44,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @var     array<string, SettingsField>
 	 */
-	private array $by_meta_key = array();
+	protected array $by_meta_key = array();
 
 	/**
 	 * Resolved meta key keyed by "section_id\0field_id", for CRUD addressing.
@@ -51,7 +54,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @var     array<string, string>
 	 */
-	private array $by_address = array();
+	protected array $by_address = array();
 
 	// endregion
 
@@ -67,8 +70,8 @@ final class ProductDataFieldStore {
 	 * @param   FieldProcessor           $processor Processor for sanitizing submitted taxonomy-typed values.
 	 */
 	public function __construct(
-		private ProductDataFieldRenderer $renderer = new ProductDataFieldRenderer(),
-		private FieldProcessor $processor = new FieldProcessor(),
+		protected ProductDataFieldRenderer $renderer = new ProductDataFieldRenderer(),
+		protected FieldProcessor $processor = new FieldProcessor(),
 	) {}
 
 	// endregion
@@ -93,7 +96,7 @@ final class ProductDataFieldStore {
 		\add_action( 'woocommerce_product_data_panels', fn () => $this->render_panel() );
 		\add_action( 'woocommerce_process_product_meta', fn ( int $product_id ) => $this->save( $product_id ) );
 		\add_filter( 'default_post_metadata', fn ( mixed $value, int $object_id, string $meta_key ): mixed => $this->inject_default( $value, $object_id, $meta_key ), 99, 3 );
-		\add_filter( 'woocommerce_data_store_wp_post_read_meta', fn ( array $meta_data, object $object ): array => $this->inject_default_bulk( $meta_data, $object ), 99, 2 );
+		\add_filter( 'woocommerce_data_store_wp_post_read_meta', fn ( array $meta_data, object $wc_object ): array => $this->inject_default_bulk( $meta_data, $wc_object ), 99, 2 );
 	}
 
 	/**
@@ -149,7 +152,7 @@ final class ProductDataFieldStore {
 
 		// A checkbox persists as WooCommerce's yes/no string on every write path, so its render and reads agree.
 		if ( FieldType::Checkbox === FieldType::tryFrom( $this->by_meta_key[ $meta_key ]->type ) ) {
-			$value = $this->checkbox_value( $value );
+			$value = to_yes_no( $value );
 		}
 
 		$product->update_meta_data( $meta_key, $value );
@@ -248,7 +251,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  array<string, mixed>
 	 */
-	private function register_tab_filter( array $tabs ): array {
+	protected function register_tab_filter( array $tabs ): array {
 		global $thepostid;
 		$product_id = (int) $thepostid;
 		if ( ! $this->is_supported( $product_id ) ) {
@@ -272,7 +275,7 @@ final class ProductDataFieldStore {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
-	private function render_panel(): void {
+	protected function render_panel(): void {
 		global $thepostid;
 		$product_id = (int) $thepostid;
 		if ( ! $this->is_supported( $product_id ) ) {
@@ -283,7 +286,7 @@ final class ProductDataFieldStore {
 		echo '<div id="' . \esc_attr( $tab->slug . '_product_data' ) . '" class="panel woocommerce_options_panel">';
 
 		foreach ( $tab->sections as $section ) {
-			$fields = \array_values( \array_filter( $section->fields, fn ( SettingsField $field ): bool => $this->can_edit( $field ) ) );
+			$fields = \array_values( \array_filter( $section->fields, static fn ( SettingsField $field ): bool => is_field_editable_by_current_user( $field ) ) );
 			if ( array() === $fields ) {
 				continue;
 			}
@@ -317,7 +320,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @param   int $product_id Product being saved.
 	 */
-	private function save( int $product_id ): void {
+	protected function save( int $product_id ): void {
 		if ( ! $this->is_supported( $product_id ) ) {
 			return;
 		}
@@ -328,7 +331,7 @@ final class ProductDataFieldStore {
 
 		foreach ( $this->tab()->sections as $section ) {
 			foreach ( $section->fields as $field ) {
-				if ( ! $this->can_edit( $field ) ) {
+				if ( ! is_field_editable_by_current_user( $field ) ) {
 					continue;
 				}
 				$meta_key = $this->meta_key_for( $section->id, $field );
@@ -351,7 +354,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  mixed
 	 */
-	private function inject_default( mixed $value, int $object_id, string $meta_key ): mixed {
+	protected function inject_default( mixed $value, int $object_id, string $meta_key ): mixed {
 		$field = $this->by_meta_key[ $meta_key ] ?? null;
 		if ( null === $field ) {
 			return $value;
@@ -370,12 +373,12 @@ final class ProductDataFieldStore {
 	 * @version 2.0.0
 	 *
 	 * @param   array<int, object> $meta_data Raw meta rows WooCommerce read for the object.
-	 * @param   object             $object    Object the meta was read for.
+	 * @param   object             $wc_object    Object the meta was read for.
 	 *
 	 * @return  array<int, object>
 	 */
-	private function inject_default_bulk( array $meta_data, object $object ): array {
-		if ( ! $object instanceof \WC_Product || ! $this->is_supported( $object->get_id() ) ) {
+	protected function inject_default_bulk( array $meta_data, object $wc_object ): array {
+		if ( ! $wc_object instanceof \WC_Product || ! $this->is_supported( $wc_object->get_id() ) ) {
 			return $meta_data;
 		}
 
@@ -407,7 +410,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @throws  DuplicateSettingsFieldException If two fields resolve to the same meta key.
 	 */
-	private function index_fields( ProductDataTab $tab ): void {
+	protected function index_fields( ProductDataTab $tab ): void {
 		$this->by_meta_key = array();
 		$this->by_address  = array();
 
@@ -435,7 +438,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  string
 	 */
-	private function meta_key_for( string $section_id, SettingsField $field ): string {
+	protected function meta_key_for( string $section_id, SettingsField $field ): string {
 		return $field->meta_key ?? ( $this->tab()->meta_key_prefix . $section_id . '_' . $field->id );
 	}
 
@@ -452,7 +455,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  string
 	 */
-	private function require_meta_key( string $section_id, string $field_id ): string {
+	protected function require_meta_key( string $section_id, string $field_id ): string {
 		$address = $this->address( $section_id, $field_id );
 		if ( ! isset( $this->by_address[ $address ] ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
@@ -473,7 +476,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  string
 	 */
-	private function address( string $section_id, string $field_id ): string {
+	protected function address( string $section_id, string $field_id ): string {
 		return $section_id . "\0" . $field_id;
 	}
 
@@ -489,7 +492,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  mixed
 	 */
-	private function submitted_value( SettingsField $field, string $meta_key ): mixed {
+	protected function submitted_value( SettingsField $field, string $meta_key ): mixed {
 		$type = FieldType::tryFrom( $field->type );
 
 		if ( FieldType::Checkbox === $type ) {
@@ -504,7 +507,7 @@ final class ProductDataFieldStore {
 
 		if ( null === $type ) {
 			// A custom type has no taxonomy processor; run its own sanitize/validate, falling back to the default.
-			return $this->sanitize_and_validate( $field, $raw, $field->default );
+			return $this->sanitize_and_validate( $field, $raw, $field->default_value );
 		}
 
 		return $this->processor->process( $field, null === $raw ? array() : array( $field->id => $raw ) );
@@ -522,7 +525,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  mixed
 	 */
-	private function sanitize_and_validate( SettingsField $field, mixed $value, mixed $rejected ): mixed {
+	protected function sanitize_and_validate( SettingsField $field, mixed $value, mixed $rejected ): mixed {
 		if ( null !== $field->sanitize ) {
 			$value = ( $field->sanitize )( $value );
 		}
@@ -543,24 +546,10 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  mixed
 	 */
-	private function default_value( SettingsField $field ): mixed {
+	protected function default_value( SettingsField $field ): mixed {
 		return FieldType::Checkbox === FieldType::tryFrom( $field->type )
-			? $this->checkbox_value( $field->default )
-			: $field->default;
-	}
-
-	/**
-	 * Normalizes a value to WooCommerce's yes/no checkbox string, on which a checkbox's checked state turns.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   mixed $value Value to normalize.
-	 *
-	 * @return  string
-	 */
-	private function checkbox_value( mixed $value ): string {
-		return ( true === $value || 'yes' === $value || 1 === $value || '1' === $value ) ? 'yes' : 'no';
+			? to_yes_no( $field->default_value )
+			: $field->default_value;
 	}
 
 	/**
@@ -573,7 +562,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  bool
 	 */
-	private function is_supported( int $product_id ): bool {
+	protected function is_supported( int $product_id ): bool {
 		// Product existence is the non-overridable floor: the global default filters must never inject into a
 		// non-product post. A consumer's gate only narrows the set of products further.
 		if ( false === \WC_Product_Factory::get_product_type( $product_id ) ) {
@@ -595,24 +584,10 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  list<string>
 	 */
-	private function tab_classes( int $product_id ): array {
+	protected function tab_classes( int $product_id ): array {
 		$classes = $this->tab()->classes;
 
 		return \is_array( $classes ) ? \array_values( $classes ) : \array_values( (array) $classes( $product_id ) );
-	}
-
-	/**
-	 * Whether the current user may edit a field.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   SettingsField $field Field to check.
-	 *
-	 * @return  bool
-	 */
-	private function can_edit( SettingsField $field ): bool {
-		return null === $field->capability || \current_user_can( $field->capability );
 	}
 
 	/**
@@ -623,7 +598,7 @@ final class ProductDataFieldStore {
 	 *
 	 * @return  ProductDataTab
 	 */
-	private function tab(): ProductDataTab {
+	protected function tab(): ProductDataTab {
 		\assert( $this->tab instanceof ProductDataTab );
 
 		return $this->tab;

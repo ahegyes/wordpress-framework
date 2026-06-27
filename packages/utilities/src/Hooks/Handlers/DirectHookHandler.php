@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Hooks\Handlers;
 
-use DeepWebSolutions\Framework\Utilities\Hooks\Contracts\HookHandlerInterface;
+use DeepWebSolutions\Framework\Utilities\Hooks\HookHandlerInterface;
 use DeepWebSolutions\Framework\Utilities\Hooks\HookRegistry;
 
 /**
@@ -39,8 +39,8 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @param   HookRegistry $registry  Internal record store. Defaults to a fresh HookRegistry.
 	 */
 	public function __construct(
-		private string $id = self::DEFAULT_ID,
-		private HookRegistry $registry = new HookRegistry(),
+		protected string $id = self::DEFAULT_ID,
+		protected HookRegistry $registry = new HookRegistry(),
 	) {}
 
 	// endregion

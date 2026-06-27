@@ -9,9 +9,8 @@ namespace DeepWebSolutions\Framework\Storage;
  * and choose where they store it (in-memory per request, wp_options site-wide, user_meta
  * per-user, or any other backend that maps strings to values).
  *
- * Consumers compose stores by ID — e.g., a service holding `array<string, KeyValueStoreInterface>` —
- * letting plugins choose at construction whether their state is transient, cross-request,
- * or per-user without changing the consuming code.
+ * Callers supply valid keys: a store passes the given key through unchanged and performs no
+ * key sanitization of its own.
  *
  * @since   2.0.0
  * @version 2.0.0

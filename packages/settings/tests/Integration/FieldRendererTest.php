@@ -2,15 +2,17 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\UnknownFieldTypeException;
-use DeepWebSolutions\Framework\Settings\FieldRenderer;
-use DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
+use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( FieldRenderer::class )]
 #[UsesClass( SettingsField::class )]
+#[UsesClass( CustomFieldType::class )]
 final class FieldRendererTest extends TestCase {
 	public function test_renders_a_text_input_with_the_value_bound(): void {
 		$html = ( new FieldRenderer() )->render( $this->field( 'name', 'text' ), 'Ada', 'opt[name]' );
@@ -221,6 +223,62 @@ final class FieldRendererTest extends TestCase {
 		$this->expectException( UnknownFieldTypeException::class );
 
 		( new FieldRenderer() )->render( $this->field( 'x', 'bogus' ), '', 'x' );
+	}
+
+	public function test_an_unregistered_custom_type_still_throws(): void {
+		// A registry registered for a different type does not make every unknown token valid.
+		$renderer = new FieldRenderer(
+			custom_types: array(
+				'color_picker' => new CustomFieldType(
+					type: 'color_picker',
+					render: static fn ( SettingsField $field, mixed $value, string $name ): string => '',
+				),
+			),
+		);
+
+		$this->expectException( UnknownFieldTypeException::class );
+
+		$renderer->render( $this->field( 'x', 'bogus' ), '', 'x' );
+	}
+
+	public function test_a_registered_custom_renderer_is_invoked_with_the_field_value_and_name(): void {
+		$renderer = new FieldRenderer(
+			custom_types: array(
+				'color_picker' => new CustomFieldType(
+					type: 'color_picker',
+					render: static fn ( SettingsField $field, mixed $value, string $name ): string => \sprintf(
+						'<input class="dws-color" name="%s" value="%s" />',
+						\esc_attr( $name ),
+						\esc_attr( (string) $value ),
+					),
+				),
+			),
+		);
+
+		$html = $renderer->render( $this->field( 'shade', 'color_picker' ), '#abc', 'opt[shade]' );
+
+		self::assertStringContainsString( 'class="dws-color"', $html );
+		self::assertStringContainsString( 'name="opt[shade]"', $html );
+		self::assertStringContainsString( 'value="#abc"', $html );
+	}
+
+	public function test_a_custom_renderer_gets_the_field_description_appended(): void {
+		$field    = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', description: 'Pick a shade.' );
+		$renderer = new FieldRenderer(
+			custom_types: array(
+				'color_picker' => new CustomFieldType(
+					type: 'color_picker',
+					render: static fn ( SettingsField $f, mixed $value, string $name ): string => '<input id="control" />',
+				),
+			),
+		);
+
+		$html = $renderer->render( $field, '', 'shade' );
+
+		self::assertStringContainsString( 'Pick a shade.', $html );
+		self::assertStringContainsString( 'class="description"', $html );
+		// The description follows the custom control, parity with the built-in types.
+		self::assertGreaterThan( \strpos( $html, '<input' ), \strpos( $html, 'Pick a shade.' ) );
 	}
 
 	public function test_renders_the_field_description_after_the_control(): void {

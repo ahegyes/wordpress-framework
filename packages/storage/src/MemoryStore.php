@@ -26,7 +26,7 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 *
 	 * @var     array<string, T>
 	 */
-	private array $entries = array();
+	protected array $entries = array();
 
 	// endregion
 

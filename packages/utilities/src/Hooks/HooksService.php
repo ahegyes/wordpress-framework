@@ -2,7 +2,6 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Hooks;
 
-use DeepWebSolutions\Framework\Utilities\Hooks\Contracts\HookHandlerInterface;
 use DeepWebSolutions\Framework\Utilities\Hooks\Handlers\DirectHookHandler;
 use OutOfBoundsException;
 
@@ -32,7 +31,7 @@ final class HooksService {
 	 *
 	 * @var     array<string, HookHandlerInterface>
 	 */
-	private(set) array $handlers = array();
+	protected(set) array $handlers = array();
 
 	// endregion
 
@@ -194,7 +193,7 @@ final class HooksService {
 	 *
 	 * @throws  OutOfBoundsException When no handler is registered under $id.
 	 */
-	private function resolve_handler( string $id ): HookHandlerInterface {
+	protected function resolve_handler( string $id ): HookHandlerInterface {
 		$handler = $this->get_handler( $id );
 		if ( null === $handler ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.

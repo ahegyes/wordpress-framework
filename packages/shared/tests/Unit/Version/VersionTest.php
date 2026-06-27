@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Shared\Tests\Unit\Version;
 
 use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
+use DeepWebSolutions\Framework\Shared\ValueObject\Exceptions\InvalidValueObjectException;
 use DeepWebSolutions\Framework\Shared\Version\Version;
 use DeepWebSolutions\Framework\Shared\Version\Exceptions\InvalidVersionException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( Version::class )]
 #[UsesClass( InvalidVersionException::class )]
+#[UsesClass( InvalidValueObjectException::class )]
 #[UsesClass( AbstractValueObject::class )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Shared\Reflection\get_public_property_names' )]
 final class VersionTest extends TestCase {
@@ -108,5 +110,15 @@ final class VersionTest extends TestCase {
 		$a = Version::from_string( '2.0.0' );
 		$b = Version::from_string( '2.0.0' );
 		self::assertTrue( $a->equals( $b ) );
+	}
+
+	public function test_invalid_version_exception_is_a_value_object_exception_naming_the_type(): void {
+		try {
+			Version::from_string( 'not-a-version' );
+			self::fail( 'Expected InvalidVersionException.' );
+		} catch ( InvalidVersionException $e ) {
+			self::assertInstanceOf( InvalidValueObjectException::class, $e );
+			self::assertStringContainsString( 'Version', $e->getMessage() );
+		}
 	}
 }

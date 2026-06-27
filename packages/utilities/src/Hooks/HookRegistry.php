@@ -26,7 +26,7 @@ final class HookRegistry {
 	 *
 	 * @var     list<array{hook: string, callback: callable, priority: int, accepted_args: int}>
 	 */
-	private array $actions = array();
+	protected array $actions = array();
 
 	/**
 	 * Filter registration records.
@@ -36,7 +36,7 @@ final class HookRegistry {
 	 *
 	 * @var     list<array{hook: string, callback: callable, priority: int, accepted_args: int}>
 	 */
-	private array $filters = array();
+	protected array $filters = array();
 
 	// endregion
 
@@ -179,7 +179,7 @@ final class HookRegistry {
 	 *
 	 * @return  bool                                                                                        True if a record was removed.
 	 */
-	private function forget_from( array &$records, string $hook, callable $callback, int $priority ): bool {
+	protected function forget_from( array &$records, string $hook, callable $callback, int $priority ): bool {
 		foreach ( $records as $index => $record ) {
 			if ( $record['hook'] === $hook && $record['callback'] === $callback && $record['priority'] === $priority ) {
 				array_splice( $records, $index, 1 );

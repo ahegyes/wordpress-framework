@@ -4,7 +4,7 @@ namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\AdminNotices\ValueObje
 
 use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\DependencyRequirement;
-use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\NoticeType;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
-use DeepWebSolutions\Framework\Settings\Exceptions\InvalidObjectMetaBoxException;
-use DeepWebSolutions\Framework\Settings\ValueObjects\ObjectMetaBox;
+use DeepWebSolutions\Framework\Settings\ObjectField\Exceptions\InvalidObjectMetaBoxException;
+use DeepWebSolutions\Framework\Settings\ObjectField\ValueObjects\ObjectMetaBox;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -47,7 +47,7 @@ final class ObjectMetaBoxTest extends TestCase {
 	public function test_array_callable_fields_provider_is_normalized_to_a_closure(): void {
 		$source = new class() {
 			/**
-			 * @return list<\DeepWebSolutions\Framework\Settings\ValueObjects\SettingsField>
+			 * @return list<\DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField>
 			 */
 			public function fields( int $object_id ): array {
 				return array();

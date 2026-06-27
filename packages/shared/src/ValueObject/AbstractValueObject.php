@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\Framework\Shared\ValueObject;
 
 use function DeepWebSolutions\Framework\Shared\Reflection\convert_to_primitives;
-use function DeepWebSolutions\Framework\Shared\Reflection\get_public_property_names;
 
 /**
  * Base class for value objects. Provides reflection-driven structural equality,
@@ -47,22 +46,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 			return false;
 		}
 
-		foreach ( get_public_property_names( $this ) as $property_name ) {
-			// @phpstan-ignore-next-line property.dynamicName
-			$value_this = $this->{ $property_name };
-			// @phpstan-ignore-next-line property.dynamicName
-			$value_other = $other->{ $property_name };
-
-			if ( $value_this instanceof ValueObjectInterface ) {
-				if ( ! $value_other instanceof ValueObjectInterface || ! $value_this->equals( $value_other ) ) {
-					return false;
-				}
-			} elseif ( $value_this !== $value_other ) {
-				return false;
-			}
-		}
-
-		return true;
+		return convert_to_primitives( $this ) === convert_to_primitives( $other );
 	}
 
 	/**

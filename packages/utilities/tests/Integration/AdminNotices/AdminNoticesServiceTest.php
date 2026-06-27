@@ -6,7 +6,7 @@ use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticesService;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\DismissedNoticesTracker;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
-use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\NoticeType;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
 use DeepWebSolutions\Framework\Storage\OptionsStore;
 use DeepWebSolutions\Framework\Storage\UserMetaStore;
@@ -325,11 +325,11 @@ final class AdminNoticesServiceTest extends TestCase {
 	public function test_render_scopes_dismiss_action_only_for_sticky_notices(): void {
 		$service = $this->transport_service();
 		$service->add_notice(
-			new AdminNotice( 'sticky_dep', 'Sticky.', NoticeType::Warning, dismissible: true, is_persistent: true ),
+			new AdminNotice( 'sticky_dep', 'Sticky.', NoticeType::Warning, is_dismissible: true, is_persistent: true ),
 			'user-meta',
 		);
 		$service->add_notice(
-			new AdminNotice( 'flash_msg', 'Flash.', NoticeType::Info, dismissible: true, is_persistent: false ),
+			new AdminNotice( 'flash_msg', 'Flash.', NoticeType::Info, is_dismissible: true, is_persistent: false ),
 			'user-meta',
 		);
 

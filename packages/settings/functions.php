@@ -1,5 +1,9 @@
 <?php declare( strict_types=1 );
+/**
+ * Aggregates this package's nested src/<namespace>/functions.php files. Composer autoloads only this file.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ */
 
-// No namespace functions in settings. This file exists for workspace-wide
-// consistency with the package-root functions.php aggregator pattern; when a
-// <namespace>/functions.php file is added under src/, require_once it here.
+require_once __DIR__ . '/src/Schema/functions.php';

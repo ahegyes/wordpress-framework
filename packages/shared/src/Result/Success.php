@@ -22,7 +22,7 @@ final class Success extends AbstractResult {
 	 *
 	 * @param   mixed $value Return value carried by the success.
 	 */
-	private function __construct(
+	protected function __construct(
 		public readonly mixed $value
 	) {
 		parent::__construct();
