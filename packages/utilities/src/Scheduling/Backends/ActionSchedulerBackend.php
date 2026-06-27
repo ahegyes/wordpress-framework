@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
  * cleanly rather than fataling. Idempotency is enforced by the args-aware
  * as_has_scheduled_action() guard rather than Action Scheduler's $unique flag, which
  * keys on hook plus group only and ignores args — two schedules differing only in args
- * must both be allowed. The optional logger records the absent-scheduler condition.
+ * must both be allowed. The optional logger records the absent-scheduler and failed-cancellation conditions.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -31,7 +31,7 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   LoggerInterface|null $logger Optional PSR-3 logger for the absent-scheduler condition.
+	 * @param   LoggerInterface|null $logger Optional PSR-3 logger for the absent-scheduler and failed-cancellation conditions.
 	 */
 	public function __construct(
 		protected ?LoggerInterface $logger = null,
@@ -103,7 +103,26 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 			return $this->unavailable();
 		}
 
-		\as_unschedule_action( $hook, $args, $group );
+		// Clear every action matching exactly this hook, args, and group: loop the singular cancel (which
+		// removes one match per call) until it stops returning a positive id. as_unschedule_all_actions is
+		// avoided — its empty-args fast path cancels hook-wide — and the loop must also stop on 0, the id
+		// the cancel returns (not null) before the store is initialized, or it would spin.
+		do {
+			$cancelled = \as_unschedule_action( $hook, $args, $group );
+		} while ( null !== $cancelled && 0 !== $cancelled );
+
+		// Verify clearance: the cancel only removes pending actions and its id cannot tell "nothing
+		// matched" from "a cancel threw", so confirm none remains. A running action (counted here, not
+		// cancellable above) surfaces as a Failure, self-correcting on an idempotent retry.
+		if ( \as_has_scheduled_action( $hook, $args, $group ) ) {
+			$message = 'Action Scheduler did not clear the scheduled action.';
+			$this->logger?->error( $message, array( 'hook' => $hook ) );
+
+			return Failure::from(
+				new SchedulingError( SchedulingErrorReason::ScheduleFailed, $message, array( 'hook' => $hook ) ),
+			);
+		}
+
 		return Success::from( true );
 	}
 

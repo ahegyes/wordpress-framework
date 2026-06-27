@@ -54,12 +54,12 @@ interface SchedulerBackendInterface {
 	public function schedule_single( string $hook, int $timestamp, array $args = array(), string $group = '' ): AbstractResult;
 
 	/**
-	 * Cancels a scheduled action matching the hook, args, and group.
+	 * Cancels every scheduled action matching the hook, args, and group.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string      $hook  Hook whose scheduled action to cancel.
+	 * @param   string      $hook  Hook whose scheduled actions to cancel.
 	 * @param   list<mixed> $args  Arguments the action was scheduled with.
 	 * @param   string      $group Backend grouping label the action was scheduled under.
 	 *

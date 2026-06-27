@@ -228,6 +228,19 @@ final class WPCronBackendTest extends TestCase {
 		self::assertTrue( \wp_reschedule_event( $timestamp, 'dws_every_300s', self::HOOK, array(), true ) );
 	}
 
+	public function test_unschedule_with_empty_args_clears_only_the_empty_args_event(): void {
+		$backend = $this->backend();
+		self::assertInstanceOf( Success::class, $backend->schedule_single( self::HOOK, \time() + 3600 ) );
+		self::assertInstanceOf( Success::class, $backend->schedule_single( self::HOOK, \time() + 3600, array( 'a' ) ) );
+
+		// Both backends share one exact-match scope: empty args clears the no-args event only, not
+		// every event for the hook.
+		self::assertInstanceOf( Success::class, $backend->unschedule( self::HOOK ) );
+
+		self::assertFalse( $backend->is_scheduled( self::HOOK ) );
+		self::assertTrue( $backend->is_scheduled( self::HOOK, array( 'a' ) ) );
+	}
+
 	private function backend(): WPCronBackend {
 		$backend          = new WPCronBackend();
 		$this->backends[] = $backend;

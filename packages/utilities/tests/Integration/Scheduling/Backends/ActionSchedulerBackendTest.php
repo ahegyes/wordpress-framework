@@ -96,16 +96,73 @@ final class ActionSchedulerBackendTest extends TestCase {
 		self::assertSame( 2, $this->count_pending( self::HOOK, self::GROUP ) );
 	}
 
+	public function test_unschedule_with_empty_args_clears_only_the_empty_args_action(): void {
+		$backend = new ActionSchedulerBackend();
+		(void) $backend->schedule_single( self::HOOK, \time() + 3600 );
+		(void) $backend->schedule_single( self::HOOK, \time() + 3600, array( 'a' ) );
+
+		// Empty args matches the no-args action exactly, consistent with schedule/is_scheduled — it does
+		// not wildcard to every action for the hook (which the broad cancel-by-hook fast path would do).
+		self::assertInstanceOf( Success::class, $backend->unschedule( self::HOOK ) );
+
+		self::assertFalse( $backend->is_scheduled( self::HOOK ) );
+		self::assertTrue( $backend->is_scheduled( self::HOOK, array( 'a' ) ) );
+	}
+
+	public function test_unschedule_clears_duplicate_actions_with_the_same_hook_args_group(): void {
+		// Two actions can share a hook+args+group when scheduled outside the backend's idempotency guard;
+		// unschedule must clear all of them, not just one.
+		\as_schedule_single_action( \time() + 3600, self::HOOK, array( 'x' ), self::GROUP );
+		\as_schedule_single_action( \time() + 3600, self::HOOK, array( 'x' ), self::GROUP );
+
+		self::assertInstanceOf( Success::class, ( new ActionSchedulerBackend() )->unschedule( self::HOOK, array( 'x' ), self::GROUP ) );
+
+		self::assertFalse( ( new ActionSchedulerBackend() )->is_scheduled( self::HOOK, array( 'x' ), self::GROUP ) );
+	}
+
+	public function test_unschedule_with_specific_args_cancels_only_the_matching_action(): void {
+		$backend = new ActionSchedulerBackend();
+		(void) $backend->schedule_single( self::HOOK, \time() + 3600, array( 'a' ), self::GROUP );
+		(void) $backend->schedule_single( self::HOOK, \time() + 3600, array( 'b' ), self::GROUP );
+
+		self::assertInstanceOf( Success::class, $backend->unschedule( self::HOOK, array( 'a' ), self::GROUP ) );
+
+		self::assertFalse( $backend->is_scheduled( self::HOOK, array( 'a' ), self::GROUP ) );
+		self::assertTrue( $backend->is_scheduled( self::HOOK, array( 'b' ), self::GROUP ) );
+	}
+
+	public function test_unschedule_reports_a_failure_when_a_matching_action_cannot_be_cleared(): void {
+		$backend = new ActionSchedulerBackend();
+		self::assertInstanceOf( Success::class, $backend->schedule_single( self::HOOK, \time() + 3600, array(), self::GROUP ) );
+
+		// Force the action to running: the cancel loop removes only pending actions, but the verify counts
+		// running ones too, so an action that cannot be cancelled surfaces as a Failure.
+		$id = \as_get_scheduled_actions(
+			array( 'hook' => self::HOOK, 'group' => self::GROUP, 'status' => \ActionScheduler_Store::STATUS_PENDING, 'per_page' => 1 ),
+			'ids',
+		)[0] ?? null;
+		self::assertNotNull( $id );
+		\ActionScheduler_Store::instance()->log_execution( (string) $id );
+
+		$result = ( new ActionSchedulerBackend() )->unschedule( self::HOOK, array(), self::GROUP );
+
+		self::assertInstanceOf( Failure::class, $result );
+		self::assertInstanceOf( SchedulingError::class, $result->error );
+		self::assertSame( SchedulingErrorReason::ScheduleFailed, $result->error->reason );
+	}
+
 	/**
-	 * Cancels every action for the test hook, regardless of args or group.
+	 * Deletes every action for the test hook, regardless of args, group, or status.
 	 *
-	 * Passing an empty group takes Action Scheduler's cancel_actions_by_hook() fast path,
-	 * which clears all args — unlike the hook+group form, which only matches empty args.
+	 * Cancel-by-hook reaps only pending actions; a test can leave an action in-progress, so every
+	 * action for the hook is deleted to keep the shared store isolated between tests.
 	 *
 	 * @return  void
 	 */
 	private function clear_hook(): void {
-		\as_unschedule_all_actions( self::HOOK );
+		foreach ( \as_get_scheduled_actions( array( 'hook' => self::HOOK, 'per_page' => -1 ), 'ids' ) as $id ) {
+			\ActionScheduler_Store::instance()->delete_action( (string) $id );
+		}
 	}
 
 	/**
