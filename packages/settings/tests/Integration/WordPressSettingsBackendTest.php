@@ -590,9 +590,10 @@ final class WordPressSettingsBackendTest extends TestCase {
 		\do_action( 'admin_init' );
 		\do_action( 'rest_api_init' );
 
+		// A REST write carries the whole section, as the schema requires every field.
 		$request = new \WP_REST_Request( 'PUT', '/wp/v2/settings' );
 		$request->set_body_params(
-			array( self::API_OPTION => array( 'site_name' => 'Via REST', 'count' => 7, 'tags' => array( 'b' ), 'color' => 'blue' ) ),
+			array( self::API_OPTION => array( 'site_name' => 'Via REST', 'enabled' => true, 'count' => 7, 'tags' => array( 'b' ), 'color' => 'blue' ) ),
 		);
 		$response = \rest_do_request( $request );
 
@@ -604,6 +605,30 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertSame( 7, $stored['count'] );
 		self::assertSame( array( 'b' ), $stored['tags'] );
 		self::assertSame( 'blue', $stored['color'] );
+	}
+
+	public function test_a_rest_write_replaces_the_whole_section(): void {
+		$this->register( $this->rest_page() );
+		\do_action( 'admin_init' );
+		\do_action( 'rest_api_init' );
+
+		$this->form_save(
+			self::API_OPTION,
+			array( 'site_name' => 'Acme', 'enabled' => '1', 'count' => '42', 'tags' => array( 'a' ), 'color' => 'red' ),
+		);
+
+		// The settings endpoint replaces an option on write, so a REST write carrying only site_name replaces
+		// the whole section — the omitted fields are cleared to their empties, the same as a form save. A REST
+		// client performs read-modify-write and sends the complete section.
+		$request = new \WP_REST_Request( 'PUT', '/wp/v2/settings' );
+		$request->set_body_params( array( self::API_OPTION => array( 'site_name' => 'Renamed' ) ) );
+		$response = \rest_do_request( $request );
+
+		self::assertSame( 200, $response->get_status() );
+		$stored = \get_option( self::API_OPTION );
+		self::assertSame( 'Renamed', $stored['site_name'] );
+		self::assertFalse( $stored['enabled'] );
+		self::assertSame( array(), $stored['tags'] );
 	}
 
 	public function test_a_section_mixing_opted_in_and_opted_out_fields_is_rejected(): void {

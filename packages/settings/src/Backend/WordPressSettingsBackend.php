@@ -486,8 +486,8 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * user holding only the page capability cannot change a more privileged field. A field whose submission
 	 * is rejected likewise keeps its stored value and reports the rejection, rather than overwriting a valid
 	 * setting with an empty one. The whole section is processed each time, so a field the submission omits is
-	 * cleared to its empty — both the form (which posts the whole section) and a REST write replace the row,
-	 * so a REST client sends the complete section object rather than a single changed field.
+	 * cleared to its empty: both the form (which posts the whole section) and a REST write replace the row,
+	 * matching the settings endpoint's replace-on-write semantics, so a REST client sends the complete section.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
