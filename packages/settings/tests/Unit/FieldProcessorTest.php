@@ -325,6 +325,36 @@ final class FieldProcessorTest extends TestCase {
 		self::assertFalse( $result );
 	}
 
+	public function test_a_type_sanitizer_applies_when_the_field_has_no_sanitizer(): void {
+		$processor = new FieldProcessor(
+			type_sanitizers: array( 'text' => static fn ( mixed $value ): string => \strtoupper( (string) $value ) ),
+		);
+
+		self::assertSame( 'ADA', $processor->process( $this->field( 'name', 'text' ), array( 'name' => 'ada' ) ) );
+	}
+
+	public function test_a_field_sanitizer_takes_precedence_over_the_type_sanitizer(): void {
+		$processor = new FieldProcessor(
+			type_sanitizers: array( 'text' => static fn ( mixed $value ): string => \strtoupper( (string) $value ) ),
+		);
+		$field     = new SettingsField(
+			id: 'name',
+			type: 'text',
+			label: 'N',
+			sanitize: static fn ( mixed $value ): string => \strtolower( (string) $value ),
+		);
+
+		self::assertSame( 'ada', $processor->process( $field, array( 'name' => 'ADA' ) ) );
+	}
+
+	public function test_a_type_without_a_registered_sanitizer_passes_the_value_through(): void {
+		$processor = new FieldProcessor(
+			type_sanitizers: array( 'text' => static fn ( mixed $value ): string => \strtoupper( (string) $value ) ),
+		);
+
+		self::assertSame( '42', $processor->process( $this->field( 'qty', 'number' ), array( 'qty' => '42' ) ) );
+	}
+
 	private function field( string $id, string $type ): SettingsField {
 		return new SettingsField( id: $id, type: $type, label: $id );
 	}

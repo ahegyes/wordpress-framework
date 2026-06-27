@@ -12,8 +12,9 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
  * Pure and WordPress-free. Resolves the field type against the taxonomy
  * (rejecting an unknown type), coerces an absent submission to the type's empty
  * value (an empty array for a multi-value field, otherwise false — never null),
- * and for a present value applies the field's sanitizer, gates a choice value
- * against its resolved option set, then applies the field's own validator; a
+ * and for a present value applies the field's sanitizer (or the type's default
+ * sanitizer when the field declares none), gates a choice value against its
+ * resolved option set, then applies the field's own validator; a
  * value any step rejects falls back to the empty value. A type outside the
  * taxonomy but present in the injected custom-type registry is processed as a
  * plain scalar through the field's own sanitize/validate, falling back to the
@@ -32,12 +33,14 @@ final class FieldProcessor {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   OptionsResolver                $resolver     Resolver for choice fields' option sets.
-	 * @param   array<string, CustomFieldType> $custom_types Registry of types outside the taxonomy whose submissions are accepted, keyed by type token.
+	 * @param   OptionsResolver                $resolver        Resolver for choice fields' option sets.
+	 * @param   array<string, CustomFieldType> $custom_types    Registry of types outside the taxonomy whose submissions are accepted, keyed by type token.
+	 * @param   array<string, \Closure>        $type_sanitizers Default sanitizer per built-in type token, applied when a field declares no sanitizer of its own.
 	 */
 	public function __construct(
 		protected OptionsResolver $resolver = new OptionsResolver(),
 		protected array $custom_types = array(),
+		protected array $type_sanitizers = array(),
 	) {}
 
 	// endregion
@@ -81,8 +84,9 @@ final class FieldProcessor {
 			return $empty;
 		}
 
-		if ( null !== $field->sanitize ) {
-			$value = ( $field->sanitize )( $value );
+		$sanitize = $field->sanitize ?? ( $this->type_sanitizers[ $field->type ] ?? null );
+		if ( null !== $sanitize ) {
+			$value = $sanitize( $value );
 		}
 
 		if ( FieldType::Select === $type || FieldType::Radio === $type ) {

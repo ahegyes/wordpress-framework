@@ -432,6 +432,38 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertSame( 1, $reads[ self::ADVANCED_OPTION ] );
 	}
 
+	public function test_a_semantic_field_type_is_sanitized_on_save_without_a_field_sanitizer(): void {
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			sections: array(
+				new SettingsSection(
+					'general',
+					'General',
+					array(
+						new SettingsField( id: 'site_name', type: 'text', label: 'Site Name' ),
+						new SettingsField( id: 'contact', type: 'email', label: 'Contact' ),
+					),
+				),
+			),
+		);
+		$this->register( $page );
+		\do_action( 'admin_init' );
+
+		$this->form_save(
+			self::GENERAL_OPTION,
+			array( 'site_name' => '  Acme <b>Co</b>  ', 'contact' => ' john@example.com ' ),
+		);
+
+		$stored = \get_option( self::GENERAL_OPTION );
+		// The text field runs through sanitize_text_field and the email field through sanitize_email, the
+		// per-type defaults the backend supplies, though neither field declares a sanitizer of its own.
+		self::assertSame( 'Acme Co', $stored['site_name'] );
+		self::assertSame( 'john@example.com', $stored['contact'] );
+	}
+
 	private function register( SettingsPage $page ): WordPressSettingsBackend {
 		$backend = new WordPressSettingsBackend();
 		$backend->register_page( $page );

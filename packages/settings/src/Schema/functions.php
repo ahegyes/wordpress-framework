@@ -114,3 +114,24 @@ function assert_unique_section_and_field_ids( SettingsPage $page ): void {
 		}
 	}
 }
+
+/**
+ * The default sanitizer per built-in field type, each matching the WordPress sanitizer for the type's meaning.
+ *
+ * Applied by a processor when a field declares no sanitizer of its own, so a built-in semantic field
+ * (email, url, number, text, textarea) persists a value cleaned to its type rather than the raw submission.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @return  array<string, \Closure>
+ */
+function wordpress_field_type_sanitizers(): array {
+	return array(
+		FieldType::Text->value     => static fn ( mixed $value ): string => \sanitize_text_field( (string) $value ),
+		FieldType::Textarea->value => static fn ( mixed $value ): string => \sanitize_textarea_field( (string) $value ),
+		FieldType::Email->value    => static fn ( mixed $value ): string => \sanitize_email( (string) $value ),
+		FieldType::Url->value      => static fn ( mixed $value ): string => \esc_url_raw( (string) $value ),
+		FieldType::Number->value   => static fn ( mixed $value ): int|float|string => \is_numeric( $value ) ? $value + 0 : '',
+	);
+}

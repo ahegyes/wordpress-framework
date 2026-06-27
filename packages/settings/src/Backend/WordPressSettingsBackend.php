@@ -15,6 +15,7 @@ use Psr\Log\LoggerInterface;
 
 use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
+use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 /**
  * WordPress options-backed settings backend for a single page.
@@ -80,6 +81,16 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 */
 	protected int $writing = 0;
 
+	/**
+	 * Processor that sanitizes and validates submitted values.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     FieldProcessor
+	 */
+	protected FieldProcessor $processor;
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -92,13 +103,15 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @param   ?LoggerInterface $logger    Logger for late-registration diagnostics; null silences them.
 	 * @param   FieldRenderer    $renderer  Renderer for the page's field controls.
-	 * @param   FieldProcessor   $processor Processor for sanitizing submitted values.
+	 * @param   ?FieldProcessor  $processor Processor for submitted values; null applies one carrying the per-type default sanitizers.
 	 */
 	public function __construct(
 		protected ?LoggerInterface $logger = null,
 		protected FieldRenderer $renderer = new FieldRenderer(),
-		protected FieldProcessor $processor = new FieldProcessor(),
-	) {}
+		?FieldProcessor $processor = null,
+	) {
+		$this->processor = $processor ?? new FieldProcessor( type_sanitizers: wordpress_field_type_sanitizers() );
+	}
 
 	// endregion
 
