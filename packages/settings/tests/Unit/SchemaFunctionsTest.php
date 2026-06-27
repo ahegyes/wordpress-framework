@@ -2,17 +2,30 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
+use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
 use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
 use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
 
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
+#[UsesClass( SettingsField::class )]
+#[UsesClass( SettingsSection::class )]
+#[UsesClass( SettingsPage::class )]
+#[UsesClass( DuplicateSettingsSectionException::class )]
+#[UsesClass( DuplicateSettingsFieldException::class )]
 final class SchemaFunctionsTest extends TestCase {
 	public function test_keeps_well_formed_non_event_attribute_names(): void {
 		$kept = filter_field_attributes(
@@ -158,6 +171,75 @@ final class SchemaFunctionsTest extends TestCase {
 			'null'               => array( null, false ),
 			'array'              => array( array( 'yes' ), false ),
 			'int 2'              => array( 2, false ),
+		);
+	}
+
+	public function test_assert_unique_ids_accepts_unique_section_and_field_ids(): void {
+		$this->expectNotToPerformAssertions();
+
+		assert_unique_section_and_field_ids(
+			new SettingsPage(
+				slug: 'dws-test',
+				page_title: 'Test',
+				menu_title: 'Test',
+				capability: 'manage_options',
+				sections: array(
+					new SettingsSection( 'general', 'General', array( new SettingsField( id: 'a', type: 'text', label: 'A' ) ) ),
+					new SettingsSection( 'advanced', 'Advanced', array( new SettingsField( id: 'b', type: 'text', label: 'B' ) ) ),
+				),
+			),
+		);
+	}
+
+	public function test_assert_unique_ids_rejects_a_duplicate_section_id(): void {
+		$this->expectException( DuplicateSettingsSectionException::class );
+
+		assert_unique_section_and_field_ids(
+			new SettingsPage(
+				slug: 'dws-test',
+				page_title: 'Test',
+				menu_title: 'Test',
+				capability: 'manage_options',
+				sections: array(
+					new SettingsSection( 'general', 'General', array( new SettingsField( id: 'a', type: 'text', label: 'A' ) ) ),
+					new SettingsSection( 'general', 'Again', array( new SettingsField( id: 'b', type: 'text', label: 'B' ) ) ),
+				),
+			),
+		);
+	}
+
+	public function test_assert_unique_ids_rejects_a_duplicate_field_id_across_sections(): void {
+		$this->expectException( DuplicateSettingsFieldException::class );
+
+		assert_unique_section_and_field_ids(
+			new SettingsPage(
+				slug: 'dws-test',
+				page_title: 'Test',
+				menu_title: 'Test',
+				capability: 'manage_options',
+				sections: array(
+					new SettingsSection( 'general', 'General', array( new SettingsField( id: 'dup', type: 'text', label: 'A' ) ) ),
+					new SettingsSection( 'advanced', 'Advanced', array( new SettingsField( id: 'dup', type: 'text', label: 'B' ) ) ),
+				),
+			),
+		);
+	}
+
+	public function test_assert_unique_ids_reports_a_duplicate_section_before_a_duplicate_field(): void {
+		// A page carrying both a repeated section id and a repeated field id reports the section first.
+		$this->expectException( DuplicateSettingsSectionException::class );
+
+		assert_unique_section_and_field_ids(
+			new SettingsPage(
+				slug: 'dws-test',
+				page_title: 'Test',
+				menu_title: 'Test',
+				capability: 'manage_options',
+				sections: array(
+					new SettingsSection( 'general', 'General', array( new SettingsField( id: 'dup', type: 'text', label: 'A' ) ) ),
+					new SettingsSection( 'general', 'Again', array( new SettingsField( id: 'dup', type: 'text', label: 'B' ) ) ),
+				),
+			),
 		);
 	}
 }

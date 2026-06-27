@@ -13,6 +13,7 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
 use DeepWebSolutions\Framework\Storage\OptionsStore;
 use Psr\Log\LoggerInterface;
 
+use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
 
 /**
@@ -190,20 +191,11 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @return  array<string, string>
 	 */
 	protected function map_fields( SettingsPage $page ): array {
-		$map      = array();
-		$sections = array();
-		foreach ( $page->sections as $section ) {
-			if ( \array_key_exists( $section->id, $sections ) ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-				throw new DuplicateSettingsSectionException( "Duplicate settings section id on page: '$section->id'" );
-			}
-			$sections[ $section->id ] = true;
+		assert_unique_section_and_field_ids( $page );
 
+		$map = array();
+		foreach ( $page->sections as $section ) {
 			foreach ( $section->fields as $field ) {
-				if ( \array_key_exists( $field->id, $map ) ) {
-					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-					throw new DuplicateSettingsFieldException( "Duplicate settings field id on page: '$field->id'" );
-				}
 				$map[ $field->id ] = $section->id;
 			}
 		}
