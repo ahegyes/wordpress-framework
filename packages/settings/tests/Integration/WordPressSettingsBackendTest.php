@@ -349,7 +349,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertSame( '42', \get_option( self::GENERAL_OPTION )['home_page'] ?? null );
 	}
 
-	public function test_a_custom_field_type_falls_back_to_its_default_when_validation_rejects(): void {
+	public function test_a_custom_field_type_rejection_preserves_the_prior_value(): void {
 		$page = new SettingsPage(
 			slug: self::SLUG,
 			page_title: 'DWS Test',
@@ -373,10 +373,12 @@ final class WordPressSettingsBackendTest extends TestCase {
 		);
 		$backend = $this->register_with_custom( $page );
 		\do_action( 'admin_init' );
+		$backend->set( 'home_page', '42' );
 
 		$this->form_save( self::GENERAL_OPTION, array( 'home_page' => '999' ) );
 
-		self::assertSame( '7', $backend->get( 'home_page' ) );
+		// A rejected custom-type submission preserves the prior value rather than overwriting it with the default.
+		self::assertSame( '42', $backend->get( 'home_page' ) );
 	}
 
 	public function test_a_section_autoloads_its_option_only_when_a_field_opts_in(): void {
@@ -471,6 +473,40 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertSame( 'john@example.com', $stored['contact'] );
 		self::assertSame( '', $stored['website'] );
 		self::assertSame( 'Plain text', $stored['notes'] );
+	}
+
+	public function test_a_rejected_submission_preserves_the_prior_value_and_registers_an_error(): void {
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			sections: array(
+				new SettingsSection(
+					'general',
+					'General',
+					array(
+						new SettingsField(
+							id: 'site_name',
+							type: 'text',
+							label: 'Site Name',
+							validate: static fn ( mixed $value ): bool => 'valid' === $value,
+						),
+					),
+				),
+			),
+		);
+		$backend = $this->register( $page );
+		\do_action( 'admin_init' );
+		$backend->set( 'site_name', 'valid' );
+
+		$this->form_save( self::GENERAL_OPTION, array( 'site_name' => 'invalid' ) );
+
+		// The invalid submission is rejected: the stored value is preserved, not overwritten with an empty,
+		// and the rejection is reported against the field.
+		self::assertSame( 'valid', $backend->get( 'site_name' ) );
+		self::assertContains( 'site_name', \array_column( \get_settings_errors( self::GENERAL_OPTION ), 'code' ) );
 	}
 
 	private function register( SettingsPage $page ): WordPressSettingsBackend {

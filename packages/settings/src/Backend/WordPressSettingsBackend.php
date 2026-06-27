@@ -10,6 +10,7 @@ use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
+use DeepWebSolutions\Framework\Shared\Result\Failure;
 use DeepWebSolutions\Framework\Storage\OptionsStore;
 use Psr\Log\LoggerInterface;
 
@@ -385,7 +386,9 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * set() or delete() this backend performs. Those are flagged and pass through untouched, so only a
 	 * write this backend did not initiate — the options.php form save — is processed and coerced. On a
 	 * form save, a field whose capability the current user lacks keeps its stored value, so a user
-	 * holding only the page capability cannot change a more privileged field.
+	 * holding only the page capability cannot change a more privileged field. A field whose submission
+	 * is rejected likewise keeps its stored value and reports the rejection, rather than overwriting a
+	 * valid setting with an empty one.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -413,7 +416,30 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 				}
 				continue;
 			}
-			$output[ $field->id ] = $this->processor->process( $field, $values );
+
+			$result = $this->processor->process_or_reject( $field, $values );
+			if ( $result instanceof Failure ) {
+				// A rejected submission keeps the field's prior value, never overwriting it with an empty.
+				if ( \array_key_exists( $field->id, $existing ) ) {
+					$output[ $field->id ] = $existing[ $field->id ];
+				}
+				// add_settings_error lives in the admin includes; surface the rejection where the settings
+				// page renders it, but never fatal a save that runs outside the admin.
+				if ( \function_exists( 'add_settings_error' ) ) {
+					\add_settings_error(
+						$option_name,
+						$field->id,
+						\sprintf(
+							/* translators: %s: settings field label. */
+							\esc_html__( 'The value for “%s” was invalid and was not saved; the previous value was kept.', 'wp-framework-settings' ),
+							\esc_html( $field->label ),
+						),
+					);
+				}
+				continue;
+			}
+
+			$output[ $field->id ] = $result->value;
 		}
 
 		return $output;

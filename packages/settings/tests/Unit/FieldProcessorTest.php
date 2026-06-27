@@ -2,11 +2,15 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
+use DeepWebSolutions\Framework\Settings\Schema\Errors\FieldProcessingError;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
+use DeepWebSolutions\Framework\Settings\Schema\FieldProcessingErrorReason;
 use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\OptionsResolver;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Shared\Result\Failure;
+use DeepWebSolutions\Framework\Shared\Result\Success;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
@@ -15,6 +19,10 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( SettingsField::class )]
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( CustomFieldType::class )]
+#[UsesClass( Success::class )]
+#[UsesClass( Failure::class )]
+#[UsesClass( FieldProcessingError::class )]
+#[UsesClass( FieldProcessingErrorReason::class )]
 final class FieldProcessorTest extends TestCase {
 	public function test_an_unknown_field_type_throws(): void {
 		$this->expectException( UnknownFieldTypeException::class );
@@ -353,6 +361,100 @@ final class FieldProcessorTest extends TestCase {
 		);
 
 		self::assertSame( '42', $processor->process( $this->field( 'qty', 'number' ), array( 'qty' => '42' ) ) );
+	}
+
+	public function test_process_or_reject_returns_success_carrying_the_empty_for_an_absent_field(): void {
+		$result = ( new FieldProcessor() )->process_or_reject( $this->field( 'name', 'text' ), array() );
+
+		self::assertInstanceOf( Success::class, $result );
+		self::assertFalse( $result->value );
+	}
+
+	public function test_process_or_reject_returns_success_carrying_a_valid_value(): void {
+		$result = ( new FieldProcessor() )->process_or_reject( $this->field( 'name', 'text' ), array( 'name' => 'Ada' ) );
+
+		self::assertInstanceOf( Success::class, $result );
+		self::assertSame( 'Ada', $result->value );
+	}
+
+	public function test_process_or_reject_fails_for_a_non_scalar_submission(): void {
+		$result = ( new FieldProcessor() )->process_or_reject( $this->field( 'name', 'text' ), array( 'name' => array( 'x' ) ) );
+
+		self::assertInstanceOf( Failure::class, $result );
+		self::assertInstanceOf( FieldProcessingError::class, $result->error );
+		self::assertSame( 'name', $result->error->field_id );
+		self::assertSame( FieldProcessingErrorReason::UnexpectedShape, $result->error->reason );
+	}
+
+	public function test_process_or_reject_fails_for_a_value_outside_the_options(): void {
+		$field  = new SettingsField( id: 'color', type: 'select', label: 'C', options: array( 'red' => 'Red' ) );
+		$result = ( new FieldProcessor() )->process_or_reject( $field, array( 'color' => 'green' ) );
+
+		self::assertInstanceOf( Failure::class, $result );
+		self::assertInstanceOf( FieldProcessingError::class, $result->error );
+		self::assertSame( 'color', $result->error->field_id );
+		self::assertSame( FieldProcessingErrorReason::NotAnOption, $result->error->reason );
+	}
+
+	public function test_process_or_reject_fails_for_a_value_that_fails_validation(): void {
+		$field  = new SettingsField( id: 'name', type: 'text', label: 'N', validate: static fn ( mixed $value ): bool => false );
+		$result = ( new FieldProcessor() )->process_or_reject( $field, array( 'name' => 'anything' ) );
+
+		self::assertInstanceOf( Failure::class, $result );
+		self::assertInstanceOf( FieldProcessingError::class, $result->error );
+		self::assertSame( FieldProcessingErrorReason::FailedValidation, $result->error->reason );
+	}
+
+	public function test_process_or_reject_filters_a_multiselect_to_valid_options_as_a_success(): void {
+		$field  = new SettingsField( id: 'tags', type: 'multiselect', label: 'T', options: array( 'a' => 'A', 'b' => 'B' ) );
+		$result = ( new FieldProcessor() )->process_or_reject( $field, array( 'tags' => array( 'a', 'x', 'b' ) ) );
+
+		self::assertInstanceOf( Success::class, $result );
+		self::assertSame( array( 'a', 'b' ), $result->value );
+	}
+
+	public function test_process_or_reject_returns_success_for_a_custom_type(): void {
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', default_value: '#000' );
+
+		$result = $processor->process_or_reject( $field, array() );
+
+		self::assertInstanceOf( Success::class, $result );
+		self::assertSame( '#000', $result->value );
+	}
+
+	public function test_process_or_reject_fails_for_a_custom_type_that_fails_validation(): void {
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+		$field     = new SettingsField(
+			id: 'shade',
+			type: 'color_picker',
+			label: 'Shade',
+			default_value: '#000',
+			validate: static fn ( mixed $value ): bool => false,
+		);
+
+		$result = $processor->process_or_reject( $field, array( 'shade' => '#abc' ) );
+
+		self::assertInstanceOf( Failure::class, $result );
+		self::assertInstanceOf( FieldProcessingError::class, $result->error );
+		self::assertSame( FieldProcessingErrorReason::FailedValidation, $result->error->reason );
+	}
+
+	public function test_process_or_reject_fails_for_a_non_scalar_custom_type_submission(): void {
+		$processor = new FieldProcessor(
+			custom_types: array( 'color_picker' => $this->custom_type( 'color_picker' ) ),
+		);
+		$field     = new SettingsField( id: 'shade', type: 'color_picker', label: 'Shade', default_value: '#000' );
+
+		$result = $processor->process_or_reject( $field, array( 'shade' => array( 'x' ) ) );
+
+		self::assertInstanceOf( Failure::class, $result );
+		self::assertInstanceOf( FieldProcessingError::class, $result->error );
+		self::assertSame( FieldProcessingErrorReason::UnexpectedShape, $result->error->reason );
 	}
 
 	private function field( string $id, string $type ): SettingsField {

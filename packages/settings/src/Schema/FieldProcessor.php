@@ -2,9 +2,14 @@
 
 namespace DeepWebSolutions\Framework\Settings\Schema;
 
+use DeepWebSolutions\Framework\Settings\Schema\Errors\FieldProcessingError;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
+use DeepWebSolutions\Framework\Settings\Schema\FieldProcessingErrorReason;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Shared\Result\AbstractResult;
+use DeepWebSolutions\Framework\Shared\Result\Failure;
+use DeepWebSolutions\Framework\Shared\Result\Success;
 
 /**
  * Turns a field's raw submission into the value to persist.
@@ -14,8 +19,10 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
  * value (an empty array for a multi-value field, otherwise false — never null),
  * and for a present value applies the field's sanitizer (or the type's default
  * sanitizer when the field declares none), gates a choice value against its
- * resolved option set, then applies the field's own validator; a
- * value any step rejects falls back to the empty value. A type outside the
+ * resolved option set, then applies the field's own validator. {@see self::process_or_reject()}
+ * returns a {@see Success} carrying the value, or a {@see Failure} naming the field when a present
+ * value fails one of those gates; {@see self::process()} folds that rejection back to the type's
+ * empty value. A type outside the
  * taxonomy but present in the injected custom-type registry is processed as a
  * plain scalar through the field's own sanitize/validate, falling back to the
  * field's default (a non-scalar submission is coerced to the default before the
@@ -48,7 +55,10 @@ final class FieldProcessor {
 	// region METHODS
 
 	/**
-	 * Processes a field's submitted value into the value to persist.
+	 * Processes a field's submitted value into the value to persist, folding a rejection to the empty value.
+	 *
+	 * Convenience over {@see self::process_or_reject()} for callers that do not distinguish a rejected
+	 * submission from a valid-empty one; a rejected value becomes the field type's empty value.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -61,27 +71,50 @@ final class FieldProcessor {
 	 * @return  mixed
 	 */
 	public function process( SettingsField $field, array $input ): mixed {
+		return $this->process_or_reject( $field, $input )->match(
+			static fn ( mixed $value ): mixed => $value,
+			fn ( FieldProcessingError $error ): mixed => $this->fallback_value( $field ), // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable -- the rejection cause is folded to a fallback value.
+		);
+	}
+
+	/**
+	 * Processes a field's submitted value, returning the value to persist or the cause of its rejection.
+	 *
+	 * An absent submission is a success carrying the type's empty value (an unchecked checkbox is false);
+	 * a present value that fails the shape, option, or validation gate is a failure naming the field, so a
+	 * caller can preserve the field's prior value instead of overwriting it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsField        $field Field whose value is processed.
+	 * @param   array<string, mixed> $input Raw submitted values keyed by field id; a missing key means the field was not submitted.
+	 *
+	 * @throws  UnknownFieldTypeException If the field declares a type outside both the taxonomy and the custom-type registry.
+	 *
+	 * @return  Success<mixed>|Failure<FieldProcessingError> The value to persist, or the cause of its rejection.
+	 */
+	#[\NoDiscard( 'a rejected field submission must be handled, not dropped' )]
+	public function process_or_reject( SettingsField $field, array $input ): AbstractResult {
 		$type = FieldType::tryFrom( $field->type );
 		if ( null === $type ) {
 			if ( isset( $this->custom_types[ $field->type ] ) ) {
-				return $this->process_custom( $field, $input );
+				return $this->process_custom_or_reject( $field, $input );
 			}
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new UnknownFieldTypeException( "Unknown settings field type: '$field->type'" );
 		}
 
-		$empty = FieldType::Multiselect === $type ? array() : false;
-
 		if ( ! \array_key_exists( $field->id, $input ) ) {
-			return $empty;
+			return Success::from( $this->empty_value( $field ) );
 		}
 
 		$value = $input[ $field->id ];
 
 		// Every non-multiselect field expects a scalar submission; a tampered array would fatal a scalar
-		// sanitizer (e.g. trim) or persist as the wrong type, so coerce a non-scalar to the empty value.
+		// sanitizer (e.g. trim) or persist as the wrong type, so a non-scalar is rejected.
 		if ( FieldType::Multiselect !== $type && ! \is_scalar( $value ) ) {
-			return $empty;
+			return Failure::from( new FieldProcessingError( $field->id, FieldProcessingErrorReason::UnexpectedShape ) );
 		}
 
 		$sanitize = $field->sanitize ?? ( $this->type_sanitizers[ $field->type ] ?? null );
@@ -91,17 +124,17 @@ final class FieldProcessor {
 
 		if ( FieldType::Select === $type || FieldType::Radio === $type ) {
 			if ( ! $this->is_option( $value, $field ) ) {
-				return $empty;
+				return Failure::from( new FieldProcessingError( $field->id, FieldProcessingErrorReason::NotAnOption ) );
 			}
 		} elseif ( FieldType::Multiselect === $type ) {
 			$value = $this->filter_to_options( $value, $field );
 		}
 
 		if ( null !== $field->validate && ! ( $field->validate )( $value ) ) {
-			return $empty;
+			return Failure::from( new FieldProcessingError( $field->id, FieldProcessingErrorReason::FailedValidation ) );
 		}
 
-		return $value ?? $empty;
+		return Success::from( $value ?? $this->empty_value( $field ) );
 	}
 
 	// endregion
@@ -109,8 +142,10 @@ final class FieldProcessor {
 	// region HELPERS
 
 	/**
-	 * Processes a custom-typed field as a plain scalar: an absent or non-scalar submission yields the field's
-	 * default, a present scalar runs the field's own sanitize then validate, falling back to the default when validation rejects.
+	 * Processes a custom-typed field as a plain scalar, returning the value to persist or its rejection.
+	 *
+	 * An absent submission is a success carrying the field's default; a present non-scalar, or a value the
+	 * field's validator refuses, is a failure, so a backend can preserve the field's prior value.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -118,45 +153,29 @@ final class FieldProcessor {
 	 * @param   SettingsField        $field Field whose value is processed.
 	 * @param   array<string, mixed> $input Raw submitted values keyed by field id.
 	 *
-	 * @return  mixed
+	 * @return  Success<mixed>|Failure<FieldProcessingError> The value to persist, or the cause of its rejection.
 	 */
-	protected function process_custom( SettingsField $field, array $input ): mixed {
+	protected function process_custom_or_reject( SettingsField $field, array $input ): AbstractResult {
 		if ( ! \array_key_exists( $field->id, $input ) ) {
-			return $field->default_value;
+			return Success::from( $field->default_value );
 		}
 
 		$value = $input[ $field->id ];
 
 		// A custom type is treated as scalar: a tampered array submission would fatal a scalar sanitizer
-		// (e.g. trim), so coerce a non-scalar to the field's default — mirroring the built-in scalar guard.
+		// (e.g. trim), so a non-scalar is rejected — mirroring the built-in scalar guard.
 		if ( ! \is_scalar( $value ) ) {
-			return $field->default_value;
+			return Failure::from( new FieldProcessingError( $field->id, FieldProcessingErrorReason::UnexpectedShape ) );
 		}
 
-		return $this->sanitize_and_validate( $field, $value, $field->default_value );
-	}
-
-	/**
-	 * Runs a field's sanitize then validate, returning the fallback when validation rejects the value.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   SettingsField $field    Field whose closures to apply.
-	 * @param   mixed         $value    Value to sanitize and validate.
-	 * @param   mixed         $rejected Value returned when validation rejects.
-	 *
-	 * @return  mixed
-	 */
-	protected function sanitize_and_validate( SettingsField $field, mixed $value, mixed $rejected ): mixed {
 		if ( null !== $field->sanitize ) {
 			$value = ( $field->sanitize )( $value );
 		}
 		if ( null !== $field->validate && ! ( $field->validate )( $value ) ) {
-			return $rejected;
+			return Failure::from( new FieldProcessingError( $field->id, FieldProcessingErrorReason::FailedValidation ) );
 		}
 
-		return $value;
+		return Success::from( $value );
 	}
 
 	/**
@@ -198,6 +217,35 @@ final class FieldProcessor {
 		}
 
 		return $valid;
+	}
+
+	/**
+	 * The empty value for a field's type: an empty array for a multi-value field, otherwise false — never null.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsField $field Field whose type determines the empty value.
+	 *
+	 * @return  array<array-key, mixed>|false
+	 */
+	protected function empty_value( SettingsField $field ): array|false {
+		return FieldType::Multiselect->value === $field->type ? array() : false;
+	}
+
+	/**
+	 * The value {@see self::process()} folds a rejection to: a custom type's declared default, otherwise the
+	 * field type's empty value — preserving the pre-Result behavior for each.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsField $field Field whose rejection fallback to resolve.
+	 *
+	 * @return  mixed
+	 */
+	protected function fallback_value( SettingsField $field ): mixed {
+		return isset( $this->custom_types[ $field->type ] ) ? $field->default_value : $this->empty_value( $field );
 	}
 
 	// endregion
