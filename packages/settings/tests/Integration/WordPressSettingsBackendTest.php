@@ -379,6 +379,35 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertSame( '7', $backend->get( 'home_page' ) );
 	}
 
+	public function test_render_reads_each_section_option_once_regardless_of_field_count(): void {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$backend = $this->register( $this->page() );
+		\do_action( 'admin_menu' );
+		$backend->set( 'site_name', 'Acme' );
+		$backend->set( 'cache_ttl', 60 );
+
+		$reads = array( self::GENERAL_OPTION => 0, self::ADVANCED_OPTION => 0 );
+		foreach ( \array_keys( $reads ) as $option ) {
+			\add_filter(
+				"option_{$option}",
+				static function ( mixed $value ) use ( &$reads, $option ): mixed {
+					++$reads[ $option ];
+					return $value;
+				},
+			);
+		}
+
+		\ob_start();
+		\do_action( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		\ob_get_clean();
+
+		// The general section renders two editable fields; rendering must read its option once for the
+		// section, not once per field.
+		self::assertSame( 1, $reads[ self::GENERAL_OPTION ] );
+		self::assertSame( 1, $reads[ self::ADVANCED_OPTION ] );
+	}
+
 	private function register( SettingsPage $page ): WordPressSettingsBackend {
 		$backend = new WordPressSettingsBackend();
 		$backend->register_page( $page );

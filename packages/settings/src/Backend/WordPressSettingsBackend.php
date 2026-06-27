@@ -293,6 +293,8 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 
 		foreach ( $page->sections as $section ) {
 			$option_name = $page->slug . '-' . $section->id;
+			$stored      = \get_option( $option_name, array() );
+			$stored      = \is_array( $stored ) ? $stored : array();
 
 			echo '<h2>' . \esc_html( $section->title ) . '</h2>';
 			echo '<form action="options.php" method="post">';
@@ -303,7 +305,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 					continue;
 				}
 				echo '<tr><th scope="row">' . \esc_html( $field->label ) . '</th><td>';
-				$this->render_field( $option_name, $field );
+				$this->render_field( $option_name, $field, $stored );
 				echo '</td></tr>';
 			}
 			echo '</tbody></table>';
@@ -320,12 +322,12 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string        $option_name Section option the field persists into.
-	 * @param   SettingsField $field       Field to render.
+	 * @param   string               $option_name Section option the field persists into.
+	 * @param   SettingsField        $field       Field to render.
+	 * @param   array<string, mixed> $stored      Section option, read once by the caller.
 	 */
-	protected function render_field( string $option_name, SettingsField $field ): void {
-		$stored = \get_option( $option_name, array() );
-		$value  = \is_array( $stored ) && \array_key_exists( $field->id, $stored ) ? $stored[ $field->id ] : $field->default_value;
+	protected function render_field( string $option_name, SettingsField $field, array $stored ): void {
+		$value = \array_key_exists( $field->id, $stored ) ? $stored[ $field->id ] : $field->default_value;
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldRenderer returns markup already escaped at each interpolation point.
 		echo $this->renderer->render( $field, $value, $option_name . '[' . $field->id . ']' );
