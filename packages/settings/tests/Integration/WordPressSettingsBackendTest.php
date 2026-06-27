@@ -410,6 +410,32 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertArrayHasKey( self::ADVANCED_OPTION, $alloptions );
 	}
 
+	public function test_a_form_save_honors_the_section_autoload_policy(): void {
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'manage_options',
+			sections: array(
+				new SettingsSection( 'general', 'General', array( new SettingsField( id: 'plain', type: 'text', label: 'Plain' ) ) ),
+				new SettingsSection( 'advanced', 'Advanced', array( new SettingsField( id: 'hot', type: 'text', label: 'Hot', autoload: true ) ) ),
+			),
+		);
+		$this->register( $page );
+		\do_action( 'admin_init' );
+
+		// The options.php save path calls update_option without an autoload argument, so the policy must hold
+		// there too, not only on a programmatic set().
+		$this->form_save( self::GENERAL_OPTION, array( 'plain' => 'a' ) );
+		$this->form_save( self::ADVANCED_OPTION, array( 'hot' => 'b' ) );
+
+		\wp_cache_delete( 'alloptions', 'options' );
+		$alloptions = \wp_load_alloptions();
+
+		self::assertArrayNotHasKey( self::GENERAL_OPTION, $alloptions );
+		self::assertArrayHasKey( self::ADVANCED_OPTION, $alloptions );
+	}
+
 	public function test_render_reads_each_section_option_once_regardless_of_field_count(): void {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		require_once ABSPATH . 'wp-admin/includes/template.php';

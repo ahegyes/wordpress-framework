@@ -386,7 +386,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	}
 
 	/**
-	 * Registers one setting and capability filter per section. Hooked to admin_init.
+	 * Registers one setting, capability filter, and autoload-policy filter per section. Hooked to admin_init.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -397,6 +397,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 		foreach ( $page->sections as $section ) {
 			$option_name = $page->slug . '-' . $section->id;
 			$rest_schema = $this->section_rest_schemas[ $section->id ] ?? null;
+			$autoload    = $this->section_autoload[ $section->id ] ?? false;
 
 			$args = array(
 				// A REST-exposed section is an object keyed by field id; a plain section is an opaque map.
@@ -410,6 +411,15 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 
 			\register_setting( $option_name, $option_name, $args );
 			\add_filter( "option_page_capability_{$option_name}", fn () => $page->capability );
+
+			// The form save calls update_option with no autoload argument, so WP would resolve the option's
+			// autoload by size rather than the section policy; pin the policy so both write paths agree.
+			\add_filter(
+				'wp_default_autoload_value',
+				static fn ( ?bool $default, string $option ): ?bool => $option === $option_name ? $autoload : $default,
+				10,
+				2,
+			);
 		}
 	}
 
