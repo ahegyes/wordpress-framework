@@ -21,8 +21,8 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_cur
  *
  * Registers the page as an admin submenu and one grouped option per section via
  * the native Settings API, and persists each section's fields in that section's
- * own wp_options row (not autoloaded). Field ids are page-unique, so it routes
- * get/set/has/delete to the declaring section by id.
+ * own wp_options row. Field ids are page-unique, so it routes get/set/has/delete
+ * to the declaring section by id.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -49,6 +49,16 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @var     array<string, string>
 	 */
 	protected array $field_section = array();
+
+	/**
+	 * Map of section id to whether any of its fields opts into autoloading the section option.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     array<string, bool>
+	 */
+	protected array $section_autoload = array();
 
 	/**
 	 * Per-section option-store cache, keyed by section id.
@@ -105,8 +115,9 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 */
 	#[\Override]
 	public function register_page( SettingsPage $page ): void {
-		$this->page          = $page;
-		$this->field_section = $this->map_fields( $page );
+		$this->page             = $page;
+		$this->field_section    = $this->map_fields( $page );
+		$this->section_autoload = $this->map_section_autoload( $page );
 
 		if ( \did_action( 'admin_menu' ) > 0 ) {
 			$this->logger?->warning(
@@ -223,7 +234,36 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 
 		$section_id = $this->field_section[ $field_id ];
 
-		return $this->stores[ $section_id ] ??= new OptionsStore( $this->page->slug . '-' . $section_id, autoload: false );
+		return $this->stores[ $section_id ] ??= new OptionsStore(
+			$this->page->slug . '-' . $section_id,
+			autoload: $this->section_autoload[ $section_id ] ?? false,
+		);
+	}
+
+	/**
+	 * Builds the section-id to autoload-policy map: a section autoloads its option when any field opts in.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsPage $page Page whose sections to map.
+	 *
+	 * @return  array<string, bool>
+	 */
+	protected function map_section_autoload( SettingsPage $page ): array {
+		$map = array();
+		foreach ( $page->sections as $section ) {
+			$autoload = false;
+			foreach ( $section->fields as $field ) {
+				if ( $field->autoload ) {
+					$autoload = true;
+					break;
+				}
+			}
+			$map[ $section->id ] = $autoload;
+		}
+
+		return $map;
 	}
 
 	/**

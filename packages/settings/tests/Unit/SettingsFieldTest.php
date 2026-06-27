@@ -22,6 +22,7 @@ final class SettingsFieldTest extends TestCase {
 		self::assertNull( $field->validate );
 		self::assertNull( $field->capability );
 		self::assertFalse( $field->show_in_rest );
+		self::assertFalse( $field->autoload );
 		self::assertNull( $field->position );
 		self::assertSame( array(), $field->options );
 		self::assertSame( array(), $field->attributes );
@@ -40,6 +41,7 @@ final class SettingsFieldTest extends TestCase {
 			validate: 'is_string',
 			capability: 'manage_options',
 			show_in_rest: true,
+			autoload: true,
 			position: 5,
 			options: $options,
 			attributes: array( 'class' => 'widefat' ),
@@ -50,6 +52,7 @@ final class SettingsFieldTest extends TestCase {
 		self::assertSame( 'a', $field->default_value );
 		self::assertSame( 'manage_options', $field->capability );
 		self::assertTrue( $field->show_in_rest );
+		self::assertTrue( $field->autoload );
 		self::assertSame( 5, $field->position );
 		self::assertSame( $options, $field->options );
 		self::assertSame( array( 'class' => 'widefat' ), $field->attributes );

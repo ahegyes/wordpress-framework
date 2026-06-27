@@ -379,6 +379,30 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertSame( '7', $backend->get( 'home_page' ) );
 	}
 
+	public function test_a_section_autoloads_its_option_only_when_a_field_opts_in(): void {
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			sections: array(
+				new SettingsSection( 'general', 'General', array( new SettingsField( id: 'plain', type: 'text', label: 'Plain' ) ) ),
+				new SettingsSection( 'advanced', 'Advanced', array( new SettingsField( id: 'hot', type: 'text', label: 'Hot', autoload: true ) ) ),
+			),
+		);
+		$backend = $this->register( $page );
+
+		$backend->set( 'plain', 'a' );
+		$backend->set( 'hot', 'b' );
+
+		\wp_cache_delete( 'alloptions', 'options' );
+		$alloptions = \wp_load_alloptions();
+
+		// A field opting into autoload autoloads its whole section option; a section with no such field does not.
+		self::assertArrayNotHasKey( self::GENERAL_OPTION, $alloptions );
+		self::assertArrayHasKey( self::ADVANCED_OPTION, $alloptions );
+	}
+
 	public function test_render_reads_each_section_option_once_regardless_of_field_count(): void {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		require_once ABSPATH . 'wp-admin/includes/template.php';
