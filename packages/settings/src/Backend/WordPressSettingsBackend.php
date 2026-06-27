@@ -5,6 +5,7 @@ namespace DeepWebSolutions\Framework\Settings\Backend;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnsupportedRestExposureException;
 use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
@@ -16,6 +17,7 @@ use Psr\Log\LoggerInterface;
 
 use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
+use function DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 /**
@@ -31,6 +33,16 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
  */
 final class WordPressSettingsBackend implements SettingsBackendInterface {
 	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The capability the WordPress settings REST endpoint enforces for every read and write.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	protected const REST_CAPABILITY = 'manage_options';
 
 	/**
 	 * The registered page; null until register_page() runs.
@@ -61,6 +73,16 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @var     array<string, bool>
 	 */
 	protected array $section_autoload = array();
+
+	/**
+	 * Map of section id to the REST schema for its option, for each section whose fields all opt into REST.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     array<string, array<string, mixed>>
+	 */
+	protected array $section_rest_schemas = array();
 
 	/**
 	 * Per-section option-store cache, keyed by section id.
@@ -126,12 +148,14 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * @throws  DuplicateSettingsSectionException If two sections on the page share an id.
 	 * @throws  DuplicateSettingsFieldException If two fields on the page share an id.
+	 * @throws  UnsupportedRestExposureException If a section's REST exposure cannot be represented.
 	 */
 	#[\Override]
 	public function register_page( SettingsPage $page ): void {
-		$this->page             = $page;
-		$this->field_section    = $this->map_fields( $page );
-		$this->section_autoload = $this->map_section_autoload( $page );
+		$this->page                 = $page;
+		$this->field_section        = $this->map_fields( $page );
+		$this->section_autoload     = $this->map_section_autoload( $page );
+		$this->section_rest_schemas = $this->map_section_rest_schemas( $page );
 
 		if ( \did_action( 'admin_menu' ) > 0 ) {
 			$this->logger?->warning(
@@ -281,6 +305,66 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	}
 
 	/**
+	 * Builds the section-id to REST-schema map: a section opted into REST is exposed as one object setting.
+	 *
+	 * A section persists all its fields in one option row, so REST exposure is whole-row: the row's value is
+	 * an object keyed by field id. The WordPress settings endpoint gates every read and write of that row by
+	 * one fixed capability, so a section is exposed only when the page requires exactly that capability, every
+	 * field opts in, every field is a built-in type, and no field narrows access with its own capability — any
+	 * finer or different access intent could not be honored. A section that cannot meet this is rejected at
+	 * registration rather than silently nulling the read or exposing a field below its intended access. A
+	 * stored value outside the generated schema — a programmatic null write, or a key left by a removed field
+	 * — nulls the section's REST read until the next form save rewrites the row.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsPage $page Page whose sections to map.
+	 *
+	 * @throws  UnsupportedRestExposureException If a section opts in only some of its fields, exposes a non-built-in field type, or its access intent is not the endpoint's fixed capability.
+	 *
+	 * @return  array<string, array<string, mixed>>
+	 */
+	protected function map_section_rest_schemas( SettingsPage $page ): array {
+		$map = array();
+		foreach ( $page->sections as $section ) {
+			$properties = array();
+			foreach ( $section->fields as $field ) {
+				if ( ! $field->show_in_rest ) {
+					continue;
+				}
+				if ( null !== $field->capability ) {
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+					throw new UnsupportedRestExposureException( "Settings field '$field->id' narrows access with its own capability, which the REST settings endpoint's fixed '" . self::REST_CAPABILITY . "' gate cannot honor." );
+				}
+				$properties[ $field->id ] = rest_schema_for_field( $field );
+			}
+
+			if ( array() === $properties ) {
+				continue;
+			}
+
+			if ( self::REST_CAPABILITY !== $page->capability ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+				throw new UnsupportedRestExposureException( "Settings page '$page->slug' requires '$page->capability', but the REST settings endpoint gates every section by '" . self::REST_CAPABILITY . "', so its sections cannot be exposed via REST." );
+			}
+
+			if ( \count( $properties ) !== \count( $section->fields ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+				throw new UnsupportedRestExposureException( "Settings section '$section->id' exposes only some of its fields via REST; section-grouped storage exposes a section entirely or not at all." );
+			}
+
+			$map[ $section->id ] = array(
+				'type'                 => 'object',
+				'properties'           => $properties,
+				'additionalProperties' => false,
+			);
+		}
+
+		return $map;
+	}
+
+	/**
 	 * Registers the page's admin submenu. Hooked to admin_menu.
 	 *
 	 * @since   2.0.0
@@ -312,16 +396,19 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	protected function register_settings( SettingsPage $page ): void {
 		foreach ( $page->sections as $section ) {
 			$option_name = $page->slug . '-' . $section->id;
+			$rest_schema = $this->section_rest_schemas[ $section->id ] ?? null;
 
-			\register_setting(
-				$option_name,
-				$option_name,
-				array(
-					'type'              => 'array',
-					'sanitize_callback' => fn ( mixed $input ): mixed => $this->sanitize( $section, $option_name, $input ),
-					'default'           => array(),
-				),
+			$args = array(
+				// A REST-exposed section is an object keyed by field id; a plain section is an opaque map.
+				'type'              => null !== $rest_schema ? 'object' : 'array',
+				'sanitize_callback' => fn ( mixed $input ): mixed => $this->sanitize( $section, $option_name, $input ),
+				'default'           => array(),
 			);
+			if ( null !== $rest_schema ) {
+				$args['show_in_rest'] = array( 'schema' => $rest_schema );
+			}
+
+			\register_setting( $option_name, $option_name, $args );
 			\add_filter( "option_page_capability_{$option_name}", fn () => $page->capability );
 		}
 	}
@@ -384,11 +471,13 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 *
 	 * The sanitize_option filter fires on every update_option for the section, including a programmatic
 	 * set() or delete() this backend performs. Those are flagged and pass through untouched, so only a
-	 * write this backend did not initiate — the options.php form save — is processed and coerced. On a
-	 * form save, a field whose capability the current user lacks keeps its stored value, so a user
-	 * holding only the page capability cannot change a more privileged field. A field whose submission
-	 * is rejected likewise keeps its stored value and reports the rejection, rather than overwriting a
-	 * valid setting with an empty one.
+	 * write this backend did not initiate — the options.php form save or a REST write — is processed and
+	 * coerced. On such a save, a field whose capability the current user lacks keeps its stored value, so a
+	 * user holding only the page capability cannot change a more privileged field. A field whose submission
+	 * is rejected likewise keeps its stored value and reports the rejection, rather than overwriting a valid
+	 * setting with an empty one. The whole section is processed each time, so a field the submission omits is
+	 * cleared to its empty — both the form (which posts the whole section) and a REST write replace the row,
+	 * so a REST client sends the complete section object rather than a single changed field.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

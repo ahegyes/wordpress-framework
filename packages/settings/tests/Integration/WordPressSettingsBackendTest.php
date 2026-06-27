@@ -5,6 +5,7 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 use DeepWebSolutions\Framework\Settings\Backend\WordPressSettingsBackend;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnsupportedRestExposureException;
 use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
@@ -26,6 +27,8 @@ final class WordPressSettingsBackendTest extends TestCase {
 	private const SLUG            = 'dws-test-settings';
 	private const GENERAL_OPTION  = 'dws-test-settings-general';
 	private const ADVANCED_OPTION = 'dws-test-settings-advanced';
+	private const API_OPTION      = 'dws-test-settings-api';
+	private const INTERNAL_OPTION = 'dws-test-settings-internal';
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -35,6 +38,8 @@ final class WordPressSettingsBackendTest extends TestCase {
 		\remove_all_actions( 'admin_init' );
 		\remove_all_filters( 'sanitize_option_' . self::GENERAL_OPTION );
 		\remove_all_filters( 'sanitize_option_' . self::ADVANCED_OPTION );
+		\remove_all_filters( 'sanitize_option_' . self::API_OPTION );
+		\remove_all_filters( 'sanitize_option_' . self::INTERNAL_OPTION );
 		unset( $GLOBALS['_parent_pages'][ self::SLUG ] );
 		$this->clean();
 	}
@@ -509,6 +514,163 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertContains( 'site_name', \array_column( \get_settings_errors( self::GENERAL_OPTION ), 'code' ) );
 	}
 
+	public function test_a_rest_section_is_exposed_through_the_settings_endpoint_and_a_non_rest_section_is_not(): void {
+		$this->register( $this->rest_page() );
+		\do_action( 'admin_init' );
+		\do_action( 'rest_api_init' );
+
+		$this->form_save(
+			self::API_OPTION,
+			array( 'site_name' => 'Acme', 'enabled' => '1', 'count' => '42', 'tags' => array( 'a', 'c' ), 'color' => 'red' ),
+		);
+
+		$data = $this->rest_get_settings();
+
+		// Every field in the all-opt-in section round-trips through the generated object schema.
+		self::assertArrayHasKey( self::API_OPTION, $data );
+		self::assertIsArray( $data[ self::API_OPTION ] );
+		self::assertSame( 'Acme', $data[ self::API_OPTION ]['site_name'] );
+		self::assertSame( 42, $data[ self::API_OPTION ]['count'] );
+		self::assertSame( array( 'a', 'c' ), $data[ self::API_OPTION ]['tags'] );
+		self::assertSame( 'red', $data[ self::API_OPTION ]['color'] );
+		// A submitted checkbox stored as '1' reads back through the boolean-first union as a JSON boolean.
+		self::assertTrue( $data[ self::API_OPTION ]['enabled'] );
+
+		// A section with no opted-in field is invisible to the settings endpoint.
+		self::assertArrayNotHasKey( self::INTERNAL_OPTION, $data );
+	}
+
+	public function test_an_unsubmitted_field_in_a_rest_section_reads_as_its_empty_without_nulling_the_setting(): void {
+		$this->register( $this->rest_page() );
+		\do_action( 'admin_init' );
+		\do_action( 'rest_api_init' );
+
+		// The form omits the checkbox, the number, and the multiselect; the section row stores each type's empty.
+		$this->form_save( self::API_OPTION, array( 'site_name' => 'Acme', 'color' => 'red' ) );
+
+		$data = $this->rest_get_settings();
+
+		// Each type's stored empty survives the schema (the scalar union admits boolean; a semantic field's
+		// sanitizer normalizes its empty to ''; the multi-value field admits []), so a value the schema would
+		// otherwise reject does not null the whole setting. The endpoint reflects the section row faithfully.
+		self::assertArrayHasKey( self::API_OPTION, $data );
+		self::assertFalse( $data[ self::API_OPTION ]['enabled'] );
+		self::assertSame( '', $data[ self::API_OPTION ]['count'] );
+		self::assertSame( array(), $data[ self::API_OPTION ]['tags'] );
+	}
+
+	public function test_a_value_written_through_the_settings_endpoint_persists_to_the_section_row(): void {
+		$this->register( $this->rest_page() );
+		\do_action( 'admin_init' );
+		\do_action( 'rest_api_init' );
+
+		$request = new \WP_REST_Request( 'PUT', '/wp/v2/settings' );
+		$request->set_body_params(
+			array( self::API_OPTION => array( 'site_name' => 'Via REST', 'count' => 7, 'tags' => array( 'b' ), 'color' => 'blue' ) ),
+		);
+		$response = \rest_do_request( $request );
+
+		self::assertSame( 200, $response->get_status() );
+
+		// A REST write routes through the same processor as a form save, so the value lands in the section row.
+		$stored = \get_option( self::API_OPTION );
+		self::assertSame( 'Via REST', $stored['site_name'] );
+		self::assertSame( 7, $stored['count'] );
+		self::assertSame( array( 'b' ), $stored['tags'] );
+		self::assertSame( 'blue', $stored['color'] );
+	}
+
+	public function test_a_section_mixing_opted_in_and_opted_out_fields_is_rejected(): void {
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'manage_options',
+			sections: array(
+				new SettingsSection(
+					'api',
+					'API',
+					array(
+						new SettingsField( id: 'public_value', type: 'text', label: 'Public', show_in_rest: true ),
+						new SettingsField( id: 'private_value', type: 'text', label: 'Private' ),
+					),
+				),
+			),
+		);
+
+		// Section-grouped storage cannot expose only some of a section's fields via REST, so a partial opt-in
+		// is rejected at registration rather than silently nulling or over-exposing the section.
+		$this->expectException( UnsupportedRestExposureException::class );
+
+		( new WordPressSettingsBackend() )->register_page( $page );
+	}
+
+	public function test_a_rest_section_with_a_custom_field_type_is_rejected(): void {
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'manage_options',
+			sections: array(
+				new SettingsSection(
+					'api',
+					'API',
+					array( new SettingsField( id: 'home_page', type: 'single_select_page', label: 'Home Page', show_in_rest: true ) ),
+				),
+			),
+		);
+
+		// A custom field type has no faithful REST schema (its default may be null and null the section), so
+		// exposing it is rejected at registration rather than producing a setting that reads null.
+		$this->expectException( UnsupportedRestExposureException::class );
+
+		$this->register_with_custom( $page );
+	}
+
+	public function test_a_rest_section_with_a_capability_gated_field_is_rejected(): void {
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'manage_options',
+			sections: array(
+				new SettingsSection(
+					'api',
+					'API',
+					array( new SettingsField( id: 'secret', type: 'text', label: 'Secret', capability: 'dws_protected_cap', show_in_rest: true ) ),
+				),
+			),
+		);
+
+		// The REST settings endpoint applies one fixed capability to the whole row, so a field that narrows
+		// access with its own capability cannot be honored and is rejected at registration.
+		$this->expectException( UnsupportedRestExposureException::class );
+
+		( new WordPressSettingsBackend() )->register_page( $page );
+	}
+
+	public function test_a_rest_section_on_a_page_below_the_endpoint_capability_is_rejected(): void {
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			sections: array(
+				new SettingsSection(
+					'api',
+					'API',
+					array( new SettingsField( id: 'site_name', type: 'text', label: 'Site Name', show_in_rest: true ) ),
+				),
+			),
+		);
+
+		// The REST settings endpoint gates every section by manage_options, so a page whose access intent is a
+		// different capability cannot be faithfully exposed and is rejected at registration.
+		$this->expectException( UnsupportedRestExposureException::class );
+
+		( new WordPressSettingsBackend() )->register_page( $page );
+	}
+
 	private function register( SettingsPage $page ): WordPressSettingsBackend {
 		$backend = new WordPressSettingsBackend();
 		$backend->register_page( $page );
@@ -587,9 +749,52 @@ final class WordPressSettingsBackendTest extends TestCase {
 		);
 	}
 
+	private function rest_page(): SettingsPage {
+		return new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'manage_options',
+			sections: array(
+				new SettingsSection(
+					'api',
+					'API',
+					array(
+						new SettingsField( id: 'site_name', type: 'text', label: 'Site Name', show_in_rest: true ),
+						new SettingsField( id: 'enabled', type: 'checkbox', label: 'Enabled', show_in_rest: true ),
+						new SettingsField( id: 'count', type: 'number', label: 'Count', show_in_rest: true ),
+						new SettingsField( id: 'tags', type: 'multiselect', label: 'Tags', show_in_rest: true, options: array( 'a' => 'A', 'b' => 'B', 'c' => 'C' ) ),
+						new SettingsField( id: 'color', type: 'select', label: 'Color', show_in_rest: true, options: array( 'red' => 'Red', 'blue' => 'Blue' ) ),
+					),
+				),
+				new SettingsSection(
+					'internal',
+					'Internal',
+					array( new SettingsField( id: 'secret_token', type: 'text', label: 'Secret Token' ) ),
+				),
+			),
+		);
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	private function rest_get_settings(): array {
+		$response = \rest_do_request( new \WP_REST_Request( 'GET', '/wp/v2/settings' ) );
+		$data     = $response->get_data();
+
+		return \is_array( $data ) ? $data : array();
+	}
+
 	private function clean(): void {
+		// The REST sections register a show_in_rest setting; unregister it so it does not leak into the
+		// settings endpoint of a later test that reuses these option names.
+		\unregister_setting( self::API_OPTION, self::API_OPTION );
+		\unregister_setting( self::INTERNAL_OPTION, self::INTERNAL_OPTION );
 		\delete_option( self::GENERAL_OPTION );
 		\delete_option( self::ADVANCED_OPTION );
+		\delete_option( self::API_OPTION );
+		\delete_option( self::INTERNAL_OPTION );
 		\delete_option( 'dws_unrelated_option' );
 	}
 }

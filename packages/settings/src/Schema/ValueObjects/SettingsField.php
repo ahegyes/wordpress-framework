@@ -60,7 +60,7 @@ final readonly class SettingsField {
 	 * @param   ?callable                                                         $sanitize Sanitizer for the submitted value; stored as a Closure.
 	 * @param   ?callable                                                         $validate Validator for the sanitized value; stored as a Closure.
 	 * @param   ?string                                                           $capability Capability required to edit the field; null inherits the section/page capability.
-	 * @param   bool                                                              $show_in_rest Whether the field is exposed via REST where the backend supports it; the WordPress options backend does not currently honor it.
+	 * @param   bool                                                              $show_in_rest Whether the field is exposed via REST where the backend supports it.
 	 * @param   bool                                                              $autoload Whether the field's stored value should autoload on every request; defaults to off.
 	 * @param   ?int                                                              $position Sort position within the section; null keeps declaration order.
 	 * @param   array<array-key, mixed>|\Closure|SettingsOptionsProviderInterface $options Option set for choice-typed fields: a literal array, a Closure (not a bare callable, so an array is always the option set), or a provider; labels are stringified at render.

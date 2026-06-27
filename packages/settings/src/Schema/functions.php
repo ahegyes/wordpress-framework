@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Settings\Schema;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnsupportedRestExposureException;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 
@@ -141,4 +142,35 @@ function wordpress_field_type_sanitizers(): array {
 			return \is_int( $number ) || \is_finite( $number ) ? $number : '';
 		},
 	);
+}
+
+/**
+ * The REST schema for a built-in field's stored value: a JSON-schema type admitting both a value of the
+ * field's type and the empty a grouped section row carries for an unsubmitted field.
+ *
+ * A section row stores every field together, where an unsubmitted field is the type's empty — false for
+ * a scalar field, an empty array for the multi-value field — so each scalar type maps to a union that
+ * also admits boolean, and the multi-value type admits the empty array. Only the built-in taxonomy has a
+ * faithful schema: a custom field type's value domain is consumer-defined (its default may be null or a
+ * non-scalar that would null the whole REST setting), so it is rejected rather than schematized loosely.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   SettingsField $field Field whose REST schema to build.
+ *
+ * @throws  UnsupportedRestExposureException If the field's type is outside the built-in taxonomy.
+ *
+ * @return  array<string, mixed>
+ */
+function rest_schema_for_field( SettingsField $field ): array {
+	return match ( FieldType::tryFrom( $field->type ) ) {
+		FieldType::Multiselect              => array( 'type' => 'array', 'items' => array( 'type' => array( 'string', 'integer' ) ) ),
+		FieldType::Checkbox                 => array( 'type' => array( 'boolean', 'string', 'integer' ) ),
+		FieldType::Number                   => array( 'type' => array( 'integer', 'number', 'string', 'boolean' ) ),
+		FieldType::Select, FieldType::Radio => array( 'type' => array( 'string', 'integer', 'boolean' ) ),
+		FieldType::Text, FieldType::Email, FieldType::Url, FieldType::Textarea => array( 'type' => array( 'string', 'boolean' ) ),
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+		default => throw new UnsupportedRestExposureException( "Settings field '$field->id' has a type outside the built-in taxonomy and cannot be exposed via REST." ),
+	};
 }

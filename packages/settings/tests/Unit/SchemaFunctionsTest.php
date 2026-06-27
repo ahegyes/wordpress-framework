@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnsupportedRestExposureException;
 use DeepWebSolutions\Framework\Settings\Schema\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
@@ -17,12 +18,14 @@ use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_an
 use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
 use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
+use function DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers' )]
 #[UsesClass( SettingsField::class )]
 #[UsesClass( SettingsSection::class )]
@@ -30,6 +33,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
 #[UsesClass( FieldType::class )]
 #[UsesClass( DuplicateSettingsSectionException::class )]
 #[UsesClass( DuplicateSettingsFieldException::class )]
+#[UsesClass( UnsupportedRestExposureException::class )]
 final class SchemaFunctionsTest extends TestCase {
 	public function test_keeps_well_formed_non_event_attribute_names(): void {
 		$kept = filter_field_attributes(
@@ -256,5 +260,41 @@ final class SchemaFunctionsTest extends TestCase {
 		self::assertSame( '', $number( 'not a number' ) );
 		// An out-of-range exponent coerces to a non-finite float, which is never a settings value.
 		self::assertSame( '', $number( '1e309' ) );
+	}
+
+	/**
+	 * @param array<string, mixed> $expected
+	 */
+	#[DataProvider( 'rest_field_schemas' )]
+	public function test_rest_schema_for_field_admits_a_type_value_and_its_empty( string $type, array $expected ): void {
+		self::assertSame( $expected, rest_schema_for_field( new SettingsField( id: 'f', type: $type, label: 'F' ) ) );
+	}
+
+	/**
+	 * Each built-in field type maps to a JSON-schema type that admits both a stored value of the type and
+	 * the uniform empty a section row carries for an unsubmitted field: false for every scalar field, an
+	 * empty array for the multi-value field.
+	 *
+	 * @return array<string, array{string, array<string, mixed>}>
+	 */
+	public static function rest_field_schemas(): array {
+		return array(
+			'text'        => array( 'text', array( 'type' => array( 'string', 'boolean' ) ) ),
+			'email'       => array( 'email', array( 'type' => array( 'string', 'boolean' ) ) ),
+			'url'         => array( 'url', array( 'type' => array( 'string', 'boolean' ) ) ),
+			'textarea'    => array( 'textarea', array( 'type' => array( 'string', 'boolean' ) ) ),
+			'checkbox'    => array( 'checkbox', array( 'type' => array( 'boolean', 'string', 'integer' ) ) ),
+			'number'      => array( 'number', array( 'type' => array( 'integer', 'number', 'string', 'boolean' ) ) ),
+			'select'      => array( 'select', array( 'type' => array( 'string', 'integer', 'boolean' ) ) ),
+			'radio'       => array( 'radio', array( 'type' => array( 'string', 'integer', 'boolean' ) ) ),
+			'multiselect' => array( 'multiselect', array( 'type' => 'array', 'items' => array( 'type' => array( 'string', 'integer' ) ) ) ),
+		);
+	}
+
+	public function test_rest_schema_for_field_rejects_a_non_built_in_type(): void {
+		// A custom field type has a consumer-defined value domain with no faithful static schema.
+		$this->expectException( UnsupportedRestExposureException::class );
+
+		rest_schema_for_field( new SettingsField( id: 'f', type: 'single_select_page', label: 'F' ) );
 	}
 }
