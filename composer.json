@@ -110,7 +110,15 @@
       "@lint:php:deptrac"
     ],
     "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
-    "lint:php:phpstan": "phpstan analyse -v --memory-limit=1G",
+    "lint:php:phpstan": [
+      "phpstan analyse -c packages/bootstrap/phpstan.neon --memory-limit=1G",
+      "phpstan analyse -c packages/shared/phpstan.neon --memory-limit=1G",
+      "phpstan analyse -c packages/storage/phpstan.neon --memory-limit=1G",
+      "phpstan analyse -c packages/core/phpstan.neon --memory-limit=1G",
+      "phpstan analyse -c packages/utilities/phpstan.neon --memory-limit=1G",
+      "phpstan analyse -c packages/settings/phpstan.neon --memory-limit=1G",
+      "phpstan analyse -c packages/woocommerce/phpstan.neon --memory-limit=1G"
+    ],
     "lint:php:deptrac": "deptrac analyse --no-interaction --cache-file=tests/.cache/deptrac",
 
     "test:wp-env:ensure": "node_modules/.bin/wp-env --config .wp-env.tests.json run cli true >/dev/null 2>&1 || npm --prefix=. run wp-env:start",

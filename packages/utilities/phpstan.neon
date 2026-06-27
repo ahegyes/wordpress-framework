@@ -1,0 +1,12 @@
+includes:
+    - ../../vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
+
+parameters:
+    # scanFiles, not bootstrapFiles: the Action Scheduler stub extends WP_Async_Request — a class
+    # defined only in the main WooCommerce stub this package must not load — which a require would fatal on.
+    scanFiles:
+        - ../../vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
+    paths:
+        - functions.php
+        - src
+        - tests
