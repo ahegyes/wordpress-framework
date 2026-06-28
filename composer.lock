@@ -238,7 +238,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "15487883126ab5831fd5592272e4b46be10958de"
+                "reference": "fb1877e8f01d2d3ae3742581e0697afaee964bce"
             },
             "require": {
                 "php": ">=8.5"
@@ -248,6 +248,9 @@
                 "branch-alias": {
                     "dev-trunk": "2.0.x-dev"
                 },
+                "scoping-stubs": [
+                    "php-stubs/wordpress-stubs"
+                ],
                 "changelogger": {
                     "versioning": "semver",
                     "changelog": "CHANGELOG.md",
@@ -462,13 +465,14 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "4fd654c41bba1986f9c47f41983e8f55371cafe0"
+                "reference": "dfbbb83c3e2176d855ef4e45cfbd3668cede14e5"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
                 "ahegyes/wp-framework-settings": "^2.0@dev",
                 "ahegyes/wp-framework-shared": "^2.0@dev",
-                "php": ">=8.5"
+                "php": ">=8.5",
+                "psr/log": "^3"
             },
             "type": "library",
             "extra": {
