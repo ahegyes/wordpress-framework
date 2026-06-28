@@ -96,6 +96,7 @@
   },
 
   "extra": {
+    "text-domain": "consumer-smoke",
     "scoped-dependencies-dir": "dependencies",
     "scoping-prefix": "DWS_CONSUMER_SMOKE_Deps"
   },

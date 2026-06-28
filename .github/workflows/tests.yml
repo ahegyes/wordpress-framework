@@ -89,3 +89,27 @@ jobs:
             echo "FAIL: Psr\\Container namespace got prefixed" >&2
             exit 1
           fi
+
+          # Framework text domains are rewritten to the consumer's domain at scope time, so framework strings ship translatable under the consumer's catalog.
+          if grep -rqF "'wp-framework-" dependencies/; then
+            echo "FAIL: a 'wp-framework-*' text domain survived scoping; the textdomain patcher did not run" >&2
+            grep -rnF "'wp-framework-" dependencies/ >&2
+            exit 1
+          fi
+
+          if ! grep -rqF "'consumer-smoke'" dependencies/ahegyes/wp-framework-bootstrap/; then
+            echo "FAIL: framework strings were not rewritten to the consumer text domain" >&2
+            exit 1
+          fi
+
+          # WooCommerce runtime symbols are host-provided; scoping must leave them unprefixed.
+          if grep -rqE 'DWS_CONSUMER_SMOKE_Deps\\(WC_|wc_|WooCommerce)' dependencies/ahegyes/wp-framework-woocommerce/; then
+            echo "FAIL: a WooCommerce symbol got prefixed inside scoped woocommerce" >&2
+            grep -rnE 'DWS_CONSUMER_SMOKE_Deps\\(WC_|wc_|WooCommerce)' dependencies/ahegyes/wp-framework-woocommerce/ >&2
+            exit 1
+          fi
+
+          if ! grep -rqF '\wc_get_order(' dependencies/ahegyes/wp-framework-woocommerce/; then
+            echo "FAIL: expected an unprefixed WooCommerce call in scoped woocommerce" >&2
+            exit 1
+          fi
