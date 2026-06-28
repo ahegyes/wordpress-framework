@@ -95,7 +95,11 @@ final class MetadataRepository implements ObjectMetaRepositoryInterface {
 			$this->set( $object_id, (string) $meta_key, $value );
 		}
 		foreach ( $deletes as $meta_key ) {
-			$this->delete( $object_id, $meta_key );
+			// metadata_exists() reads the object's meta cache, so skipping an absent key turns a batch of
+			// never-set keys into one cache load rather than a direct, uncached delete query per key.
+			if ( $this->has( $object_id, $meta_key ) ) {
+				$this->delete( $object_id, $meta_key );
+			}
 		}
 	}
 

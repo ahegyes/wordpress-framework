@@ -87,6 +87,15 @@ final class MetadataRepositoryTest extends TestCase {
 		self::assertFalse( $repo->has( $this->post_id, '_dws_old' ) );
 	}
 
+	public function test_apply_skips_deleting_a_key_that_is_not_stored(): void {
+		$repo = new MetadataRepository( MetaType::Post );
+
+		// A delete of a never-set key is a no-op; the key simply stays absent.
+		$repo->apply( $this->post_id, array(), array( '_dws_never_set' ) );
+
+		self::assertFalse( $repo->has( $this->post_id, '_dws_never_set' ) );
+	}
+
 	public function test_set_preserves_backslashes(): void {
 		$repo = new MetadataRepository( MetaType::Post );
 
