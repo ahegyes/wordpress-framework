@@ -50,6 +50,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\remove_all_actions( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
 		$this->clean();
 		parent::tearDown();
 	}
