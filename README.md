@@ -11,10 +11,10 @@ Monorepo publishing seven Composer packages:
 | `ahegyes/wp-framework-bootstrap`   | Pre-autoload PHP/WP version check with graceful admin-notice fallback.           | 5.6     |
 | `ahegyes/wp-framework-shared`      | Substrate primitives: result/value-object patterns, error/exception scaffolding. | 8.5     |
 | `ahegyes/wp-framework-storage`     | Key-value storage backends: in-memory, wp_options, and user-meta.                | 8.5     |
-| `ahegyes/wp-framework-core`        | Plugin kernel, lifecycle and state interfaces, two-pass boot dispatch.           | 8.5     |
-| `ahegyes/wp-framework-utilities`   | Hooks, admin notices, caching, and conditionals.                                 | 8.5     |
+| `ahegyes/wp-framework-core`        | Plugin kernel, feature/lifecycle/installer interfaces, conditional gating.       | 8.5     |
+| `ahegyes/wp-framework-utilities`   | Hooks, admin notices, caching, conditionals, scheduling, permissions.            | 8.5     |
 | `ahegyes/wp-framework-settings`    | Declarative settings screens; WordPress options and object-field backends.       | 8.5     |
-| `ahegyes/wp-framework-woocommerce` | WooCommerce settings backend and WC-aware helpers.                               | 8.5     |
+| `ahegyes/wp-framework-woocommerce` | WooCommerce settings backend, product/order-data fields, PSR-3 logger.            | 8.5     |
 
 The `bootstrap` package runs before any modern PHP 8.5+ code parses, so consumer plugins on incompatible runtimes get a graceful admin notice instead of a fatal error.
 
@@ -31,7 +31,7 @@ The `bootstrap` package runs before any modern PHP 8.5+ code parses, so consumer
 composer packages-install   # PHP deps (wraps composer install with --ignore-platform-reqs)
 npm install                 # Node deps (wp-env)
 npm run wp-env:start        # Start Docker WP environment (~40s first time)
-composer quality-check      # Fast: lint + unit tests (no Docker)
+composer quality-check      # Lint + unit + integration (boots wp-env)
 composer test:integration   # Real WP via wp-env
 composer quality-check:all  # Full: lint + unit + integration + mutation
 npm run wp-env:stop         # Stop wp-env when done
@@ -50,7 +50,7 @@ npm run wp-env:stop         # Stop wp-env when done
 | `test:all`            | Unit + Integration + Mutation   | Yes    |
 | `lint:php`            | PHPCS + PHPStan + Deptrac       | No     |
 | `format:php`          | Auto-fix code style (PHPCBF)    | No     |
-| `quality-check`       | Lint + Unit                     | No     |
+| `quality-check`       | Lint + Unit + Integration       | Yes    |
 | `quality-check:all`   | Lint + All tests                | Yes    |
 
 ## Testing strategy
