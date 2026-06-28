@@ -75,16 +75,19 @@ final class AdminNoticeLogger implements LoggerInterface {
 		protected bool $is_dismissible = false,
 	) {
 		if ( ! namespace\is_valid_notice_id( $this->notice_id ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new InvalidArgumentException( 'Invalid notice id: ' . $this->notice_id . '. Use a sanitize_key-stable id (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips.' );
 		}
 
 		if ( ! isset( self::SEVERITIES[ $this->minimum_level ] ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new InvalidArgumentException( 'Unknown minimum log level: ' . $this->minimum_level );
 		}
 
 		// Validate the target store up front: a misnamed store would otherwise route every record to a
 		// _doing_it_wrong() no-op in production, silently dropping the very failures this logger surfaces.
 		if ( ! isset( $this->service->stores[ $this->store ] ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new InvalidArgumentException( 'Unknown notice store: ' . $this->store );
 		}
 	}
@@ -105,6 +108,7 @@ final class AdminNoticeLogger implements LoggerInterface {
 	public function log( $level, string|\Stringable $message, array $context = array() ): void {
 		$level_key = \is_string( $level ) ? $level : '';
 		if ( ! isset( self::SEVERITIES[ $level_key ] ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 			throw new InvalidArgumentException( 'Unknown log level: ' . ( \is_scalar( $level ) ? (string) $level : \gettype( $level ) ) );
 		}
 
