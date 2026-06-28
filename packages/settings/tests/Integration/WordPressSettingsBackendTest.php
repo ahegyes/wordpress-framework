@@ -33,9 +33,14 @@ final class WordPressSettingsBackendTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
 		\wp_set_current_user( 1 );
 		\remove_all_actions( 'admin_menu' );
 		\remove_all_actions( 'admin_init' );
+		// add_submenu_page registers the render callback on the page hook, which survives an admin_menu
+		// reset; clearing it keeps registrations from accumulating across tests in this class.
+		\remove_all_actions( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
 		\remove_all_filters( 'sanitize_option_' . self::GENERAL_OPTION );
 		\remove_all_filters( 'sanitize_option_' . self::ADVANCED_OPTION );
 		\remove_all_filters( 'sanitize_option_' . self::API_OPTION );
