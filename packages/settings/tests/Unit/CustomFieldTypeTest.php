@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidCustomFieldTypeException;
+use DeepWebSolutions\Framework\Settings\Schema\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -12,6 +13,7 @@ use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( CustomFieldType::class )]
+#[UsesClass( FieldType::class )]
 #[UsesClass( SettingsField::class )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 final class CustomFieldTypeTest extends TestCase {
@@ -85,6 +87,28 @@ final class CustomFieldTypeTest extends TestCase {
 			'space'              => array( 'my type' ),
 			'dot'                => array( 'my.type' ),
 		);
+	}
+
+	#[DataProvider( 'builtin_types' )]
+	public function test_rejects_a_builtin_field_type_token( string $builtin_type ): void {
+		$this->expectException( InvalidCustomFieldTypeException::class );
+
+		new CustomFieldType(
+			type: $builtin_type,
+			render: static fn ( SettingsField $field, mixed $value, string $name ): string => '',
+		);
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function builtin_types(): array {
+		$cases = array();
+		foreach ( FieldType::cases() as $case ) {
+			$cases[ $case->value ] = array( $case->value );
+		}
+
+		return $cases;
 	}
 
 	public function render_stub( SettingsField $field, mixed $value, string $name ): string {
