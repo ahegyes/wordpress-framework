@@ -4,9 +4,9 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
 use DeepWebSolutions\Framework\Settings\Schema\Errors\FieldProcessingError;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
-use DeepWebSolutions\Framework\Settings\Schema\FieldProcessingErrorReason;
-use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
-use DeepWebSolutions\Framework\Settings\Schema\OptionsResolver;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessingErrorReason;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
+use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsResolver;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Shared\Result\Failure;

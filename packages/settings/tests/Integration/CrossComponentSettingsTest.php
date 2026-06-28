@@ -4,8 +4,8 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 
 use DeepWebSolutions\Framework\Settings\Backend\WordPressSettingsBackend;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\Schema\SettingsFieldAggregator;
-use DeepWebSolutions\Framework\Settings\Schema\SettingsFieldProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\Aggregation\SettingsFieldAggregator;
+use DeepWebSolutions\Framework\Settings\Schema\Aggregation\SettingsFieldProviderInterface;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;

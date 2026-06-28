@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Schema;
+namespace DeepWebSolutions\Framework\Settings\Schema\Options;
 
 /**
  * Supplies the value-to-label option set for a choice-typed settings field.

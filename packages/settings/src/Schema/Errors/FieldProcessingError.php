@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Settings\Schema\Errors;
 
-use DeepWebSolutions\Framework\Settings\Schema\FieldProcessingErrorReason;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessingErrorReason;
 use DeepWebSolutions\Framework\Shared\Error\ErrorInterface;
 
 /**

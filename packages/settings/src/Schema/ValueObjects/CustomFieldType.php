@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Settings\Schema\ValueObjects;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidCustomFieldTypeException;
-use DeepWebSolutions\Framework\Settings\Schema\FieldType;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
 

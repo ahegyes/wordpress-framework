@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnknownFieldTypeException;
-use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;

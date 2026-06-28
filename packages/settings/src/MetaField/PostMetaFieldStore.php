@@ -4,8 +4,8 @@ namespace DeepWebSolutions\Framework\Settings\MetaField;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\MetaBoxPlacement;
-use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
-use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 
 /**
  * Registers a field group as a post meta box.

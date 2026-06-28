@@ -6,8 +6,8 @@ use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsField
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnsupportedRestExposureException;
-use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
-use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;

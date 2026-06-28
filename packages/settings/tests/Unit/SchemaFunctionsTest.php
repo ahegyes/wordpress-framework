@@ -5,7 +5,7 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnsupportedRestExposureException;
-use DeepWebSolutions\Framework\Settings\Schema\FieldType;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;

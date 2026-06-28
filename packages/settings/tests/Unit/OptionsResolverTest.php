@@ -3,8 +3,8 @@
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsOptionsException;
-use DeepWebSolutions\Framework\Settings\Schema\OptionsResolver;
-use DeepWebSolutions\Framework\Settings\Schema\SettingsOptionsProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsResolver;
+use DeepWebSolutions\Framework\Settings\Schema\Options\SettingsOptionsProviderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

@@ -4,8 +4,8 @@ namespace DeepWebSolutions\Framework\Settings\MetaField;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\UserProfileFieldGroup;
-use DeepWebSolutions\Framework\Settings\Schema\FieldProcessor;
-use DeepWebSolutions\Framework\Settings\Schema\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
+use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
 /**

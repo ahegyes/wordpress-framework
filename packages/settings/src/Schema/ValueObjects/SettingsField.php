@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Settings\Schema\ValueObjects;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\Schema\SettingsOptionsProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\Options\SettingsOptionsProviderInterface;
 
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
 
