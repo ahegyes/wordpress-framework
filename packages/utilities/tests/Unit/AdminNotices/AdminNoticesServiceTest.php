@@ -9,6 +9,7 @@ use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( AdminNoticesService::class )]
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( AdminNotice::class )]
 #[UsesClass( NoticeType::class )]
 #[UsesClass( MemoryStore::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id' )]
 final class AdminNoticesServiceTest extends TestCase {
 	public function test_constructs_with_a_default_memory_store(): void {
 		$service = new AdminNoticesService();

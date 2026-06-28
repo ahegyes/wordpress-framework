@@ -6,4 +6,5 @@
  * @version 2.0.0
  */
 
+require_once __DIR__ . '/src/AdminNotices/functions.php';
 require_once __DIR__ . '/src/Scheduling/functions.php';

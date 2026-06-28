@@ -8,12 +8,14 @@ use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( NoticeStore::class )]
 #[UsesClass( AdminNotice::class )]
 #[UsesClass( NoticeType::class )]
 #[UsesClass( MemoryStore::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id' )]
 final class NoticeStoreTest extends TestCase {
 	public function test_add_then_get_round_trips_the_notice(): void {
 		$store  = new NoticeStore( new MemoryStore() );
@@ -108,5 +110,14 @@ final class NoticeStoreTest extends TestCase {
 
 		self::assertSame( array(), $store->get_all() );
 		self::assertNull( $store->get( '' ) );
+	}
+
+	public function test_get_all_skips_an_entry_with_an_unstable_id(): void {
+		$backing = new MemoryStore();
+		$backing->set( 'My.Notice', array( 'id' => 'My.Notice', 'message' => 'm' ) );
+		$store = new NoticeStore( $backing );
+
+		self::assertSame( array(), $store->get_all() );
+		self::assertNull( $store->get( 'My.Notice' ) );
 	}
 }

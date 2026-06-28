@@ -3,7 +3,10 @@
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects;
 
 use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidAdminNoticeException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
+
+use function DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id;
 
 /**
  * Descriptor for a dependency a plugin declares for missing-dependency admin notices: the conditional
@@ -27,14 +30,21 @@ final readonly class DependencyRequirement {
 	 * @param   ConditionalInterface $conditional Conditional whose unmet state triggers a notice.
 	 * @param   string               $label       Human-readable dependency name (e.g. "WooCommerce").
 	 * @param   bool                 $required    Whether the dependency is required (blocking) rather than optional. Defaults to true.
-	 * @param   string|null          $id          Explicit notice ID (keep it sanitize_key-stable so AJAX dismissal round-trips); null derives a stable one from the label. Defaults to null.
+	 * @param   string|null          $id          Explicit notice ID (must be sanitize_key-stable so AJAX dismissal round-trips); null derives a stable one from the label. Defaults to null.
+	 *
+	 * @throws  InvalidAdminNoticeException If an explicit $id is not sanitize_key-stable.
 	 */
 	public function __construct(
 		public ConditionalInterface $conditional,
 		public string $label,
 		public bool $required = true,
 		public ?string $id = null,
-	) {}
+	) {
+		if ( null !== $this->id && ! is_valid_notice_id( $this->id ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new InvalidAdminNoticeException( "Invalid dependency notice id: '$this->id'. Use a sanitize_key-stable id (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips." );
+		}
+	}
 
 	// endregion
 

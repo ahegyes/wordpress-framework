@@ -58,13 +58,13 @@ final class AdminNoticeLogger implements LoggerInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   AdminNoticesService $service        Service the notice is queued through.
-	 * @param   string              $notice_id      Stable ID every admitted record is queued under; keep it sanitize_key-stable so AJAX dismissal round-trips.
+	 * @param   string              $notice_id      Stable ID every admitted record is queued under; must be sanitize_key-stable so AJAX dismissal round-trips.
 	 * @param   string              $store          Name of the service store to queue in; a persistent store surfaces the notice on a later request.
 	 * @param   string              $minimum_level  Lowest PSR-3 level that produces a notice; records below it are dropped.
 	 * @param   string              $capability     Capability required to see the notice.
 	 * @param   bool                $is_dismissible Whether the notice shows a dismiss button.
 	 *
-	 * @throws  InvalidArgumentException When $minimum_level is not a PSR-3 level, or $store is not registered on the service.
+	 * @throws  InvalidArgumentException When $notice_id is not sanitize_key-stable, $minimum_level is not a PSR-3 level, or $store is not registered on the service.
 	 */
 	public function __construct(
 		protected AdminNoticesService $service,
@@ -74,6 +74,10 @@ final class AdminNoticeLogger implements LoggerInterface {
 		protected string $capability = 'manage_options',
 		protected bool $is_dismissible = false,
 	) {
+		if ( ! namespace\is_valid_notice_id( $this->notice_id ) ) {
+			throw new InvalidArgumentException( 'Invalid notice id: ' . $this->notice_id . '. Use a sanitize_key-stable id (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips.' );
+		}
+
 		if ( ! isset( self::SEVERITIES[ $this->minimum_level ] ) ) {
 			throw new InvalidArgumentException( 'Unknown minimum log level: ' . $this->minimum_level );
 		}

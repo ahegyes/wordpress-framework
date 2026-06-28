@@ -10,6 +10,7 @@ use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LogLevel;
@@ -20,6 +21,7 @@ use Psr\Log\LogLevel;
 #[UsesClass( AdminNotice::class )]
 #[UsesClass( NoticeType::class )]
 #[UsesClass( MemoryStore::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id' )]
 final class AdminNoticeLoggerTest extends TestCase {
 	public function test_error_record_queues_a_persistent_notice(): void {
 		$store  = new NoticeStore( new MemoryStore() );
@@ -170,6 +172,12 @@ final class AdminNoticeLoggerTest extends TestCase {
 		$this->expectException( InvalidArgumentException::class );
 
 		new AdminNoticeLogger( $service, 'x', 'typo-store' );
+	}
+
+	public function test_an_unstable_notice_id_is_rejected_at_construction(): void {
+		$this->expectException( InvalidArgumentException::class );
+
+		new AdminNoticeLogger( $this->service_with( new NoticeStore( new MemoryStore() ) ), 'Bad.Id', 'failures' );
 	}
 
 	private function service_with( NoticeStore $store ): AdminNoticesService {

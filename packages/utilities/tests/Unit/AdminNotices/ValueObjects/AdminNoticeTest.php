@@ -2,14 +2,18 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\AdminNotices\ValueObjects;
 
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidAdminNoticeException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( AdminNotice::class )]
 #[UsesClass( NoticeType::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id' )]
 final class AdminNoticeTest extends TestCase {
 	public function test_constructs_with_required_arguments(): void {
 		$notice = new AdminNotice( 'my-notice', 'Hello world.' );
@@ -147,5 +151,53 @@ final class AdminNoticeTest extends TestCase {
 
 		self::assertTrue( $notice->is_dismissible );
 		self::assertFalse( $notice->is_persistent );
+	}
+
+	#[DataProvider( 'unstable_ids' )]
+	public function test_rejects_an_unstable_id( string $unstable_id ): void {
+		$this->expectException( InvalidAdminNoticeException::class );
+
+		new AdminNotice( $unstable_id, 'message' );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function unstable_ids(): array {
+		return array(
+			'empty'            => array( '' ),
+			'uppercase'        => array( 'My-Notice' ),
+			'dot'              => array( 'notice.1' ),
+			'space'            => array( 'my notice' ),
+			'slash'            => array( 'plugin/notice' ),
+			'trailing newline' => array( "notice\n" ),
+		);
+	}
+
+	#[DataProvider( 'stable_ids' )]
+	public function test_accepts_a_sanitize_key_stable_id( string $stable_id ): void {
+		$notice = new AdminNotice( $stable_id, 'message' );
+
+		self::assertSame( $stable_id, $notice->id );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function stable_ids(): array {
+		return array(
+			'word'            => array( 'notice' ),
+			'with hyphen'     => array( 'my-notice' ),
+			'with underscore' => array( 'my_notice' ),
+			'with digit'      => array( 'notice2' ),
+			'leading digit'   => array( '2fa-notice' ),
+			'leading hyphen'  => array( '-notice' ),
+		);
+	}
+
+	public function test_from_array_throws_on_an_unstable_id(): void {
+		$this->expectException( InvalidAdminNoticeException::class );
+
+		AdminNotice::from_array( array( 'id' => 'Bad.Id', 'message' => 'm' ) );
 	}
 }

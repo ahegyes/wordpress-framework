@@ -2,14 +2,16 @@
 
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidAdminNoticeException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Storage\KeyValueStoreInterface;
 
 /**
  * Persists admin notices through any {@see KeyValueStoreInterface} backend (in-memory, wp_options,
  * or user_meta), keyed by notice ID. Notices are stored as plain arrays via {@see AdminNotice::to_array()};
- * a stored value is rehydrated only when it is an array whose 'id' matches its storage key and whose
- * 'message' is a string, so a corrupt or foreign row is skipped instead of fataling.
+ * a stored value is rehydrated only when it is an array whose 'message' is a string and whose 'id' both
+ * matches its storage key and is a stable dismissal key, so a corrupt or foreign row is skipped instead
+ * of fataling.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -122,7 +124,8 @@ final readonly class NoticeStore {
 
 	/**
 	 * Rehydrate a stored row into a notice, or null when the row is not a well-formed notice stored
-	 * under its own ID (non-array, missing/non-string id or message, or an id that does not match its key).
+	 * under its own ID (non-array, missing/non-string id or message, an id that does not match its key,
+	 * or an id the descriptor rejects as an unstable dismissal key).
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -143,7 +146,12 @@ final readonly class NoticeStore {
 		if ( ! \is_string( $row['message'] ?? null ) ) {
 			return null;
 		}
-		return AdminNotice::from_array( $row );
+
+		try {
+			return AdminNotice::from_array( $row );
+		} catch ( InvalidAdminNoticeException ) {
+			return null;
+		}
 	}
 
 	// endregion
