@@ -4,7 +4,7 @@ DWS v2 WordPress framework — monorepo for 7 packages (bootstrap, shared, stora
 
 ## Status
 
-`bootstrap`, `shared` (Error / Exception / Result / ValueObject scaffolding + Reflection helpers), `storage` (KeyValueStore + Memory / Options / UserMeta backends), `core`, `utilities` (Hooks + AdminNotices + Conditionals + Caching), and `settings` (descriptors + aggregator + WordPress options & object-field backends) have implementations. `woocommerce` has a settings-backend implementation (`WooCommerceSettingsBackend` + `DescriptorBackedWCSettingsPage` + `WCSettingsBuilder`, Spec C Task 3.2) and a **product-data settings tab** primitive (`ProductData/` — `ProductDataTab` + `ProductDataFieldRenderer` + `ProductDataFieldStore`, 2026-06-15); its remaining WC helpers (version conditionals, `WC_Logger` PSR-3 bridge) await plugin-migration demand.
+All seven packages are implemented. `shared` (Error / Exception / Result / ValueObject / Version scaffolding + Reflection helpers), `storage` (KeyValueStore + Memory / Options / UserMeta backends), `core` (kernel + feature / lifecycle / rendering / installer contracts), `utilities` (Hooks + AdminNotices + Conditionals + Caching + Scheduling + Permissions), and `settings` (descriptors + aggregator + WordPress options & object-field backends + REST) sit on `bootstrap`. `woocommerce` carries the settings backend (`WooCommerceSettingsBackend` + `DescriptorBackedWCSettingsPage` + `WCSettingsBuilder`), the **product-data settings tab** (`ProductData/`), the **order-data field store** (`OrderData/`), WooCommerce version / db-version conditionals (`Conditionals/`), and a `WC_Logger` PSR-3 logger (`Logging/`).
 
 ## Monorepo structure
 
@@ -25,6 +25,7 @@ wordpress-framework/
 │   │       ├── Exception/     # ExceptionInterface + AbstractException / AbstractInvalidArgumentException / AbstractRuntimeException
 │   │       ├── Result/        # AbstractResult + Success + Failure (sealed-type sim of Result<T, E>)
 │   │       ├── ValueObject/   # ValueObjectInterface + AbstractValueObject + Exceptions/InvalidValueObjectException
+│   │       ├── Version/       # Version VO (version_compare semantics) + Exceptions/InvalidVersionException
 │   │       └── Reflection/    # get_public_property_names + convert_to_primitives (underpin VO base)
 │   ├── storage/            # ahegyes/wp-framework-storage (PHP 8.5+, zero-dep leaf — KV storage backends)
 │   │   ├── functions.php      # autoload-files aggregator (placeholder; storage has no namespace functions yet)
@@ -43,11 +44,12 @@ wordpress-framework/
 │   │       ├── Composite/                   # CompositeComponentInterface (static get_child_component_classes; kernel-dispatched subtree)
 │   │       ├── Conditional/ConditionalInterface.php  # pre-resolution gate (is_met)
 │   │       ├── Enabled/EnabledInterface.php          # post-resolution gate (is_enabled; collapsed from rev-1 Active+Disabled)
-│   │       ├── Lifecycle/                   # per-action markers: Hookable/, Initializable/, Renderable/, Outputtable/
+│   │       ├── Lifecycle/                   # kernel-dispatched markers: Hookable/, Initializable/
+│   │       ├── Rendering/                   # self-dispatched markers: Renderable/, Outputtable/
 │   │       └── Installer/                   # install/update/activate/deactivate/uninstall + version I/O (get/set stored, get current)
-│   ├── utilities/          # ahegyes/wp-framework-utilities (Hooks + AdminNotices + Conditionals + Caching)
+│   ├── utilities/          # ahegyes/wp-framework-utilities (Hooks + AdminNotices + Conditionals + Caching + Scheduling + Permissions)
 │   ├── settings/           # ahegyes/wp-framework-settings (declarative settings: descriptors + aggregator + WP options & object-field backends; depends on storage + shared)
-│   └── woocommerce/        # ahegyes/wp-framework-woocommerce (WooCommerceSettingsBackend + page base + WCSettingsBuilder; ProductData/ tab primitive)
+│   └── woocommerce/        # ahegyes/wp-framework-woocommerce (Backend/ settings stack + ProductData/ + OrderData/ + Conditionals/ + Logging/)
 ├── tests/Fixtures/consumer-smoke/  # plugin-template-shaped scoping smoke fixture
 ├── composer.json                   # path repos for all 7 packages + VCS for wordpress-configs + WP Packages registry for wp-plugin/woocommerce
 └── .github/workflows/
@@ -143,23 +145,24 @@ v2 split the surfaces: `HookHandlerInterface` is handler-only and `callable`-nat
 
 Reconsider when a concrete consumer wants substitutability — e.g., a logging/metrics decorator wrapping any registrar, or an embedded feature module typehinting "any registrar". Don't pre-add the abstraction.
 
-### Persistent admin notices: planned for Phase 2 (2026-05-09)
+### Persistent admin notices: built in Phase 2 (2026-05-09)
 
-v1 had three notice storage backends — `MemoryStore` (per-request), `OptionsStore` (cross-request via wp_options), `UserMetaStore` (per-user, dismissal-sticky) — combined with `DismissibleNoticesHandler` for "remember dismissed forever" semantics. v2's current `AdminNoticesService` is in-memory only.
+v1 had three notice storage backends — `MemoryStore` (per-request), `OptionsStore` (cross-request via wp_options), `UserMetaStore` (per-user, dismissal-sticky) — combined with `DismissibleNoticesHandler` for "remember dismissed forever" semantics. v2's `AdminNoticesService` queues notices in-memory; Phase 2 added the persistent `NoticeStore` (below) for cross-request and sticky-dismissal notices.
 
 Load-bearing in v1 plugins: LO-WC and QR-WC use `DismissibleAdminNotice` + `'user-meta'` store across 5+ call sites for post-redirect-get error UX (queue notice → `wp_safe_redirect` → render on next page load → user dismisses, never sees again). Without the persistent store, the redirect drops the notice.
 
-**Build before LO-WC migration starts.** Likely shape: `NoticeStore` interface + 3 backends (Memory/Options/UserMeta) + `is_persistent` flag on `AdminNotice` + dismissal tracking via user_meta keyed by notice ID.
+**Built in Phase 2** as designed: a `NoticeStore` interface + 3 backends (Memory/Options/UserMeta), an `is_persistent` flag on `AdminNotice`, and `DismissedNoticesTracker` dismissal via user_meta keyed by notice id.
 
 ### wp-framework-shared package: substrate kernel (2026-05-15)
 
-5th framework package: `ahegyes/wp-framework-shared`. Sits as a sibling of `bootstrap` in the dep tree (both have zero internal framework deps), and is required directly by `core` / `utilities` / `woocommerce` — not transitively through `core`.
+5th framework package: `ahegyes/wp-framework-shared`. Sits as a sibling of `bootstrap` in the dep tree (both have zero internal framework deps), and is required directly by `core` / `utilities` / `settings` / `woocommerce` — not transitively through `core`.
 
 Contents (all PHP 8.5+):
 - `Error/ErrorInterface` — marker for failure payloads carried by `Result\Failure`.
 - `Exception/{ExceptionInterface, AbstractException, AbstractInvalidArgumentException, AbstractRuntimeException}` — scaffolding for framework-side exception hierarchies.
 - `Result/{AbstractResult, Success, Failure}` — sealed-type simulation of `Result<TValue, TError>`.
 - `ValueObject/{ValueObjectInterface, AbstractValueObject}` with reflection-driven `equals()` + `jsonSerialize()` + `Exceptions/InvalidValueObjectException`.
+- `Version/{Version, Exceptions/InvalidVersionException}` — a `version_compare()`-semantics value object (added with the rev-2 installer).
 - `Reflection/functions.php` — `get_public_property_names()` + `convert_to_primitives()` helpers underpinning the VO base (files-autoloaded).
 
 Patterns adapted from A8C's customer360 `shared/` layer — same semantic role (DDD Shared Kernel applied within the framework family) but repackaged as a standalone Composer package per **Common Closure Principle** (Robert C. Martin: "classes that change together belong together") and **Reuse-Release Equivalence Principle** (the granule of reuse is the granule of release). Shared primitives change for different reasons than core's Plugin/Lifecycle, and should release independently. This also lets `utilities` and `woocommerce` depend on `shared` directly without inheriting core's Plugin/Lifecycle surface when they only need a Result type.
@@ -252,13 +255,13 @@ Landed the implemented-but-unreviewed `utilities` package (Hooks, AdminNotices, 
 - **AdminNotices `render_one()` left fully as-is** — passing the raw message to core `wp_admin_notice()` is safe: core does `echo wp_kses_post( wp_get_admin_notice(...) )`, sanitizing the entire markup (the audit's "XSS" flag confused `wp_get_admin_notice()` with `wp_admin_notice()`). The pre-6.4 `function_exists` fallback is dead at the WP 7.0 floor but kept, harmless.
 - **deptrac `Core_*` sublayers: SKIPPED.** The committed core is ~3 internal edges across single-interface files in one release granule; deptrac's value is at package boundaries (already enforced). Revisit only as `Core_Kernel` (sink) + `Core_Contracts` if doc-as-enforcement is wanted.
 
-### Framework i18n: consumer-domain via scope-time textdomain rewrite — deferred (2026-06-13)
+### Framework i18n: consumer-domain via scope-time textdomain rewrite (2026-06-13)
 
 The framework ships no translation catalogs (i18n-catalogs-drop decision), but user-facing framework strings MUST stay translatable. They are translatable only under the *consumer plugin's* text domain (resolved by the consumer's catalog + WP just-in-time loading) — not a framework-owned domain, and not WP core's `'default'` (which has no entries for custom strings).
 
-The intended mechanism is a build-time php-scoper patcher that rewrites a framework token → the consumer's text domain at scope time (v1 did this via `$dws_framework_language_domains`; the v2 `wordpress-configs` scoper rewrite dropped it). The `"text-domain"` composer field already exists in the template + every plugin but is wired to nothing — a half-built feature. The framework's only translatable strings today are the 3 in `bootstrap/src/Notice/functions.php` (domain `'wp-framework-bootstrap'`, left as the patcher's find-target).
+The mechanism is a build-time php-scoper patcher (`wordpress-configs` `contrib/wp-framework.inc.php`) that rewrites each framework `wp-framework-<package>` text domain → the consumer's `extra.text-domain` at scope time (v1 did this via `$dws_framework_language_domains`). The `"text-domain"` composer field in the template + every plugin feeds it; the framework's only translatable strings (the 3 in `bootstrap/src/Notice/functions.php`, domain `'wp-framework-bootstrap'`) are the patcher's find-targets. The `consumer-smoke` fixture exercises the rewrite and CI asserts zero residual `wp-framework-*` domains (and unprefixed WC symbols) in the scoped output.
 
-**Deferred to a `wordpress-configs` task** (it belongs with the scoping pipeline, migration-plan Task 4.0; the framework has no real consumers until Phase 4 plugin migration, so nothing ships untranslatable provided the patcher lands by then). Do NOT scatter per-package runtime dynamic-domain reads instead — finish the one scope-time mechanism.
+Built and wired. **The end-to-end runtime path (framework string → rewritten domain → consumer catalog → WP just-in-time loading) stays unproven until a plugin ships** — verify it at the first Phase-4 migration. Do NOT scatter per-package runtime dynamic-domain reads instead — the one scope-time mechanism is the design.
 
 ### Bootstrap requirements API: explicit `check_requirements` chain, no `are_requirements_met()` (2026-05-17, promoted 2026-06-12)
 
@@ -290,7 +293,7 @@ Those strings stay translatable — but under the **consumer plugin's** text dom
 
 ### Settings backends: ACF backend dropped (2026-06-12)
 
-Gap-analysis row 43 + #24; triage decision 5. v1's `ACFSettingsAdapter` has **zero** successor (IC/LO/LPM) usage — its apparent priority came only from non-successor plugins. v2 ships no ACF settings backend. The Spec C settings stack will define `WordPressSettingsBackend` (+ `WooCommerceSettingsBackend` — both still unwritten); MetaBox stays a planned on-demand backend (matrix row 44). ACF returns only if a wave-2 plugin that actually used it is revived, and then as a final backend against the Spec C contract — not the v1 adapter shape.
+Gap-analysis row 43 + #24; triage decision 5. v1's `ACFSettingsAdapter` has **zero** successor (IC/LO/LPM) usage — its apparent priority came only from non-successor plugins. v2 ships no ACF settings backend. The Spec C settings stack defines `WordPressSettingsBackend` + `WooCommerceSettingsBackend` (both built); MetaBox stays a planned on-demand backend (matrix row 44). ACF returns only if a wave-2 plugin that actually used it is revived, and then as a final backend against the Spec C contract — not the v1 adapter shape.
 
 ### Shortcodes + templating services: dropped; wave-2 triggers pre-seeded (2026-06-12)
 
@@ -302,13 +305,13 @@ Wave-2 re-entry triggers (recorded so the drop is reversible, not amnesia): a re
 
 Gap-analysis row 51 + #24; triage decision 4. The deliberate **exception** to the zero-successor drops above. v1's caching service also has zero *current* successor usage, but wave-2 (QR-WC / WR-WC) demand is certain from the archive call sites, so caching is built as a Phase-1 task rather than discover-on-demand — availability beats a later scramble when the consumer arrives (`feedback-build-ahead-when-demand-certain`).
 
-Planned shape (Task 1.2, design-bearing, not yet landed — mini-spec first): final classes, no facade. `TransientCache` (`get`/`set`/`delete`/`remember()`, per-plugin key prefix, versioned-group invalidation). The object cache stays **WP-native** — consumers call `wp_cache_*` directly, with `wp_cache_flush_group()` (WP 6.1+) for group invalidation; the framework does not wrap it. Task 1.2 carries the API-mapping table against the QR/WR v1 call sites.
+Built (Task 1.2): final classes, no facade. `TransientCache` (`get`/`set`/`delete`/`remember()`, per-plugin key prefix, versioned-group invalidation) and `ObjectCache` (a wrapper over WP's object cache with false-safe reads + versioned-group invalidation). The earlier *object-cache-stays-WP-native* stance was reversed when the demand-certain build-ahead added the `ObjectCache` wrapper.
 
 ### Permissions-as-capabilities: in each plugin's Installer (2026-06-12)
 
 Gap-analysis #17 + matrix row 63; triage decision 1. The #1 successor-impact framework gap (v1 `AbstractPermissions*Functionality`: recursive collection, role `add_cap`/`remove_cap`, permission versioning + caching — 28 files / 51 hits across all three successors).
 
-v2 has no permissions framework. Capability grants live in each plugin's concrete `InstallerInterface` implementation: **grant on `install()` and `update()`, revoke on `uninstall()`** — not on deactivate, since capabilities persist across a deactivate/reactivate cycle, matching WP norms. IC's current activate-time grant gets realigned to this during its migration (Task 4.1). A shared caps-diff helper is carved out only on 2+-plugin duplication, not pre-built. The worked recipe (IC's capability list; the install/update/uninstall triplet) lives in the project vault.
+v2 has no permissions framework. Capability grants live in each plugin's concrete `InstallerInterface` implementation: **grant on `install()` and `update()`, revoke on `uninstall()`** — not on deactivate, since capabilities persist across a deactivate/reactivate cycle, matching WP norms. IC's current activate-time grant gets realigned to this during its migration (Task 4.1). The shared caps-diff helper is built ahead under the demand-certain rule — `utilities/Permissions/CapabilityRegistrar` grants on install, reconciles on update (diffing against the prior version's map, so a capability moved between roles is cleaned up), and revokes on uninstall, idempotently; a plugin's installer drives it. The worked recipe (IC's capability list; the install/update/uninstall triplet) lives in the project vault.
 
 ### Install / update: silent versioned migrations, notice on failure only (2026-06-12)
 
@@ -320,14 +323,14 @@ There is no framework `InstallationManager` — an orchestrator in `utilities` w
 
 Gap-analysis #22 + matrix row 24. v1 shipped five generic concrete exceptions. v2 `shared/Exception/` holds the interface + three abstract bases only and adds concretes back on demand. Add `final NotFoundException` and `final NotSupportedException` (each extending the fitting abstract) at the first consumer that throws them: `NotSupportedException` already has surviving-code precedent (v1 `DWS_Order_Node` / `DWS_Internal_Comment` models throw it), and `NotFoundException` is the likely first call for the stores/settings backends. The other three v1 concretes — `InexistentPropertyException`, `NotImplementedException`, `ReadOnlyPropertyException` — were thrown only by v1 framework constructs that v2 drops or redesigns (the validation handlers, the dependency-state / admin-notice / `*Aware` traits, the WC validated-options abstracts, the magic-property accessors), so they have no v2 home. Once concretes mix with the abstracts they nest in a plural `shared/Exception/Exceptions/` bag per the singular-concept / plural-bag rule; until then, no speculative classes.
 
-### WooCommerce package: version conditionals + `WC_Logger` PSR-3 adapter, on demand (2026-06-12)
+### WooCommerce package: version conditionals + `WC_Logger` PSR-3 adapter — built ahead (2026-06-12)
 
-Gap-analysis #21 + matrix rows 65/66. *(Partially superseded 2026-06-15: the WC settings backend landed via Spec C Task 3.2 — see the decision block below — so the package is no longer a skeleton. These two helpers remain on-demand.)* Two WC helpers land at the first WC-plugin migration (LO-WC, Phase 4), both thin finals:
+Gap-analysis #21 + matrix rows 65/66. *(Superseded: the WC settings backend landed (Spec C Task 3.2), then both helpers below were built ahead under the demand-certain rule rather than waiting for the first WC-plugin migration — they are no longer on-demand.)* Both are thin finals in the woocommerce package:
 
 - **WC version conditionals** — `Shared\Version\Version` covers version-compare mechanics, but WC's plugin-version and **db-version** checks (the latter has no analogue anywhere in v2) become `ConditionalInterface` implementations in the woocommerce package, mirroring the `utilities/Conditionals/Dependencies/` shape.
 - **`WC_Logger` PSR-3 bridge** — a thin `final` adapter implementing `Psr\Log\LoggerInterface` over WC's `WC_Logger` (v1's `WC_LoggingHandler`), so framework/plugin code logs through the standard PSR-3 surface and the kernel's optional logger can route to WC's log viewer.
 
-Both are trivial finals best shaped against their first real consumer, so they ride the LO-WC migration rather than being pre-built in the skeleton now.
+Both are thin finals, built ahead under the demand-certain rule rather than waiting for the LO-WC migration.
 
 ### wp-core-calls tooling: archived, not active (2026-06-12)
 
@@ -369,13 +372,13 @@ Resolves parity finding A1 (the v1→v2 parity reconciliation — reports archiv
 
 ### Component grammar — interface placement (2026-06-21)
 
-One rule replaces three improvised conventions. An interface lives at the ROOT of the concept folder it names; concrete variants live in plural sub-bags beneath it (`Handlers/`, `Stores/`, `Backends/`, `ValueObjects/`, `Exceptions/`). A package whose ENTIRE content is a single concept keeps its contract flat at the package `src/` root — the package boundary IS the concept boundary (e.g. `storage`: `KeyValueStoreInterface` beside its stores). The locked core entrypoint pair (`PluginInterface` / `PluginKernel`) is the one explicit flat exception; do not generalize it. There is NO generic `Contracts/` subfolder — an interface is the concept's root type, not a nested artifact. Placement test for a new interface: does its concept share the package with other concepts? → concept-folder root. Is the package a single concept (or the locked entrypoint)? → package root. Applied: `Hooks/Contracts/HookHandlerInterface` moved to `Hooks/HookHandlerInterface`. (`settings` is multi-concept but currently under-foldered; its concept-folder reorganization is tracked as a separate item.)
+One rule replaces three improvised conventions. An interface lives at the ROOT of the concept folder it names; concrete variants live in plural sub-bags beneath it (`Handlers/`, `Stores/`, `Backends/`, `ValueObjects/`, `Exceptions/`). A package whose ENTIRE content is a single concept keeps its contract flat at the package `src/` root — the package boundary IS the concept boundary (e.g. `storage`: `KeyValueStoreInterface` beside its stores). The locked core entrypoint pair (`PluginInterface` / `PluginKernel`) is the one explicit flat exception; do not generalize it. There is NO generic `Contracts/` subfolder — an interface is the concept's root type, not a nested artifact. Placement test for a new interface: does its concept share the package with other concepts? → concept-folder root. Is the package a single concept (or the locked entrypoint)? → package root. Applied: `Hooks/Contracts/HookHandlerInterface` moved to `Hooks/HookHandlerInterface`. (`settings`' `Schema` concept is organized into `Field/`, `Options/`, and `Aggregation/` concept folders — the field-type/render/process classes, the options resolver + provider, and the field aggregator + provider respectively — with `ValueObjects/`/`Exceptions/`/`Errors/` as its plural bags.)
 
 ### Component grammar — value object vs descriptor (2026-06-21)
 
 `ValueObjects/` folders hold immutable carriers of two kinds; the folder name is kept, and the kinds are distinguished by base class + docblock, not by a marker interface. **Value object** — extends `Shared\ValueObject\AbstractValueObject`; use ONLY when reflection-driven structural `equals()` / `jsonSerialize()` is actually consumed and every public property can participate safely in structural equality (`PluginHeader`, `Version`); its docblock opens "Value object …". **Descriptor** — a bare `final readonly` class with no base; the default immutable carrier, and REQUIRED when it holds closures/callables, runtime providers, or WordPress/WooCommerce objects (`SettingsField`, `SettingsPage`, `SettingsSection`, `ObjectMetaBox`, `AdminNotice`, `DependencyRequirement`); its docblock opens "Descriptor for …". A marker `DescriptorInterface` is deferred until real code must typehint a polymorphic descriptor collection — a taxonomy-only marker is ceremony (service interfaces only on plurality).
 
-**Invalidity exceptions follow the same split.** A value object's invalidity exception extends `Shared\ValueObject\Exceptions\InvalidValueObjectException` (the VO-exception-family base), supplying its `value_object_type` — e.g. `InvalidVersionException` for `Version`. A descriptor's invalidity exception extends the generic `Abstract{InvalidArgument,Runtime}Exception` base directly (`InvalidSettingsFieldException`, …) — it is not a value object. The base is the one sanctioned abstract-exception family (see the abstract-base-classes block).
+**Invalidity exceptions follow the same split.** A value object's invalidity exception extends `Shared\ValueObject\Exceptions\InvalidValueObjectException` (the VO-exception-family base), supplying its `value_object_type` — e.g. `InvalidVersionException` for `Version`. A descriptor's invalidity exception extends the generic `Abstract{InvalidArgument,Runtime}Exception` base directly (it is not a value object); the choice between the two follows the failure's nature — `AbstractInvalidArgumentException` when it validates a malformed, caller-supplied descriptor argument (e.g. `InvalidSettingsField`/`Section`/`Page`/`CustomFieldType`, the MetaField `InvalidFieldGroup`/`InvalidTermFieldGroup`, `InvalidAdminNoticeException`, and `InvalidProductDataTabException` — the last also covering an incomplete custom-field wiring caught at tab registration), `AbstractRuntimeException` for a runtime fault (`Duplicate…`, `Unknown…`, `Unsupported…`, `Unbound…`, options-resolution). The base is the one sanctioned abstract-exception family (see the abstract-base-classes block).
 
 ### DeprecatedHooksDispatcher: speculative-by-choice (2026-06-22)
 
@@ -389,10 +392,34 @@ Considered folding `shared/Error/ErrorInterface` into `Result/` (it reads as a s
 
 `shared/Result/` (the `Success`/`Failure` sealed pair over an `ErrorInterface` payload) carries an EXPECTED, caller-actionable failure as data — the error-as-data half of the split the `Error/ErrorInterface` ↔ `Exception/ExceptionInterface` docblocks draw. This block fixes WHEN a fallible operation returns a `Result` rather than `void`/`throw`, so the idiom stays a deliberate boundary instead of spreading by habit (or being read as the only fallible-write convention).
 
-An operation returns `Result<TValue, TError>` only when BOTH hold: its failure is an expected outcome — not a programmer error, not an infrastructure outage — AND the caller is expected to branch on which failure occurred. The reference consumer is `utilities/Scheduling`: a schedule request can fail because Action Scheduler is not loaded, the interval is non-positive, the group is unsupported, or the backend rejected it — each an enumerable `SchedulingErrorReason` a caller acts on, and the scheduled work is latent (it runs on a later request), so a dropped failure silently means "never scheduled." Latent + enumerable is the test.
+An operation returns `Result<TValue, TError>` only when BOTH hold: its failure is an expected outcome — not a programmer error, not an infrastructure outage — AND the caller is expected to branch on which failure occurred. The reference consumer is `utilities/Scheduling`: a schedule request can fail because Action Scheduler is not loaded, the interval is non-positive, the group is unsupported, or the backend rejected it — each an enumerable `SchedulingErrorReason` a caller acts on, and the scheduled work is latent (it runs on a later request), so a dropped failure silently means "never scheduled." Expected, enumerable, and caller-actionable is the test — latency, as here, only sharpens the cost of dropping the failure.
 
 Everything else stays `void`/`throw`. Fire-and-forget persistence and cache writes — `KeyValueStoreInterface::set`, the settings backends' `set`, the meta/order field stores' `set`, the cache writes — return `void`: a failed `update_option`/`wp_cache_set` is an environment fault, not a domain branch the caller selects a recovery for, and the next request re-reconciles; threading a `Result` through every store write would be ceremony. A misuse fixable only in code throws an exception, never a `Failure`.
 
 Enforcement: each public operation that returns a `Result` carries `#[\NoDiscard]`, so a latent failure cannot be silently dropped — dropping a `Failure` from a fire-and-forget-looking call is the exact silent-unscheduled-job bug the idiom exists to prevent. `void` writes need no guard, and the internal result-mapping helpers, always consumed via `return`, are not caller-facing discard points. (`#[\NoDiscard]` is not inherited in PHP, so it sits on each concrete dispatched method; the interface declaration also carries it as the contract.)
 
-Scheduling being the sole `Result` consumer today is by design, not omission — it is the only current operation whose failures are both latent and enumerable. A future operation of the same shape (a validating domain service, an async enqueue) adopts `Result`; a new store/cache/settings write does not.
+`utilities/Scheduling` and `settings`' `FieldProcessor` are the `Result` consumers today — the operations whose failures are expected, enumerable, and caller-actionable. Scheduling's are latent (a dropped `Failure` means a job is never scheduled); the field processor is the synchronous validating-domain-service case the rule anticipates — its `process_or_reject()` returns a `Failure<FieldProcessingError>` carrying the enumerable `FieldProcessingErrorReason` for the save path to branch on (its sibling `process()` instead folds a rejection to a fallback value), while the settings backend's `set` write stays `void`. A new store/cache/settings *write* still does not adopt `Result`.
+
+### Mutation testing: strict-Unit + non-strict-Integration profiles (2026-06-28)
+
+Two Infection profiles. The default (`composer test:mutation`, `infection.json`) mutates the Unit-covered code from the strict root PHPUnit config. A second (`composer test:mutation:integration`, `infection.integration.json`) mutates the Integration-covered code (the WC/settings backends, object-field/order/product stores, storage, utilities) inside the wp-env `cli` container.
+
+The Integration profile points at a **non-strict** PHPUnit config (`tests/mutation/phpunit.dist.xml`, `beStrictAboutCoverageMetadata` off): integration tests boot WP and traverse broad core stacks, so under coverage they "execute undeclared code" en masse; Infection mutates from real line coverage, not Covers/Uses metadata, and a risky-flagged test counted as a kill would inflate MSI. Only `beStrictAboutCoverageMetadata` is relaxed — `failOnRisky` stays true, and the canonical `composer test:integration` (root config) stays strict + fail-on-risky. `Backend/DescriptorBackedWCSettingsPage` is excluded from this profile: it `extends \WC_Settings_Page`, which WC's autoloader does not resolve, so Infection's static analysis (WP not booted) fatals on the unresolved parent; the exclude drops it from mutation scoring only, not its integration tests (it is the sole `extends \WC_*`/`\WP_*` class in src).
+
+Per-profile `minCoveredMsi` floors guard regressions. The coverage driver in the `cli` container is the docker-official PHP's pcov (the Alpine system PHP's `php85-pecl-pcov` targets the wrong binary); `test:mutation:integration` preflights for a driver and names the fix. CI enforces only the Unit profile today; wiring the Integration profile needs a coverage input on the `wordpress-configs` reusable PHPUnit workflow — a cross-repo follow-up.
+
+### Static-analysis stubs: WP 7.0 via inline alias (2026-06-28)
+
+PHPStan analyses against `php-stubs/wordpress-stubs` 7.0.0, pulled via a Composer inline alias (`"php-stubs/wordpress-stubs": "7.0.0 as 6.9999.0"` in the root `composer.json` require-dev) because `php-stubs/woocommerce-stubs` caps `wordpress-stubs` below 7.0. An inline alias requires an exact left-hand version, so this **hard-pins** wordpress-stubs to exactly 7.0.0 — it will not float to 7.0.x/7.x. Maintenance: (a) drop the alias for a plain `^7.0` once `woocommerce-stubs` widens its cap to include `^7.0`; (b) until then, bump the `7.0.0` string on each new WP 7.x stubs release. `wp-plugin/woocommerce` + `woocommerce-stubs` are pinned to `^10.9`. Per-package `phpstan.neon` configs enforce the package boundaries; the root `phpstan.dist.neon` was removed so a bare or IDE PHPStan run fails loudly rather than passing under a lenient global set.
+
+### OrderData / ProductData naming: per-domain meta surfaces, kept (2026-06-28)
+
+The woocommerce package groups its field machinery under `OrderData/` (`OrderFieldStore` + `OrderMetaRepository`) and `ProductData/` (`ProductDataTab` + `ProductDataFieldRenderer` + `ProductDataFieldStore`). The folder names denote the WooCommerce domain object whose meta the folder manages — the order vs. the product — not a layer; they are the concept folders for two distinct meta surfaces with different WC integration points (HPOS order screens vs. product-data panels). Kept as-is: the `Store`/`Repository`/`Tab`/`Renderer` suffixes carry the role within each.
+
+### Settings REST exposure: opt-in, type-only schema (2026-06-28)
+
+The WordPress settings backend registers one grouped option per section with `register_setting`; when a section's fields opt into REST (`SettingsField::$show_in_rest`), it attaches a generated `object` schema (`rest_schema_for_field` per exposed field) so the section's option is REST-exposed. The generated schema is **type-only**: a choice field is typed by its value (string/integer), not constrained to an `enum` of its current options. Option sets can be dynamic (a `Closure`/provider resolved per request), so baking them into a static REST schema would rot or wrongly reject a valid runtime option; membership validation stays the descriptor's `sanitize`/`validate` seam. REST exposure is opt-in per field (`show_in_rest` defaults false); the WooCommerce backend leaves REST to WC-native option storage.
+
+### Identifier validation: single-sourced free functions (2026-06-28)
+
+A user-supplied identifier reused as a storage key, form-field-name segment, nonce key, or DOM id is validated against a single-sourced charset free function at every construction site, so a malformed id fails at wiring time rather than at use. `settings` uses `Schema\is_valid_identifier`; `utilities` uses `AdminNotices\is_valid_notice_id` (lowercase `a-z`, digits, `_`, `-` — matching `sanitize_key`'s retained set, so a passing id round-trips WP's `data-dismissible` dismissal key unchanged). An `AdminNotice` id is validated at the `AdminNotice` ctor, the `AdminNoticeLogger` ctor (so a bad id throws at logger construction, before the fail-closed kernel-boot installer path that calls the logger), and explicit `DependencyRequirement` ids; a derived `dep_…` id is provably within the charset by construction, so it never throws.
