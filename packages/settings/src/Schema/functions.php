@@ -166,7 +166,10 @@ function wordpress_field_type_sanitizers(): array {
  */
 function rest_schema_for_field( SettingsField $field ): array {
 	return match ( FieldType::tryFrom( $field->type ) ) {
-		FieldType::Multiselect              => array( 'type' => 'array', 'items' => array( 'type' => array( 'string', 'integer' ) ) ),
+		FieldType::Multiselect              => array(
+			'type'  => 'array',
+			'items' => array( 'type' => array( 'string', 'integer' ) ),
+		),
 		FieldType::Checkbox                 => array( 'type' => array( 'boolean', 'string', 'integer' ) ),
 		FieldType::Number                   => array( 'type' => array( 'integer', 'number', 'string', 'boolean' ) ),
 		FieldType::Select, FieldType::Radio => array( 'type' => array( 'string', 'integer', 'boolean' ) ),
