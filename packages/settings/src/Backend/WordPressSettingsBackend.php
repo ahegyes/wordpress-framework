@@ -138,7 +138,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 
 	// endregion
 
-	// region METHODS
+	// region INHERITED METHODS
 
 	/**
 	 * {@inheritDoc}
