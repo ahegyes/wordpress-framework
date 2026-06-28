@@ -13,5 +13,5 @@ Pending entries live in [`changelog/`](./changelog) — add via `composer change
 - **Cross-component contribution** — field providers concatenated by a pure aggregator, with stable ordering and duplicate-id rejection.
 - **WordPress options backend** — per-section grouped-array option storage (reusing `wp-framework-storage`), submenu and Settings API registration, and a save-context-guarded group sanitizer.
 - **REST exposure** — opt-in per-field `show_in_rest`, with a generated schema registered alongside each WordPress-backend setting.
-- **Object fields** — per-entity meta storage with HPOS-aware order/post meta-box registration.
+- **Object fields** — per-entity meta storage with post, term, and user field registration.
 - **WP-free field-type and render layer** — a field-processing dispatcher (sanitize → validate → coerce) and renderer over a fixed field-type taxonomy.
