@@ -24,6 +24,9 @@
   "prefer-stable": true,
 
   "autoload": {
+    "classmap": [
+      "src/"
+    ],
     "files": [
       "functions.php"
     ]

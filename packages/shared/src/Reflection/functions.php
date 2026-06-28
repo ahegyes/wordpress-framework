@@ -54,7 +54,7 @@ function convert_to_primitives( \JsonSerializable $input_object ): array {
 	};
 
 	$result = array();
-	foreach ( get_public_property_names( $input_object ) as $property_name ) {
+	foreach ( namespace\get_public_property_names( $input_object ) as $property_name ) {
 		// @phpstan-ignore-next-line property.dynamicName
 		$result[ $property_name ] = $process_property_value( $input_object->{ $property_name } );
 	}

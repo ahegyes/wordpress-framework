@@ -27,6 +27,7 @@
     "deptrac/deptrac": "^4.6",
     "infection/infection": "^0.32",
     "johnpbloch/wordpress-core": "^7.0",
+    "maglnet/composer-require-checker": "^4.20",
     "php-stubs/woocommerce-stubs": "^10.9",
     "php-stubs/wordpress-stubs": "7.0.0 as 6.9999.0",
     "phpunit/phpunit": "^13",
@@ -107,7 +108,8 @@
     "lint:php": [
       "@lint:php:phpcs",
       "@lint:php:phpstan",
-      "@lint:php:deptrac"
+      "@lint:php:deptrac",
+      "@lint:php:composer-require-checker"
     ],
     "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
     "lint:php:phpstan": [
@@ -120,6 +122,7 @@
       "phpstan analyse -c packages/woocommerce/phpstan.neon --memory-limit=1G"
     ],
     "lint:php:deptrac": "deptrac analyse --no-interaction --cache-file=tests/.cache/deptrac",
+    "lint:php:composer-require-checker": "@php bin/composer-require-check.php",
 
     "test:wp-env:ensure": "node_modules/.bin/wp-env --config .wp-env.tests.json run cli true >/dev/null 2>&1 || npm --prefix=. run wp-env:start",
     "test": [
