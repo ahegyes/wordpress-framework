@@ -1,0 +1,30 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "packages/bootstrap/src",
+            "packages/core/src",
+            "packages/settings/src",
+            "packages/shared/src",
+            "packages/storage/src",
+            "packages/utilities/src",
+            "packages/woocommerce/src"
+        ],
+        "excludes": [
+            "tests",
+            "changelog",
+            "Backend/DescriptorBackedWCSettingsPage.php"
+        ]
+    },
+    "phpUnit": {
+        "configDir": "tests/mutation"
+    },
+    "logs": {
+        "text": "build/infection-integration/infection.log",
+        "html": "build/infection-integration/infection.html",
+        "summary": "build/infection-integration/summary.log"
+    },
+    "mutators": {
+        "@default": true
+    }
+}

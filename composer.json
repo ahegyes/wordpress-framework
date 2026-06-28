@@ -133,6 +133,12 @@
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration"
     ],
     "test:mutation": "@php vendor/bin/infection --threads=max",
+    "test:mutation:integration": [
+      "@putenv CI=1",
+      "@test:wp-env:ensure",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli php -r 'exit((extension_loaded(\"pcov\") || str_contains((string) ini_get(\"xdebug.mode\"), \"coverage\")) ? 0 : 1);' || { echo 'The wp-env cli container has no code coverage driver; start wp-env with --xdebug=coverage or install pcov in the container.'; exit 1; }",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/infection --configuration=infection.integration.json --threads=max"
+    ],
     "test:all": [
       "@test:unit",
       "@test:integration",

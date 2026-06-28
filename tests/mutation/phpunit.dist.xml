@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PHPUnit configuration for the Integration mutation profile (infection.integration.json). Integration
+     tests boot WordPress and traverse broad core stacks, so strict coverage metadata is a unit-suite
+     discipline that does not apply here; Infection drives mutation from real line coverage, not from
+     Covers/Uses metadata. Run order is deterministic so a mutant's covering tests stay reproducible. -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:noNamespaceSchemaLocation="../../vendor/phpunit/phpunit/phpunit.xsd"
+		 bootstrap="../bootstrap.php"
+		 colors="true"
+		 cacheDirectory="../.cache/phpunit"
+		 executionOrder="default"
+		 requireCoverageMetadata="false"
+		 beStrictAboutCoverageMetadata="false"
+		 beStrictAboutOutputDuringTests="true"
+		 failOnRisky="true"
+		 failOnWarning="true"
+		 defaultTestSuite="Integration">
+	<testsuites>
+		<testsuite name="Integration">
+			<directory>../../packages/*/tests/Integration</directory>
+		</testsuite>
+	</testsuites>
+
+	<php>
+		<ini name="memory_limit" value="512M"/>
+	</php>
+
+	<source>
+		<include>
+			<directory>../../packages/*/src</directory>
+		</include>
+	</source>
+</phpunit>
