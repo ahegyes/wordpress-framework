@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( InvalidValueObjectException::class )]
 #[UsesClass( AbstractValueObject::class )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Shared\Reflection\get_public_property_names' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Reflection\convert_to_primitives' )]
 final class VersionTest extends TestCase {
 	public function test_from_string_constructs_valid_semver(): void {
 		$v = Version::from_string( '2.0.0' );

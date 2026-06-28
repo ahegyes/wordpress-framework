@@ -7,9 +7,11 @@ use DeepWebSolutions\Framework\Settings\Schema\SettingsOptionsProviderInterface;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( SettingsField::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 final class SettingsFieldTest extends TestCase {
 	public function test_minimal_construction_exposes_documented_defaults(): void {
 		$field = new SettingsField( id: 'my_field', type: 'text', label: 'My Field' );

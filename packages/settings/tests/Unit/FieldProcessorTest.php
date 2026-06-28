@@ -13,6 +13,7 @@ use DeepWebSolutions\Framework\Shared\Result\Failure;
 use DeepWebSolutions\Framework\Shared\Result\Success;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( FieldProcessor::class )]
@@ -23,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( Failure::class )]
 #[UsesClass( FieldProcessingError::class )]
 #[UsesClass( FieldProcessingErrorReason::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 final class FieldProcessorTest extends TestCase {
 	public function test_an_unknown_field_type_throws(): void {
 		$this->expectException( UnknownFieldTypeException::class );

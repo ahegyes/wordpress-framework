@@ -5,9 +5,11 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Unit\MetaField;
 use DeepWebSolutions\Framework\Settings\MetaField\Exceptions\InvalidFieldGroupException;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( FieldGroup::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 final class FieldGroupTest extends TestCase {
 	public function test_minimal_construction_round_trips(): void {
 		$provider = static fn ( int $object_id ): array => array();

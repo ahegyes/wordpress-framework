@@ -6,10 +6,12 @@ use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\UserProfileFieldGroup;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( UserProfileFieldGroup::class )]
 #[UsesClass( FieldGroup::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 final class UserProfileFieldGroupTest extends TestCase {
 	public function test_it_wraps_a_field_group_and_shows_on_the_own_profile_by_default(): void {
 		$group   = $this->group();

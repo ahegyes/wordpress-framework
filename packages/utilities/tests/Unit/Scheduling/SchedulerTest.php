@@ -7,9 +7,11 @@ use DeepWebSolutions\Framework\Shared\Result\Success;
 use DeepWebSolutions\Framework\Utilities\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Utilities\Scheduling\SchedulerBackendInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( Scheduler::class )]
+#[UsesClass( Success::class )]
 final class SchedulerTest extends TestCase {
 	public function test_schedule_recurring_routes_to_action_scheduler_when_ready(): void {
 		$action_scheduler = $this->recording_backend();

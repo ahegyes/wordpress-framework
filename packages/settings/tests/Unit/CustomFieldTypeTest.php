@@ -8,10 +8,12 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( CustomFieldType::class )]
 #[UsesClass( SettingsField::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 final class CustomFieldTypeTest extends TestCase {
 	public function test_a_valid_token_round_trips(): void {
 		$render = static fn ( SettingsField $field, mixed $value, string $name ): string => '<custom />';

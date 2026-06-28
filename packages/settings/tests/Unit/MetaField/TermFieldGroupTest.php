@@ -7,10 +7,12 @@ use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\TermFieldGroup;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( TermFieldGroup::class )]
 #[UsesClass( FieldGroup::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 final class TermFieldGroupTest extends TestCase {
 	public function test_it_wraps_a_field_group_and_a_taxonomy(): void {
 		$group = $this->group();

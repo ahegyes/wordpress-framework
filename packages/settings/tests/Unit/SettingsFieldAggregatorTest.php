@@ -8,10 +8,12 @@ use DeepWebSolutions\Framework\Settings\Schema\SettingsFieldProviderInterface;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( SettingsFieldAggregator::class )]
 #[UsesClass( SettingsField::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 final class SettingsFieldAggregatorTest extends TestCase {
 	public function test_no_providers_yields_an_empty_list(): void {
 		self::assertSame( array(), ( new SettingsFieldAggregator() )->aggregate( array() ) );
