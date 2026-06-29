@@ -9,53 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  php-qa:
-    name: PHP QA
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-qa.yml@1b3ecbb2ba87e6c10b52e91b6d0816f420c2dca6
+  lint-php:
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@0a9f3152853200fbdcbe3fa8d5073aae24fb05c3
     with:
-      php-version: '8.5'
-
-  deptrac:
-    name: Deptrac
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-        with:
-          persist-credentials: false
-      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
-        with:
-          php-version: '8.5'
-          coverage: none
-          tools: composer:v2
-      - uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
-      - run: composer lint:php:deptrac
-
-  composer-require-checker:
-    name: Composer Require Checker
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-        with:
-          persist-credentials: false
-      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
-        with:
-          php-version: '8.5'
-          coverage: none
-          tools: composer:v2
-      - uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
-      - run: composer lint:php:composer-require-checker
-
-  changelog:
-    name: Changelog fragments
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-        with:
-          persist-credentials: false
-      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
-        with:
-          php-version: '8.5'
-          coverage: none
-          tools: composer:v2
-      - uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
-      - run: composer changelog:validate
+      scripts: '["lint:php:phpcs", "lint:php:phpstan", "lint:php:deptrac", "lint:php:composer-require-checker", "changelog:validate"]'
