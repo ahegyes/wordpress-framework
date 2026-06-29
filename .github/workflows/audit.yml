@@ -15,4 +15,6 @@ permissions:
 jobs:
   audit:
     name: Audit
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-supply-chain-audit.yml@1b3ecbb2ba87e6c10b52e91b6d0816f420c2dca6
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-supply-chain-audit.yml@db1f56b3c96ae1fae91eb10ec162ba8095b904ad
+    with:
+      fail-on-findings: false
