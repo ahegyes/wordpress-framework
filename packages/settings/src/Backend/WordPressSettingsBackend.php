@@ -416,7 +416,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 			// autoload by size rather than the section policy; pin the policy so both write paths agree.
 			\add_filter(
 				'wp_default_autoload_value',
-				static fn ( ?bool $default, string $option ): ?bool => $option === $option_name ? $autoload : $default,
+				static fn ( ?bool $default_value, string $option ): ?bool => $option === $option_name ? $autoload : $default_value,
 				10,
 				2,
 			);

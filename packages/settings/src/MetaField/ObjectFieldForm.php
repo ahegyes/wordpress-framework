@@ -145,7 +145,7 @@ final class ObjectFieldForm {
 			// validation) revokes the key too, rather than folding to a default.
 			$value = $this->processor->process_or_reject( $field, $submitted )->match(
 				static fn ( mixed $accepted ): mixed => $accepted,
-				static fn ( FieldProcessingError $error ): mixed => false, // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable -- a rejected submission revokes the key.
+				static fn ( FieldProcessingError $error ): mixed => false, // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- a rejected submission revokes the key.
 			);
 			if ( $this->should_store( $value ) ) {
 				$sets[ $meta_key ] = $value;

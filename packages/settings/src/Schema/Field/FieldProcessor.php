@@ -74,7 +74,7 @@ final class FieldProcessor {
 	public function process( SettingsField $field, array $input ): mixed {
 		return $this->process_or_reject( $field, $input )->match(
 			static fn ( mixed $value ): mixed => $value,
-			fn ( FieldProcessingError $error ): mixed => $this->fallback_value( $field ), // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable -- the rejection cause is folded to a fallback value.
+			fn ( FieldProcessingError $error ): mixed => $this->fallback_value( $field ), // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- the rejection cause is folded to a fallback value.
 		);
 	}
 
