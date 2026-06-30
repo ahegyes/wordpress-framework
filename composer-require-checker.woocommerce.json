@@ -1,0 +1,10 @@
+{
+    "symbol-whitelist": [
+        "Action_Scheduler\\WP_CLI\\ProgressBar",
+        "Automattic\\WooCommerce\\Blocks\\Assets\\Api",
+        "Automattic\\WooCommerce\\EmailEditor\\Engine\\Renderer\\ContentRenderer\\Rendering_Context",
+        "Automattic\\WooCommerce\\Internal\\DataStores\\Orders\\CustomOrdersTableController",
+        "Automattic\\WooCommerce\\Internal\\DataStores\\Orders\\DataSynchronizer",
+        "Automattic\\WooCommerce\\Internal\\Features\\FeaturesController"
+    ]
+}

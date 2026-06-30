@@ -2,11 +2,14 @@
 
 namespace DeepWebSolutions\Framework\Bootstrap\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Bootstrap\Environment\is_php_compatible;
 use function DeepWebSolutions\Framework\Bootstrap\Environment\is_wp_compatible;
 
+#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\Environment\is_php_compatible' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\Environment\is_wp_compatible' )]
 final class IsCompatibleTest extends TestCase {
 	public function test_is_php_compatible_falls_back_to_version_compare_when_wp_native_missing(): void {
 		self::assertFalse( \function_exists( '\is_php_version_compatible' ), 'WP must not be loaded for unit tests.' );

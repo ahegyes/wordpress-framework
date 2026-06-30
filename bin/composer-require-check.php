@@ -8,9 +8,9 @@
  * Composer dependencies on its own. For each package this script points the
  * package vendor at the root vendor for the duration of the check, derives the
  * WordPress / WooCommerce stub files to treat as host symbols from the package's
- * own `extra.scoping-stubs`, and layers the shared host-symbol allow-list from
- * composer-require-checker.json on top. It exits non-zero when a package uses a
- * Composer symbol it does not declare in `require`.
+ * own `extra.scoping-stubs`, and layers only the matching host-symbol allow-lists
+ * on top. It exits non-zero when a package uses a Composer symbol it does not
+ * declare in `require`.
  */
 
 $root = \dirname( __DIR__ );
@@ -23,11 +23,40 @@ if ( ! \is_file( $checker ) ) {
 	exit( 2 );
 }
 
-$base = \json_decode( (string) \file_get_contents( $root . '/composer-require-checker.json' ), true );
-if ( ! \is_array( $base ) ) {
-	\fwrite( \STDERR, "composer-require-checker.json is missing or not valid JSON.\n" );
-	exit( 2 );
-}
+$read_config = static function ( string $path ): array {
+	$config = \json_decode( (string) \file_get_contents( $path ), true );
+	if ( ! \is_array( $config ) ) {
+		\fwrite( \STDERR, \basename( $path ) . " is missing or not valid JSON.\n" );
+		exit( 2 );
+	}
+
+	return $config;
+};
+
+$read_symbol_whitelist = static function ( string $path ) use ( $read_config ): array {
+	$config = $read_config( $path );
+	$symbols = $config['symbol-whitelist'] ?? array();
+	if ( ! \is_array( $symbols ) ) {
+		\fwrite( \STDERR, \basename( $path ) . " must define symbol-whitelist as an array.\n" );
+		exit( 2 );
+	}
+
+	foreach ( $symbols as $symbol ) {
+		if ( ! \is_string( $symbol ) ) {
+			\fwrite( \STDERR, \basename( $path ) . " contains a non-string symbol-whitelist entry.\n" );
+			exit( 2 );
+		}
+	}
+
+	return $symbols;
+};
+
+$base = $read_config( $root . '/composer-require-checker.json' );
+$shared_symbol_whitelist = $read_symbol_whitelist( $root . '/composer-require-checker.json' );
+
+$surface_allow_lists = array(
+	'php-stubs/woocommerce-stubs' => $root . '/composer-require-checker.woocommerce.json',
+);
 
 $cache_dir = $root . '/tests/.cache/require-checker';
 if ( ! \is_dir( $cache_dir ) ) {
@@ -55,15 +84,24 @@ foreach ( $packages as $package ) {
 	// The stub files the package already declares for scoping are exactly the
 	// host symbols (WordPress, WooCommerce, Action Scheduler) it is allowed to use.
 	$scan_files = array();
+	$symbol_whitelist = $shared_symbol_whitelist;
 	foreach ( $manifest['extra']['scoping-stubs'] ?? array() as $stub ) {
 		$segments     = \explode( ':', $stub, 2 );
 		$stub_file    = $segments[1] ?? \basename( $segments[0] ) . '.php';
 		$scan_files[] = 'vendor/' . $segments[0] . '/' . $stub_file;
+
+		if ( isset( $surface_allow_lists[ $segments[0] ] ) ) {
+			$symbol_whitelist = \array_merge(
+				$symbol_whitelist,
+				$read_symbol_whitelist( $surface_allow_lists[ $segments[0] ] ),
+			);
+		}
 	}
 
-	$config               = $base;
-	$config['scan-files'] = $scan_files;
-	$config_path          = $cache_dir . '/' . $package . '.json';
+	$config                     = $base;
+	$config['scan-files']       = $scan_files;
+	$config['symbol-whitelist'] = \array_values( \array_unique( $symbol_whitelist ) );
+	$config_path                = $cache_dir . '/' . $package . '.json';
 	\file_put_contents( $config_path, \json_encode( $config, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES ) );
 
 	$link = $package_dir . '/vendor';
