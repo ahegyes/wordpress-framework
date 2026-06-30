@@ -5,12 +5,15 @@
 		 colors="true"
 		 cacheDirectory="tests/.cache/phpunit"
 		 executionOrder="depends,defects"
-		 requireCoverageMetadata="true"
+		 requireCoverageMetadata="false"
 		 beStrictAboutCoverageMetadata="true"
 		 beStrictAboutOutputDuringTests="true"
 		 failOnRisky="true"
 		 failOnWarning="true"
 		 defaultTestSuite="Unit">
+	<!-- requireCoverageMetadata is off here and enforced only on phpunit.unit.xml: the Unit suite declares
+	     coverage so mutation MSI stays honest, while the Integration suite boots WordPress and carries no
+	     coverage metadata, so requiring it would mark every integration test risky. -->
 	<testsuites>
 		<testsuite name="Unit">
 			<directory>packages/*/tests/Unit</directory>
