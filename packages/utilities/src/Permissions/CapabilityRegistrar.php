@@ -5,9 +5,11 @@ namespace DeepWebSolutions\Framework\Utilities\Permissions;
 /**
  * Grants, reconciles, and revokes role capabilities from a plain role-to-capabilities map.
  *
- * A plugin's installer drives this: grant on install, reconcile on update (adding the new map and
- * removing any capability dropped since the prior version, so a capability moved to another role is
- * cleaned up too), and revoke on uninstall. Every operation is idempotent and skips an unknown role.
+ * A plugin's installer owns the lifecycle contract around this registrar. On install and update, it
+ * grants the desired role-to-capabilities map. On update, it must also load the map it previously
+ * granted and pass both maps to reconcile(), so a capability removed from a role or moved to another
+ * role is revoked from the old location after the desired map is granted. On uninstall, the installer
+ * revokes the last persisted grant map. Every operation is idempotent and skips an unknown role.
  *
  * @since   2.0.0
  * @version 2.0.0
