@@ -70,7 +70,7 @@ composer test:integration   # WP integration tests via wp-env
 composer test:mutation      # Infection mutation tests (no Docker; Unit suite only)
 ```
 
-`composer lint:php` aggregates PHPCS + PHPStan + **deptrac** (architecture-rule check via `deptrac.yaml`). Cache lives at `tests/.cache/deptrac/`.
+`composer lint:php` aggregates PHPCS + PHPStan + **deptrac** (architecture-rule check via `deptrac.yaml`) + composer-require-checker. Cache lives at `tests/.cache/deptrac/`.
 
 wp-env runs on **port 8801** (per workspace port scheme — see `feedback_wp_env_port_scheme` memory).
 
@@ -259,7 +259,7 @@ Landed the implemented-but-unreviewed `utilities` package (Hooks, AdminNotices, 
 
 The framework ships no translation catalogs (i18n-catalogs-drop decision), but user-facing framework strings MUST stay translatable. They are translatable only under the *consumer plugin's* text domain (resolved by the consumer's catalog + WP just-in-time loading) — not a framework-owned domain, and not WP core's `'default'` (which has no entries for custom strings).
 
-The mechanism is a build-time php-scoper patcher (`wordpress-configs` `contrib/wp-framework.inc.php`) that rewrites each framework `wp-framework-<package>` text domain → the consumer's `extra.text-domain` at scope time (v1 did this via `$dws_framework_language_domains`). The `"text-domain"` composer field in the template + every plugin feeds it; the framework's only translatable strings (the 3 in `bootstrap/src/Notice/functions.php`, domain `'wp-framework-bootstrap'`) are the patcher's find-targets. The `consumer-smoke` fixture exercises the rewrite and CI asserts zero residual `wp-framework-*` domains (and unprefixed WC symbols) in the scoped output.
+The mechanism is a build-time php-scoper patcher (`wordpress-configs` `contrib/wp-framework.inc.php`) that rewrites each framework `wp-framework-<package>` text domain → the consumer's `extra.text-domain` at scope time (v1 did this via `$dws_framework_language_domains`). The `"text-domain"` composer field in the template + every plugin feeds it; framework translatable strings currently span `wp-framework-bootstrap`, `wp-framework-settings`, and `wp-framework-utilities` (including the WPCron synthetic-schedule label), so the patcher is deliberately generic over `wp-framework-*`, not a bootstrap-only find-target. The `consumer-smoke` fixture exercises the rewrite and CI asserts zero residual `wp-framework-*` domains (and unprefixed WC symbols) in the scoped output.
 
 Built and wired. **The end-to-end runtime path (framework string → rewritten domain → consumer catalog → WP just-in-time loading) stays unproven until a plugin ships** — verify it at the first Phase-4 migration. Do NOT scatter per-package runtime dynamic-domain reads instead — the one scope-time mechanism is the design.
 
@@ -287,7 +287,7 @@ This drops these v1 bootstrap-era features. It does NOT touch v2's `wp-framework
 
 ### Framework i18n translation catalogs: dropped (2026-06-12)
 
-Gap-analysis row 7; triage decision 5 (the DWS-defunct drop bundle, sibling to #23). The framework ships **no** `.pot`/`.po`/`.mo` files of its own. v1 loaded a per-package framework text domain at runtime in every package's `bootstrap.php` (`load_plugin_textdomain()`) and shipped catalogs (`.pot` plus translated `de_DE`/`ro_RO` for the bootstrapper); v2 drops both the catalogs and that loader machinery — a closed ecosystem (DWS defunct) with no external translators to keep them current. The framework's only user-facing strings are the three requirements-notice strings in `bootstrap/src/Notice/functions.php`.
+Gap-analysis row 7; triage decision 5 (the DWS-defunct drop bundle, sibling to #23). The framework ships **no** `.pot`/`.po`/`.mo` files of its own. v1 loaded a per-package framework text domain at runtime in every package's `bootstrap.php` (`load_plugin_textdomain()`) and shipped catalogs (`.pot` plus translated `de_DE`/`ro_RO` for the bootstrapper); v2 drops both the catalogs and that loader machinery — a closed ecosystem (DWS defunct) with no external translators to keep them current. The framework's user-facing strings currently live in bootstrap, settings, and utilities under their own `wp-framework-*` domains, including the WPCron synthetic-schedule label.
 
 Those strings stay translatable — but under the **consumer plugin's** text domain, via the build-time php-scoper textdomain rewrite (the `wp-framework-*` → consumer-domain patcher), not a framework-owned catalog. See the "Framework i18n: consumer-domain via scope-time textdomain rewrite" block above for the mechanism. Catalog-drop and consumer-domain-rewrite are the two halves of one story: the framework owns no catalog; the consumer's catalog covers the rewritten strings.
 
