@@ -25,6 +25,7 @@ final class DeprecatedHooksDispatcherTest extends TestCase {
 				'dws_legacy_args',
 				'dws_current_filter',
 				'dws_legacy_filter',
+				'deprecated_hook_run',
 			) as $hook
 		) {
 			\remove_all_actions( $hook );
@@ -51,6 +52,27 @@ final class DeprecatedHooksDispatcherTest extends TestCase {
 		( new DeprecatedHooksDispatcher() )->do_action_pair( 'dws_current_action', 'dws_legacy_action', '2.0.0' );
 
 		self::assertSame( array( 'current', 'legacy' ), $fired );
+	}
+
+	public function test_do_action_pair_forwards_deprecation_metadata(): void {
+		$captured = null;
+		\add_action(
+			'deprecated_hook_run',
+			static function ( $hook, $replacement, $version ) use ( &$captured ): void {
+				if ( 'dws_legacy_action' === $hook ) {
+					$captured = array( $replacement, $version );
+				}
+			},
+			10,
+			3,
+		);
+
+		// WordPress fires deprecated_hook_run only when the legacy hook actually has a listener.
+		\add_action( 'dws_legacy_action', static function (): void {} );
+
+		( new DeprecatedHooksDispatcher() )->do_action_pair( 'dws_current_action', 'dws_legacy_action', '2.0.0' );
+
+		self::assertSame( array( 'dws_current_action', '2.0.0' ), $captured );
 	}
 
 	public function test_do_action_pair_passes_args_to_both_hooks(): void {
@@ -86,6 +108,27 @@ final class DeprecatedHooksDispatcherTest extends TestCase {
 		$result = ( new DeprecatedHooksDispatcher() )->apply_filters_pair( 'dws_current_filter', 'dws_legacy_filter', '2.0.0', 'base' );
 
 		self::assertSame( 'base-current-legacy', $result );
+	}
+
+	public function test_apply_filters_pair_forwards_deprecation_metadata(): void {
+		$captured = null;
+		\add_action(
+			'deprecated_hook_run',
+			static function ( $hook, $replacement, $version ) use ( &$captured ): void {
+				if ( 'dws_legacy_filter' === $hook ) {
+					$captured = array( $replacement, $version );
+				}
+			},
+			10,
+			3,
+		);
+
+		// WordPress fires deprecated_hook_run only when the legacy hook actually has a listener.
+		\add_filter( 'dws_legacy_filter', static fn ( $v ) => $v );
+
+		( new DeprecatedHooksDispatcher() )->apply_filters_pair( 'dws_current_filter', 'dws_legacy_filter', '2.0.0', 'base' );
+
+		self::assertSame( array( 'dws_current_filter', '2.0.0' ), $captured );
 	}
 
 	public function test_apply_filters_pair_forwards_extra_args_to_both_filters(): void {

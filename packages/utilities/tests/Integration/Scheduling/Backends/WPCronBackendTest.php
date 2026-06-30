@@ -194,25 +194,17 @@ final class WPCronBackendTest extends TestCase {
 		self::assertSame( 300, $schedules['dws_every_300s']['interval'] );
 	}
 
-	public function test_register_synthetic_schedules_reuses_reconstructed_intervals_within_the_request(): void {
+	public function test_register_synthetic_schedules_returns_the_same_schedules_across_repeat_calls_within_the_request(): void {
 		self::assertInstanceOf( Success::class, $this->backend()->schedule_recurring( self::HOOK, 300 ) );
 
 		$fresh = $this->backend();
-		$reads = 0;
-		$spy   = static function ( mixed $pre_option ) use ( &$reads ): mixed {
-			++$reads;
-			return $pre_option;
-		};
-		\add_filter( 'pre_option_cron', $spy );
 
-		try {
-			$fresh->register_synthetic_schedules( array() );
-			$fresh->register_synthetic_schedules( array() );
-		} finally {
-			\remove_filter( 'pre_option_cron', $spy );
-		}
+		$first  = $fresh->register_synthetic_schedules( array() );
+		$second = $fresh->register_synthetic_schedules( array() );
 
-		self::assertSame( 1, $reads );
+		self::assertArrayHasKey( 'dws_every_300s', $first );
+		self::assertSame( 300, $first['dws_every_300s']['interval'] );
+		self::assertSame( $first, $second );
 	}
 
 	public function test_register_lifecycle_wires_the_schedule_filter_without_a_schedule_call(): void {

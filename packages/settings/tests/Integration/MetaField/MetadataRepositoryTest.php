@@ -4,7 +4,6 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField;
 
 use DeepWebSolutions\Framework\Settings\MetaField\MetadataRepository;
 use DeepWebSolutions\Framework\Settings\MetaField\MetaType;
-use DeepWebSolutions\Framework\Settings\MetaField\ObjectMetaRepositoryInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
@@ -29,10 +28,6 @@ final class MetadataRepositoryTest extends TestCase {
 		\wp_delete_post( $this->post_id, true );
 
 		parent::tearDown();
-	}
-
-	public function test_it_is_an_object_meta_repository(): void {
-		self::assertInstanceOf( ObjectMetaRepositoryInterface::class, new MetadataRepository( MetaType::Post ) );
 	}
 
 	public function test_set_and_get_round_trip_on_post_meta(): void {

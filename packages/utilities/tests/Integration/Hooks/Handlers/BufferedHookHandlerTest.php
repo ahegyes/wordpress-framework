@@ -55,6 +55,26 @@ final class BufferedHookHandlerTest extends TestCase {
 		self::assertFalse( $handler->remove_action( 'dws_buffered_absent', $cb, 10 ) );
 	}
 
+	public function test_remove_filter_drops_record_and_unregisters_flushed_hook(): void {
+		$handler = new BufferedHookHandler( 'buffered-rm' );
+		$cb      = static fn ( $v ) => $v;
+		$handler->add_filter( 'dws_buffered_rm_filter', $cb, 10, 1 );
+		$handler->flush();
+		self::assertNotFalse( \has_filter( 'dws_buffered_rm_filter', $cb ) );
+
+		self::assertTrue( $handler->remove_filter( 'dws_buffered_rm_filter', $cb, 10 ) );
+		// The live registration is gone, not just the queued record.
+		self::assertFalse( \has_filter( 'dws_buffered_rm_filter', $cb ) );
+		self::assertSame( array(), $handler->get_registry()->get_filters() );
+	}
+
+	public function test_remove_filter_returns_false_when_not_queued(): void {
+		$handler = new BufferedHookHandler( 'buffered-rm' );
+		$cb      = static fn ( $v ) => $v;
+
+		self::assertFalse( $handler->remove_filter( 'dws_buffered_absent_filter', $cb, 10 ) );
+	}
+
 	public function test_remove_all_actions_unregisters_flushed_hooks(): void {
 		$handler = new BufferedHookHandler( 'buffered-rm' );
 		$cb      = static function (): void {};

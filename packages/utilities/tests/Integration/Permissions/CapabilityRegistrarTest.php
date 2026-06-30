@@ -35,9 +35,19 @@ final class CapabilityRegistrarTest extends TestCase {
 	}
 
 	public function test_grant_skips_an_unknown_role_without_error(): void {
-		( new CapabilityRegistrar() )->grant( array( 'dws_nonexistent_role' => array( 'dws_edit' ) ) );
+		( new CapabilityRegistrar() )->grant(
+			array(
+				'dws_nonexistent_role' => array( 'dws_edit' ),
+				self::ROLE_A           => array( 'dws_edit' ),
+			),
+		);
 
 		self::assertNull( \get_role( 'dws_nonexistent_role' ) );
+
+		// The unknown role is skipped (continue), not a loop break: a real role listed after it is still granted.
+		$role_a = \get_role( self::ROLE_A );
+		self::assertNotNull( $role_a );
+		self::assertTrue( $role_a->has_cap( 'dws_edit' ) );
 	}
 
 	public function test_grant_is_idempotent(): void {
@@ -81,6 +91,23 @@ final class CapabilityRegistrarTest extends TestCase {
 		self::assertNotNull( $role_b );
 		self::assertFalse( $role_a->has_cap( 'dws_move' ) );
 		self::assertTrue( $role_b->has_cap( 'dws_move' ) );
+	}
+
+	public function test_reconcile_revokes_caps_for_a_role_dropped_entirely_from_the_desired_map(): void {
+		$registrar = new CapabilityRegistrar();
+		$registrar->grant( array( self::ROLE_A => array( 'dws_old' ) ) );
+
+		$registrar->reconcile(
+			array( self::ROLE_B => array( 'dws_new' ) ),
+			array( self::ROLE_A => array( 'dws_old' ) ),
+		);
+
+		$role_a = \get_role( self::ROLE_A );
+		$role_b = \get_role( self::ROLE_B );
+		self::assertNotNull( $role_a );
+		self::assertNotNull( $role_b );
+		self::assertFalse( $role_a->has_cap( 'dws_old' ) );
+		self::assertTrue( $role_b->has_cap( 'dws_new' ) );
 	}
 
 	public function test_revoke_all_removes_the_given_capabilities(): void {
@@ -142,8 +169,21 @@ final class CapabilityRegistrarTest extends TestCase {
 	}
 
 	public function test_revoke_all_skips_an_unknown_role_without_error(): void {
-		( new CapabilityRegistrar() )->revoke_all( array( 'dws_nonexistent_role' => array( 'dws_edit' ) ) );
+		$registrar = new CapabilityRegistrar();
+		$registrar->grant( array( self::ROLE_A => array( 'dws_edit' ) ) );
+
+		$registrar->revoke_all(
+			array(
+				'dws_nonexistent_role' => array( 'dws_edit' ),
+				self::ROLE_A           => array( 'dws_edit' ),
+			),
+		);
 
 		self::assertNull( \get_role( 'dws_nonexistent_role' ) );
+
+		// The unknown role is skipped (continue), not a loop break: a real role listed after it is still revoked.
+		$role_a = \get_role( self::ROLE_A );
+		self::assertNotNull( $role_a );
+		self::assertFalse( $role_a->has_cap( 'dws_edit' ) );
 	}
 }

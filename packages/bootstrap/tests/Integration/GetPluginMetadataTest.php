@@ -10,10 +10,19 @@ use function DeepWebSolutions\Framework\Bootstrap\Plugin\get_plugin_metadata;
 final class GetPluginMetadataTest extends TestCase {
 	use WritesPluginFixtures;
 
-	private string $plugin_basename = 'dws-framework-test-plugin/dws-framework-test-plugin.php';
-
 	public function test_reads_real_headers(): void {
-		$metadata = get_plugin_metadata( $this->plugin_basename );
+		$basename = 'dws-real-headers-test/dws-real-headers-test.php';
+		$this->write_fixture(
+			$basename,
+			array(
+				'Plugin Name'       => 'DWS Framework Test Plugin',
+				'Version'           => '1.2.3',
+				'Requires PHP'      => '8.5',
+				'Requires at least' => '7.0',
+			)
+		);
+
+		$metadata = get_plugin_metadata( $basename );
 
 		self::assertSame( 'DWS Framework Test Plugin', $metadata['Name'] );
 		self::assertSame( '1.2.3', $metadata['Version'] );
@@ -31,9 +40,20 @@ final class GetPluginMetadataTest extends TestCase {
 			)
 		);
 
-		$first  = get_plugin_metadata( $basename );
+		$first = get_plugin_metadata( $basename );
+
+		$this->write_fixture(
+			$basename,
+			array(
+				'Plugin Name' => 'Mutated Name',
+				'Version'     => '2.0.0',
+			)
+		);
+
 		$second = get_plugin_metadata( $basename );
 
+		self::assertSame( 'Original Name', $second['Name'] );
+		self::assertSame( '1.0.0', $second['Version'] );
 		self::assertSame( $first, $second );
 	}
 

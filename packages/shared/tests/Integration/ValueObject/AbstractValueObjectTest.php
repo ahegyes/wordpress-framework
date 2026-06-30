@@ -34,6 +34,23 @@ final readonly class CollectionFixtureValueObject extends AbstractValueObject {
 	) {}
 }
 
+enum FixtureStatus: string {
+	case Active   = 'active';
+	case Inactive = 'inactive';
+}
+
+final readonly class EnumFixtureValueObject extends AbstractValueObject {
+	public function __construct(
+		public FixtureStatus $status,
+	) {}
+}
+
+final readonly class DateFixtureValueObject extends AbstractValueObject {
+	public function __construct(
+		public \DateTimeImmutable $moment,
+	) {}
+}
+
 #[CoversClass( AbstractValueObject::class )]
 final class AbstractValueObjectTest extends TestCase {
 	public function test_equals_returns_true_for_structurally_identical_objects(): void {
@@ -115,5 +132,39 @@ final class AbstractValueObjectTest extends TestCase {
 	public function test_to_string_returns_json_form(): void {
 		$vo = new FixtureValueObject( 'foo', 7 );
 		self::assertSame( '{"name":"foo","count":7}', (string) $vo );
+	}
+
+	public function test_json_serialize_reduces_backed_enum_to_scalar_value(): void {
+		$vo = new EnumFixtureValueObject( FixtureStatus::Active );
+		self::assertSame(
+			array( 'status' => 'active' ),
+			$vo->jsonSerialize(),
+		);
+	}
+
+	public function test_equals_true_for_same_backed_enum_case(): void {
+		$a = new EnumFixtureValueObject( FixtureStatus::Active );
+		$b = new EnumFixtureValueObject( FixtureStatus::Active );
+		self::assertTrue( $a->equals( $b ) );
+	}
+
+	public function test_equals_false_for_different_backed_enum_case(): void {
+		$a = new EnumFixtureValueObject( FixtureStatus::Active );
+		$b = new EnumFixtureValueObject( FixtureStatus::Inactive );
+		self::assertFalse( $a->equals( $b ) );
+	}
+
+	public function test_json_serialize_formats_datetime_as_atom_string(): void {
+		$vo = new DateFixtureValueObject( new \DateTimeImmutable( '2026-06-30T12:34:56+00:00' ) );
+		self::assertSame(
+			array( 'moment' => '2026-06-30T12:34:56+00:00' ),
+			$vo->jsonSerialize(),
+		);
+	}
+
+	public function test_equals_true_for_distinct_datetime_instances_at_same_instant(): void {
+		$a = new DateFixtureValueObject( new \DateTimeImmutable( '2026-06-30T12:34:56+00:00' ) );
+		$b = new DateFixtureValueObject( new \DateTimeImmutable( '2026-06-30T12:34:56+00:00' ) );
+		self::assertTrue( $a->equals( $b ) );
 	}
 }

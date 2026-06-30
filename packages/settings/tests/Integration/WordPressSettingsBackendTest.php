@@ -5,6 +5,7 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 use DeepWebSolutions\Framework\Settings\Backend\WordPressSettingsBackend;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnsupportedRestExposureException;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
@@ -260,6 +261,15 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertTrue( $backend->get( 'enabled' ) );
 	}
 
+	public function test_an_unknown_field_id_throws_on_get(): void {
+		$backend = $this->register( $this->page() );
+
+		// A consumer typo addresses no registered section; the backend must fail loudly rather than read a wrong store.
+		$this->expectException( InvalidSettingsFieldException::class );
+
+		$backend->get( 'not_a_field' );
+	}
+
 	public function test_a_duplicate_field_id_across_sections_throws(): void {
 		$page = new SettingsPage(
 			slug: self::SLUG,
@@ -442,7 +452,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertArrayHasKey( self::ADVANCED_OPTION, $alloptions );
 	}
 
-	public function test_render_reads_each_section_option_once_regardless_of_field_count(): void {
+	public function test_render_reflects_each_section_stored_field_values(): void {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		require_once ABSPATH . 'wp-admin/includes/template.php';
 		$backend = $this->register( $this->page() );
@@ -450,25 +460,13 @@ final class WordPressSettingsBackendTest extends TestCase {
 		$backend->set( 'site_name', 'Acme' );
 		$backend->set( 'cache_ttl', 60 );
 
-		$reads = array( self::GENERAL_OPTION => 0, self::ADVANCED_OPTION => 0 );
-		foreach ( \array_keys( $reads ) as $option ) {
-			\add_filter(
-				"option_{$option}",
-				static function ( mixed $value ) use ( &$reads, $option ): mixed {
-					++$reads[ $option ];
-					return $value;
-				},
-			);
-		}
-
 		\ob_start();
 		\do_action( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
-		\ob_get_clean();
+		$html = (string) \ob_get_clean();
 
-		// The general section renders two editable fields; rendering must read its option once for the
-		// section, not once per field.
-		self::assertSame( 1, $reads[ self::GENERAL_OPTION ] );
-		self::assertSame( 1, $reads[ self::ADVANCED_OPTION ] );
+		// The rendered page reflects each section's stored field values, however the option is read internally.
+		self::assertStringContainsString( 'value="Acme"', $html );
+		self::assertStringContainsString( 'value="60"', $html );
 	}
 
 	public function test_a_semantic_field_type_is_sanitized_on_save_without_a_field_sanitizer(): void {

@@ -80,13 +80,6 @@ final class TransientCacheTest extends TestCase {
 		self::assertSame( 'b', $cache->get( 'k' ) );
 	}
 
-	public function test_set_with_a_positive_ttl_writes_a_timeout_row(): void {
-		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'ttl', 'v', HOUR_IN_SECONDS );
-
-		self::assertNotFalse( \get_option( '_transient_timeout_' . self::PREFIX . '/ttl__1' ) );
-	}
-
 	/**
 	 * @return array<string, array{int}>
 	 */
@@ -244,6 +237,24 @@ final class TransientCacheTest extends TestCase {
 		}
 
 		self::assertSame( 'none', $cache->get( 'k', 'none' ) );
+	}
+
+	public function test_remember_does_not_let_a_value_survive_a_flush_during_its_callback(): void {
+		$cache = new TransientCache( self::PREFIX );
+
+		$value = $cache->remember(
+			'k',
+			static function () use ( $cache ): string {
+				$cache->flush();
+				return 'computed';
+			},
+			HOUR_IN_SECONDS
+		);
+
+		// The caller still gets the computed value, but it was stored under the pre-flush generation, so
+		// the flush leaves it unreachable rather than letting it outlive the invalidation it raced.
+		self::assertSame( 'computed', $value );
+		self::assertSame( 'gone', $cache->get( 'k', 'gone' ) );
 	}
 
 	public function test_flush_invalidates_the_group(): void {

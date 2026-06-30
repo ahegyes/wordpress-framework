@@ -19,6 +19,7 @@ final class PHPIniSizeConditionalTest extends TestCase {
 
 		try {
 			self::assertTrue( ( new PHPIniSizeConditional( 'memory_limit', '256M' ) )->is_met() );
+			self::assertTrue( ( new PHPIniSizeConditional( 'memory_limit', '512M' ) )->is_met() );
 			self::assertFalse( ( new PHPIniSizeConditional( 'memory_limit', '1G' ) )->is_met() );
 		} finally {
 			\ini_set( 'memory_limit', (string) $original );

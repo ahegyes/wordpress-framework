@@ -21,12 +21,18 @@ use function DeepWebSolutions\Framework\Utilities\Scheduling\create_scheduler;
 final class SchedulerTest extends TestCase {
 	private const HOOK = 'dws_test_scheduler_hook';
 
+	private ?WPCronBackend $recurring_backend = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		$this->clear_hook();
 	}
 
 	protected function tearDown(): void {
+		if ( null !== $this->recurring_backend ) {
+			\remove_filter( 'cron_schedules', array( $this->recurring_backend, 'register_synthetic_schedules' ) );
+			$this->recurring_backend = null;
+		}
 		$this->clear_hook();
 		parent::tearDown();
 	}
@@ -68,6 +74,42 @@ final class SchedulerTest extends TestCase {
 		self::assertFalse( \as_next_scheduled_action( self::HOOK ) );
 	}
 
+	public function test_unschedule_clears_the_wp_cron_backend_for_a_job_scheduled_before_action_scheduler_was_ready(): void {
+		$this->require_action_scheduler();
+		$timestamp = \time() + 3600;
+
+		// Model the migration scenario: the job lands on WordPress cron while Action Scheduler reports not ready.
+		$wp_cron_scheduler = create_scheduler( null, static fn (): bool => false );
+		self::assertInstanceOf( Success::class, $wp_cron_scheduler->schedule_single( self::HOOK, $timestamp ) );
+		self::assertSame( $timestamp, \wp_next_scheduled( self::HOOK ) );
+
+		// Action Scheduler is ready now, but unschedule must still reach the WordPress cron backend and clear it.
+		self::assertInstanceOf( Success::class, create_scheduler( null, static fn (): bool => true )->unschedule( self::HOOK ) );
+
+		self::assertFalse( \wp_next_scheduled( self::HOOK ) );
+	}
+
+	public function test_get_next_scheduled_returns_the_wp_cron_timestamp_when_only_wp_cron_holds_the_event(): void {
+		$timestamp = \time() + 3600;
+		$scheduler = create_scheduler( null, static fn (): bool => false );
+		self::assertInstanceOf( Success::class, $scheduler->schedule_single( self::HOOK, $timestamp ) );
+
+		// Action Scheduler holds nothing for this hook, so the facade returns the WordPress cron timestamp.
+		self::assertSame( $timestamp, $scheduler->get_next_scheduled( self::HOOK ) );
+	}
+
+	public function test_get_next_scheduled_returns_the_earliest_timestamp_across_both_backends(): void {
+		$this->require_action_scheduler();
+		$wp_cron_timestamp          = \time() + 1800;
+		$action_scheduler_timestamp = \time() + 3600;
+
+		self::assertInstanceOf( Success::class, create_scheduler( null, static fn (): bool => false )->schedule_single( self::HOOK, $wp_cron_timestamp ) );
+		self::assertInstanceOf( Success::class, create_scheduler( null, static fn (): bool => true )->schedule_single( self::HOOK, $action_scheduler_timestamp ) );
+
+		// Both backends now hold a job; the facade returns the earliest run across them, not whichever it reads first.
+		self::assertSame( $wp_cron_timestamp, create_scheduler()->get_next_scheduled( self::HOOK ) );
+	}
+
 	public function test_register_lifecycle_through_the_facade_reconstructs_a_wp_cron_recurrence(): void {
 		// Schedule a recurring event straight on a WordPress cron backend, then drop that backend's own
 		// filter to model a later request where only the lifecycle is wired. The interval is unique to
@@ -82,6 +124,20 @@ final class SchedulerTest extends TestCase {
 		// The facade fans register_lifecycle out to its WordPress cron backend, which rebuilds the synthetic
 		// schedule from the cron array so WordPress can reschedule the recurring event.
 		self::assertArrayHasKey( 'dws_every_271s', \wp_get_schedules() );
+	}
+
+	public function test_schedule_recurring_through_the_facade_routes_to_wp_cron_when_action_scheduler_not_ready(): void {
+		// Hold the WordPress cron backend directly so tearDown can drop its 'cron_schedules' filter; the
+		// interval is unique to this test so no other schedule resolves the synthetic schedule asserted below.
+		$this->recurring_backend = new WPCronBackend();
+		$scheduler               = new Scheduler( new ActionSchedulerBackend(), $this->recurring_backend, static fn (): bool => false );
+
+		self::assertInstanceOf( Success::class, $scheduler->schedule_recurring( self::HOOK, 263 ) );
+
+		// The probe reports Action Scheduler not ready, so schedule_recurring routes to WordPress cron: the
+		// synthetic schedule resolves and the recurring event is queued.
+		self::assertArrayHasKey( 'dws_every_263s', \wp_get_schedules() );
+		self::assertIsInt( \wp_next_scheduled( self::HOOK ) );
 	}
 
 	private function require_action_scheduler(): void {

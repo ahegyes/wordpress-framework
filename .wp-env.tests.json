@@ -8,6 +8,8 @@
         "wp-content/mu-plugins/wp-framework": ".",
         "wp-content/plugins/dws-framework-test-plugin": "./packages/bootstrap/tests/Fixtures/dws-framework-test-plugin",
         "wp-content/plugins/plugin-header-fixture": "./packages/core/tests/Fixtures/plugin-header-fixture",
+        "wp-content/plugins/subdirectory-fixture": "./packages/core/tests/Fixtures/subdirectory-fixture",
+        "wp-content/plugins/network-fixture": "./packages/core/tests/Fixtures/network-fixture",
         "wp-content/plugins/dws-single-file-fixture.php": "./packages/core/tests/Fixtures/dws-single-file-fixture.php",
         "wp-content/plugins/woocommerce": "./vendor/wp-plugin/woocommerce"
     },

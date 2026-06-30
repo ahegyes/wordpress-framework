@@ -46,4 +46,21 @@ final class DirectHookHandlerTest extends TestCase {
 
 		self::assertFalse( $handler->remove_action( 'dws_direct_unknown', $cb, 10 ) );
 	}
+
+	public function test_remove_filter_unregisters_single_callback(): void {
+		$handler = new DirectHookHandler( 'direct-test' );
+		$cb      = static fn ( $v ) => $v;
+
+		$handler->add_filter( 'dws_direct_single_filter', $cb, 10, 1 );
+
+		self::assertTrue( $handler->remove_filter( 'dws_direct_single_filter', $cb, 10 ) );
+		self::assertFalse( \has_filter( 'dws_direct_single_filter', $cb ) );
+	}
+
+	public function test_remove_filter_returns_false_when_not_recorded(): void {
+		$handler = new DirectHookHandler( 'direct-test' );
+		$cb      = static fn ( $v ) => $v;
+
+		self::assertFalse( $handler->remove_filter( 'dws_direct_unknown_filter', $cb, 10 ) );
+	}
 }

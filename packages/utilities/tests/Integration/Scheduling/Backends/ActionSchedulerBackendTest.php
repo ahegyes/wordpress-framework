@@ -44,6 +44,15 @@ final class ActionSchedulerBackendTest extends TestCase {
 		self::assertSame( 1, $this->count_pending( self::HOOK, self::GROUP ) );
 	}
 
+	public function test_schedule_recurring_rejects_a_non_positive_interval(): void {
+		$result = ( new ActionSchedulerBackend() )->schedule_recurring( self::HOOK, 0, array(), null, self::GROUP );
+
+		self::assertInstanceOf( Failure::class, $result );
+		self::assertInstanceOf( SchedulingError::class, $result->error );
+		self::assertSame( SchedulingErrorReason::InvalidInterval, $result->error->reason );
+		self::assertSame( 0, $this->count_pending( self::HOOK, self::GROUP ) );
+	}
+
 	public function test_schedule_single_is_idempotent_across_repeat_calls(): void {
 		$backend = new ActionSchedulerBackend();
 

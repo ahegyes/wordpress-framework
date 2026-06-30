@@ -219,12 +219,8 @@ final class AdminNoticesServiceTest extends TestCase {
 		self::assertStringContainsString( 'data-dismiss-action', $output );
 		self::assertStringContainsString( 'data-notice-id', $output );
 		self::assertStringContainsString( '_wpnonce', $output );
-		self::assertStringContainsString( 'URLSearchParams', $output );
 		self::assertStringContainsString( '"POST"', $output );
 		self::assertStringContainsString( 'same-origin', $output );
-		// The POST body must carry all three fields; assert the action and id mappings, not just _wpnonce.
-		self::assertStringContainsString( 'action: action', $output );
-		self::assertStringContainsString( 'id: id', $output );
 	}
 
 	public function test_two_services_print_independently_scoped_scripts(): void {

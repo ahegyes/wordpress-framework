@@ -26,4 +26,19 @@ final class CurrentUserCanConditionalTest extends TestCase {
 
 		self::assertFalse( $conditional->is_met() );
 	}
+
+	public function test_capable_user_passes_the_gate(): void {
+		$admin = \wp_insert_user(
+			array( 'user_login' => 'dws_admin_' . \uniqid(), 'user_pass' => 'x', 'role' => 'administrator' ),
+		);
+		\assert( \is_int( $admin ) );
+		\wp_set_current_user( $admin );
+
+		$conditional = new CurrentUserCanConditional( 'manage_options' );
+
+		self::assertTrue( $conditional->is_met() );
+
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+		\wp_delete_user( $admin );
+	}
 }
