@@ -42,6 +42,13 @@ final class TermFieldGroupTest extends TestCase {
 		new TermFieldGroup( group: $this->group(), taxonomy: \str_repeat( 'a', 33 ) );
 	}
 
+	public function test_an_empty_taxonomy_throws(): void {
+		$this->expectException( InvalidTermFieldGroupException::class );
+
+		// An empty taxonomy interpolates into broken term hook names (`_add_form_fields`); the key must be at least one character.
+		new TermFieldGroup( group: $this->group(), taxonomy: '' );
+	}
+
 	private function group(): FieldGroup {
 		return new FieldGroup(
 			id: 'meta',

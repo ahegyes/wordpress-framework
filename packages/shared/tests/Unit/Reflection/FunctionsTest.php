@@ -13,6 +13,11 @@ enum FixtureColor: string {
 	case Blue = 'blue';
 }
 
+enum FixtureStatus {
+	case Active;
+	case Inactive;
+}
+
 final class FixtureWithPublics implements \JsonSerializable {
 	public function __construct(
 		public string $name,
@@ -42,6 +47,17 @@ final class FixtureEmpty implements \JsonSerializable {
 final class FixtureWithEnum implements \JsonSerializable {
 	public function __construct(
 		public FixtureColor $color,
+	) {}
+
+	/** @return array<string, mixed> */
+	public function jsonSerialize(): array {
+		return convert_to_primitives( $this );
+	}
+}
+
+final class FixtureWithUnitEnum implements \JsonSerializable {
+	public function __construct(
+		public FixtureStatus $status,
 	) {}
 
 	/** @return array<string, mixed> */
@@ -124,6 +140,13 @@ final class FunctionsTest extends TestCase {
 		self::assertSame(
 			array( 'color' => 'red' ),
 			convert_to_primitives( new FixtureWithEnum( FixtureColor::Red ) ),
+		);
+	}
+
+	public function test_convert_to_primitives_passes_through_non_backed_unit_enum(): void {
+		self::assertSame(
+			array( 'status' => FixtureStatus::Active ),
+			convert_to_primitives( new FixtureWithUnitEnum( FixtureStatus::Active ) ),
 		);
 	}
 

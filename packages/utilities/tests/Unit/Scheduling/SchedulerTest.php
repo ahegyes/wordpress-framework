@@ -99,9 +99,26 @@ final class SchedulerTest extends TestCase {
 		self::assertSame( $failure, $scheduler->unschedule( 'dws_hook' ) );
 	}
 
+	public function test_unschedule_returns_the_action_scheduler_failure_when_only_it_fails(): void {
+		$failure          = Failure::from( new SchedulingError( SchedulingErrorReason::ScheduleFailed, 'No clear.' ) );
+		$action_scheduler = $this->recording_backend( next_result: $failure );
+		$wp_cron          = $this->recording_backend();
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
+
+		self::assertSame( $failure, $scheduler->unschedule( 'dws_hook' ) );
+	}
+
 	public function test_is_scheduled_finds_a_job_from_either_backend(): void {
 		$action_scheduler = $this->recording_backend( false );
 		$wp_cron          = $this->recording_backend( true );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
+
+		self::assertTrue( $scheduler->is_scheduled( 'dws_hook' ) );
+	}
+
+	public function test_is_scheduled_finds_a_job_present_only_in_action_scheduler(): void {
+		$action_scheduler = $this->recording_backend( true );
+		$wp_cron          = $this->recording_backend( false );
 		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
 		self::assertTrue( $scheduler->is_scheduled( 'dws_hook' ) );

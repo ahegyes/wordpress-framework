@@ -52,4 +52,23 @@ final class ArraysTest extends TestCase {
 			Arrays::insert_after( array( 'a', 'b', 'c' ), 1, array( 'x', 'y' ) ),
 		);
 	}
+
+	public function test_insert_after_inserted_key_wins_over_a_colliding_tail_key(): void {
+		self::assertSame(
+			array(
+				'a' => 'A',
+				'c' => 'X',
+				'b' => 'B',
+			),
+			Arrays::insert_after(
+				array(
+					'a' => 'A',
+					'b' => 'B',
+					'c' => 'C',
+				),
+				'a',
+				array( 'c' => 'X' ),
+			),
+		);
+	}
 }

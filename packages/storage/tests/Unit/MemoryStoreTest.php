@@ -71,6 +71,14 @@ final class MemoryStoreTest extends TestCase {
 		self::assertFalse( $store->has( 'k' ) );
 	}
 
+	public function test_delete_returns_true_when_value_is_null(): void {
+		$store = new MemoryStore();
+		$store->set( 'k', null );
+
+		self::assertTrue( $store->delete( 'k' ) );
+		self::assertFalse( $store->has( 'k' ) );
+	}
+
 	public function test_delete_returns_false_when_no_value_existed(): void {
 		$store = new MemoryStore();
 

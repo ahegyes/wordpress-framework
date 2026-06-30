@@ -32,9 +32,13 @@ final class ScopedHookHandlerTest extends TestCase {
 		$handler = new ScopedHookHandler( 'admin', 'admin_init', '', $buffer );
 		$cb      = static function (): void {};
 
-		$handler->add_action( 'init', $cb, 10, 1 );
+		$handler->add_action( 'init', $cb, 7, 3 );
 
-		self::assertCount( 1, $buffer->get_registry()->get_actions() );
+		$delegated = $buffer->get_registry()->get_actions();
+		self::assertCount( 1, $delegated );
+		self::assertSame( 'init', $delegated[0]['hook'] );
+		self::assertSame( 7, $delegated[0]['priority'] );
+		self::assertSame( 3, $delegated[0]['accepted_args'] );
 	}
 
 	public function test_add_filter_delegates_to_buffer(): void {
@@ -42,9 +46,13 @@ final class ScopedHookHandlerTest extends TestCase {
 		$handler = new ScopedHookHandler( 'admin', 'admin_init', '', $buffer );
 		$cb      = static fn ( $v ) => $v;
 
-		$handler->add_filter( 'the_content', $cb, 10, 1 );
+		$handler->add_filter( 'the_content', $cb, 5, 2 );
 
-		self::assertCount( 1, $buffer->get_registry()->get_filters() );
+		$delegated = $buffer->get_registry()->get_filters();
+		self::assertCount( 1, $delegated );
+		self::assertSame( 'the_content', $delegated[0]['hook'] );
+		self::assertSame( 5, $delegated[0]['priority'] );
+		self::assertSame( 2, $delegated[0]['accepted_args'] );
 	}
 
 	public function test_get_buffer_returns_underlying_handler(): void {

@@ -11,6 +11,22 @@ use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
  * @version 2.0.0
  */
 final class IsCliConditional implements ConditionalInterface {
+	// region MAGIC METHODS
+
+	/**
+	 * Constructs the conditional, capturing the SAPI name to compare against.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $sapi SAPI name to probe; defaults to the running interpreter's `PHP_SAPI`.
+	 */
+	public function __construct(
+		protected readonly string $sapi = \PHP_SAPI,
+	) {}
+
+	// endregion
+
 	// region INHERITED METHODS
 
 	/**
@@ -21,7 +37,7 @@ final class IsCliConditional implements ConditionalInterface {
 	 */
 	#[\Override]
 	public function is_met(): bool {
-		return 'cli' === \PHP_SAPI;
+		return 'cli' === $this->sapi;
 	}
 
 	// endregion

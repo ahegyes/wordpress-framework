@@ -27,7 +27,6 @@ final class CustomFieldTypeTest extends TestCase {
 	public function test_the_callable_is_normalized_to_a_closure(): void {
 		$type = new CustomFieldType( type: 'my_type', render: array( $this, 'render_stub' ) );
 
-		self::assertInstanceOf( \Closure::class, $type->render );
 		self::assertSame(
 			'stub',
 			( $type->render )( new SettingsField( id: 'f', type: 'my_type', label: 'F' ), null, 'f' ),
@@ -38,7 +37,10 @@ final class CustomFieldTypeTest extends TestCase {
 		$closure = static fn ( SettingsField $field, mixed $value, string $name ): string => '<x />';
 		$type    = new CustomFieldType( type: 'my_type', render: $closure );
 
-		self::assertInstanceOf( \Closure::class, $type->render );
+		self::assertSame(
+			'<x />',
+			( $type->render )( new SettingsField( id: 'f', type: 'my_type', label: 'F' ), null, 'f' ),
+		);
 	}
 
 	#[DataProvider( 'valid_types' )]

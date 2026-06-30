@@ -58,6 +58,18 @@ final class AssetsTest extends TestCase {
 		self::assertSame( $path, Assets::minified_path( $path ) );
 	}
 
+	#[RunInSeparateProcess]
+	public function test_minified_path_returns_the_minified_variant_when_script_debug_is_defined_false(): void {
+		\define( 'SCRIPT_DEBUG', false );
+
+		$path     = $this->directory . '/app.js';
+		$min_path = $this->directory . '/app.min.js';
+		\touch( $path );
+		\touch( $min_path );
+
+		self::assertSame( $min_path, Assets::minified_path( $path ) );
+	}
+
 	public function test_minified_path_does_not_add_a_second_min_suffix(): void {
 		$path = $this->directory . '/app.min.js';
 		\touch( $path );

@@ -49,4 +49,14 @@ final class RequestTest extends TestCase {
 			Request::wp_parse_args_recursive( array( 'b' => 'provided' ), array( 'a' => 'default' ) ),
 		);
 	}
+
+	public function test_wp_parse_args_recursive_lets_a_scalar_argument_replace_an_array_default(): void {
+		self::assertSame(
+			array( 'display' => 'compact' ),
+			Request::wp_parse_args_recursive(
+				array( 'display' => 'compact' ),
+				array( 'display' => array( 'mode' => 'full' ) ),
+			),
+		);
+	}
 }

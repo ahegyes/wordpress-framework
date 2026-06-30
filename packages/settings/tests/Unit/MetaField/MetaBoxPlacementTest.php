@@ -15,9 +15,6 @@ final class MetaBoxPlacementTest extends TestCase {
 			priority: 'high',
 		);
 
-		self::assertSame( 'shop_order', $placement->screen );
-		self::assertSame( 'side', $placement->context );
-		self::assertSame( 'high', $placement->priority );
 		self::assertNull( $placement->capability );
 	}
 

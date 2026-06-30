@@ -86,6 +86,7 @@ final class VersionTest extends TestCase {
 	public function test_is_less_than(): void {
 		self::assertTrue( Version::from_string( '1.9.0' )->is_less_than( Version::from_string( '2.0.0' ) ) );
 		self::assertFalse( Version::from_string( '2.0.0' )->is_less_than( Version::from_string( '1.9.0' ) ) );
+		self::assertFalse( Version::from_string( '2.0.0' )->is_less_than( Version::from_string( '2.0.0' ) ) );
 	}
 
 	public function test_is_equal_to(): void {
@@ -111,6 +112,9 @@ final class VersionTest extends TestCase {
 		$a = Version::from_string( '2.0.0' );
 		$b = Version::from_string( '2.0.0' );
 		self::assertTrue( $a->equals( $b ) );
+		// Structural string-identity, NOT version_compare: '1.0' and '1.00' are equal under is_equal_to but distinct here.
+		self::assertFalse( Version::from_string( '1.0' )->equals( Version::from_string( '1.00' ) ) );
+		self::assertFalse( Version::from_string( '2.0.0' )->equals( Version::from_string( '2.0.1' ) ) );
 	}
 
 	public function test_invalid_version_exception_is_a_value_object_exception_naming_the_type(): void {

@@ -39,22 +39,25 @@ final class FieldGroupTest extends TestCase {
 	public function test_callables_are_normalized_to_closures(): void {
 		$source = new class() {
 			/**
-			 * @return list<\DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField>
+			 * @return array<string, int>
 			 */
 			public function fields( int $object_id ): array {
-				return array();
+				return array( 'object' => $object_id );
 			}
 		};
 		$group = new FieldGroup(
 			id: 'g',
 			title: 'G',
 			fields_provider: array( $source, 'fields' ),
-			render: static fn ( int $object_id ): string => '',
+			render: static fn ( int $object_id ): string => 'rendered:'.$object_id,
 			save: 'strlen',
 		);
 
-		self::assertInstanceOf( \Closure::class, $group->fields_provider );
-		self::assertInstanceOf( \Closure::class, $group->render );
-		self::assertInstanceOf( \Closure::class, $group->save );
+		// Each stored Closure must delegate to the callable it was constructed from — a swap of the bindings changes the observed return.
+		self::assertSame( $source->fields( 7 ), ( $group->fields_provider )( 7 ) );
+		self::assertNotNull( $group->render );
+		self::assertSame( 'rendered:7', ( $group->render )( 7 ) );
+		self::assertNotNull( $group->save );
+		self::assertSame( 6, ( $group->save )( 'foobar' ) );
 	}
 }

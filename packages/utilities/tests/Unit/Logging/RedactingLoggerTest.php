@@ -44,6 +44,26 @@ final class RedactingLoggerTest extends TestCase {
 		self::assertSame( 'Bearer ', $inner->records[0]['context']['nested']['token'] );
 	}
 
+	public function test_redaction_passes_non_string_context_values_through_unchanged(): void {
+		$inner     = new RecordingLogger();
+		$logger    = new RedactingLogger( $inner );
+		$throwable = new \RuntimeException( 'boom' );
+
+		$logger->error(
+			'Install failed.',
+			array(
+				'exception' => $throwable,
+				'attempts'  => 3,
+				'missing'   => null,
+			),
+		);
+
+		self::assertSame( $throwable, $inner->records[0]['context']['exception'] );
+		self::assertSame( 3, $inner->records[0]['context']['attempts'] );
+		self::assertArrayHasKey( 'missing', $inner->records[0]['context'] );
+		self::assertNull( $inner->records[0]['context']['missing'] );
+	}
+
 	public function test_delegates_level_message_and_context_to_the_inner_logger(): void {
 		$inner  = new RecordingLogger();
 		$logger = new RedactingLogger( $inner );

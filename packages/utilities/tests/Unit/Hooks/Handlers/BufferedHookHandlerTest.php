@@ -32,6 +32,8 @@ final class BufferedHookHandlerTest extends TestCase {
 		$queued = $handler->get_registry()->get_actions();
 		self::assertCount( 1, $queued );
 		self::assertSame( 'init', $queued[0]['hook'] );
+		self::assertSame( 10, $queued[0]['priority'] );
+		self::assertSame( 1, $queued[0]['accepted_args'] );
 	}
 
 	public function test_add_filter_queues_without_calling_wp(): void {
@@ -43,6 +45,7 @@ final class BufferedHookHandlerTest extends TestCase {
 		$queued = $handler->get_registry()->get_filters();
 		self::assertCount( 1, $queued );
 		self::assertSame( 'the_content', $queued[0]['hook'] );
+		self::assertSame( 5, $queued[0]['priority'] );
 		self::assertSame( 2, $queued[0]['accepted_args'] );
 	}
 }

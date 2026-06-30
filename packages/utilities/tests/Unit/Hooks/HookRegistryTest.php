@@ -54,6 +54,20 @@ final class HookRegistryTest extends TestCase {
 		self::assertSame( 'admin_init', $actions[0]['hook'] );
 	}
 
+	public function test_forget_action_removes_only_one_duplicate(): void {
+		$registry = new HookRegistry();
+		$cb       = static function (): void {};
+
+		$registry->record_action( 'init', $cb, 10, 1 );
+		$registry->record_action( 'init', $cb, 10, 1 );
+
+		self::assertTrue( $registry->forget_action( 'init', $cb, 10 ) );
+
+		$actions = $registry->get_actions();
+		self::assertCount( 1, $actions );
+		self::assertSame( 'init', $actions[0]['hook'] );
+	}
+
 	public function test_forget_action_returns_false_when_no_match(): void {
 		$registry = new HookRegistry();
 		$cb       = static function (): void {};

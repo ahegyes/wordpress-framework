@@ -49,8 +49,8 @@ final class ResultTest extends TestCase {
 		$result = Failure::from( $error );
 		$output = $result->match(
 			static fn ( $value ) => 'success',
-			static fn ( $err ) => 'failure',
+			static fn ( $err ) => $err === $error ? 'failure:matched' : 'failure:mismatched',
 		);
-		self::assertSame( 'failure', $output );
+		self::assertSame( 'failure:matched', $output );
 	}
 }

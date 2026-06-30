@@ -9,6 +9,10 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( IsCliConditional::class )]
 final class IsCliConditionalTest extends TestCase {
 	public function test_returns_true_in_cli_sapi(): void {
-		self::assertTrue( ( new IsCliConditional() )->is_met() );
+		self::assertTrue( ( new IsCliConditional( 'cli' ) )->is_met() );
+	}
+
+	public function test_returns_false_in_non_cli_sapi(): void {
+		self::assertFalse( ( new IsCliConditional( 'fpm-fcgi' ) )->is_met() );
 	}
 }
