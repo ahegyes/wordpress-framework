@@ -106,12 +106,27 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
+		$raw = '<b>x</b>';
 		( new UserProfileFieldStore() )->register( $this->text_profile() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => '<script>x</script>' ) );
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => $raw ) );
 		\do_action( 'edit_user_profile_update', $this->user_id );
 
-		self::assertSame( 'x', $this->repo()->get( $this->user_id, 'pref' ) );
+		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->user_id, 'pref' ) );
+	}
+
+	public function test_saving_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
+		( new UserProfileFieldStore() )->register(
+			$this->profile_with(
+				new SettingsField( id: 'pref', type: 'select', label: 'Preference', options: array( 'red' => 'Red' ) ),
+			),
+		);
+
+		$this->repo()->set( $this->user_id, 'pref', 'red' );
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => 'blue' ) );
+		\do_action( 'edit_user_profile_update', $this->user_id );
+
+		self::assertSame( 'red', $this->repo()->get( $this->user_id, 'pref' ) );
 	}
 
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
@@ -184,13 +199,15 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	protected function text_profile(): UserProfileFieldGroup {
+		return $this->profile_with( new SettingsField( id: 'pref', type: 'text', label: 'Preference' ) );
+	}
+
+	private function profile_with( SettingsField $field ): UserProfileFieldGroup {
 		return new UserProfileFieldGroup(
 			group: new FieldGroup(
 				id: self::GROUP_ID,
 				title: 'Preferences',
-				fields_provider: static fn ( int $object_id ): array => array(
-					new SettingsField( id: 'pref', type: 'text', label: 'Preference' ),
-				),
+				fields_provider: static fn ( int $object_id ): array => array( $field ),
 			),
 		);
 	}

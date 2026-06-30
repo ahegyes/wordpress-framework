@@ -103,12 +103,27 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
+		$raw = '<b>x</b>';
 		( new TermFieldStore() )->register( $this->term_group() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => '<script>x</script>' ) );
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => $raw ) );
 		\do_action( 'edited_category', $this->term_id );
 
-		self::assertSame( 'x', $this->repo()->get( $this->term_id, 'color' ) );
+		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->term_id, 'color' ) );
+	}
+
+	public function test_saving_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
+		( new TermFieldStore() )->register(
+			$this->term_group_with(
+				new SettingsField( id: 'color', type: 'select', label: 'Color', options: array( 'red' => 'Red' ) ),
+			),
+		);
+
+		$this->repo()->set( $this->term_id, 'color', 'red' );
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => 'blue' ) );
+		\do_action( 'edited_category', $this->term_id );
+
+		self::assertSame( 'red', $this->repo()->get( $this->term_id, 'color' ) );
 	}
 
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
@@ -162,12 +177,14 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	private function term_group(): TermFieldGroup {
+		return $this->term_group_with( new SettingsField( id: 'color', type: 'text', label: 'Color' ) );
+	}
+
+	private function term_group_with( SettingsField $field ): TermFieldGroup {
 		$group = new FieldGroup(
 			id: self::GROUP_ID,
 			title: 'Category Meta',
-			fields_provider: static fn ( int $object_id ): array => array(
-				new SettingsField( id: 'color', type: 'text', label: 'Color' ),
-			),
+			fields_provider: static fn ( int $object_id ): array => array( $field ),
 		);
 
 		return new TermFieldGroup( group: $group, taxonomy: 'category' );

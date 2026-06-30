@@ -3,11 +3,12 @@
 namespace DeepWebSolutions\Framework\Settings\MetaField;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
-use DeepWebSolutions\Framework\Settings\Schema\Errors\FieldProcessingError;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Shared\Result\Failure;
+use DeepWebSolutions\Framework\Shared\Result\Success;
 
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
@@ -17,8 +18,9 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
  *
  * Drives a {@see FieldGroup} against an injected object-meta repository: on render it emits an
  * object-scoped nonce and each editable field's control; on save it verifies that nonce, processes each
- * editable field, and applies the batch through a single apply() call. Object fields are revoke-based —
- * an absent value renders unset (never the field default) and an empty submission deletes the meta key.
+ * editable field, and applies the batch through a single apply() call. Object fields are revoke-based:
+ * an absent value renders unset (never the field default), absent or empty submissions delete the meta
+ * key, and an invalid present submission preserves the existing value.
  *
  * A surface varies only in per-field markup, supplied as a row closure (table-row surfaces wrap each
  * control; meta-box surfaces echo it raw), and in the optional bespoke render/save closures the group
@@ -97,8 +99,9 @@ final class ObjectFieldForm {
 	 *
 	 * Verifies the object-scoped nonce, then runs the group's bespoke save handler if it has one, or
 	 * processes each editable field and applies the batch through one apply() call. Object fields are
-	 * revoke-based: an unsubmitted, empty, or rejected field deletes its meta key rather than storing a
-	 * default. The per-object surface capability is the caller's responsibility, checked before this runs.
+	 * revoke-based: an unsubmitted or empty field deletes its meta key rather than storing a default; an
+	 * invalid present field preserves the existing meta. The per-object surface capability is the caller's
+	 * responsibility, checked before this runs.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -145,11 +148,13 @@ final class ObjectFieldForm {
 			}
 
 			// A present submission is stored when meaningful; a rejected one (invalid option, failed
-			// validation) revokes the key too, rather than folding to a default.
-			$value = $this->processor()->process_or_reject( $field, $submitted )->match(
-				static fn ( mixed $accepted ): mixed => $accepted,
-				static fn ( FieldProcessingError $error ): mixed => false, // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- a rejected submission revokes the key.
-			);
+			// validation) leaves the key untouched, preserving the prior value.
+			$result = $this->processor()->process_or_reject( $field, $submitted );
+			if ( $result instanceof Failure ) {
+				continue;
+			}
+			\assert( $result instanceof Success );
+			$value = $result->value;
 			if ( $this->should_store( $value ) ) {
 				$sets[ $meta_key ] = $value;
 			} else {

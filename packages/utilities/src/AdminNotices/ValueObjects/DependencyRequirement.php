@@ -64,10 +64,12 @@ final readonly class DependencyRequirement {
 			return $this->id;
 		}
 
+		// A normal label keeps a readable 'dep_<slug>' id; only a label that sanitizes to an empty slug
+		// (all punctuation, say) falls back to a hash of the full label, so two such degenerate labels do
+		// not collapse onto one shared 'dep_' id and silently drop a notice.
 		$slug = \trim( (string) \preg_replace( '/[^a-z0-9_]+/', '_', \strtolower( $this->label ) ), '_' );
-		$hash = \substr( \md5( $this->label ), 0, 12 );
 
-		return 'dep_' . ( '' === $slug ? $hash : $slug . '_' . $hash );
+		return 'dep_' . ( '' === $slug ? \substr( \md5( $this->label ), 0, 12 ) : $slug );
 	}
 
 	/**

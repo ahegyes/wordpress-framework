@@ -179,11 +179,25 @@ final class ObjectFieldFormTest extends TestCase {
 	public function test_save_applies_the_builtin_default_sanitizer(): void {
 		$form  = new ObjectFieldForm( $this->repo() );
 		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
+		$raw   = '<b>x</b>';
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => '<script>x</script>' ) );
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => $raw ) );
 		$form->save( $group, $this->post_id );
 
-		self::assertSame( 'x', $this->repo()->get( $this->post_id, 'note' ) );
+		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->post_id, 'note' ) );
+	}
+
+	public function test_save_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
+		$form  = $this->form();
+		$group = $this->group(
+			new SettingsField( id: 'color', type: 'select', label: 'Color', options: array( 'red' => 'Red' ) ),
+		);
+
+		$this->repo()->set( $this->post_id, 'color', 'red' );
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => 'blue' ) );
+		$form->save( $group, $this->post_id );
+
+		self::assertSame( 'red', $this->repo()->get( $this->post_id, 'color' ) );
 	}
 
 	public function test_save_applies_multiple_fields(): void {

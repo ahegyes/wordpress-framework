@@ -24,15 +24,15 @@ final class DependencyRequirementTest extends TestCase {
 	}
 
 	public function test_get_notice_id_derives_from_the_label(): void {
-		$requirement = new DependencyRequirement( $this->conditional( false ), 'WooCommerce' );
+		$requirement = new DependencyRequirement( $this->conditional( false ), 'Missing Plugin' );
 
-		self::assertMatchesRegularExpression( '/\Adep_woocommerce_[a-f0-9]{12}\z/', $requirement->get_notice_id() );
+		self::assertSame( 'dep_missing_plugin', $requirement->get_notice_id() );
 	}
 
 	public function test_get_notice_id_slugs_a_multi_word_label(): void {
 		$requirement = new DependencyRequirement( $this->conditional( false ), 'the cURL PHP extension' );
 
-		self::assertMatchesRegularExpression( '/\Adep_the_curl_php_extension_[a-f0-9]{12}\z/', $requirement->get_notice_id() );
+		self::assertSame( 'dep_the_curl_php_extension', $requirement->get_notice_id() );
 	}
 
 	public function test_get_notice_id_uses_an_explicit_id_when_given(): void {

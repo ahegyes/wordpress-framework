@@ -110,12 +110,27 @@ final class PostMetaFieldStoreTest extends TestCase {
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
 		$store = new PostMetaFieldStore();
 		$group = $this->group();
+		$raw   = '<b>x</b>';
 		$store->register( $group, $this->placement() );
 
-		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => '<script>x</script>' ) );
+		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => $raw ) );
 		\do_action( 'save_post_post', $this->post_id );
 
-		self::assertSame( 'x', $this->repo()->get( $this->post_id, 'note' ) );
+		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->post_id, 'note' ) );
+	}
+
+	public function test_saving_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
+		$store = new PostMetaFieldStore();
+		$group = $this->group_with(
+			new SettingsField( id: 'color', type: 'select', label: 'Color', options: array( 'red' => 'Red' ) ),
+		);
+		$store->register( $group, $this->placement() );
+
+		$this->repo()->set( $this->post_id, 'color', 'red' );
+		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'color' => 'blue' ) );
+		\do_action( 'save_post_post', $this->post_id );
+
+		self::assertSame( 'red', $this->repo()->get( $this->post_id, 'color' ) );
 	}
 
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
@@ -194,12 +209,14 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	private function group(): FieldGroup {
+		return $this->group_with( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
+	}
+
+	private function group_with( SettingsField $field ): FieldGroup {
 		return new FieldGroup(
 			id: self::GROUP_ID,
 			title: 'Post Meta',
-			fields_provider: static fn ( int $object_id ): array => array(
-				new SettingsField( id: 'note', type: 'text', label: 'Note' ),
-			),
+			fields_provider: static fn ( int $object_id ): array => array( $field ),
 		);
 	}
 
