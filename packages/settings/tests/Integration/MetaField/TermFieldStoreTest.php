@@ -102,6 +102,15 @@ final class TermFieldStoreTest extends TestCase {
 		self::assertSame( 'blue', $this->repo()->get( $this->term_id, 'color' ) );
 	}
 
+	public function test_saving_applies_the_builtin_default_sanitizer(): void {
+		( new TermFieldStore() )->register( $this->term_group() );
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => '<script>x</script>' ) );
+		\do_action( 'edited_category', $this->term_id );
+
+		self::assertSame( 'x', $this->repo()->get( $this->term_id, 'color' ) );
+	}
+
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
 		( new TermFieldStore() )->register( $this->term_group() );
 

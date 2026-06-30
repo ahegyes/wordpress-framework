@@ -56,12 +56,13 @@ function check_requirements( $plugin_basename ) {
 	}
 
 	if ( ! is_wp_compatible( $effective_min_wp ) ) {
+		$current_wp = \function_exists( 'wp_get_wp_version' ) ? \wp_get_wp_version() : ( isset( $GLOBALS['wp_version'] ) ? $GLOBALS['wp_version'] : 'unknown' );
 		$errors->add(
 			'plugin_wp_incompatible',
 			'',
 			array(
 				'min'     => $effective_min_wp,
-				'current' => isset( $GLOBALS['wp_version'] ) ? $GLOBALS['wp_version'] : 'unknown',
+				'current' => $current_wp,
 			)
 		);
 	}

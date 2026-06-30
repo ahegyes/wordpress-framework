@@ -71,7 +71,7 @@ final class CheckRequirementsTest extends TestCase {
 
 		$data = $result->get_error_data( 'plugin_wp_incompatible' );
 		self::assertSame( '99.99', $data['min'] );
-		self::assertSame( $GLOBALS['wp_version'], $data['current'] );
+		self::assertSame( \function_exists( 'wp_get_wp_version' ) ? \wp_get_wp_version() : $GLOBALS['wp_version'], $data['current'] );
 	}
 
 	public function test_returns_wp_error_with_both_codes_when_both_above_runtime(): void {

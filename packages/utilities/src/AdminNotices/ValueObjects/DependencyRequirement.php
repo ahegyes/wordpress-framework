@@ -64,7 +64,10 @@ final readonly class DependencyRequirement {
 			return $this->id;
 		}
 
-		return 'dep_' . \trim( (string) \preg_replace( '/[^a-z0-9_]+/', '_', \strtolower( $this->label ) ), '_' );
+		$slug = \trim( (string) \preg_replace( '/[^a-z0-9_]+/', '_', \strtolower( $this->label ) ), '_' );
+		$hash = \substr( \md5( $this->label ), 0, 12 );
+
+		return 'dep_' . ( '' === $slug ? $hash : $slug . '_' . $hash );
 	}
 
 	/**

@@ -5,7 +5,7 @@ namespace DeepWebSolutions\Framework\Utilities\Caching;
 /**
  * Per-plugin transient cache with versioned-group invalidation.
  *
- * Namespaces every key under a plugin-supplied prefix and an autoloaded generation suffix, so
+ * Namespaces every key under a plugin-supplied prefix and a non-autoloaded generation suffix, so
  * {@see flush()} invalidates the whole group in one option write — no key enumeration. Stored values
  * are wrapped so a cached false/null/0/'' reads back as a hit rather than a transient miss. A key
  * whose full name would exceed WordPress' 172-character transient-name limit is skipped with a
@@ -156,7 +156,7 @@ final readonly class TransientCache {
 	 * @version 2.0.0
 	 */
 	public function flush(): void {
-		\update_option( $this->suffix_key(), $this->suffix() + 1, true );
+		\update_option( $this->suffix_key(), $this->suffix() + 1, false );
 	}
 
 	// endregion

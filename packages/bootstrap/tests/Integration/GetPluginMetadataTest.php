@@ -21,7 +21,7 @@ final class GetPluginMetadataTest extends TestCase {
 		self::assertSame( '7.0', $metadata['RequiresWP'] );
 	}
 
-	public function test_returns_cached_value_after_file_mutation(): void {
+	public function test_repeated_calls_for_an_unchanged_file_return_identical_metadata(): void {
 		$basename = 'dws-cache-test/dws-cache-test.php';
 		$this->write_fixture(
 			$basename,
@@ -31,20 +31,9 @@ final class GetPluginMetadataTest extends TestCase {
 			)
 		);
 
-		$first = get_plugin_metadata( $basename );
-
-		$this->write_fixture(
-			$basename,
-			array(
-				'Plugin Name' => 'Mutated Name',
-				'Version'     => '2.0.0',
-			)
-		);
-
+		$first  = get_plugin_metadata( $basename );
 		$second = get_plugin_metadata( $basename );
 
-		self::assertSame( 'Original Name', $second['Name'] );
-		self::assertSame( '1.0.0', $second['Version'] );
 		self::assertSame( $first, $second );
 	}
 

@@ -59,6 +59,16 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 */
 	protected bool $schedules_filter_registered = false;
 
+	/**
+	 * Request-local cache of intervals reconstructed from the cron array.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     ?list<int>
+	 */
+	protected ?array $scheduled_intervals = null;
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -147,7 +157,8 @@ final class WPCronBackend implements SchedulerBackendInterface {
 			return $rejection;
 		}
 
-		$cleared = \wp_clear_scheduled_hook( $hook, $args, true );
+		$this->scheduled_intervals = null;
+		$cleared                   = \wp_clear_scheduled_hook( $hook, $args, true );
 		return $this->result_for_unschedule( $cleared, $hook );
 	}
 
@@ -222,7 +233,11 @@ final class WPCronBackend implements SchedulerBackendInterface {
 		foreach ( $this->active_intervals() as $interval ) {
 			$schedules[ $this->schedule_name( $interval ) ] = array(
 				'interval' => $interval,
-				'display'  => \sprintf( 'Every %d seconds (DWS)', $interval ),
+				'display'  => \sprintf(
+					/* translators: %d: interval in seconds. */
+					\__( 'Every %d seconds', 'wp-framework-utilities' ),
+					$interval
+				),
 			);
 		}
 
@@ -272,6 +287,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 */
 	protected function ensure_schedule( int $interval ): string {
 		$this->registered_intervals[ $interval ] = true;
+		$this->scheduled_intervals               = null;
 		$this->ensure_filter_registered();
 
 		return $this->schedule_name( $interval );
@@ -335,6 +351,10 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 * @return  list<int>
 	 */
 	protected function scheduled_intervals(): array {
+		if ( null !== $this->scheduled_intervals ) {
+			return $this->scheduled_intervals;
+		}
+
 		$intervals = array();
 		foreach ( \_get_cron_array() as $hooks ) {
 			foreach ( $hooks as $events ) {
@@ -350,7 +370,8 @@ final class WPCronBackend implements SchedulerBackendInterface {
 			}
 		}
 
-		return $intervals;
+		$this->scheduled_intervals = $intervals;
+		return $this->scheduled_intervals;
 	}
 
 	/**

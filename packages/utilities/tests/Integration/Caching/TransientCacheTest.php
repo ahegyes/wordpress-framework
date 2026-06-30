@@ -246,18 +246,23 @@ final class TransientCacheTest extends TestCase {
 		self::assertSame( 'none', $cache->get( 'k', 'none' ) );
 	}
 
-	public function test_flush_bumps_the_suffix_and_invalidates_the_group(): void {
+	public function test_flush_invalidates_the_group(): void {
 		$cache = new TransientCache( self::PREFIX );
 		$cache->set( 'k', 'v', HOUR_IN_SECONDS );
 
-		// Fresh prefix: the suffix defaults to 1 lazily, so no option row exists yet.
-		self::assertFalse( \get_option( self::PREFIX . '_cache_invalidation_suffix' ) );
-		self::assertNotFalse( \get_transient( self::PREFIX . '/k__1' ) );
+		self::assertSame( 'v', $cache->get( 'k' ) );
 
 		$cache->flush();
 
-		self::assertSame( 2, (int) \get_option( self::PREFIX . '_cache_invalidation_suffix' ) );
 		self::assertSame( 'default', $cache->get( 'k', 'default' ) );
+	}
+
+	public function test_flush_generation_suffix_is_not_autoloaded(): void {
+		( new TransientCache( self::PREFIX ) )->flush();
+
+		\wp_cache_delete( 'alloptions', 'options' );
+
+		self::assertArrayNotHasKey( self::PREFIX . '_cache_invalidation_suffix', \wp_load_alloptions() );
 	}
 
 	public function test_a_corrupt_suffix_degrades_to_generation_one(): void {

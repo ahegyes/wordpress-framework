@@ -10,6 +10,7 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
+use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 /**
  * Shared render and save engine for object-field surfaces.
@@ -37,13 +38,15 @@ final class ObjectFieldForm {
 	 *
 	 * @param   ObjectMetaRepositoryInterface $repository Repository the group's fields read from and write to.
 	 * @param   FieldRenderer                 $renderer  Renderer for the field controls.
-	 * @param   FieldProcessor                $processor Processor for sanitizing submitted values.
+	 * @param   ?FieldProcessor               $processor Processor for sanitizing submitted values; null applies one carrying the per-type default sanitizers.
 	 */
 	public function __construct(
 		protected ObjectMetaRepositoryInterface $repository,
 		protected FieldRenderer $renderer = new FieldRenderer(),
-		protected FieldProcessor $processor = new FieldProcessor(),
-	) {}
+		protected ?FieldProcessor $processor = null,
+	) {
+		$this->processor ??= new FieldProcessor( type_sanitizers: wordpress_field_type_sanitizers() );
+	}
 
 	// endregion
 
@@ -143,7 +146,7 @@ final class ObjectFieldForm {
 
 			// A present submission is stored when meaningful; a rejected one (invalid option, failed
 			// validation) revokes the key too, rather than folding to a default.
-			$value = $this->processor->process_or_reject( $field, $submitted )->match(
+			$value = $this->processor()->process_or_reject( $field, $submitted )->match(
 				static fn ( mixed $accepted ): mixed => $accepted,
 				static fn ( FieldProcessingError $error ): mixed => false, // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- a rejected submission revokes the key.
 			);
@@ -155,6 +158,35 @@ final class ObjectFieldForm {
 		}
 
 		$this->repository->apply( $object_id, $sets, $deletes );
+	}
+
+	/**
+	 * Returns the nonce action for a group's save on a given object.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group     Group the nonce guards.
+	 * @param   int        $object_id Object the nonce is bound to.
+	 *
+	 * @return  string
+	 */
+	public function get_nonce_action( FieldGroup $group, int $object_id ): string {
+		return $this->nonce_action( $group, $object_id );
+	}
+
+	/**
+	 * Returns the nonce field name for a group's save.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group Group the nonce guards.
+	 *
+	 * @return  string
+	 */
+	public function get_nonce_name( FieldGroup $group ): string {
+		return $this->nonce_name( $group );
 	}
 
 	// endregion
@@ -200,6 +232,20 @@ final class ObjectFieldForm {
 		}
 
 		return $fields;
+	}
+
+	/**
+	 * Returns the configured processor.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  FieldProcessor
+	 */
+	protected function processor(): FieldProcessor {
+		\assert( $this->processor instanceof FieldProcessor );
+
+		return $this->processor;
 	}
 
 	/**

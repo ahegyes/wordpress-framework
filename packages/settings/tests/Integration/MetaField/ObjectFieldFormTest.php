@@ -176,6 +176,16 @@ final class ObjectFieldFormTest extends TestCase {
 		self::assertSame( '0', $this->repo()->get( $this->post_id, 'note' ) );
 	}
 
+	public function test_save_applies_the_builtin_default_sanitizer(): void {
+		$form  = new ObjectFieldForm( $this->repo() );
+		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => '<script>x</script>' ) );
+		$form->save( $group, $this->post_id );
+
+		self::assertSame( 'x', $this->repo()->get( $this->post_id, 'note' ) );
+	}
+
 	public function test_save_applies_multiple_fields(): void {
 		$form  = $this->form();
 		$group = new FieldGroup(

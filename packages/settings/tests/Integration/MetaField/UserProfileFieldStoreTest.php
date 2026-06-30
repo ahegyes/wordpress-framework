@@ -105,6 +105,15 @@ final class UserProfileFieldStoreTest extends TestCase {
 		self::assertTrue( $this->repo()->has( $this->user_id, 'pref' ) );
 	}
 
+	public function test_saving_applies_the_builtin_default_sanitizer(): void {
+		( new UserProfileFieldStore() )->register( $this->text_profile() );
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => '<script>x</script>' ) );
+		\do_action( 'edit_user_profile_update', $this->user_id );
+
+		self::assertSame( 'x', $this->repo()->get( $this->user_id, 'pref' ) );
+	}
+
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
 		( new UserProfileFieldStore() )->register( $this->profile() );
 
@@ -172,6 +181,18 @@ final class UserProfileFieldStoreTest extends TestCase {
 
 	private function profile(): UserProfileFieldGroup {
 		return new UserProfileFieldGroup( group: $this->group() );
+	}
+
+	protected function text_profile(): UserProfileFieldGroup {
+		return new UserProfileFieldGroup(
+			group: new FieldGroup(
+				id: self::GROUP_ID,
+				title: 'Preferences',
+				fields_provider: static fn ( int $object_id ): array => array(
+					new SettingsField( id: 'pref', type: 'text', label: 'Preference' ),
+				),
+			),
+		);
 	}
 
 	private function group(): FieldGroup {
