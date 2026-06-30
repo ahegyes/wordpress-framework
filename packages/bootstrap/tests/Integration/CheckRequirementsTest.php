@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Bootstrap\Tests\Integration;
 
 use DeepWebSolutions\Framework\Bootstrap\Tests\Support\WritesPluginFixtures;
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Bootstrap\Environment\is_php_compatible;
@@ -12,6 +13,7 @@ use function DeepWebSolutions\Framework\Bootstrap\Requirements\check_requirement
 use const DeepWebSolutions\Framework\Bootstrap\Requirements\FRAMEWORK_MIN_PHP;
 use const DeepWebSolutions\Framework\Bootstrap\Requirements\FRAMEWORK_MIN_WP;
 
+#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\Requirements\check_requirements' )]
 final class CheckRequirementsTest extends TestCase {
 	use WritesPluginFixtures;
 

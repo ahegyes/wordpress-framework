@@ -3,10 +3,12 @@
 namespace DeepWebSolutions\Framework\Bootstrap\Tests\Integration;
 
 use DeepWebSolutions\Framework\Bootstrap\Tests\Support\WritesPluginFixtures;
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Bootstrap\Plugin\get_plugin_metadata;
 
+#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\Plugin\get_plugin_metadata' )]
 final class GetPluginMetadataTest extends TestCase {
 	use WritesPluginFixtures;
 

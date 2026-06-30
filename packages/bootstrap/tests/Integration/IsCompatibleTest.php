@@ -2,11 +2,14 @@
 
 namespace DeepWebSolutions\Framework\Bootstrap\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Bootstrap\Environment\is_php_compatible;
 use function DeepWebSolutions\Framework\Bootstrap\Environment\is_wp_compatible;
 
+#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\Environment\is_php_compatible' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\Environment\is_wp_compatible' )]
 final class IsCompatibleTest extends TestCase {
 	public function test_is_php_compatible_returns_true_below_runtime(): void {
 		self::assertTrue( is_php_compatible( '5.0' ) );
