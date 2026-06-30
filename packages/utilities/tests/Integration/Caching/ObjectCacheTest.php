@@ -114,6 +114,17 @@ final class ObjectCacheTest extends TestCase {
 		self::assertSame( 3, $result['c'] );
 	}
 
+	public function test_delete_removes_one_key_without_flushing_the_group(): void {
+		$cache = new ObjectCache( self::GROUP );
+		$cache->set( 'a', 1 );
+		$cache->set( 'b', 2 );
+
+		$cache->delete( 'a' );
+
+		self::assertSame( 'gone', $cache->get( 'a', 'gone' ) );
+		self::assertSame( 2, $cache->get( 'b' ) );
+	}
+
 	public function test_remember_does_not_let_a_value_survive_a_flush_during_its_callback(): void {
 		$cache = new ObjectCache( self::GROUP );
 
@@ -137,5 +148,13 @@ final class ObjectCacheTest extends TestCase {
 
 		self::assertSame( 'gone', $cache->get( 'a', 'gone' ) );
 		self::assertSame( 'gone', $cache->get( 'b', 'gone' ) );
+	}
+
+	public function test_flush_generation_suffix_is_not_autoloaded(): void {
+		( new ObjectCache( self::GROUP ) )->flush();
+
+		\wp_cache_delete( 'alloptions', 'options' );
+
+		self::assertArrayNotHasKey( self::GROUP . '_object_cache_generation', \wp_load_alloptions() );
 	}
 }

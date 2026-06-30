@@ -23,7 +23,7 @@ The `bootstrap` package runs before any modern PHP 8.5+ code parses, so consumer
 - **PHP**: 8.5+ (the bootstrap package itself is PHP 5.6-compatible)
 - **WordPress**: 7.0+
 - **Docker**: required for integration tests (via wp-env)
-- **Node.js**: 26+ (for wp-env CLI)
+- **Node.js**: 24+ (for wp-env CLI)
 
 ## Local development
 
@@ -48,7 +48,7 @@ npm run wp-env:stop         # Stop wp-env when done
 | `test:mutation`       | Infection mutation tests        | No     |
 | `test`                | Unit + Integration              | Yes    |
 | `test:all`            | Unit + Integration + Mutation   | Yes    |
-| `lint:php`            | PHPCS + PHPStan + Deptrac       | No     |
+| `lint:php`            | PHPCS + PHPStan + deptrac + composer-require-checker | No     |
 | `format:php`          | Auto-fix code style (PHPCBF)    | No     |
 | `quality-check`       | Lint + Unit + Integration       | Yes    |
 | `quality-check:all`   | Lint + All tests                | Yes    |

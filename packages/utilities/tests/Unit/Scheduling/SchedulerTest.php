@@ -2,16 +2,21 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\Scheduling;
 
-use DeepWebSolutions\Framework\Shared\Result\AbstractResult;
+use DeepWebSolutions\Framework\Shared\Result\Failure;
 use DeepWebSolutions\Framework\Shared\Result\Success;
+use DeepWebSolutions\Framework\Utilities\Scheduling\Errors\SchedulingError;
 use DeepWebSolutions\Framework\Utilities\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Utilities\Scheduling\SchedulerBackendInterface;
+use DeepWebSolutions\Framework\Utilities\Scheduling\SchedulingErrorReason;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( Scheduler::class )]
 #[UsesClass( Success::class )]
+#[UsesClass( Failure::class )]
+#[UsesClass( SchedulingError::class )]
+#[UsesClass( SchedulingErrorReason::class )]
 final class SchedulerTest extends TestCase {
 	public function test_schedule_recurring_routes_to_action_scheduler_when_ready(): void {
 		$action_scheduler = $this->recording_backend();
@@ -73,86 +78,65 @@ final class SchedulerTest extends TestCase {
 		self::assertSame( $wp_cron->next_result, $result );
 	}
 
-	public function test_unschedule_routes_to_action_scheduler_when_ready(): void {
-		$action_scheduler = $this->recording_backend();
-		$wp_cron          = $this->recording_backend();
+	public function test_unschedule_clears_jobs_from_both_backends(): void {
+		$action_scheduler = $this->recording_backend( true, 1700000000 );
+		$wp_cron          = $this->recording_backend( true, 1700000100 );
 		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
 		$result = $scheduler->unschedule( 'dws_hook', array( 'x' ), 'grp' );
 
-		self::assertSame(
-			array( array( 'unschedule', 'dws_hook', array( 'x' ), 'grp' ) ),
-			$action_scheduler->calls,
-		);
-		self::assertSame( array(), $wp_cron->calls );
-		self::assertSame( $action_scheduler->next_result, $result );
+		self::assertInstanceOf( Success::class, $result );
+		self::assertFalse( $action_scheduler->is_scheduled( 'dws_hook', array( 'x' ), 'grp' ) );
+		self::assertFalse( $wp_cron->is_scheduled( 'dws_hook', array( 'x' ), 'grp' ) );
 	}
 
-	public function test_unschedule_routes_to_wp_cron_when_not_ready(): void {
+	public function test_unschedule_returns_failure_when_either_backend_fails(): void {
+		$failure          = Failure::from( new SchedulingError( SchedulingErrorReason::ScheduleFailed, 'No clear.' ) );
 		$action_scheduler = $this->recording_backend();
-		$wp_cron          = $this->recording_backend();
-		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => false );
+		$wp_cron          = $this->recording_backend( next_result: $failure );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
-		$result = $scheduler->unschedule( 'dws_hook' );
-
-		self::assertSame(
-			array( array( 'unschedule', 'dws_hook', array(), '' ) ),
-			$wp_cron->calls,
-		);
-		self::assertSame( array(), $action_scheduler->calls );
-		self::assertSame( $wp_cron->next_result, $result );
+		self::assertSame( $failure, $scheduler->unschedule( 'dws_hook' ) );
 	}
 
-	public function test_is_scheduled_routes_to_action_scheduler_when_ready(): void {
-		$action_scheduler = $this->recording_backend( true );
+	public function test_is_scheduled_finds_a_job_from_either_backend(): void {
+		$action_scheduler = $this->recording_backend( false );
+		$wp_cron          = $this->recording_backend( true );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
+
+		self::assertTrue( $scheduler->is_scheduled( 'dws_hook' ) );
+	}
+
+	public function test_is_scheduled_returns_false_when_neither_backend_has_the_job(): void {
+		$action_scheduler = $this->recording_backend( false );
 		$wp_cron          = $this->recording_backend( false );
 		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
-		self::assertTrue( $scheduler->is_scheduled( 'dws_hook', array( 'x' ), 'grp' ) );
-		self::assertSame(
-			array( array( 'is_scheduled', 'dws_hook', array( 'x' ), 'grp' ) ),
-			$action_scheduler->calls,
-		);
-		self::assertSame( array(), $wp_cron->calls );
+		self::assertFalse( $scheduler->is_scheduled( 'dws_hook' ) );
 	}
 
-	public function test_is_scheduled_routes_to_wp_cron_when_not_ready(): void {
-		$action_scheduler = $this->recording_backend( false );
-		$wp_cron          = $this->recording_backend( true );
-		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => false );
+	public function test_get_next_scheduled_returns_the_earliest_timestamp_across_backends(): void {
+		$action_scheduler = $this->recording_backend( false, 1700000300 );
+		$wp_cron          = $this->recording_backend( false, 1700000100 );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
-		self::assertTrue( $scheduler->is_scheduled( 'dws_hook' ) );
-		self::assertSame(
-			array( array( 'is_scheduled', 'dws_hook', array(), '' ) ),
-			$wp_cron->calls,
-		);
-		self::assertSame( array(), $action_scheduler->calls );
+		self::assertSame( 1700000100, $scheduler->get_next_scheduled( 'dws_hook', array( 'x' ), 'grp' ) );
 	}
 
-	public function test_get_next_scheduled_routes_to_action_scheduler_when_ready(): void {
+	public function test_get_next_scheduled_returns_the_only_scheduled_timestamp(): void {
 		$action_scheduler = $this->recording_backend( false, 1700000000 );
 		$wp_cron          = $this->recording_backend( false, null );
 		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
 		self::assertSame( 1700000000, $scheduler->get_next_scheduled( 'dws_hook', array( 'x' ), 'grp' ) );
-		self::assertSame(
-			array( array( 'get_next_scheduled', 'dws_hook', array( 'x' ), 'grp' ) ),
-			$action_scheduler->calls,
-		);
-		self::assertSame( array(), $wp_cron->calls );
 	}
 
-	public function test_get_next_scheduled_routes_to_wp_cron_when_not_ready(): void {
+	public function test_get_next_scheduled_returns_null_when_neither_backend_has_the_job(): void {
 		$action_scheduler = $this->recording_backend( false, null );
-		$wp_cron          = $this->recording_backend( false, 1700000111 );
-		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => false );
+		$wp_cron          = $this->recording_backend( false, null );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
-		self::assertSame( 1700000111, $scheduler->get_next_scheduled( 'dws_hook' ) );
-		self::assertSame(
-			array( array( 'get_next_scheduled', 'dws_hook', array(), '' ) ),
-			$wp_cron->calls,
-		);
-		self::assertSame( array(), $action_scheduler->calls );
+		self::assertNull( $scheduler->get_next_scheduled( 'dws_hook' ) );
 	}
 
 	public function test_register_lifecycle_wires_both_backends(): void {
@@ -193,49 +177,65 @@ final class SchedulerTest extends TestCase {
 	}
 
 	/**
-	 * @param   bool     $next_bool Value the fake returns from is_scheduled().
-	 * @param   int|null $next_int  Value the fake returns from get_next_scheduled().
+	 * @param   bool                                          $scheduled   Whether the fake initially has the job.
+	 * @param   int|null                                      $next_int    Value the fake returns from get_next_scheduled().
+	 * @param   Success<true>|Failure<SchedulingError>|null   $next_result Result the fake returns from mutations; null means success.
 	 *
-	 * @return SchedulerBackendInterface&object{calls: list<array<int, mixed>>, lifecycle_calls: int, next_result: Success<true>}
+	 * @return  SchedulerBackendInterface&object{calls: list<array<int, mixed>>, lifecycle_calls: int, next_result: Success<true>|Failure<SchedulingError>, scheduled: bool}
 	 */
-	private function recording_backend( bool $next_bool = false, ?int $next_int = null ): SchedulerBackendInterface {
-		return new class( $next_bool, $next_int ) implements SchedulerBackendInterface {
+	protected function recording_backend( bool $scheduled = false, ?int $next_int = null, Success|Failure|null $next_result = null ): SchedulerBackendInterface {
+		return new class( $scheduled, $next_int, $next_result ) implements SchedulerBackendInterface {
 			/** @var list<array<int, mixed>> */
 			public array $calls = array();
 
 			public int $lifecycle_calls = 0;
 
-			/** @var Success<true> */
-			public readonly Success $next_result;
+			public bool $scheduled;
 
+			public ?int $next_int;
+
+			/** @var Success<true>|Failure<SchedulingError> */
+			public readonly Success|Failure $next_result;
+
+			/**
+			 * Constructor.
+			 *
+			 * @param   bool                                        $scheduled   Whether the fake initially has the job.
+			 * @param   int|null                                    $next_int    Value the fake returns from get_next_scheduled().
+			 * @param   Success<true>|Failure<SchedulingError>|null $next_result Result the fake returns from mutations; null means success.
+			 */
 			public function __construct(
-				private readonly bool $next_bool,
-				private readonly ?int $next_int,
+				bool $scheduled,
+				?int $next_int,
+				Success|Failure|null $next_result,
 			) {
-				$this->next_result = Success::from( true );
+				$this->scheduled   = $scheduled;
+				$this->next_int    = $next_int;
+				$this->next_result = $next_result ?? Success::from( true );
 			}
 
-			/** @return Success<true> */
-			public function schedule_recurring( string $hook, int $interval, array $args = array(), ?int $first_run_timestamp = null, string $group = '' ): AbstractResult {
+			public function schedule_recurring( string $hook, int $interval, array $args = array(), ?int $first_run_timestamp = null, string $group = '' ): Success|Failure {
 				$this->calls[] = array( 'schedule_recurring', $hook, $interval, $args, $first_run_timestamp, $group );
 				return $this->next_result;
 			}
 
-			/** @return Success<true> */
-			public function schedule_single( string $hook, int $timestamp, array $args = array(), string $group = '' ): AbstractResult {
+			public function schedule_single( string $hook, int $timestamp, array $args = array(), string $group = '' ): Success|Failure {
 				$this->calls[] = array( 'schedule_single', $hook, $timestamp, $args, $group );
 				return $this->next_result;
 			}
 
-			/** @return Success<true> */
-			public function unschedule( string $hook, array $args = array(), string $group = '' ): AbstractResult {
+			public function unschedule( string $hook, array $args = array(), string $group = '' ): Success|Failure {
 				$this->calls[] = array( 'unschedule', $hook, $args, $group );
+				if ( $this->next_result->is_success() ) {
+					$this->scheduled = false;
+					$this->next_int  = null;
+				}
 				return $this->next_result;
 			}
 
 			public function is_scheduled( string $hook, array $args = array(), string $group = '' ): bool {
 				$this->calls[] = array( 'is_scheduled', $hook, $args, $group );
-				return $this->next_bool;
+				return $this->scheduled;
 			}
 
 			public function get_next_scheduled( string $hook, array $args = array(), string $group = '' ): ?int {

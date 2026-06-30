@@ -8,7 +8,7 @@ namespace DeepWebSolutions\Framework\Utilities\Caching;
  * Reads through wp_cache's $found flag so a cached false/null/0/'' reads back as a hit rather than a
  * miss, and {@see self::remember()} get-or-computes on that same basis. {@see self::flush()} advances a
  * stored generation suffix appended to the cache group, invalidating the whole group in one option write
- * — more robust than wp_cache_flush_group(), which silently no-ops on object caches without group support.
+ * - more robust than wp_cache_flush_group(), which silently no-ops on object caches without group support.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -64,6 +64,18 @@ final readonly class ObjectCache {
 	}
 
 	/**
+	 * Deletes one cached value from the current generation.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $key Key to delete.
+	 */
+	public function delete( string $key ): void {
+		\wp_cache_delete( $key, $this->effective_group() );
+	}
+
+	/**
 	 * Returns a cached value, computing and storing it via the callback on a miss — a cached falsey value
 	 * is returned without recomputing.
 	 *
@@ -116,7 +128,7 @@ final readonly class ObjectCache {
 	 * @version 2.0.0
 	 */
 	public function flush(): void {
-		\update_option( $this->suffix_key(), $this->suffix() + 1, true );
+		\update_option( $this->suffix_key(), $this->suffix() + 1, false );
 	}
 
 	// endregion

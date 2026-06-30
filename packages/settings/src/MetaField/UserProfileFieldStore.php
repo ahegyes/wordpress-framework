@@ -8,6 +8,8 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
+use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
+
 /**
  * Registers a field group on the WordPress user-profile surface.
  *
@@ -29,13 +31,15 @@ final class UserProfileFieldStore {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   FieldRenderer  $renderer  Renderer for the field controls.
-	 * @param   FieldProcessor $processor Processor for sanitizing submitted values.
+	 * @param   FieldRenderer   $renderer  Renderer for the field controls.
+	 * @param   ?FieldProcessor $processor Processor for sanitizing submitted values; null applies one carrying the per-type default sanitizers.
 	 */
 	public function __construct(
 		protected FieldRenderer $renderer = new FieldRenderer(),
-		protected FieldProcessor $processor = new FieldProcessor(),
-	) {}
+		protected ?FieldProcessor $processor = null,
+	) {
+		$this->processor ??= new FieldProcessor( type_sanitizers: wordpress_field_type_sanitizers() );
+	}
 
 	// endregion
 

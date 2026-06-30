@@ -3,21 +3,24 @@
 namespace DeepWebSolutions\Framework\Settings\MetaField;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
-use DeepWebSolutions\Framework\Settings\Schema\Errors\FieldProcessingError;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Shared\Result\Failure;
+use DeepWebSolutions\Framework\Shared\Result\Success;
 
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
+use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 /**
  * Shared render and save engine for object-field surfaces.
  *
  * Drives a {@see FieldGroup} against an injected object-meta repository: on render it emits an
  * object-scoped nonce and each editable field's control; on save it verifies that nonce, processes each
- * editable field, and applies the batch through a single apply() call. Object fields are revoke-based —
- * an absent value renders unset (never the field default) and an empty submission deletes the meta key.
+ * editable field, and applies the batch through a single apply() call. Object fields are revoke-based:
+ * an absent value renders unset (never the field default), absent or empty submissions delete the meta
+ * key, and an invalid present submission preserves the existing value.
  *
  * A surface varies only in per-field markup, supplied as a row closure (table-row surfaces wrap each
  * control; meta-box surfaces echo it raw), and in the optional bespoke render/save closures the group
@@ -37,13 +40,15 @@ final class ObjectFieldForm {
 	 *
 	 * @param   ObjectMetaRepositoryInterface $repository Repository the group's fields read from and write to.
 	 * @param   FieldRenderer                 $renderer  Renderer for the field controls.
-	 * @param   FieldProcessor                $processor Processor for sanitizing submitted values.
+	 * @param   ?FieldProcessor               $processor Processor for sanitizing submitted values; null applies one carrying the per-type default sanitizers.
 	 */
 	public function __construct(
 		protected ObjectMetaRepositoryInterface $repository,
 		protected FieldRenderer $renderer = new FieldRenderer(),
-		protected FieldProcessor $processor = new FieldProcessor(),
-	) {}
+		protected ?FieldProcessor $processor = null,
+	) {
+		$this->processor ??= new FieldProcessor( type_sanitizers: wordpress_field_type_sanitizers() );
+	}
 
 	// endregion
 
@@ -94,8 +99,9 @@ final class ObjectFieldForm {
 	 *
 	 * Verifies the object-scoped nonce, then runs the group's bespoke save handler if it has one, or
 	 * processes each editable field and applies the batch through one apply() call. Object fields are
-	 * revoke-based: an unsubmitted, empty, or rejected field deletes its meta key rather than storing a
-	 * default. The per-object surface capability is the caller's responsibility, checked before this runs.
+	 * revoke-based: an unsubmitted or empty field deletes its meta key rather than storing a default; an
+	 * invalid present field preserves the existing meta. The per-object surface capability is the caller's
+	 * responsibility, checked before this runs.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -142,11 +148,13 @@ final class ObjectFieldForm {
 			}
 
 			// A present submission is stored when meaningful; a rejected one (invalid option, failed
-			// validation) revokes the key too, rather than folding to a default.
-			$value = $this->processor->process_or_reject( $field, $submitted )->match(
-				static fn ( mixed $accepted ): mixed => $accepted,
-				static fn ( FieldProcessingError $error ): mixed => false, // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- a rejected submission revokes the key.
-			);
+			// validation) leaves the key untouched, preserving the prior value.
+			$result = $this->processor()->process_or_reject( $field, $submitted );
+			if ( $result instanceof Failure ) {
+				continue;
+			}
+			\assert( $result instanceof Success );
+			$value = $result->value;
 			if ( $this->should_store( $value ) ) {
 				$sets[ $meta_key ] = $value;
 			} else {
@@ -155,6 +163,35 @@ final class ObjectFieldForm {
 		}
 
 		$this->repository->apply( $object_id, $sets, $deletes );
+	}
+
+	/**
+	 * Returns the nonce action for a group's save on a given object.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group     Group the nonce guards.
+	 * @param   int        $object_id Object the nonce is bound to.
+	 *
+	 * @return  string
+	 */
+	public function get_nonce_action( FieldGroup $group, int $object_id ): string {
+		return $this->nonce_action( $group, $object_id );
+	}
+
+	/**
+	 * Returns the nonce field name for a group's save.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group Group the nonce guards.
+	 *
+	 * @return  string
+	 */
+	public function get_nonce_name( FieldGroup $group ): string {
+		return $this->nonce_name( $group );
 	}
 
 	// endregion
@@ -200,6 +237,20 @@ final class ObjectFieldForm {
 		}
 
 		return $fields;
+	}
+
+	/**
+	 * Returns the configured processor.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  FieldProcessor
+	 */
+	protected function processor(): FieldProcessor {
+		\assert( $this->processor instanceof FieldProcessor );
+
+		return $this->processor;
 	}
 
 	/**

@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Shared\Tests\Unit\Reflection;
 
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\TestCase;
+
 use function DeepWebSolutions\Framework\Shared\Reflection\convert_to_primitives;
 use function DeepWebSolutions\Framework\Shared\Reflection\get_public_property_names;
 
@@ -84,6 +86,8 @@ final class FixtureWithArray implements \JsonSerializable {
 	}
 }
 
+#[CoversFunction( 'DeepWebSolutions\Framework\Shared\Reflection\convert_to_primitives' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Shared\Reflection\get_public_property_names' )]
 final class FunctionsTest extends TestCase {
 	public function test_get_public_property_names_returns_public_only(): void {
 		$names = get_public_property_names( new FixtureWithMixedVisibility() );

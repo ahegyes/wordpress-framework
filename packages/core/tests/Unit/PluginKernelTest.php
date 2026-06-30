@@ -14,9 +14,14 @@ use DeepWebSolutions\Framework\Core\PluginInterface;
 use DeepWebSolutions\Framework\Core\PluginKernel;
 use DeepWebSolutions\Framework\Core\ValueObjects\PluginHeader;
 use DeepWebSolutions\Framework\Shared\Version\Version;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
+#[CoversClass( PluginKernel::class )]
+#[UsesClass( FeatureException::class )]
+#[UsesClass( Version::class )]
 final class PluginKernelTest extends TestCase {
 	public function test_initializes_all_components_before_registering_any_hooks(): void {
 		$log = new PluginKernelTestLog();
@@ -399,6 +404,32 @@ final class PluginKernelTest extends TestCase {
 		self::assertContains( 'error', $levels );
 	}
 
+	public function test_throwing_feature_resolution_is_caught_and_halts_component_boot(): void {
+		$log       = new PluginKernelTestLog();
+		$logger    = new PluginKernelTestLogger();
+		$container = $this->make_container(
+			array(
+				PluginKernelTestComp::class => $this->make_component( 'A', $log ),
+			),
+			array(
+				PluginKernelTestFeatureA::class => new \RuntimeException( 'feature cannot be resolved' ),
+			),
+		);
+
+		$plugin = $this->make_plugin( $container, array( PluginKernelTestFeatureA::class ) );
+		PluginKernel::run( $plugin, $logger );
+
+		self::assertSame( array(), $log->entries );
+		self::assertSame( array( PluginKernelTestFeatureA::class ), $container->resolved );
+		self::assertNotContains( PluginKernelTestComp::class, $container->resolved );
+		self::assertCount( 1, $logger->records );
+		self::assertSame( 'error', $logger->records[0]['level'] );
+
+		$exception = $logger->records[0]['context']['exception'] ?? null;
+		self::assertInstanceOf( \RuntimeException::class, $exception );
+		self::assertSame( 'feature cannot be resolved', $exception->getMessage() );
+	}
+
 	public function test_throwing_installer_resolution_is_caught_and_halts_boot(): void {
 		$logger = new PluginKernelTestLogger();
 
@@ -443,9 +474,10 @@ final class PluginKernelTest extends TestCase {
 
 	/**
 	 * @param array<string, object> $services
+	 * @param array<string, \Throwable> $throwing
 	 */
-	private function make_container( array $services ): PluginKernelTestContainer {
-		return new PluginKernelTestContainer( $services );
+	private function make_container( array $services, array $throwing = array() ): PluginKernelTestContainer {
+		return new PluginKernelTestContainer( $services, $throwing );
 	}
 
 	private function make_component( string $name, PluginKernelTestLog $log, bool $enabled = true ): object {
@@ -533,14 +565,20 @@ final class PluginKernelTestContainer implements ContainerInterface {
 	public array $resolved = array();
 
 	/**
-	 * @param array<string, object> $storage
+	 * @param array<string, object>     $storage
+	 * @param array<string, \Throwable> $throwing
 	 */
 	public function __construct(
 		private array $storage = array(),
+		private array $throwing = array(),
 	) {}
 
 	public function get( string $id ): mixed {
 		$this->resolved[] = $id;
+		if ( isset( $this->throwing[ $id ] ) ) {
+			throw $this->throwing[ $id ];
+		}
+
 		if ( ! isset( $this->storage[ $id ] ) ) {
 			throw new \OutOfBoundsException( 'Unbound container id: ' . $id );
 		}

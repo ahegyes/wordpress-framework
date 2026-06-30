@@ -379,6 +379,30 @@ final class FieldProcessorTest extends TestCase {
 		self::assertSame( 'Ada', $result->value );
 	}
 
+	public function test_process_or_reject_returns_success_carrying_empty_choice_values(): void {
+		$select = new SettingsField( id: 'color', type: 'select', label: 'C', options: array( 'red' => 'Red' ) );
+		$radio  = new SettingsField( id: 'size', type: 'radio', label: 'S', options: array( 's' => 'Small' ) );
+
+		$select_result = ( new FieldProcessor() )->process_or_reject( $select, array( 'color' => false ) );
+		$radio_result  = ( new FieldProcessor() )->process_or_reject( $radio, array( 'size' => false ) );
+
+		self::assertInstanceOf( Success::class, $select_result );
+		self::assertFalse( $select_result->value );
+		self::assertInstanceOf( Success::class, $radio_result );
+		self::assertFalse( $radio_result->value );
+	}
+
+	public function test_process_or_reject_returns_success_carrying_empty_scalar_before_type_sanitize(): void {
+		$processor = new FieldProcessor(
+			type_sanitizers: array( 'text' => static fn ( mixed $value ): string => 'MANGLED' ),
+		);
+
+		$result = $processor->process_or_reject( $this->field( 'name', 'text' ), array( 'name' => false ) );
+
+		self::assertInstanceOf( Success::class, $result );
+		self::assertFalse( $result->value );
+	}
+
 	public function test_process_or_reject_fails_for_a_non_scalar_submission(): void {
 		$result = ( new FieldProcessor() )->process_or_reject( $this->field( 'name', 'text' ), array( 'name' => array( 'x' ) ) );
 

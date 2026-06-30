@@ -12,21 +12,9 @@ use DeepWebSolutions\Framework\Shared\Result\Failure;
 use DeepWebSolutions\Framework\Shared\Result\Success;
 
 /**
- * Turns a field's raw submission into the value to persist.
+ * Pure, WordPress-free field-submission processor.
  *
- * Pure and WordPress-free. Resolves the field type against the taxonomy
- * (rejecting an unknown type), coerces an absent submission to the type's empty
- * value (an empty array for a multi-value field, otherwise false — never null),
- * and for a present value applies the field's sanitizer (or the type's default
- * sanitizer when the field declares none), gates a choice value against its
- * resolved option set, then applies the field's own validator. {@see self::process_or_reject()}
- * returns a {@see Success} carrying the value, or a {@see Failure} naming the field when a present
- * value fails one of those gates; {@see self::process()} folds that rejection back to the type's
- * empty value, or to a custom type's declared default. A type outside the
- * taxonomy but present in the injected custom-type registry is processed as a
- * plain scalar through the field's own sanitize/validate, falling back to the
- * field's default (a non-scalar submission is coerced to the default before the
- * sanitizer runs, mirroring the built-in scalar guard); a type in neither still throws.
+ * Turns a field's raw submitted value into either the value to persist or a structured rejection.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -111,6 +99,14 @@ final class FieldProcessor {
 		}
 
 		$value = $input[ $field->id ];
+
+		// A value already equal to the type's own empty is idempotent: WordPress sanitizes a registered
+		// option twice when it is first created (update_option then add_option), and the second pass sees
+		// the first pass's empty (false / array()) as a present value — re-running the sanitizer would flip
+		// false to '' and the option gate would reject it. Short-circuit so the empty round-trips unchanged.
+		if ( $value === $this->empty_value( $field ) ) {
+			return Success::from( $value );
+		}
 
 		// Every non-multiselect field expects a scalar submission; a tampered array would fatal a scalar
 		// sanitizer (e.g. trim) or persist as the wrong type, so a non-scalar is rejected.

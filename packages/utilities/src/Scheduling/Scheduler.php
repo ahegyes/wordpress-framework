@@ -3,21 +3,16 @@
 namespace DeepWebSolutions\Framework\Utilities\Scheduling;
 
 use DeepWebSolutions\Framework\Shared\Result\AbstractResult;
+use DeepWebSolutions\Framework\Shared\Result\Success;
 
 /**
  * Backend-agnostic scheduling facade that routes each call to the ready backend.
  *
- * Holds both backends — Action Scheduler and WordPress cron — plus a readiness probe, and picks
- * the target per call: Action Scheduler when the probe reports it ready, WordPress cron otherwise.
- * The choice has to be per-call because Action Scheduler initializes after this facade is
- * constructed — its data store is ready only from 'action_scheduler_init', later than the
- * 'plugins_loaded' wiring — so a schedule requested before then still succeeds via WordPress cron
- * while a later one prefers Action Scheduler. Because selection is per call, a recurring hook
- * scheduled before Action Scheduler is ready lands on WordPress cron and stays invisible to a later
- * Action-Scheduler-routed query or unschedule, which would orphan it; schedule a given recurring hook
- * on one side of that boundary — prefer 'init' or later — not from a boot-time installer. Construct
- * via {@see create_scheduler()} for the default wiring, or inject backends and a probe directly (a
- * test fake included). Components typehint this class — or the interface — and schedule through it.
+ * Holds both backends — Action Scheduler and WordPress cron — plus a readiness probe. Scheduling
+ * mutations target one backend per call: Action Scheduler when the probe reports it ready, WordPress
+ * cron otherwise. The read and clear surface consults both backends, so a job scheduled before Action
+ * Scheduler is ready remains visible and cancellable after the preferred backend changes. Construct via
+ * {@see create_scheduler()} for the default wiring, or inject backends and a probe directly.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -78,7 +73,17 @@ final class Scheduler implements SchedulerBackendInterface {
 	#[\Override]
 	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function unschedule( string $hook, array $args = array(), string $group = '' ): AbstractResult {
-		return $this->backend()->unschedule( $hook, $args, $group );
+		$action_scheduler_result = $this->action_scheduler_backend->unschedule( $hook, $args, $group );
+		$wp_cron_result          = $this->wp_cron_backend->unschedule( $hook, $args, $group );
+
+		if ( $action_scheduler_result->is_failure() ) {
+			return $action_scheduler_result;
+		}
+		if ( $wp_cron_result->is_failure() ) {
+			return $wp_cron_result;
+		}
+
+		return Success::from( true );
 	}
 
 	/**
@@ -89,7 +94,8 @@ final class Scheduler implements SchedulerBackendInterface {
 	 */
 	#[\Override]
 	public function is_scheduled( string $hook, array $args = array(), string $group = '' ): bool {
-		return $this->backend()->is_scheduled( $hook, $args, $group );
+		return $this->action_scheduler_backend->is_scheduled( $hook, $args, $group )
+			|| $this->wp_cron_backend->is_scheduled( $hook, $args, $group );
 	}
 
 	/**
@@ -100,7 +106,15 @@ final class Scheduler implements SchedulerBackendInterface {
 	 */
 	#[\Override]
 	public function get_next_scheduled( string $hook, array $args = array(), string $group = '' ): ?int {
-		return $this->backend()->get_next_scheduled( $hook, $args, $group );
+		$next = \array_filter(
+			array(
+				$this->action_scheduler_backend->get_next_scheduled( $hook, $args, $group ),
+				$this->wp_cron_backend->get_next_scheduled( $hook, $args, $group ),
+			),
+			\is_int( ... ),
+		);
+
+		return array() === $next ? null : \min( $next );
 	}
 
 	/**

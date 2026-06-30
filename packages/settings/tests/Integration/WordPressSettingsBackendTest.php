@@ -583,11 +583,11 @@ final class WordPressSettingsBackendTest extends TestCase {
 		$data = $this->rest_get_settings();
 
 		// Each type's stored empty survives the schema (the scalar union admits boolean; a semantic field's
-		// sanitizer normalizes its empty to ''; the multi-value field admits []), so a value the schema would
+		// sanitizer normalizes its empty to false; the multi-value field admits []), so a value the schema would
 		// otherwise reject does not null the whole setting. The endpoint reflects the section row faithfully.
 		self::assertArrayHasKey( self::API_OPTION, $data );
 		self::assertFalse( $data[ self::API_OPTION ]['enabled'] );
-		self::assertSame( '', $data[ self::API_OPTION ]['count'] );
+		self::assertFalse( $data[ self::API_OPTION ]['count'] );
 		self::assertSame( array(), $data[ self::API_OPTION ]['tags'] );
 	}
 

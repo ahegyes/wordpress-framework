@@ -9,6 +9,7 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
 use DeepWebSolutions\Framework\WooCommerce\Backend\WooCommerceSettingsBackend;
+use DeepWebSolutions\Framework\WooCommerce\Backend\Exceptions\UnsupportedSettingsPageCapabilityException;
 use DeepWebSolutions\Framework\WooCommerce\Backend\Exceptions\UnboundSettingsPageException;
 use DeepWebSolutions\Framework\WooCommerce\Tests\Integration\Fixtures\BarWCSettingsPage;
 use DeepWebSolutions\Framework\WooCommerce\Tests\Integration\Fixtures\FooWCSettingsPage;
@@ -16,7 +17,7 @@ use DeepWebSolutions\Framework\WooCommerce\Tests\Integration\Fixtures\LazyBindWC
 use PHPUnit\Framework\TestCase;
 
 final class WooCommerceSettingsBackendTest extends TestCase {
-	private const OPTION_KEYS = array( 'dws-foo_store_name', 'dws-foo_flag', 'dws-foo_extra', 'dws-foo_code', 'dws-foo_a', 'dws-foo_open', 'dws-foo_secret', 'dws-bar_b' );
+	private const OPTION_KEYS = array( 'dws-foo_store_name', 'dws-foo_flag', 'dws-foo_extra', 'dws-foo_code', 'dws-foo_a', 'dws-foo_open', 'dws-foo_secret', 'dws-foo_cold', 'dws-foo_hot', 'dws-bar_b' );
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -155,6 +156,51 @@ final class WooCommerceSettingsBackendTest extends TestCase {
 		self::assertNotContains( 'dws-foo_secret', $ids );
 	}
 
+	public function test_each_descriptor_section_registers_as_a_native_woocommerce_section(): void {
+		$backend = new WooCommerceSettingsBackend( FooWCSettingsPage::class );
+		$backend->register_page( $this->two_section_page() );
+
+		\apply_filters( 'woocommerce_get_settings_pages', array() );
+		$page = new FooWCSettingsPage();
+
+		self::assertSame(
+			array(
+				''         => 'General',
+				'advanced' => 'Advanced',
+			),
+			$page->get_sections(),
+		);
+	}
+
+	public function test_each_native_woocommerce_section_renders_only_its_own_fields(): void {
+		$backend = new WooCommerceSettingsBackend( FooWCSettingsPage::class );
+		$backend->register_page( $this->two_section_page() );
+
+		\apply_filters( 'woocommerce_get_settings_pages', array() );
+		$page         = new FooWCSettingsPage();
+		$default_ids  = \array_column( $page->get_settings_for_section( '' ), 'id' );
+		$advanced_ids = \array_column( $page->get_settings_for_section( 'advanced' ), 'id' );
+
+		self::assertContains( 'dws-foo_general', $default_ids );
+		self::assertContains( 'dws-foo_store_name', $default_ids );
+		self::assertNotContains( 'dws-foo_advanced', $default_ids );
+		self::assertNotContains( 'dws-foo_debug', $default_ids );
+
+		self::assertContains( 'dws-foo_advanced', $advanced_ids );
+		self::assertContains( 'dws-foo_debug', $advanced_ids );
+		self::assertNotContains( 'dws-foo_general', $advanced_ids );
+		self::assertNotContains( 'dws-foo_store_name', $advanced_ids );
+	}
+
+	public function test_a_single_descriptor_section_registers_only_the_default_woocommerce_section(): void {
+		$backend = new WooCommerceSettingsBackend( FooWCSettingsPage::class );
+		$backend->register_page( $this->single_field_page( 'store_name', 'text', 'Store Name' ) );
+
+		\apply_filters( 'woocommerce_get_settings_pages', array() );
+
+		self::assertSame( array( '' => 'General' ), ( new FooWCSettingsPage() )->get_sections() );
+	}
+
 	public function test_a_save_of_a_field_the_user_cannot_edit_is_rejected(): void {
 		$backend = new WooCommerceSettingsBackend( FooWCSettingsPage::class );
 		$backend->register_page(
@@ -172,6 +218,46 @@ final class WooCommerceSettingsBackendTest extends TestCase {
 		$saved = \apply_filters( 'woocommerce_admin_settings_sanitize_option_dws-foo_secret', 'tampered', array(), 'tampered' );
 
 		self::assertSame( 'original', $saved );
+	}
+
+	public function test_register_page_rejects_a_non_woocommerce_settings_capability(): void {
+		$backend = new WooCommerceSettingsBackend( FooWCSettingsPage::class );
+
+		$this->expectException( UnsupportedSettingsPageCapabilityException::class );
+
+		$backend->register_page(
+			new SettingsPage(
+				slug: 'dws-foo',
+				page_title: 'Foo',
+				menu_title: 'Foo',
+				capability: 'manage_options',
+				location: 'dws_foo',
+				sections: array( new SettingsSection( 'general', 'General', array( new SettingsField( id: 'a', type: 'text', label: 'A' ) ) ) ),
+			),
+		);
+	}
+
+	public function test_set_honors_the_field_autoload_policy(): void {
+		$backend = new WooCommerceSettingsBackend( FooWCSettingsPage::class );
+		$backend->register_page(
+			$this->page(
+				'dws-foo',
+				'dws_foo',
+				'Foo',
+				array(
+					new SettingsField( id: 'cold', type: 'text', label: 'Cold' ),
+					new SettingsField( id: 'hot', type: 'text', label: 'Hot', autoload: true ),
+				),
+			),
+		);
+
+		$backend->set( 'cold', 'a' );
+		$backend->set( 'hot', 'b' );
+		\wp_cache_delete( 'alloptions', 'options' );
+		$alloptions = \wp_load_alloptions();
+
+		self::assertArrayNotHasKey( 'dws-foo_cold', $alloptions );
+		self::assertArrayHasKey( 'dws-foo_hot', $alloptions );
 	}
 
 	public function test_a_no_cap_save_of_an_unstored_field_leaves_it_absent(): void {
@@ -242,6 +328,26 @@ final class WooCommerceSettingsBackendTest extends TestCase {
 		);
 	}
 
+	public function test_a_section_id_colliding_with_a_field_id_throws(): void {
+		$backend = new WooCommerceSettingsBackend( FooWCSettingsPage::class );
+
+		$this->expectException( DuplicateSettingsFieldException::class );
+
+		$backend->register_page(
+			new SettingsPage(
+				slug: 'dws-foo',
+				page_title: 'Foo',
+				menu_title: 'Foo',
+				capability: 'manage_woocommerce',
+				location: 'dws_foo',
+				sections: array(
+					new SettingsSection( 'general', 'General', array( new SettingsField( id: 'advanced', type: 'text', label: 'A' ) ) ),
+					new SettingsSection( 'advanced', 'Advanced', array( new SettingsField( id: 'b', type: 'text', label: 'B' ) ) ),
+				),
+			),
+		);
+	}
+
 	/**
 	 * @param  mixed $pages Result of the woocommerce_get_settings_pages filter.
 	 * @return list<string>
@@ -261,6 +367,28 @@ final class WooCommerceSettingsBackendTest extends TestCase {
 
 	private function single_field_page( string $field_id, string $type, string $label ): SettingsPage {
 		return $this->page( 'dws-foo', 'dws_foo', 'Foo', array( new SettingsField( id: $field_id, type: $type, label: $label ) ) );
+	}
+
+	protected function two_section_page(): SettingsPage {
+		return new SettingsPage(
+			slug: 'dws-foo',
+			page_title: 'Foo Settings',
+			menu_title: 'Foo',
+			capability: 'manage_woocommerce',
+			location: 'dws_foo',
+			sections: array(
+				new SettingsSection(
+					'general',
+					'General',
+					array( new SettingsField( id: 'store_name', type: 'text', label: 'Store Name' ) ),
+				),
+				new SettingsSection(
+					'advanced',
+					'Advanced',
+					array( new SettingsField( id: 'debug', type: 'checkbox', label: 'Debug' ) ),
+				),
+			),
+		);
 	}
 
 	/**

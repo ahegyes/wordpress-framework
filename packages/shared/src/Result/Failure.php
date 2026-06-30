@@ -17,7 +17,7 @@ final class Failure extends AbstractResult {
 	// region MAGIC METHODS
 
 	/**
-	 * Private constructor — use {@see self::from()}.
+	 * Constructor.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

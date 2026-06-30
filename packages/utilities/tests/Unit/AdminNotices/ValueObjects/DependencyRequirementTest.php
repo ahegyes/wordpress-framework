@@ -24,9 +24,9 @@ final class DependencyRequirementTest extends TestCase {
 	}
 
 	public function test_get_notice_id_derives_from_the_label(): void {
-		$requirement = new DependencyRequirement( $this->conditional( false ), 'WooCommerce' );
+		$requirement = new DependencyRequirement( $this->conditional( false ), 'Missing Plugin' );
 
-		self::assertSame( 'dep_woocommerce', $requirement->get_notice_id() );
+		self::assertSame( 'dep_missing_plugin', $requirement->get_notice_id() );
 	}
 
 	public function test_get_notice_id_slugs_a_multi_word_label(): void {
@@ -47,10 +47,13 @@ final class DependencyRequirementTest extends TestCase {
 		new DependencyRequirement( $this->conditional( false ), 'WooCommerce', id: 'Bad.Id' );
 	}
 
-	public function test_get_notice_id_for_a_degenerate_label_is_the_bare_prefix(): void {
-		$requirement = new DependencyRequirement( $this->conditional( false ), '!!!' );
+	public function test_degenerate_labels_still_derive_distinct_valid_notice_ids(): void {
+		$first  = new DependencyRequirement( $this->conditional( false ), '!!!' );
+		$second = new DependencyRequirement( $this->conditional( false ), '???' );
 
-		self::assertSame( 'dep_', $requirement->get_notice_id() );
+		self::assertMatchesRegularExpression( '/\Adep_[a-f0-9]{12}\z/', $first->get_notice_id() );
+		self::assertMatchesRegularExpression( '/\Adep_[a-f0-9]{12}\z/', $second->get_notice_id() );
+		self::assertNotSame( $first->get_notice_id(), $second->get_notice_id() );
 	}
 
 	public function test_required_requirement_maps_to_a_non_dismissible_error(): void {

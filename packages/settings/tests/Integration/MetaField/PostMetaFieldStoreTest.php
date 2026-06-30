@@ -30,8 +30,6 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( FieldType::class )]
 final class PostMetaFieldStoreTest extends TestCase {
 	private const GROUP_ID     = 'dws_postmeta';
-	private const NONCE_NAME   = 'dws_object_field_dws_postmeta_nonce';
-	private const NONCE_ACTION = 'dws_object_field_dws_postmeta';
 	private const ISOLATED_HOOKS = array( 'add_meta_boxes_post', 'save_post_post' );
 
 	private int $post_id = 0;
@@ -88,23 +86,51 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_the_registered_box_renders_a_nonce_and_its_control(): void {
-		( new PostMetaFieldStore() )->register( $this->group(), $this->placement() );
+		$group = $this->group();
+		( new PostMetaFieldStore() )->register( $group, $this->placement() );
 		\do_action( 'add_meta_boxes_post', \get_post( $this->post_id ) );
 
 		$html = $this->render_box();
 
-		self::assertStringContainsString( self::NONCE_NAME, $html );
+		self::assertStringContainsString( $this->nonce_name( $group ), $html );
 		self::assertStringContainsString( 'name="dws_postmeta[note]"', $html );
 	}
 
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
 		$store = new PostMetaFieldStore();
-		$store->register( $this->group(), $this->placement() );
+		$group = $this->group();
+		$store->register( $group, $this->placement() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => 'hi' ) );
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertSame( 'hi', $this->repo()->get( $this->post_id, 'note' ) );
+	}
+
+	public function test_saving_applies_the_builtin_default_sanitizer(): void {
+		$store = new PostMetaFieldStore();
+		$group = $this->group();
+		$raw   = '<b>x</b>';
+		$store->register( $group, $this->placement() );
+
+		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => $raw ) );
+		\do_action( 'save_post_post', $this->post_id );
+
+		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->post_id, 'note' ) );
+	}
+
+	public function test_saving_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
+		$store = new PostMetaFieldStore();
+		$group = $this->group_with(
+			new SettingsField( id: 'color', type: 'select', label: 'Color', options: array( 'red' => 'Red' ) ),
+		);
+		$store->register( $group, $this->placement() );
+
+		$this->repo()->set( $this->post_id, 'color', 'red' );
+		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'color' => 'blue' ) );
+		\do_action( 'save_post_post', $this->post_id );
+
+		self::assertSame( 'red', $this->repo()->get( $this->post_id, 'color' ) );
 	}
 
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
@@ -123,9 +149,10 @@ final class PostMetaFieldStoreTest extends TestCase {
 		\assert( \is_int( $subscriber ) );
 		\wp_set_current_user( $subscriber );
 
-		( new PostMetaFieldStore() )->register( $this->group(), $this->placement() );
+		$group = $this->group();
+		( new PostMetaFieldStore() )->register( $group, $this->placement() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => 'hi' ) );
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertFalse( $this->repo()->has( $this->post_id, 'note' ) );
@@ -137,10 +164,11 @@ final class PostMetaFieldStoreTest extends TestCase {
 	public function test_a_configured_box_capability_overrides_the_default(): void {
 		$store     = new PostMetaFieldStore();
 		$placement = new MetaBoxPlacement( screen: 'post', context: 'side', priority: 'default', capability: 'dws_nonexistent_cap' );
-		$store->register( $this->group(), $placement );
+		$group     = $this->group();
+		$store->register( $group, $placement );
 
 		// The administrator passes the default edit_post but lacks the configured capability, so the save is refused.
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => 'hi' ) );
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertFalse( $this->repo()->has( $this->post_id, 'note' ) );
@@ -181,12 +209,14 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	private function group(): FieldGroup {
+		return $this->group_with( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
+	}
+
+	private function group_with( SettingsField $field ): FieldGroup {
 		return new FieldGroup(
 			id: self::GROUP_ID,
 			title: 'Post Meta',
-			fields_provider: static fn ( int $object_id ): array => array(
-				new SettingsField( id: 'note', type: 'text', label: 'Note' ),
-			),
+			fields_provider: static fn ( int $object_id ): array => array( $field ),
 		);
 	}
 
@@ -194,7 +224,11 @@ final class PostMetaFieldStoreTest extends TestCase {
 		return new MetaBoxPlacement( screen: 'post', context: 'side', priority: 'default' );
 	}
 
-	private function nonce(): string {
-		return \wp_create_nonce( self::NONCE_ACTION . '_' . $this->post_id );
+	protected function nonce_name( FieldGroup $group ): string {
+		return ( new ObjectFieldForm( $this->repo() ) )->get_nonce_name( $group );
+	}
+
+	protected function nonce( FieldGroup $group ): string {
+		return \wp_create_nonce( ( new ObjectFieldForm( $this->repo() ) )->get_nonce_action( $group, $this->post_id ) );
 	}
 }
