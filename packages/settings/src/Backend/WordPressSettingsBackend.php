@@ -105,6 +105,17 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	protected int $writing = 0;
 
 	/**
+	 * Whether the page's settings are registered. An admin request that boots the REST server fires both
+	 * registration hooks; the guard keeps the option filters from being added twice.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     bool
+	 */
+	protected bool $settings_registered = false;
+
+	/**
 	 * Processor that sanitizes and validates submitted values.
 	 *
 	 * @since   2.0.0
@@ -164,8 +175,9 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 			);
 		}
 
-		\add_action( 'admin_menu', fn () => $this->add_menu( $page ) );
-		\add_action( 'admin_init', fn () => $this->register_settings( $page ) );
+		\add_action( 'admin_menu', array( $this, 'add_menu' ) );
+		\add_action( 'admin_init', array( $this, 'register_settings' ) );
+		\add_action( 'rest_api_init', array( $this, 'register_settings' ) );
 	}
 
 	/**
@@ -219,6 +231,77 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 			return $this->store_for( $field_id )->delete( $field_id );
 		} finally {
 			--$this->writing;
+		}
+	}
+
+	// endregion
+
+	// region HOOKS
+
+	/**
+	 * Registers the page's admin submenu. Hooked to admin_menu; no-op until register_page() runs.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function add_menu(): void {
+		$page = $this->page;
+		if ( null === $page ) {
+			return;
+		}
+
+		// WordPress only wptexturizes the submenu menu_title before printing it (page_title is strip_tagged
+		// for the document title and escaped in render_page), so the menu title is escaped here.
+		\add_submenu_page(
+			$page->location ?? 'options-general.php',
+			$page->page_title,
+			\esc_html( $page->menu_title ),
+			$page->capability,
+			$page->slug,
+			fn () => $this->render_page( $page ),
+		);
+	}
+
+	/**
+	 * Registers one setting, capability filter, and autoload-policy filter per section. Hooked to both
+	 * admin_init and rest_api_init; runs once per request, on whichever fires first.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function register_settings(): void {
+		$page = $this->page;
+		if ( null === $page || $this->settings_registered ) {
+			return;
+		}
+		$this->settings_registered = true;
+
+		foreach ( $page->sections as $section ) {
+			$option_name = $page->slug . '-' . $section->id;
+			$rest_schema = $this->section_rest_schemas[ $section->id ] ?? null;
+			$autoload    = $this->section_autoload[ $section->id ] ?? false;
+
+			$args = array(
+				// A REST-exposed section is an object keyed by field id; a plain section is an opaque map.
+				'type'              => null !== $rest_schema ? 'object' : 'array',
+				'sanitize_callback' => fn ( mixed $input ): mixed => $this->sanitize( $section, $option_name, $input ),
+				'default'           => array(),
+			);
+			if ( null !== $rest_schema ) {
+				$args['show_in_rest'] = array( 'schema' => $rest_schema );
+			}
+
+			\register_setting( $option_name, $option_name, $args );
+			\add_filter( "option_page_capability_{$option_name}", fn () => $page->capability );
+
+			// The form save calls update_option with no autoload argument, so WP would resolve the option's
+			// autoload by size rather than the section policy; pin the policy so both write paths agree.
+			\add_filter(
+				'wp_default_autoload_value',
+				static fn ( ?bool $default_value, string $option ): ?bool => $option === $option_name ? $autoload : $default_value,
+				10,
+				2,
+			);
 		}
 	}
 
@@ -362,65 +445,6 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 		}
 
 		return $map;
-	}
-
-	/**
-	 * Registers the page's admin submenu. Hooked to admin_menu.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   SettingsPage $page Page to add.
-	 */
-	protected function add_menu( SettingsPage $page ): void {
-		// WordPress only wptexturizes the submenu menu_title before printing it (page_title is strip_tagged
-		// for the document title and escaped in render_page), so the menu title is escaped here.
-		\add_submenu_page(
-			$page->location ?? 'options-general.php',
-			$page->page_title,
-			\esc_html( $page->menu_title ),
-			$page->capability,
-			$page->slug,
-			fn () => $this->render_page( $page ),
-		);
-	}
-
-	/**
-	 * Registers one setting, capability filter, and autoload-policy filter per section. Hooked to admin_init.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   SettingsPage $page Page whose sections to register.
-	 */
-	protected function register_settings( SettingsPage $page ): void {
-		foreach ( $page->sections as $section ) {
-			$option_name = $page->slug . '-' . $section->id;
-			$rest_schema = $this->section_rest_schemas[ $section->id ] ?? null;
-			$autoload    = $this->section_autoload[ $section->id ] ?? false;
-
-			$args = array(
-				// A REST-exposed section is an object keyed by field id; a plain section is an opaque map.
-				'type'              => null !== $rest_schema ? 'object' : 'array',
-				'sanitize_callback' => fn ( mixed $input ): mixed => $this->sanitize( $section, $option_name, $input ),
-				'default'           => array(),
-			);
-			if ( null !== $rest_schema ) {
-				$args['show_in_rest'] = array( 'schema' => $rest_schema );
-			}
-
-			\register_setting( $option_name, $option_name, $args );
-			\add_filter( "option_page_capability_{$option_name}", fn () => $page->capability );
-
-			// The form save calls update_option with no autoload argument, so WP would resolve the option's
-			// autoload by size rather than the section policy; pin the policy so both write paths agree.
-			\add_filter(
-				'wp_default_autoload_value',
-				static fn ( ?bool $default_value, string $option ): ?bool => $option === $option_name ? $autoload : $default_value,
-				10,
-				2,
-			);
-		}
 	}
 
 	/**

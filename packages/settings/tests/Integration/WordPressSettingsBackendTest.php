@@ -102,6 +102,31 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertArrayHasKey( self::ADVANCED_OPTION, $registered );
 	}
 
+	public function test_registers_one_setting_per_section_on_rest_api_init(): void {
+		$this->register( $this->page() );
+		\do_action( 'rest_api_init' );
+
+		$registered = \get_registered_settings();
+		self::assertArrayHasKey( self::GENERAL_OPTION, $registered );
+		self::assertArrayHasKey( self::ADVANCED_OPTION, $registered );
+	}
+
+	public function test_settings_registration_runs_once_when_both_registration_hooks_fire(): void {
+		$count_autoload_filters = fn (): int => \count(
+			$GLOBALS['wp_filter']['wp_default_autoload_value']->callbacks[10] ?? array(),
+		);
+
+		$this->register( $this->page() );
+		$baseline = $count_autoload_filters();
+		\do_action( 'admin_init' );
+		$registered_once = $count_autoload_filters();
+		\do_action( 'rest_api_init' );
+
+		// admin_init performs the registration (one autoload filter per section); rest_api_init adds none.
+		self::assertSame( $baseline + 2, $registered_once );
+		self::assertSame( $registered_once, $count_autoload_filters() );
+	}
+
 	public function test_wires_the_option_page_capability_to_the_page_capability(): void {
 		$this->register( $this->page() );
 		\do_action( 'admin_init' );
@@ -546,7 +571,6 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 	public function test_a_rest_section_is_exposed_through_the_settings_endpoint_and_a_non_rest_section_is_not(): void {
 		$this->register( $this->rest_page() );
-		\do_action( 'admin_init' );
 		\do_action( 'rest_api_init' );
 
 		$this->form_save(
@@ -572,7 +596,6 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 	public function test_an_unsubmitted_field_in_a_rest_section_reads_as_its_empty_without_nulling_the_setting(): void {
 		$this->register( $this->rest_page() );
-		\do_action( 'admin_init' );
 		\do_action( 'rest_api_init' );
 
 		// The form omits the checkbox, the number, and the multiselect; the section row stores each type's empty.
@@ -591,7 +614,6 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 	public function test_a_value_written_through_the_settings_endpoint_persists_to_the_section_row(): void {
 		$this->register( $this->rest_page() );
-		\do_action( 'admin_init' );
 		\do_action( 'rest_api_init' );
 
 		// A REST write carries the whole section, as the schema requires every field.
@@ -613,7 +635,6 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 	public function test_a_rest_write_replaces_the_whole_section(): void {
 		$this->register( $this->rest_page() );
-		\do_action( 'admin_init' );
 		\do_action( 'rest_api_init' );
 
 		$this->form_save(
