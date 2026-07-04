@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Utilities\Scheduling;
 
 use DeepWebSolutions\Framework\Shared\Result\AbstractResult;
 use DeepWebSolutions\Framework\Shared\Result\Success;
+use DeepWebSolutions\Framework\Utilities\Scheduling\Backends\WPCronBackend;
 use DeepWebSolutions\Framework\Utilities\Scheduling\Exceptions\InvalidSchedulerConfigurationException;
 
 /**
@@ -13,9 +14,9 @@ use DeepWebSolutions\Framework\Utilities\Scheduling\Exceptions\InvalidSchedulerC
  * {@see SchedulerBackendInterface::is_ready()}. A schedule write targets the first ready
  * backend, falling back to the last backend when none is ready. The read and clear surface
  * spans every ready backend, so a job scheduled while a preferred backend was not ready
- * remains visible and cancellable after the preference changes. Construct via
- * {@see create_scheduler()} for the default Action Scheduler + WordPress cron wiring, or
- * inject backends directly.
+ * remains visible and cancellable after the preference changes. The consumer states its
+ * backends: an omitted argument yields the WordPress-cron baseline alone, and a consumer
+ * preferring Action Scheduler passes it explicitly, first.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -43,11 +44,11 @@ final readonly class Scheduler implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<SchedulerBackendInterface> $backends Backends in preference order (values re-indexed, keys ignored); must not be empty.
+	 * @param   array<SchedulerBackendInterface> $backends Backends in preference order (values re-indexed, keys ignored); must not be empty. An omitted argument yields the WordPress-cron baseline backend.
 	 *
 	 * @throws  InvalidSchedulerConfigurationException When $backends is empty.
 	 */
-	public function __construct( array $backends ) {
+	public function __construct( array $backends = array( new WPCronBackend() ) ) {
 		if ( array() === $backends ) {
 			throw new InvalidSchedulerConfigurationException( 'Scheduler requires at least one backend.' );
 		}

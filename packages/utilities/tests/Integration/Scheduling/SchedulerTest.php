@@ -7,14 +7,11 @@ use DeepWebSolutions\Framework\Utilities\Scheduling\Backends\ActionSchedulerBack
 use DeepWebSolutions\Framework\Utilities\Scheduling\Backends\WPCronBackend;
 use DeepWebSolutions\Framework\Utilities\Scheduling\Scheduler;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
-use function DeepWebSolutions\Framework\Utilities\Scheduling\create_scheduler;
 
 #[CoversClass( Scheduler::class )]
-#[CoversFunction( 'DeepWebSolutions\Framework\Utilities\Scheduling\create_scheduler' )]
 #[UsesClass( ActionSchedulerBackend::class )]
 #[UsesClass( WPCronBackend::class )]
 #[UsesClass( Success::class )]
@@ -37,9 +34,9 @@ final class SchedulerTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_create_scheduler_routes_to_action_scheduler_when_initialized(): void {
+	public function test_explicit_action_scheduler_wiring_routes_to_action_scheduler_when_initialized(): void {
 		$this->require_action_scheduler();
-		$scheduler = create_scheduler();
+		$scheduler = new Scheduler( array( new ActionSchedulerBackend(), new WPCronBackend() ) );
 		$timestamp = \time() + 3600;
 
 		self::assertInstanceOf( Success::class, $scheduler->schedule_single( self::HOOK, $timestamp ) );
@@ -49,8 +46,8 @@ final class SchedulerTest extends TestCase {
 		self::assertFalse( \wp_next_scheduled( self::HOOK ) );
 	}
 
-	public function test_create_scheduler_falls_back_to_wp_cron_when_action_scheduler_not_ready(): void {
-		$scheduler = create_scheduler( null, static fn (): bool => false );
+	public function test_explicit_wiring_falls_back_to_wp_cron_when_action_scheduler_not_ready(): void {
+		$scheduler = new Scheduler( array( new ActionSchedulerBackend( null, static fn (): bool => false ), new WPCronBackend() ) );
 		$timestamp = \time() + 3600;
 
 		self::assertInstanceOf( Success::class, $scheduler->schedule_single( self::HOOK, $timestamp ) );
@@ -64,7 +61,7 @@ final class SchedulerTest extends TestCase {
 
 	public function test_unschedule_routes_through_the_ready_backend(): void {
 		$this->require_action_scheduler();
-		$scheduler = create_scheduler();
+		$scheduler = new Scheduler( array( new ActionSchedulerBackend(), new WPCronBackend() ) );
 		self::assertInstanceOf( Success::class, $scheduler->schedule_single( self::HOOK, \time() + 3600 ) );
 		self::assertTrue( $scheduler->is_scheduled( self::HOOK ) );
 
@@ -79,19 +76,19 @@ final class SchedulerTest extends TestCase {
 		$timestamp = \time() + 3600;
 
 		// Model the migration scenario: the job lands on WordPress cron while Action Scheduler reports not ready.
-		$wp_cron_scheduler = create_scheduler( null, static fn (): bool => false );
+		$wp_cron_scheduler = new Scheduler( array( new ActionSchedulerBackend( null, static fn (): bool => false ), new WPCronBackend() ) );
 		self::assertInstanceOf( Success::class, $wp_cron_scheduler->schedule_single( self::HOOK, $timestamp ) );
 		self::assertSame( $timestamp, \wp_next_scheduled( self::HOOK ) );
 
 		// Action Scheduler is ready now, but unschedule must still reach the WordPress cron backend and clear it.
-		self::assertInstanceOf( Success::class, create_scheduler( null, static fn (): bool => true )->unschedule( self::HOOK ) );
+		self::assertInstanceOf( Success::class, new Scheduler( array( new ActionSchedulerBackend( null, static fn (): bool => true ), new WPCronBackend() ) )->unschedule( self::HOOK ) );
 
 		self::assertFalse( \wp_next_scheduled( self::HOOK ) );
 	}
 
 	public function test_unschedule_clears_a_wp_cron_job_while_action_scheduler_is_not_ready(): void {
 		$timestamp = \time() + 3600;
-		$scheduler = create_scheduler( null, static fn (): bool => false );
+		$scheduler = new Scheduler( array( new ActionSchedulerBackend( null, static fn (): bool => false ), new WPCronBackend() ) );
 		self::assertInstanceOf( Success::class, $scheduler->schedule_single( self::HOOK, $timestamp ) );
 		self::assertSame( $timestamp, \wp_next_scheduled( self::HOOK ) );
 
@@ -103,7 +100,7 @@ final class SchedulerTest extends TestCase {
 
 	public function test_get_next_scheduled_returns_the_wp_cron_timestamp_when_only_wp_cron_holds_the_event(): void {
 		$timestamp = \time() + 3600;
-		$scheduler = create_scheduler( null, static fn (): bool => false );
+		$scheduler = new Scheduler( array( new ActionSchedulerBackend( null, static fn (): bool => false ), new WPCronBackend() ) );
 		self::assertInstanceOf( Success::class, $scheduler->schedule_single( self::HOOK, $timestamp ) );
 
 		// Action Scheduler holds nothing for this hook, so the facade returns the WordPress cron timestamp.
@@ -115,11 +112,11 @@ final class SchedulerTest extends TestCase {
 		$wp_cron_timestamp          = \time() + 1800;
 		$action_scheduler_timestamp = \time() + 3600;
 
-		self::assertInstanceOf( Success::class, create_scheduler( null, static fn (): bool => false )->schedule_single( self::HOOK, $wp_cron_timestamp ) );
-		self::assertInstanceOf( Success::class, create_scheduler( null, static fn (): bool => true )->schedule_single( self::HOOK, $action_scheduler_timestamp ) );
+		self::assertInstanceOf( Success::class, new Scheduler( array( new ActionSchedulerBackend( null, static fn (): bool => false ), new WPCronBackend() ) )->schedule_single( self::HOOK, $wp_cron_timestamp ) );
+		self::assertInstanceOf( Success::class, new Scheduler( array( new ActionSchedulerBackend( null, static fn (): bool => true ), new WPCronBackend() ) )->schedule_single( self::HOOK, $action_scheduler_timestamp ) );
 
 		// Both backends now hold a job; the facade returns the earliest run across them, not whichever it reads first.
-		self::assertSame( $wp_cron_timestamp, create_scheduler()->get_next_scheduled( self::HOOK ) );
+		self::assertSame( $wp_cron_timestamp, new Scheduler( array( new ActionSchedulerBackend(), new WPCronBackend() ) )->get_next_scheduled( self::HOOK ) );
 	}
 
 	public function test_register_lifecycle_through_the_facade_reconstructs_a_wp_cron_recurrence(): void {
@@ -131,7 +128,7 @@ final class SchedulerTest extends TestCase {
 		\remove_filter( 'cron_schedules', array( $backend, 'register_synthetic_schedules' ) );
 		self::assertArrayNotHasKey( 'dws_every_271s', \wp_get_schedules() );
 
-		create_scheduler()->register_lifecycle();
+		new Scheduler( array( new ActionSchedulerBackend(), new WPCronBackend() ) )->register_lifecycle();
 
 		// The facade fans register_lifecycle out to its WordPress cron backend, which rebuilds the synthetic
 		// schedule from the cron array so WordPress can reschedule the recurring event.
