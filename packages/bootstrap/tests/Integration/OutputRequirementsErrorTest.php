@@ -31,7 +31,7 @@ final class OutputRequirementsErrorTest extends TestCase {
 
 		output_requirements_error( $this->plugin_basename, $error );
 
-		self::assertGreaterThan( 0, \has_action( 'admin_notices' ) );
+		self::assertGreaterThan( 0, \has_action( 'all_admin_notices' ) );
 
 		$output = $this->render_admin_notices();
 
@@ -43,7 +43,7 @@ final class OutputRequirementsErrorTest extends TestCase {
 	public function test_does_not_queue_notice_when_wp_error_has_no_codes(): void {
 		output_requirements_error( $this->plugin_basename, new \WP_Error() );
 
-		self::assertFalse( \has_action( 'admin_notices' ) );
+		self::assertFalse( \has_action( 'all_admin_notices' ) );
 	}
 
 	public function test_skips_rendering_when_wp_error_carries_only_unknown_codes(): void {

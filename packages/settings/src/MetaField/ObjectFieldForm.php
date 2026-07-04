@@ -106,16 +106,17 @@ final class ObjectFieldForm {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   FieldGroup $group     Group to save.
-	 * @param   int        $object_id Object whose meta to write.
+	 * @param   FieldGroup $group           Group to save.
+	 * @param   int        $object_id       Object whose meta to write.
+	 * @param   ?int       $nonce_object_id Object id the nonce is bound to; null uses $object_id.
 	 *
 	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id.
 	 */
-	public function save( FieldGroup $group, int $object_id ): void {
+	public function save( FieldGroup $group, int $object_id, ?int $nonce_object_id = null ): void {
 		$name = $this->nonce_name( $group );
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce read here and verified on the next line.
 		$nonce = isset( $_POST[ $name ] ) ? \sanitize_text_field( \wp_unslash( $_POST[ $name ] ) ) : '';
-		if ( false === \wp_verify_nonce( $nonce, $this->nonce_action( $group, $object_id ) ) ) {
+		if ( false === \wp_verify_nonce( $nonce, $this->nonce_action( $group, $nonce_object_id ?? $object_id ) ) ) {
 			return;
 		}
 
@@ -254,9 +255,9 @@ final class ObjectFieldForm {
 	}
 
 	/**
-	 * Whether a processed value should be stored. An empty value — an unchecked control (false), a cleared
-	 * field ('') or an empty multi-select (array()) — is not stored; its meta key is deleted instead (revoke
-	 * semantics). A meaningful zero (0, '0') is a value and is preserved.
+	 * Whether a processed value should be stored. An empty value — false, a cleared field ('') or an empty
+	 * multi-select (array()) — is not stored; its meta key is deleted instead (revoke semantics). A meaningful
+	 * zero (0, '0') and a canonical checkbox 'no' are values and are preserved.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

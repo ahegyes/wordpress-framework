@@ -11,6 +11,8 @@ use DeepWebSolutions\Framework\Shared\Result\AbstractResult;
 use DeepWebSolutions\Framework\Shared\Result\Failure;
 use DeepWebSolutions\Framework\Shared\Result\Success;
 
+use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value;
+
 /**
  * Pure, WordPress-free field-submission processor.
  *
@@ -69,7 +71,7 @@ final class FieldProcessor {
 	/**
 	 * Processes a field's submitted value, returning the value to persist or the cause of its rejection.
 	 *
-	 * An absent submission is a success carrying the type's empty value (an unchecked checkbox is false);
+	 * An absent submission is a success carrying the type's empty value (an unchecked checkbox is 'no');
 	 * a present value that fails the shape, option, or validation gate is a failure naming the field, so a
 	 * caller can preserve the field's prior value instead of overwriting it.
 	 *
@@ -102,8 +104,8 @@ final class FieldProcessor {
 
 		// A value already equal to the type's own empty is idempotent: WordPress sanitizes a registered
 		// option twice when it is first created (update_option then add_option), and the second pass sees
-		// the first pass's empty (false / array()) as a present value — re-running the sanitizer would flip
-		// false to '' and the option gate would reject it. Short-circuit so the empty round-trips unchanged.
+		// the first pass's empty (false / 'no' / array()) as a present value — re-running the sanitizer would
+		// flip false to '' and the option gate would reject it. Short-circuit so the empty round-trips unchanged.
 		if ( $value === $this->empty_value( $field ) ) {
 			return Success::from( $value );
 		}
@@ -112,6 +114,10 @@ final class FieldProcessor {
 		// sanitizer (e.g. trim) or persist as the wrong type, so a non-scalar is rejected.
 		if ( FieldType::Multiselect !== $type && ! \is_scalar( $value ) ) {
 			return Failure::from( new FieldProcessingError( $field->id, FieldProcessingErrorReason::UnexpectedShape ) );
+		}
+
+		if ( FieldType::Checkbox === $type ) {
+			$value = normalize_checkbox_value( $value );
 		}
 
 		$sanitize = $field->sanitize ?? ( $this->type_sanitizers[ $field->type ] ?? null );
@@ -217,17 +223,22 @@ final class FieldProcessor {
 	}
 
 	/**
-	 * The empty value for a field's type: an empty array for a multi-value field, otherwise false — never null.
+	 * The empty value for a field's type: an empty array for a multi-value field, 'no' for a checkbox,
+	 * otherwise false — never null.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   SettingsField $field Field whose type determines the empty value.
 	 *
-	 * @return  array<array-key, mixed>|false
+	 * @return  array<array-key, mixed>|false|string
 	 */
-	protected function empty_value( SettingsField $field ): array|false {
-		return FieldType::Multiselect->value === $field->type ? array() : false;
+	protected function empty_value( SettingsField $field ): array|false|string {
+		return match ( $field->type ) {
+			FieldType::Multiselect->value => array(),
+			FieldType::Checkbox->value    => 'no',
+			default                       => false,
+		};
 	}
 
 	/**

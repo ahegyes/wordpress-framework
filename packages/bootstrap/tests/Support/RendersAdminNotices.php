@@ -7,12 +7,12 @@ use PHPUnit\Framework\Attributes\Before;
 trait RendersAdminNotices {
 	#[Before]
 	protected function reset_admin_notices(): void {
-		\remove_all_actions( 'admin_notices' );
+		\remove_all_actions( 'all_admin_notices' );
 	}
 
 	protected function render_admin_notices(): string {
 		\ob_start();
-		\do_action( 'admin_notices' );
+		\do_action( 'all_admin_notices' );
 		return (string) \ob_get_clean();
 	}
 }

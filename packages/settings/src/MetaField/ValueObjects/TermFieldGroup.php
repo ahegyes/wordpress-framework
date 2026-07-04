@@ -5,9 +5,9 @@ namespace DeepWebSolutions\Framework\Settings\MetaField\ValueObjects;
 use DeepWebSolutions\Framework\Settings\MetaField\Exceptions\InvalidTermFieldGroupException;
 
 /**
- * Descriptor for a group of fields on a taxonomy term-edit surface.
+ * Descriptor for a group of fields on a taxonomy term add/edit surface.
  *
- * Wraps a {@see FieldGroup} with the taxonomy whose term-edit screen the fields attach to. The taxonomy
+ * Wraps a {@see FieldGroup} with the taxonomy whose term screens the fields attach to. The taxonomy
  * is interpolated into the term hooks, so it must match WordPress's taxonomy-key rules.
  *
  * @since   2.0.0
@@ -22,8 +22,8 @@ final readonly class TermFieldGroup {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   FieldGroup $group Surface-agnostic group of fields to render on the term-edit screen.
-	 * @param   string     $taxonomy Taxonomy whose term-edit screen the fields attach to; a 1–32 character key of lowercase letters, digits, underscores, or hyphens.
+	 * @param   FieldGroup $group Surface-agnostic group of fields to render on the term screens.
+	 * @param   string     $taxonomy Taxonomy whose term add/edit screens the fields attach to; a 1–32 character key of lowercase letters, digits, underscores, or hyphens.
 	 *
 	 * @throws  InvalidTermFieldGroupException If $taxonomy is not a valid WordPress taxonomy key.
 	 */

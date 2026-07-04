@@ -117,10 +117,21 @@ final class ObjectFieldFormTest extends TestCase {
 		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'unlocked' => '1' ) );
 		$form->save( $group, $this->post_id );
 		self::assertTrue( $this->repo()->has( $this->post_id, 'unlocked' ) );
+		self::assertSame( 'yes', $this->repo()->get( $this->post_id, 'unlocked' ) );
 
 		$_POST = array( self::NONCE_NAME => $this->nonce() );
 		$form->save( $group, $this->post_id );
 		self::assertFalse( $this->repo()->has( $this->post_id, 'unlocked' ) );
+	}
+
+	public function test_save_normalizes_a_checkbox_submission_to_yes_no(): void {
+		$form  = $this->form();
+		$group = $this->group( new SettingsField( id: 'unlocked', type: 'checkbox', label: 'Unlocked' ) );
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'unlocked' => 'off' ) );
+		$form->save( $group, $this->post_id );
+
+		self::assertSame( 'no', $this->repo()->get( $this->post_id, 'unlocked' ) );
 	}
 
 	public function test_save_is_skipped_without_a_valid_nonce(): void {

@@ -54,6 +54,21 @@ function is_valid_identifier( string $identifier ): bool {
 }
 
 /**
+ * Whether a string is a valid WordPress-global name prefix: an optional leading underscore,
+ * then a lowercase letter followed by lowercase letters, digits, underscores, or hyphens.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   string $prefix Prefix to validate.
+ *
+ * @return  bool
+ */
+function is_valid_global_name_prefix( string $prefix ): bool {
+	return 1 === \preg_match( '/\A_?[a-z][a-z0-9_-]*\z/', $prefix );
+}
+
+/**
  * The canonical checkbox truth rule: a value is checked only when it is boolean true, the integer 1,
  * the string '1', or the string 'yes'. Everything else — false, 0, '0', 'no', '', null, 'on', any
  * other string, an array — is unchecked.
@@ -70,9 +85,24 @@ function is_checkbox_checked( mixed $value ): bool {
 }
 
 /**
+ * Normalizes a checkbox value to the canonical stored representation.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   mixed $value Value to normalize.
+ *
+ * @return  string
+ */
+function normalize_checkbox_value( mixed $value ): string {
+	return namespace\is_checkbox_checked( $value ) ? 'yes' : 'no';
+}
+
+/**
  * Whether the current user may edit a field: a field with no capability is always editable, otherwise
- * the current user must hold the field's capability. A free function on purpose, keeping the
- * current_user_can() runtime check off the readonly SettingsField descriptor.
+ * the current user must hold the field's primitive capability. Object-scoped checks stay with the
+ * hosting WordPress surface and stricter field sanitize/validate seams. A free function on purpose,
+ * keeping the current_user_can() runtime check off the readonly SettingsField descriptor.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -149,11 +179,11 @@ function wordpress_field_type_sanitizers(): array {
  * The REST schema for a built-in field's stored value: a JSON-schema type admitting both a value of the
  * field's type and the empty a grouped section row carries for an unsubmitted field.
  *
- * A section row stores every field together, where an unsubmitted field is the type's empty — false for
- * a scalar field, an empty array for the multi-value field — so each scalar type maps to a union that
- * also admits boolean, and the multi-value type admits the empty array. Only the built-in taxonomy has a
- * faithful schema: a custom field type's value domain is consumer-defined (its default may be null or a
- * non-scalar that would null the whole REST setting), so it is rejected rather than schematized loosely.
+ * A section row stores every field together, where an unsubmitted field is the type's empty — 'no' for a
+ * checkbox, false for another scalar field, an empty array for the multi-value field — so each scalar type
+ * maps to a union that admits its stored value and empty. Only the built-in taxonomy has a faithful schema:
+ * a custom field type's value domain is consumer-defined (its default may be null or a non-scalar that would
+ * null the whole REST setting), so it is rejected rather than schematized loosely.
  *
  * @since   2.0.0
  * @version 2.0.0

@@ -22,7 +22,7 @@ function output_requirements_error( $plugin_basename, \WP_Error $error ) {
 	}
 
 	\add_action(
-		'admin_notices',
+		'all_admin_notices',
 		function () use ( $plugin_basename, $error ) {
 			$metadata = get_plugin_metadata( $plugin_basename, true );
 

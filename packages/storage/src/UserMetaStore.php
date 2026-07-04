@@ -9,6 +9,8 @@ namespace DeepWebSolutions\Framework\Storage;
  * stored under that key. Operations target the current user by default; pass an explicit
  * $user_id to any method to target another user. When the resolved user is anonymous (ID 0),
  * writes are silent no-ops and reads return the default (or an empty array for {@see self::get_all()}).
+ * Individual key writes are read-modify-write operations over that grouped array; concurrent writes
+ * to different keys in the same store are not atomic.
  *
  * The $user_id parameter widens the KeyValueStoreInterface methods and is reachable only
  * through the concrete type — consumers targeting another user must typehint UserMetaStore,

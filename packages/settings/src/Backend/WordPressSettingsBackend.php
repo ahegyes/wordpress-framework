@@ -458,6 +458,13 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	protected function render_page( SettingsPage $page ): void {
 		echo '<div class="wrap"><h1>' . \esc_html( $page->page_title ) . '</h1>';
 
+		if ( $this->renders_settings_errors( $page ) ) {
+			\settings_errors( 'general' );
+			foreach ( $page->sections as $section ) {
+				\settings_errors( $page->slug . '-' . $section->id );
+			}
+		}
+
 		foreach ( $page->sections as $section ) {
 			$option_name = $page->slug . '-' . $section->id;
 			$stored      = \get_option( $option_name, array() );
@@ -498,6 +505,29 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldRenderer returns markup already escaped at each interpolation point.
 		echo $this->renderer->render( $field, $value, $option_name . '[' . $field->id . ']' );
+	}
+
+	/**
+	 * Whether the page render owns Settings API notices for this page.
+	 *
+	 * The options-general parent loads WordPress' options-head.php, which renders Settings API notices
+	 * before the page callback. Custom parent locations do not, so the backend renders them once at the
+	 * top of the page: WordPress' shared 'general' bucket (options.php registers the save confirmation
+	 * under that slug) plus each section's own bucket. The per-bucket filter keeps a page whose
+	 * capability is weaker than manage_options from echoing unrelated settings' messages out of the
+	 * shared Settings API transient. A page kept under options-general.php gets WordPress' own
+	 * unfiltered render (options-head.php) ahead of this callback — pair that location with an
+	 * admin-tier capability.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsPage $page Page being rendered.
+	 *
+	 * @return  bool
+	 */
+	protected function renders_settings_errors( SettingsPage $page ): bool {
+		return 'options-general.php' !== ( $page->location ?? 'options-general.php' ) && \function_exists( 'settings_errors' );
 	}
 
 	/**

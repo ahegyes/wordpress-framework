@@ -42,6 +42,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		// add_submenu_page registers the render callback on the page hook, which survives an admin_menu
 		// reset; clearing it keeps registrations from accumulating across tests in this class.
 		\remove_all_actions( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		\remove_all_actions( \get_plugin_page_hookname( self::SLUG, 'tools.php' ) );
 		\remove_all_filters( 'sanitize_option_' . self::GENERAL_OPTION );
 		\remove_all_filters( 'sanitize_option_' . self::ADVANCED_OPTION );
 		\remove_all_filters( 'sanitize_option_' . self::API_OPTION );
@@ -52,6 +53,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 	protected function tearDown(): void {
 		\remove_all_actions( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		\remove_all_actions( \get_plugin_page_hookname( self::SLUG, 'tools.php' ) );
 		$this->clean();
 		parent::tearDown();
 	}
@@ -185,7 +187,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		\delete_option( 'dws_unrelated_option' );
 	}
 
-	public function test_a_form_save_processes_fields_and_coerces_an_absent_checkbox_to_false(): void {
+	public function test_a_form_save_processes_fields_and_coerces_an_absent_checkbox_to_no(): void {
 		$this->register( $this->page() );
 		\do_action( 'admin_init' );
 
@@ -194,7 +196,16 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 		$stored = \get_option( self::GENERAL_OPTION );
 		self::assertSame( 'Acme', $stored['site_name'] );
-		self::assertFalse( $stored['enabled'] );
+		self::assertSame( 'no', $stored['enabled'] );
+	}
+
+	public function test_a_form_save_normalizes_a_checked_checkbox_to_yes(): void {
+		$this->register( $this->page() );
+		\do_action( 'admin_init' );
+
+		$this->form_save( self::GENERAL_OPTION, array( 'site_name' => 'Acme', 'enabled' => '1' ) );
+
+		self::assertSame( 'yes', \get_option( self::GENERAL_OPTION )['enabled'] ?? null );
 	}
 
 	public function test_a_field_capability_preserves_a_protected_field_against_a_user_without_it(): void {
@@ -278,7 +289,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		\do_action( 'admin_init' );
 
 		// With the sanitize_option filter registered, a programmatic write must not be re-coerced:
-		// a stored null stays null, and writing one field does not force a sibling checkbox to false.
+		// a stored null stays null, and writing one field does not force a sibling checkbox to 'no'.
 		$backend->set( 'enabled', true );
 		$backend->set( 'site_name', null );
 
@@ -334,7 +345,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		\do_action( 'admin_init' );
 		$backend->set( 'enabled', true );
 
-		// delete() must bypass the sanitizer, else the now-absent enabled checkbox would be re-coerced to false.
+		// delete() must bypass the sanitizer, else the now-absent enabled checkbox would be re-coerced to 'no'.
 		self::assertTrue( $backend->delete( 'enabled' ) );
 		self::assertFalse( $backend->has( 'enabled' ) );
 	}
@@ -494,6 +505,49 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertStringContainsString( 'value="60"', $html );
 	}
 
+	public function test_render_surfaces_section_settings_errors_for_custom_location_pages(): void {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			location: 'tools.php',
+			sections: array(
+				new SettingsSection( 'general', 'General', array( new SettingsField( id: 'site_name', type: 'text', label: 'Site Name' ) ) ),
+			),
+		);
+		$this->register( $page );
+		\do_action( 'admin_menu' );
+		\add_settings_error( self::GENERAL_OPTION, 'site_name', 'Rejected value.' );
+		// WordPress registers the save confirmation under the setting slug 'general' (options.php).
+		\add_settings_error( 'general', 'settings_updated', 'Settings saved.', 'success' );
+		\add_settings_error( 'unrelated_setting', 'other', 'Unrelated admin-only message.' );
+
+		\ob_start();
+		\do_action( \get_plugin_page_hookname( self::SLUG, 'tools.php' ) );
+		$html = (string) \ob_get_clean();
+
+		self::assertStringContainsString( 'Rejected value.', $html );
+		self::assertStringContainsString( 'Settings saved.', $html );
+		self::assertStringNotContainsString( 'Unrelated admin-only message.', $html );
+	}
+
+	public function test_render_leaves_options_general_settings_errors_to_core(): void {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$this->register( $this->page() );
+		\do_action( 'admin_menu' );
+		\add_settings_error( self::GENERAL_OPTION, 'site_name', 'Core-rendered value.' );
+
+		\ob_start();
+		\do_action( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		$html = (string) \ob_get_clean();
+
+		self::assertStringNotContainsString( 'Core-rendered value.', $html );
+	}
+
 	public function test_a_semantic_field_type_is_sanitized_on_save_without_a_field_sanitizer(): void {
 		$page = new SettingsPage(
 			slug: self::SLUG,
@@ -587,8 +641,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertSame( 42, $data[ self::API_OPTION ]['count'] );
 		self::assertSame( array( 'a', 'c' ), $data[ self::API_OPTION ]['tags'] );
 		self::assertSame( 'red', $data[ self::API_OPTION ]['color'] );
-		// A submitted checkbox stored as '1' reads back through the boolean-first union as a JSON boolean.
-		self::assertTrue( $data[ self::API_OPTION ]['enabled'] );
+		self::assertSame( 'yes', $data[ self::API_OPTION ]['enabled'] );
 
 		// A section with no opted-in field is invisible to the settings endpoint.
 		self::assertArrayNotHasKey( self::INTERNAL_OPTION, $data );
@@ -603,11 +656,11 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 		$data = $this->rest_get_settings();
 
-		// Each type's stored empty survives the schema (the scalar union admits boolean; a semantic field's
-		// sanitizer normalizes its empty to false; the multi-value field admits []), so a value the schema would
-		// otherwise reject does not null the whole setting. The endpoint reflects the section row faithfully.
+		// Each type's stored empty survives the schema (the scalar union admits each scalar empty; the
+		// multi-value field admits []), so a value the schema would otherwise reject does not null the whole
+		// setting. The endpoint reflects the section row faithfully.
 		self::assertArrayHasKey( self::API_OPTION, $data );
-		self::assertFalse( $data[ self::API_OPTION ]['enabled'] );
+		self::assertSame( 'no', $data[ self::API_OPTION ]['enabled'] );
 		self::assertFalse( $data[ self::API_OPTION ]['count'] );
 		self::assertSame( array(), $data[ self::API_OPTION ]['tags'] );
 	}
@@ -628,6 +681,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		// A REST write routes through the same processor as a form save, so the value lands in the section row.
 		$stored = \get_option( self::API_OPTION );
 		self::assertSame( 'Via REST', $stored['site_name'] );
+		self::assertSame( 'yes', $stored['enabled'] );
 		self::assertSame( 7, $stored['count'] );
 		self::assertSame( array( 'b' ), $stored['tags'] );
 		self::assertSame( 'blue', $stored['color'] );
@@ -652,7 +706,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertSame( 200, $response->get_status() );
 		$stored = \get_option( self::API_OPTION );
 		self::assertSame( 'Renamed', $stored['site_name'] );
-		self::assertFalse( $stored['enabled'] );
+		self::assertSame( 'no', $stored['enabled'] );
 		self::assertSame( array(), $stored['tags'] );
 	}
 

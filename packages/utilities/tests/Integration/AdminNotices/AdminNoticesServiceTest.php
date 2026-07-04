@@ -29,6 +29,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	private int $admin_a;
 	private int $admin_b;
+	private int $subscriber;
 	private int $original_user;
 
 	protected function setUp(): void {
@@ -36,6 +37,7 @@ final class AdminNoticesServiceTest extends TestCase {
 		$this->original_user = \get_current_user_id();
 		$this->admin_a       = $this->make_admin( 'dws_notice_admin_a' );
 		$this->admin_b       = $this->make_admin( 'dws_notice_admin_b' );
+		$this->subscriber    = $this->make_user( 'dws_notice_subscriber', 'subscriber' );
 		\wp_set_current_user( $this->admin_a );
 	}
 
@@ -45,6 +47,7 @@ final class AdminNoticesServiceTest extends TestCase {
 		\delete_option( self::NOTICE_KEY );
 		$this->delete_user( $this->admin_a );
 		$this->delete_user( $this->admin_b );
+		$this->delete_user( $this->subscriber );
 		parent::tearDown();
 	}
 
@@ -242,6 +245,10 @@ final class AdminNoticesServiceTest extends TestCase {
 	}
 
 	public function test_handle_dismiss_records_dismissal_with_a_valid_nonce(): void {
+		$this->transport_service()->add_notice(
+			new AdminNotice( 'dep_woocommerce', 'WooCommerce is required.', NoticeType::Error, is_persistent: true ),
+			'user-meta',
+		);
 		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
 		$_POST['id']          = 'dep_woocommerce';
 
@@ -279,15 +286,54 @@ final class AdminNoticesServiceTest extends TestCase {
 		self::assertFalse( $this->tracker()->is_dismissed( 'dep_woocommerce' ) );
 	}
 
-	public function test_handle_dismiss_records_a_well_formed_but_never_rendered_id(): void {
-		// The endpoint is self-scoped and idempotent: it records any well-formed ID the caller posts,
-		// even one never rendered to them — bounded to their own user meta, a no-op they never see.
+	public function test_handle_dismiss_ignores_a_well_formed_but_never_rendered_id(): void {
 		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
 		$_POST['id']          = 'never_rendered';
 
 		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
 
-		self::assertTrue( $this->tracker()->is_dismissed( 'never_rendered' ) );
+		self::assertFalse( $this->tracker()->is_dismissed( 'never_rendered' ) );
+	}
+
+	public function test_handle_dismiss_ignores_a_known_non_persistent_notice(): void {
+		$this->transport_service()->add_notice(
+			new AdminNotice( 'flash_notice', 'Saved.', NoticeType::Success, is_persistent: false ),
+			'user-meta',
+		);
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'flash_notice';
+
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		self::assertFalse( $this->tracker()->is_dismissed( 'flash_notice' ) );
+	}
+
+	public function test_handle_dismiss_ignores_a_known_non_dismissible_notice(): void {
+		$this->transport_service()->add_notice(
+			new AdminNotice( 'fixed_notice', 'Fixed.', NoticeType::Info, is_dismissible: false, is_persistent: true ),
+			'user-meta',
+		);
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'fixed_notice';
+
+		$this->run_until_wp_die( fn() => $this->transport_service()->handle_dismiss() );
+
+		self::assertFalse( $this->tracker()->is_dismissed( 'fixed_notice' ) );
+	}
+
+	public function test_handle_dismiss_ignores_a_known_notice_the_current_user_cannot_see(): void {
+		$this->options_transport_service()->add_notice(
+			new AdminNotice( 'admin_only', 'Admins only.', NoticeType::Warning, is_persistent: true, capability: 'manage_options' ),
+			'options',
+		);
+
+		\wp_set_current_user( $this->subscriber );
+		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
+		$_POST['id']          = 'admin_only';
+
+		$this->run_until_wp_die( fn() => $this->options_transport_service()->handle_dismiss() );
+
+		self::assertFalse( $this->tracker()->is_dismissed( 'admin_only' ) );
 	}
 
 	public function test_handle_dismiss_without_a_transport_records_nothing(): void {
@@ -392,6 +438,14 @@ final class AdminNoticesServiceTest extends TestCase {
 		);
 	}
 
+	private function options_transport_service(): AdminNoticesService {
+		return new AdminNoticesService(
+			array( 'options' => new NoticeStore( new OptionsStore( self::NOTICE_KEY ) ) ),
+			$this->tracker(),
+			self::DISMISS_ACTION,
+		);
+	}
+
 	private function tracker(): DismissedNoticesTracker {
 		return new DismissedNoticesTracker( new UserMetaStore( self::DISMISS_KEY ) );
 	}
@@ -403,6 +457,10 @@ final class AdminNoticesServiceTest extends TestCase {
 	}
 
 	private function make_admin( string $login ): int {
+		return $this->make_user( $login, 'administrator' );
+	}
+
+	private function make_user( string $login, string $role ): int {
 		$existing = \get_user_by( 'login', $login );
 		if ( $existing instanceof \WP_User ) {
 			return $existing->ID;
@@ -412,7 +470,7 @@ final class AdminNoticesServiceTest extends TestCase {
 			array(
 				'user_login' => $login,
 				'user_pass'  => 'password',
-				'role'       => 'administrator',
+				'role'       => $role,
 			),
 		);
 		self::assertIsInt( $id );

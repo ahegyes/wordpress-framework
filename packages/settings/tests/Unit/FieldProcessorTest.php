@@ -25,6 +25,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( FieldProcessingError::class )]
 #[UsesClass( FieldProcessingErrorReason::class )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value' )]
 final class FieldProcessorTest extends TestCase {
 	public function test_an_unknown_field_type_throws(): void {
 		$this->expectException( UnknownFieldTypeException::class );
@@ -113,10 +115,22 @@ final class FieldProcessorTest extends TestCase {
 		);
 	}
 
-	public function test_an_absent_checkbox_coerces_to_false(): void {
+	public function test_an_absent_checkbox_coerces_to_the_canonical_no_string(): void {
 		$result = ( new FieldProcessor() )->process( $this->field( 'agree', 'checkbox' ), array() );
 
-		self::assertFalse( $result );
+		self::assertSame( 'no', $result );
+	}
+
+	public function test_a_checked_checkbox_coerces_to_the_canonical_yes_string(): void {
+		$result = ( new FieldProcessor() )->process( $this->field( 'agree', 'checkbox' ), array( 'agree' => '1' ) );
+
+		self::assertSame( 'yes', $result );
+	}
+
+	public function test_an_arbitrary_checkbox_scalar_coerces_to_the_canonical_no_string(): void {
+		$result = ( new FieldProcessor() )->process( $this->field( 'agree', 'checkbox' ), array( 'agree' => '<script>' ) );
+
+		self::assertSame( 'no', $result );
 	}
 
 	public function test_an_absent_multiselect_coerces_to_an_empty_array(): void {

@@ -200,8 +200,8 @@ final class AdminNoticesService {
 	/**
 	 * Records the current user's dismissal of a notice, then terminates the AJAX request. Hook onto
 	 * `wp_ajax_{action}` for the configured dismiss action. No-op (still calling wp_die()) unless a
-	 * dismiss action and a tracker are both configured and the nonce checks out. Reads only the posted
-	 * notice ID and writes to the per-user tracker; it never reads a notice store.
+	 * dismiss action and a tracker are both configured, the nonce checks out, and the posted notice ID
+	 * belongs to a queued persistent dismissible notice the current user may see.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -216,7 +216,7 @@ final class AdminNoticesService {
 			// Accept the posted ID only when it is already sanitize_key-stable, so it matches the stored
 			// notice ID exactly; reject (do not lossily normalize) anything else.
 			$id = ( \is_string( $posted ) && \sanitize_key( $posted ) === $posted ) ? $posted : '';
-			if ( '' !== $id ) {
+			if ( '' !== $id && $this->is_dismissible_notice_known_to_current_user( $id ) ) {
 				$this->dismissals->dismiss( $id );
 			}
 		}
@@ -227,6 +227,27 @@ final class AdminNoticesService {
 	// endregion
 
 	// region HELPERS
+
+	/**
+	 * Checks whether a notice ID belongs to a queued persistent dismissible notice visible to the current user.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $id Notice ID to check.
+	 *
+	 * @return  bool
+	 */
+	protected function is_dismissible_notice_known_to_current_user( string $id ): bool {
+		foreach ( $this->stores as $store ) {
+			$notice = $store->get( $id );
+			if ( null !== $notice && $notice->is_persistent && $notice->is_dismissible && \current_user_can( $notice->capability ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	/**
 	 * Render a single notice using wp_admin_notice() when available, falling back to a

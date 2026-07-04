@@ -59,7 +59,7 @@ final readonly class SettingsField {
 	 * @param   mixed                                                             $default_value Default value used when nothing is stored.
 	 * @param   ?callable                                                         $sanitize Sanitizer for the submitted value; stored as a Closure.
 	 * @param   ?callable                                                         $validate Validator for the sanitized value; stored as a Closure.
-	 * @param   ?string                                                           $capability Capability required to edit the field; null inherits the section/page capability.
+	 * @param   ?string                                                           $capability Primitive capability required to edit the field; null inherits the section/page capability. Object-scoped checks belong to the hosting WordPress surface and the field sanitize/validate seam.
 	 * @param   bool                                                              $show_in_rest Whether the field is exposed via REST where the backend supports it.
 	 * @param   bool                                                              $autoload Whether the field's stored value should autoload on every request; defaults to off.
 	 * @param   ?int                                                              $position Sort position within the section; null keeps declaration order.

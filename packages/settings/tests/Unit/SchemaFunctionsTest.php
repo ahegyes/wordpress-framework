@@ -17,14 +17,18 @@ use PHPUnit\Framework\TestCase;
 use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
 use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
 use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
+use function DeepWebSolutions\Framework\Settings\Schema\is_valid_global_name_prefix;
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
+use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value;
 use function DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_global_name_prefix' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers' )]
 #[UsesClass( SettingsField::class )]
@@ -155,9 +159,14 @@ final class SchemaFunctionsTest extends TestCase {
 		self::assertSame( $expected, is_checkbox_checked( $value ) );
 	}
 
+	#[DataProvider( 'checkbox_truth_matrix' )]
+	public function test_normalize_checkbox_value_returns_the_canonical_yes_no_string( mixed $value, bool $checked ): void {
+		self::assertSame( $checked ? 'yes' : 'no', normalize_checkbox_value( $value ) );
+	}
+
 	/**
-	 * The canonical checkbox truth rule: only true, 1, '1', and 'yes' are checked. Everything else,
-	 * including the previously-truthy 'no'/'off'/'false'/arbitrary strings, is unchecked.
+	 * The canonical checkbox truth rule: only true, 1, '1', and 'yes' are checked. Everything
+	 * else — 'no', 'off', 'false', arbitrary strings — is unchecked.
 	 *
 	 * @return array<string, array{mixed, bool}>
 	 */
@@ -179,6 +188,42 @@ final class SchemaFunctionsTest extends TestCase {
 			'null'               => array( null, false ),
 			'array'              => array( array( 'yes' ), false ),
 			'int 2'              => array( 2, false ),
+		);
+	}
+
+	#[DataProvider( 'valid_global_name_prefixes' )]
+	public function test_accepts_valid_global_name_prefixes( string $prefix ): void {
+		self::assertTrue( is_valid_global_name_prefix( $prefix ) );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function valid_global_name_prefixes(): array {
+		return array(
+			'word'             => array( 'dws' ),
+			'with separators'  => array( 'dws-wrwc_cache' ),
+			'hidden meta key'  => array( '_dws-wrwc_' ),
+			'with digit'       => array( 'dws2_' ),
+		);
+	}
+
+	#[DataProvider( 'invalid_global_name_prefixes' )]
+	public function test_rejects_invalid_global_name_prefixes( string $prefix ): void {
+		self::assertFalse( is_valid_global_name_prefix( $prefix ) );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function invalid_global_name_prefixes(): array {
+		return array(
+			'empty'           => array( '' ),
+			'leading digit'   => array( '1dws' ),
+			'uppercase'       => array( 'DWS' ),
+			'space'           => array( 'dws cache' ),
+			'slash'           => array( 'dws/cache' ),
+			'only underscore' => array( '_' ),
 		);
 	}
 
@@ -272,8 +317,8 @@ final class SchemaFunctionsTest extends TestCase {
 
 	/**
 	 * Each built-in field type maps to a JSON-schema type that admits both a stored value of the type and
-	 * the uniform empty a section row carries for an unsubmitted field: false for every scalar field, an
-	 * empty array for the multi-value field.
+	 * the uniform empty a section row carries for an unsubmitted field: 'no' for a checkbox, false for
+	 * another scalar field, an empty array for the multi-value field.
 	 *
 	 * @return array<string, array{string, array<string, mixed>}>
 	 */

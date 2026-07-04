@@ -88,6 +88,17 @@ final class FixtureWithNested implements \JsonSerializable {
 	}
 }
 
+final class FixtureRawSerializable implements \JsonSerializable {
+	public function __construct(
+		protected \DateTimeImmutable $when,
+	) {}
+
+	/** @return array<string, mixed> */
+	public function jsonSerialize(): array {
+		return array( 'when' => $this->when );
+	}
+}
+
 final class FixtureWithArray implements \JsonSerializable {
 	/**
 	 * @param array<int, mixed> $items
@@ -99,6 +110,22 @@ final class FixtureWithArray implements \JsonSerializable {
 	/** @return array<string, mixed> */
 	public function jsonSerialize(): array {
 		return convert_to_primitives( $this );
+	}
+}
+
+final class FixtureSelfReferential implements \JsonSerializable {
+	public ?FixtureSelfReferential $self = null;
+
+	/** @return array<string, mixed> */
+	public function jsonSerialize(): array {
+		return convert_to_primitives( $this );
+	}
+}
+
+final class FixtureRawSelfCycle implements \JsonSerializable {
+	/** @return array<string, mixed> */
+	public function jsonSerialize(): array {
+		return array( 'self' => $this );
 	}
 }
 
@@ -171,6 +198,29 @@ final class FunctionsTest extends TestCase {
 		);
 	}
 
+	public function test_convert_to_primitives_recurses_into_nested_json_serializable_results(): void {
+		$when = new \DateTimeImmutable( '2026-05-15T12:34:56+00:00' );
+		$nested = new class( new FixtureRawSerializable( $when ) ) implements \JsonSerializable {
+			public function __construct(
+				public FixtureRawSerializable $child,
+			) {}
+
+			/** @return array<string, mixed> */
+			public function jsonSerialize(): array {
+				return convert_to_primitives( $this );
+			}
+		};
+
+		self::assertSame(
+			array(
+				'child' => array(
+					'when' => '2026-05-15T12:34:56+00:00',
+				),
+			),
+			convert_to_primitives( $nested ),
+		);
+	}
+
 	public function test_convert_to_primitives_recurses_into_arrays(): void {
 		$obj = new FixtureWithArray( array( 'a', 'b', 'c' ) );
 		self::assertSame(
@@ -207,6 +257,66 @@ final class FunctionsTest extends TestCase {
 		self::assertSame(
 			array(),
 			convert_to_primitives( new FixtureEmpty() ),
+		);
+	}
+
+	public function test_convert_to_primitives_throws_on_a_self_referential_object(): void {
+		$fixture       = new FixtureSelfReferential();
+		$fixture->self = $fixture;
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( FixtureSelfReferential::class );
+
+		convert_to_primitives( $fixture );
+	}
+
+	public function test_convert_to_primitives_throws_on_a_serializer_returning_itself(): void {
+		$obj = new FixtureWithArray( array( new FixtureRawSelfCycle() ) );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( FixtureRawSelfCycle::class );
+
+		convert_to_primitives( $obj );
+	}
+
+	public function test_convert_to_primitives_reduces_the_same_instance_at_sibling_positions(): void {
+		$shared = new FixtureWithPublics( 'twin', 1 );
+		$obj    = new FixtureWithArray( array( $shared, $shared ) );
+
+		self::assertSame(
+			array(
+				'items' => array(
+					array(
+						'name'  => 'twin',
+						'count' => 1,
+					),
+					array(
+						'name'  => 'twin',
+						'count' => 1,
+					),
+				),
+			),
+			convert_to_primitives( $obj ),
+		);
+	}
+
+	public function test_convert_to_primitives_still_reduces_after_a_cycle_was_detected(): void {
+		$fixture       = new FixtureSelfReferential();
+		$fixture->self = $fixture;
+
+		try {
+			convert_to_primitives( $fixture );
+			self::fail( 'Expected a cyclic-graph RuntimeException.' );
+		} catch ( \RuntimeException ) {
+			// The in-flight set must be unwound with the exception; a later call starts clean.
+		}
+
+		self::assertSame(
+			array(
+				'name'  => 'after',
+				'count' => 2,
+			),
+			convert_to_primitives( new FixtureWithPublics( 'after', 2 ) ),
 		);
 	}
 }
