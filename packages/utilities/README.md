@@ -1,6 +1,6 @@
 # wp-framework-utilities
 
-Hooks, admin notices, caching, conditionals, scheduling, and permissions for WordPress plugins built on the DWS framework.
+Hooks, admin notices, caching, conditionals, scheduling, permissions, logging, and helpers for WordPress plugins built on the DWS framework.
 
 Part of the [DWS WordPress framework](https://github.com/ahegyes/wordpress-framework) — see the monorepo for architecture, contributing, and the rest of the package set.
 
@@ -10,6 +10,6 @@ Part of the [DWS WordPress framework](https://github.com/ahegyes/wordpress-frame
 composer require ahegyes/wp-framework-utilities
 ```
 
-## Predecessor
+## Lineage
 
 Successor to [`deep-web-solutions/wp-framework-utilities`](https://github.com/deep-web-solutions/wordpress-framework-utilities) (archived).

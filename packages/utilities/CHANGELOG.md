@@ -15,3 +15,5 @@ Pending entries live in [`changelog/`](./changelog) — add via `composer change
 - **Conditionals system** — standard pre-resolution gates: dependency checks (plugin active, PHP/WP version, extension, function, ini size) and request-context checks (admin, AJAX, CLI, current-user capability).
 - **Scheduling system** — a recurring- and single-action scheduler over pluggable backends (Action Scheduler when ready, WP-Cron otherwise), reporting enumerable scheduling failures as typed results.
 - **Permissions** — a capability registrar that grants, reconciles, and revokes role capabilities idempotently from a plugin's installer.
+- **Logging** — PSR-3 composition pieces: a composite logger forwarding each record to multiple sinks, and a redacting decorator that strips marked `<sensitive>…</sensitive>` spans before delegating.
+- **Helpers** — cross-plugin stateless helpers for array insertion, minified asset paths, and recursive request-argument merging.

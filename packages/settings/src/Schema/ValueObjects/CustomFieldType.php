@@ -13,10 +13,13 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
  * Immutable carrier registering a render seam for a type token the closed FieldType enum does not
  * define. A consumer hands a map of these to the FieldRenderer and FieldProcessor primitives, which
  * consult the registry after the enum and before rejecting an unknown type. The registry is
- * render-only: saving reuses the field's own sanitize/validate seam, so this descriptor carries no
- * processing logic. The type token is validated at construction — a valid identifier that does not
- * collide with a built-in FieldType. On framework surfaces the surface renders the field label, so
- * the $render closure renders the control only — a self-labeling control produces a double label.
+ * render-only, and the descriptor carries no processing logic: the FieldProcessor treats a custom
+ * submission as a plain scalar, rejecting a non-scalar before the field's own sanitize/validate seam
+ * runs, so an array or collection custom field needs a save path outside the processor (a backend
+ * with its own native save, or an object-meta FieldGroup::$save closure). The type token is validated
+ * at construction — a valid identifier that does not collide with a built-in FieldType. On framework
+ * surfaces the surface renders the field label, so the $render closure renders the control only — a
+ * self-labeling control produces a double label.
  *
  * @since   2.0.0
  * @version 2.0.0

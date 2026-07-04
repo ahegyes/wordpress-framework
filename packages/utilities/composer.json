@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wp-framework-utilities",
-  "description": "Hooks, admin notices, caching, and conditionals for WordPress plugins built on the DWS framework.",
+  "description": "Hooks, admin notices, caching, conditionals, scheduling, permissions, logging, and helpers for WordPress plugins built on the DWS framework.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -10,7 +10,7 @@
       "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
     }
   ],
-  "keywords": ["wordpress", "wordpress-plugin", "framework", "hooks", "admin-notices"],
+  "keywords": ["wordpress", "wordpress-plugin", "framework", "hooks", "admin-notices", "caching", "conditionals", "scheduling", "permissions", "logging", "helpers"],
   "support": {
     "issues": "https://github.com/ahegyes/wordpress-framework/issues",
     "source": "https://github.com/ahegyes/wordpress-framework"

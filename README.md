@@ -12,7 +12,7 @@ Monorepo publishing seven Composer packages:
 | `ahegyes/wp-framework-shared`      | Substrate primitives: result/value-object patterns, error/exception scaffolding. | 8.5     |
 | `ahegyes/wp-framework-storage`     | Key-value storage backends: in-memory, wp_options, and user-meta.                | 8.5     |
 | `ahegyes/wp-framework-core`        | Plugin kernel, feature/lifecycle/installer interfaces, conditional gating.       | 8.5     |
-| `ahegyes/wp-framework-utilities`   | Hooks, admin notices, caching, conditionals, scheduling, permissions.            | 8.5     |
+| `ahegyes/wp-framework-utilities`   | Hooks, admin notices, caching, conditionals, scheduling, permissions, logging, helpers. | 8.5     |
 | `ahegyes/wp-framework-settings`    | Declarative settings screens; WordPress options and object-field backends.       | 8.5     |
 | `ahegyes/wp-framework-woocommerce` | WooCommerce settings backend, product/order-data fields, PSR-3 logger.            | 8.5     |
 
@@ -23,7 +23,7 @@ The `bootstrap` package runs before any modern PHP 8.5+ code parses, so consumer
 - **PHP**: 8.5+ (the bootstrap package itself is PHP 5.6-compatible)
 - **WordPress**: 7.0+
 - **Docker**: required for integration tests (via wp-env)
-- **Node.js**: 24+ (for wp-env CLI)
+- **Node.js**: 26+ with npm 11+ (for wp-env CLI)
 
 ## Local development
 
@@ -37,7 +37,7 @@ composer quality-check:all  # Full: lint + unit + integration + mutation
 npm run wp-env:stop         # Stop wp-env when done
 ```
 
-> Always use `composer packages-install` / `composer packages-update` (not bare `composer install` / `update`). The wrappers pass `--ignore-platform-reqs` so composer skips generating `vendor/composer/platform_check.php`, which would otherwise bypass the framework's own `check-requirements.php` runtime check and emit a hard PHP fatal instead of the friendly admin notice.
+> Always use `composer packages-install` / `composer packages-update` (not bare `composer install` / `update`). The wrappers pass `--ignore-platform-reqs` so composer skips generating `vendor/composer/platform_check.php`, which would otherwise bypass the framework's own runtime check — the bootstrap package's `check_requirements()` (`src/Requirements/functions.php`, loaded via its Composer files autoload) — and emit a hard PHP fatal instead of the friendly admin notice.
 
 ## Composer scripts
 
@@ -61,6 +61,6 @@ npm run wp-env:stop         # Stop wp-env when done
 
 Both unit and integration test suites share a single `tests/bootstrap.php` that conditionally loads WordPress when running inside the wp-env container.
 
-## History
+## Lineage
 
-This framework is a ground-up rewrite of the DWS WordPress framework v1, developed at Deep Web Solutions GmbH (now defunct). v1 spread across 7 archived packages (`wordpress-framework-{bootstrapper,helpers,core,utilities,settings,woocommerce,foundations}`) under the [`deep-web-solutions` GitHub org](https://github.com/orgs/deep-web-solutions/repositories?q=wordpress-framework). v2 reorganizes into 7 packages with composition over inheritance, PSR-11 wiring throughout, and a clear substrate-vs-WP-aware boundary between `shared` and the rest.
+Successor to the archived DWS v1 framework packages under the [`deep-web-solutions` GitHub org](https://github.com/orgs/deep-web-solutions/repositories?q=wordpress-framework).

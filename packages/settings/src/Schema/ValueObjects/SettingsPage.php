@@ -26,7 +26,7 @@ final readonly class SettingsPage {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string                $slug Menu slug, unique across registered pages; a lowercase token matching the slug charset.
+	 * @param   string                $slug Menu slug, unique across registered pages; a lowercase token matching the shared identifier charset — the container descriptor's `slug` counterpart to a member's `id`.
 	 * @param   string                $page_title Title rendered at the top of the page.
 	 * @param   string                $menu_title Label shown in the admin menu.
 	 * @param   string                $capability Capability required to view and save the page.

@@ -40,7 +40,9 @@ function filter_field_attributes( array $attributes ): array {
 
 /**
  * Whether a string is a valid settings identifier: a lowercase letter followed by lowercase letters,
- * digits, underscores, or hyphens.
+ * digits, underscores, or hyphens. One charset backs the whole descriptor family — a container
+ * descriptor names its identifier `slug` (a page), a member descriptor names it `id` (a section,
+ * a field); the naming split carries the container/member role, not a different rule.
  *
  * @since   2.0.0
  * @version 2.0.0

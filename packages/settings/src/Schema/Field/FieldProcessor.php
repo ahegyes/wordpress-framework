@@ -243,7 +243,7 @@ final readonly class FieldProcessor {
 
 	/**
 	 * The value {@see self::process()} folds a rejection to: a custom type's declared default, otherwise the
-	 * field type's empty value — preserving the pre-Result behavior for each.
+	 * field type's empty value.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

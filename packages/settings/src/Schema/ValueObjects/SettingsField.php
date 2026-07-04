@@ -25,6 +25,7 @@ final readonly class SettingsField {
 
 	/**
 	 * Sanitizer applied to the submitted value before validation; null leaves the value untouched.
+	 * Signature `(mixed $value): mixed` — a value transformer whose return is carried forward.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -34,7 +35,9 @@ final readonly class SettingsField {
 	public ?\Closure $sanitize;
 
 	/**
-	 * Validator applied to the sanitized value; null accepts any value.
+	 * Validator applied to the sanitized value; null accepts any value. Signature `(mixed $value): bool`
+	 * — a boolean gate whose return counts only for truthiness, so a sanitizer-style validator returning
+	 * a cleaned (truthy) string never fails validation.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -54,11 +57,11 @@ final readonly class SettingsField {
 	 * @version 2.0.0
 	 *
 	 * @param   string                                                            $id Page-unique field identifier; a lowercase token matching the field-id charset.
-	 * @param   string                                                            $type Field-type token resolved against the framework taxonomy when rendered or processed.
+	 * @param   string                                                            $type Field-type token resolved against the framework taxonomy when rendered or processed: a `Field\FieldType` value such as `FieldType::Text->value`, or a registered `CustomFieldType` token.
 	 * @param   string                                                            $label Human-readable field label.
 	 * @param   mixed                                                             $default_value Default value used when nothing is stored.
-	 * @param   ?callable                                                         $sanitize Sanitizer for the submitted value; stored as a Closure.
-	 * @param   ?callable                                                         $validate Validator for the sanitized value; stored as a Closure.
+	 * @param   ?callable                                                         $sanitize Sanitizer for the submitted value; stored as a Closure. Signature `(mixed $value): mixed` — returns the transformed value.
+	 * @param   ?callable                                                         $validate Validator for the sanitized value; stored as a Closure. Signature `(mixed $value): bool` — the return counts only for truthiness, so a returned (truthy) string never fails validation.
 	 * @param   ?string                                                           $capability Primitive capability required to edit the field; null inherits the section/page capability. Object-scoped checks belong to the hosting WordPress surface and the field sanitize/validate seam.
 	 * @param   bool                                                              $show_in_rest Whether the field is exposed via REST where the backend supports it.
 	 * @param   bool                                                              $autoload Whether the field's stored value should autoload on every request; defaults to off.

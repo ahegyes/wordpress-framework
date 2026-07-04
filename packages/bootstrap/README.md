@@ -54,6 +54,6 @@ PHP 5.6 or higher. The version-check wrappers fall back to a direct `version_com
 
 GPL-2.0-or-later
 
-## Predecessor
+## Lineage
 
-Successor to [`deep-web-solutions/wp-framework-bootstrapper`](https://github.com/deep-web-solutions/wordpress-framework-bootstrapper) (archived).
+Successor to the archived [`deep-web-solutions/wp-framework-bootstrapper`](https://github.com/deep-web-solutions/wordpress-framework-bootstrapper).

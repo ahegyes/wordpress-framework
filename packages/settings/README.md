@@ -10,6 +10,6 @@ Part of the [DWS WordPress framework](https://github.com/ahegyes/wordpress-frame
 composer require ahegyes/wp-framework-settings
 ```
 
-## Predecessor
+## Lineage
 
 Successor to [`deep-web-solutions/wp-framework-settings`](https://github.com/deep-web-solutions/wordpress-framework-settings) (archived).
