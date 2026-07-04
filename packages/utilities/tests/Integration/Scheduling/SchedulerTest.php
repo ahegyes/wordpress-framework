@@ -89,6 +89,18 @@ final class SchedulerTest extends TestCase {
 		self::assertFalse( \wp_next_scheduled( self::HOOK ) );
 	}
 
+	public function test_unschedule_clears_a_wp_cron_job_while_action_scheduler_is_not_ready(): void {
+		$timestamp = \time() + 3600;
+		$scheduler = create_scheduler( null, static fn (): bool => false );
+		self::assertInstanceOf( Success::class, $scheduler->schedule_single( self::HOOK, $timestamp ) );
+		self::assertSame( $timestamp, \wp_next_scheduled( self::HOOK ) );
+
+		// The probe reports Action Scheduler not ready, so the clear succeeds on WordPress cron alone.
+		self::assertInstanceOf( Success::class, $scheduler->unschedule( self::HOOK ) );
+
+		self::assertFalse( \wp_next_scheduled( self::HOOK ) );
+	}
+
 	public function test_get_next_scheduled_returns_the_wp_cron_timestamp_when_only_wp_cron_holds_the_event(): void {
 		$timestamp = \time() + 3600;
 		$scheduler = create_scheduler( null, static fn (): bool => false );

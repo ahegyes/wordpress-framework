@@ -106,6 +106,57 @@ final class SchedulerTest extends TestCase {
 		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
 		self::assertSame( $failure, $scheduler->unschedule( 'dws_hook' ) );
+		self::assertSame(
+			array( array( 'unschedule', 'dws_hook', array(), '' ) ),
+			$action_scheduler->calls,
+		);
+		self::assertSame(
+			array( array( 'unschedule', 'dws_hook', array(), '' ) ),
+			$wp_cron->calls,
+		);
+	}
+
+	public function test_unschedule_returns_the_action_scheduler_failure_when_both_backends_fail(): void {
+		$action_scheduler_failure = Failure::from( new SchedulingError( SchedulingErrorReason::ScheduleFailed, 'AS did not clear.' ) );
+		$wp_cron_failure          = Failure::from( new SchedulingError( SchedulingErrorReason::ScheduleFailed, 'WP-Cron did not clear.' ) );
+		$action_scheduler         = $this->recording_backend( next_result: $action_scheduler_failure );
+		$wp_cron                  = $this->recording_backend( next_result: $wp_cron_failure );
+		$scheduler                = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
+
+		self::assertSame( $action_scheduler_failure, $scheduler->unschedule( 'dws_hook' ) );
+	}
+
+	public function test_unschedule_skips_action_scheduler_when_not_ready_and_wp_cron_clears(): void {
+		$failure          = Failure::from( new SchedulingError( SchedulingErrorReason::ActionSchedulerNotLoaded, 'AS unavailable.' ) );
+		$action_scheduler = $this->recording_backend( next_result: $failure );
+		$wp_cron          = $this->recording_backend( true, 1700000000 );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => false );
+
+		$result = $scheduler->unschedule( 'dws_hook', array( 'x' ) );
+
+		self::assertInstanceOf( Success::class, $result );
+		self::assertSame( array(), $action_scheduler->calls );
+		self::assertSame(
+			array( array( 'unschedule', 'dws_hook', array( 'x' ), '' ) ),
+			$wp_cron->calls,
+		);
+		self::assertFalse( $wp_cron->scheduled );
+	}
+
+	public function test_unschedule_with_group_skips_action_scheduler_when_not_ready(): void {
+		$failure          = Failure::from( new SchedulingError( SchedulingErrorReason::ActionSchedulerNotLoaded, 'AS unavailable.' ) );
+		$action_scheduler = $this->recording_backend( next_result: $failure );
+		$wp_cron          = $this->recording_backend();
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => false );
+
+		$result = $scheduler->unschedule( 'dws_hook', array( 'x' ), 'reports' );
+
+		self::assertInstanceOf( Success::class, $result );
+		self::assertSame( array(), $action_scheduler->calls );
+		self::assertSame(
+			array( array( 'unschedule', 'dws_hook', array( 'x' ), 'reports' ) ),
+			$wp_cron->calls,
+		);
 	}
 
 	public function test_is_scheduled_finds_a_job_from_either_backend(): void {
@@ -132,6 +183,32 @@ final class SchedulerTest extends TestCase {
 		self::assertFalse( $scheduler->is_scheduled( 'dws_hook' ) );
 	}
 
+	public function test_is_scheduled_skips_action_scheduler_when_not_ready(): void {
+		$action_scheduler = $this->recording_backend( true );
+		$wp_cron          = $this->recording_backend( false );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => false );
+
+		self::assertFalse( $scheduler->is_scheduled( 'dws_hook', array( 'x' ), 'reports' ) );
+		self::assertSame( array(), $action_scheduler->calls );
+		self::assertSame(
+			array( array( 'is_scheduled', 'dws_hook', array( 'x' ), 'reports' ) ),
+			$wp_cron->calls,
+		);
+	}
+
+	public function test_is_scheduled_consults_action_scheduler_when_ready(): void {
+		$action_scheduler = $this->recording_backend( true );
+		$wp_cron          = $this->recording_backend( false );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
+
+		self::assertTrue( $scheduler->is_scheduled( 'dws_hook', array( 'x' ), 'reports' ) );
+		self::assertSame(
+			array( array( 'is_scheduled', 'dws_hook', array( 'x' ), 'reports' ) ),
+			$action_scheduler->calls,
+		);
+		self::assertSame( array(), $wp_cron->calls );
+	}
+
 	public function test_get_next_scheduled_returns_the_earliest_timestamp_across_backends(): void {
 		$action_scheduler = $this->recording_backend( false, 1700000300 );
 		$wp_cron          = $this->recording_backend( false, 1700000100 );
@@ -154,6 +231,35 @@ final class SchedulerTest extends TestCase {
 		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
 
 		self::assertNull( $scheduler->get_next_scheduled( 'dws_hook' ) );
+	}
+
+	public function test_get_next_scheduled_skips_action_scheduler_when_not_ready(): void {
+		$action_scheduler = $this->recording_backend( false, 1700000000 );
+		$wp_cron          = $this->recording_backend( false, null );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => false );
+
+		self::assertNull( $scheduler->get_next_scheduled( 'dws_hook', array( 'x' ), 'reports' ) );
+		self::assertSame( array(), $action_scheduler->calls );
+		self::assertSame(
+			array( array( 'get_next_scheduled', 'dws_hook', array( 'x' ), 'reports' ) ),
+			$wp_cron->calls,
+		);
+	}
+
+	public function test_get_next_scheduled_consults_action_scheduler_when_ready(): void {
+		$action_scheduler = $this->recording_backend( false, 1700000000 );
+		$wp_cron          = $this->recording_backend( false, null );
+		$scheduler        = new Scheduler( $action_scheduler, $wp_cron, static fn (): bool => true );
+
+		self::assertSame( 1700000000, $scheduler->get_next_scheduled( 'dws_hook', array( 'x' ), 'reports' ) );
+		self::assertSame(
+			array( array( 'get_next_scheduled', 'dws_hook', array( 'x' ), 'reports' ) ),
+			$action_scheduler->calls,
+		);
+		self::assertSame(
+			array( array( 'get_next_scheduled', 'dws_hook', array( 'x' ), 'reports' ) ),
+			$wp_cron->calls,
+		);
 	}
 
 	public function test_register_lifecycle_wires_both_backends(): void {

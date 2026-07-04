@@ -166,12 +166,15 @@ final class WPCronBackendTest extends TestCase {
 		self::assertSame( SchedulingErrorReason::UnsupportedGroup, $result->error->reason );
 	}
 
-	public function test_unschedule_rejects_a_non_empty_group(): void {
-		$result = $this->backend()->unschedule( self::HOOK, array(), 'reports' );
+	public function test_unschedule_with_non_empty_group_is_a_success_noop(): void {
+		$backend = $this->backend();
+		self::assertInstanceOf( Success::class, $backend->schedule_single( self::HOOK, \time() + 3600 ) );
+		self::assertTrue( $backend->is_scheduled( self::HOOK ) );
 
-		self::assertInstanceOf( Failure::class, $result );
-		self::assertInstanceOf( SchedulingError::class, $result->error );
-		self::assertSame( SchedulingErrorReason::UnsupportedGroup, $result->error->reason );
+		$result = $backend->unschedule( self::HOOK, array(), 'reports' );
+
+		self::assertInstanceOf( Success::class, $result );
+		self::assertTrue( $backend->is_scheduled( self::HOOK ) );
 	}
 
 	public function test_schedule_recurring_rejects_a_non_positive_interval(): void {

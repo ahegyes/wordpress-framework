@@ -12,7 +12,7 @@ use Psr\Log\LoggerInterface;
 use WP_Error;
 
 /**
- * Scheduler backend over WordPress cron — the fallback when Action Scheduler is absent.
+ * Scheduler backend over WordPress cron.
  *
  * WordPress cron addresses a recurring event by a named schedule, not a raw interval, so
  * each distinct interval gets a synthetic schedule 'dws_every_{N}s' injected through the
@@ -21,7 +21,7 @@ use WP_Error;
  * the filter through {@see self::register_lifecycle()} on each load, independent of any schedule
  * call, and its callback rebuilds the interval set from the cron array so an event scheduled on
  * an earlier request still resolves. WordPress cron has no grouping, so a non-empty group is
- * rejected on every mutation and treated as never-scheduled by every query.
+ * rejected on schedule writes and treated as absent by read and clear paths.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -152,9 +152,9 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	#[\Override]
 	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function unschedule( string $hook, array $args = array(), string $group = '' ): AbstractResult {
-		$rejection = $this->reject_group( $group );
-		if ( null !== $rejection ) {
-			return $rejection;
+		// A grouped schedule can never exist on WP-Cron, so clearing a group is consistently a success no-op.
+		if ( '' !== $group ) {
+			return Success::from( true );
 		}
 
 		$this->scheduled_intervals = null;

@@ -9,9 +9,9 @@ use Psr\Log\LoggerInterface;
 /**
  * Builds a {@see Scheduler} wired to both backends and an Action Scheduler readiness probe.
  *
- * The returned scheduler routes each call to Action Scheduler when the probe reports it ready, and to
- * WordPress cron otherwise. The probe is injectable so the readiness branch is testable without
- * driving the Action Scheduler runtime.
+ * The returned scheduler targets schedule writes at Action Scheduler when the probe reports it ready
+ * and at WordPress cron otherwise; its read and clear surface spans both backends. The probe is
+ * injectable so the readiness branch is testable without driving the Action Scheduler runtime.
  *
  * @since   2.0.0
  * @version 2.0.0
