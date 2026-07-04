@@ -72,7 +72,7 @@ npm install                 # wp-env
 npm run wp-env:start        # Start WordPress on port 8801
 composer quality-check      # lint:php + test (unit + integration — boots wp-env)
 composer test:integration   # WP integration tests via wp-env
-composer test:mutation      # Infection mutation tests (no Docker; Unit suite only)
+composer test:unit:mutation # Infection mutation tests (no Docker; Unit suite only)
 ```
 
 `composer lint:php` aggregates PHPCS + PHPStan + **deptrac** (architecture-rule check via `deptrac.yaml`) + composer-require-checker. Cache lives at `tests/.cache/deptrac/`.
@@ -98,7 +98,7 @@ Integration via `composer test:integration` → `npm run wp-env:start` → `wp-e
 
 `.github/workflows/split-packages.yml` runs on push to `trunk`. splitsh-lite splits each `packages/<X>/` subdirectory and force-pushes to `github.com/ahegyes/wp-framework-<X>` via `MONOREPO_SPLIT_TOKEN` PAT.
 
-Per-package changelogger fragments live in `packages/<X>/changelog/` and aggregate to `packages/<X>/CHANGELOG.md` on `composer changelog:write:<package>`.
+Per-package changelogger fragments live in `packages/<X>/changelog/` and aggregate to `packages/<X>/CHANGELOG.md` on `composer packages:<X>:changelog:write`.
 
 ## Architectural decisions
 
@@ -403,11 +403,11 @@ Enforcement: each public operation that returns a `Result` carries `#[\NoDiscard
 
 ### Mutation testing: strict-Unit + non-strict-Integration profiles
 
-Two Infection profiles. The default (`composer test:mutation`, `infection.json`) mutates the Unit-covered code from the strict root PHPUnit config. A second (`composer test:mutation:integration`, `infection.integration.json`) mutates the Integration-covered code (the WC/settings backends, object-field/order/product stores, storage, utilities) inside the wp-env `cli` container.
+Two Infection profiles. The default (`composer test:unit:mutation`, `infection.json`) mutates the Unit-covered code from the strict root PHPUnit config. A second (`composer test:integration:mutation`, `infection.integration.json`) mutates the Integration-covered code (the WC/settings backends, object-field/order/product stores, storage, utilities) inside the wp-env `cli` container.
 
 The Integration profile points at a **non-strict** PHPUnit config (`tests/mutation/phpunit.dist.xml`, the coverage-metadata strictness pair off): integration tests boot WP and traverse broad core stacks, so under coverage they "execute undeclared code" en masse; Infection mutates from real line coverage, not Covers/Uses metadata, and a risky-flagged test counted as a kill would inflate MSI. Only the coverage-metadata strictness pair is relaxed (`requireCoverageMetadata` and `beStrictAboutCoverageMetadata` both off) — `failOnRisky` and `failOnWarning` stay true, and the canonical `composer test:integration` (root config) stays strict + fail-on-risky. `Backend/DescriptorBackedWCSettingsPage` is excluded from this profile: it `extends \WC_Settings_Page`, which WC's autoloader does not resolve, so Infection's static analysis (WP not booted) fatals on the unresolved parent; the exclude drops it from mutation scoring only, not its integration tests (it is the sole `extends \WC_*`/`\WP_*` class in src).
 
-Per-profile `minCoveredMsi` floors guard regressions. The coverage driver in the `cli` container is the docker-official PHP's pcov (the Alpine system PHP's `php85-pecl-pcov` targets the wrong binary); `test:mutation:integration` preflights for a driver and names the fix. Both profiles run in the weekly tests-mutation workflow; the Integration job rides reusable-phpunit's `wp-env-xdebug: coverage` input (pcov stays the local-dev route per the preflight).
+Per-profile `minCoveredMsi` floors guard regressions. The coverage driver in the `cli` container is the docker-official PHP's pcov (the Alpine system PHP's `php85-pecl-pcov` targets the wrong binary); `test:integration:mutation` preflights for a driver and names the fix. Both profiles run in the weekly tests-mutation workflow; the Integration job rides reusable-phpunit's `wp-env-xdebug: coverage` input (pcov stays the local-dev route per the preflight).
 
 ### Static-analysis stubs: WP 7.0 via inline alias
 

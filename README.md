@@ -45,7 +45,7 @@ npm run wp-env:stop         # Stop wp-env when done
 | --------------------- | ------------------------------- | ------ |
 | `test:unit`           | Unit tests (no WP)              | No     |
 | `test:integration`    | Integration tests inside wp-env | Yes    |
-| `test:mutation`       | Infection mutation tests        | No     |
+| `test:unit:mutation`  | Infection mutation tests        | No     |
 | `test`                | Unit + Integration              | Yes    |
 | `test:all`            | Unit + Integration + Mutation   | Yes    |
 | `lint:php`            | PHPCS + PHPStan + deptrac + composer-require-checker | No     |

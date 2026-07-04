@@ -21,12 +21,18 @@ final class OutputRequirementsErrorTest extends TestCase {
 		$error->add(
 			'plugin_php_incompatible',
 			'',
-			array( 'min' => '8.5', 'current' => '7.4' )
+			array(
+				'min'     => '8.5',
+				'current' => '7.4',
+			)
 		);
 		$error->add(
 			'plugin_wp_incompatible',
 			'',
-			array( 'min' => '7.0', 'current' => '6.5' )
+			array(
+				'min'     => '7.0',
+				'current' => '6.5',
+			)
 		);
 
 		output_requirements_error( $this->plugin_basename, $error );
@@ -68,7 +74,10 @@ final class OutputRequirementsErrorTest extends TestCase {
 		$error->add(
 			'plugin_php_incompatible',
 			'',
-			array( 'min' => '8.5', 'current' => '7.4' )
+			array(
+				'min'     => '8.5',
+				'current' => '7.4',
+			)
 		);
 
 		output_requirements_error( $basename, $error );
@@ -82,7 +91,10 @@ final class OutputRequirementsErrorTest extends TestCase {
 		$error->add(
 			'plugin_wp_incompatible',
 			'',
-			array( 'min' => '7.0', 'current' => '6.5' )
+			array(
+				'min'     => '7.0',
+				'current' => '6.5',
+			)
 		);
 
 		output_requirements_error( $this->plugin_basename, $error );
@@ -106,7 +118,10 @@ final class OutputRequirementsErrorTest extends TestCase {
 		$error->add(
 			'plugin_php_incompatible',
 			'',
-			array( 'min' => '8.5', 'current' => '7.4' )
+			array(
+				'min'     => '8.5',
+				'current' => '7.4',
+			)
 		);
 
 		output_requirements_error( $basename, $error );

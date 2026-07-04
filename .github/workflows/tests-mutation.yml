@@ -31,7 +31,7 @@ jobs:
         uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
 
       - name: Run Infection
-        run: composer test:mutation
+        run: composer test:unit:mutation
 
       - name: Upload Infection logs
         if: always()
@@ -45,7 +45,7 @@ jobs:
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@714fc2a66d6ae5011999beb18a4b01fb1992f4bd
     with:
       php-version: '8.5'
-      composer-script: 'test:mutation:integration'
+      composer-script: 'test:integration:mutation'
       wp-env-config-file: '.wp-env.tests.json'
       # In-container coverage driver for Infection (the composer script's preflight accepts xdebug coverage mode).
       wp-env-xdebug: 'coverage'
