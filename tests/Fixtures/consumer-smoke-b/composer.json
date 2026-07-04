@@ -1,0 +1,76 @@
+{
+  "name": "ahegyes/wp-framework-consumer-smoke-b",
+  "description": "INTERNAL FIXTURE — DO NOT PUBLISH. Minimal second scoped consumer (bootstrap + shared + the scoped PHP-DI every consumer carries) for the multi-plugin coexistence smoke: two framework copies scoped under distinct namespaced prefixes must resolve side by side in one PHP process.",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../../../packages/bootstrap",
+      "options": {
+        "symlink": false,
+        "versions": {
+          "ahegyes/wp-framework-bootstrap": "2.0.x-dev"
+        }
+      }
+    },
+    {
+      "type": "path",
+      "url": "../../../packages/shared",
+      "options": {
+        "symlink": false,
+        "versions": {
+          "ahegyes/wp-framework-shared": "2.0.x-dev"
+        }
+      }
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wordpress-configs"
+    }
+  ],
+  "require": {
+    "php": ">=8.5"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "ahegyes/wp-framework-bootstrap": "^2.0@dev",
+    "ahegyes/wp-framework-shared": "^2.0@dev",
+    "humbug/php-scoper": "^0.18",
+    "php-di/php-di": "^7",
+    "php-stubs/wordpress-stubs": "7.0.0 as 6.9999.0"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "autoload": {
+    "files": [
+      "dependencies/scoper-autoload.php"
+    ]
+  },
+  "extra": {
+    "text-domain": "consumer-smoke-b",
+    "scoped-dependencies-dir": "dependencies",
+    "scoping-prefix": "DeepWebSolutions\\SmokeFixtureB\\Scoped"
+  },
+  "scripts": {
+    "pre-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::preAutoloadDump"
+    ],
+    "post-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\CollectScopingStubs::postAutoloadDump",
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::postAutoloadDump"
+    ],
+    "scope-php-dependencies": "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::run",
+    "scope-php-dependencies:raw": [
+      "@php vendor/bin/php-scoper add-prefix --prefix='DeepWebSolutions\\SmokeFixtureB\\Scoped' --config=./scoper.inc.php --force --quiet"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "composer/*": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "sort-packages": true
+  }
+}

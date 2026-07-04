@@ -64,28 +64,41 @@ jobs:
           working-directory: tests/Fixtures/consumer-smoke
           composer-options: '--prefer-dist'
 
+      - name: Install consumer-smoke-b fixture
+        uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
+        with:
+          working-directory: tests/Fixtures/consumer-smoke-b
+          composer-options: '--prefer-dist'
+
       - name: Run smoke
         working-directory: tests/Fixtures/consumer-smoke
         run: composer smoke
+
+      # Two scoped consumers in one process — the multi-plugin coexistence promise.
+      - name: Run coexistence smoke
+        run: php tests/Fixtures/smoke-coexistence.php
 
       - name: Assert scoped output sanity
         working-directory: tests/Fixtures/consumer-smoke
         run: |
           set -e
 
+          # The namespaced prefix appears with single backslashes in code and doubled ones inside string literals.
+          prefix_re='DeepWebSolutions\\{1,2}SmokeFixture\\{1,2}Scoped\\{1,2}'
+
           diff vendor/php-di/php-di/src/Compiler/Template.php dependencies/php-di/php-di/src/Compiler/Template.php
 
-          if grep -rqF 'DWS_CONSUMER_SMOKE_Deps\WP_Error' dependencies/ahegyes/wp-framework-bootstrap/; then
+          if grep -rqE "${prefix_re}WP_Error" dependencies/ahegyes/wp-framework-bootstrap/; then
             echo "FAIL: WP_Error got prefixed inside scoped bootstrap" >&2
             exit 1
           fi
 
-          if ! grep -qF 'namespace DWS_CONSUMER_SMOKE_Deps\DeepWebSolutions\Framework\Core' dependencies/ahegyes/wp-framework-core/src/PluginKernel.php; then
+          if ! grep -qF 'namespace DeepWebSolutions\SmokeFixture\Scoped\DeepWebSolutions\Framework\Core' dependencies/ahegyes/wp-framework-core/src/PluginKernel.php; then
             echo "FAIL: PluginKernel.php missing scoped namespace declaration" >&2
             exit 1
           fi
 
-          if grep -qF 'DWS_CONSUMER_SMOKE_Deps\Psr\Container' dependencies/ahegyes/wp-framework-core/src/PluginKernel.php; then
+          if grep -qE "${prefix_re}Psr\\\\{1,2}Container" dependencies/ahegyes/wp-framework-core/src/PluginKernel.php; then
             echo "FAIL: Psr\\Container namespace got prefixed" >&2
             exit 1
           fi
@@ -103,13 +116,19 @@ jobs:
           fi
 
           # WooCommerce runtime symbols are host-provided; scoping must leave them unprefixed.
-          if grep -rqE 'DWS_CONSUMER_SMOKE_Deps\\(WC_|wc_|WooCommerce)' dependencies/ahegyes/wp-framework-woocommerce/; then
+          if grep -rqE "${prefix_re}(WC_|wc_|WooCommerce)" dependencies/ahegyes/wp-framework-woocommerce/; then
             echo "FAIL: a WooCommerce symbol got prefixed inside scoped woocommerce" >&2
-            grep -rnE 'DWS_CONSUMER_SMOKE_Deps\\(WC_|wc_|WooCommerce)' dependencies/ahegyes/wp-framework-woocommerce/ >&2
+            grep -rnE "${prefix_re}(WC_|wc_|WooCommerce)" dependencies/ahegyes/wp-framework-woocommerce/ >&2
             exit 1
           fi
 
           if ! grep -rqF '\wc_get_order(' dependencies/ahegyes/wp-framework-woocommerce/; then
             echo "FAIL: expected an unprefixed WooCommerce call in scoped woocommerce" >&2
+            exit 1
+          fi
+
+          if grep -rqE "${prefix_re}as_[a-z_]+" dependencies/ahegyes/wp-framework-utilities/; then
+            echo "FAIL: an Action Scheduler as_* call got prefixed inside scoped utilities" >&2
+            grep -rnE "${prefix_re}as_[a-z_]+" dependencies/ahegyes/wp-framework-utilities/ >&2
             exit 1
           fi

@@ -17,12 +17,16 @@
 
 require __DIR__ . '/vendor/autoload.php';
 
+// Namespaced multi-segment prefix, matching the plugin-template convention — php-scoper
+// writes it with doubled backslashes inside string literals, the path flat prefixes hide.
+const SCOPED_PREFIX = 'DeepWebSolutions\\SmokeFixture\\Scoped\\';
+
 $failures = array();
 
 // Bootstrap files-autoload: the package's nested function files must be loaded.
 $bootstrap_functions = array(
-	'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Bootstrap\\Environment\\is_php_compatible',
-	'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Bootstrap\\Requirements\\check_requirements',
+	SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Bootstrap\\Environment\\is_php_compatible',
+	SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Bootstrap\\Requirements\\check_requirements',
 );
 foreach ( $bootstrap_functions as $function ) {
 	if ( ! function_exists( $function ) ) {
@@ -30,10 +34,12 @@ foreach ( $bootstrap_functions as $function ) {
 	}
 }
 
-// Core PSR-4: PluginKernel + interfaces.
+// Core PSR-4: PluginKernel + interfaces + boot-report value objects.
 $core_classes = array(
-	'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Core\\PluginKernel',
-	'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Core\\PluginInterface',
+	SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Core\\PluginKernel',
+	SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Core\\PluginInterface',
+	SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Core\\ValueObjects\\BootStatus',
+	SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Core\\ValueObjects\\PluginBootReport',
 );
 foreach ( $core_classes as $class ) {
 	if ( ! class_exists( $class ) && ! interface_exists( $class ) ) {
@@ -42,26 +48,32 @@ foreach ( $core_classes as $class ) {
 }
 
 // Storage PSR-4: the extracted leaf package's classes resolve under the scoped prefix.
-if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Storage\\MemoryStore' ) ) {
+if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Storage\\MemoryStore' ) ) {
 	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Storage\\MemoryStore';
 }
 
+// Utilities PSR-4: the rollup package's classes resolve under the scoped prefix, with the
+// unscoped Psr\Log contract CompositeLogger implements provided by the consumer's vendor.
+if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Utilities\\Logging\\CompositeLogger' ) ) {
+	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Utilities\\Logging\\CompositeLogger';
+}
+
 // Settings PSR-4: the descriptor value objects resolve under the scoped prefix.
-if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\Settings\\Schema\\ValueObjects\\SettingsField' ) ) {
+if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Settings\\Schema\\ValueObjects\\SettingsField' ) ) {
 	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Settings\\Schema\\ValueObjects\\SettingsField';
 }
 
 // WooCommerce order-field store: the class that references WooCommerce symbols resolves under the
 // scoped prefix, with those symbols left unprefixed via the fixture's woocommerce-stubs catalog.
-if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldStore' ) ) {
+if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldStore' ) ) {
 	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldStore';
 }
 
 // PHP-DI PSR-4 + files-autoloaded factory().
-if ( ! class_exists( 'DWS_CONSUMER_SMOKE_Deps\\DI\\ContainerBuilder' ) ) {
+if ( ! class_exists( SCOPED_PREFIX . 'DI\\ContainerBuilder' ) ) {
 	$failures[] = 'missing scoped class: DI\\ContainerBuilder';
 }
-if ( ! function_exists( 'DWS_CONSUMER_SMOKE_Deps\\DI\\factory' ) ) {
+if ( ! function_exists( SCOPED_PREFIX . 'DI\\factory' ) ) {
 	$failures[] = 'missing scoped function: DI\\factory';
 }
 
@@ -69,7 +81,7 @@ if ( ! function_exists( 'DWS_CONSUMER_SMOKE_Deps\\DI\\factory' ) ) {
 if ( ! interface_exists( 'Psr\\Container\\ContainerInterface' ) ) {
 	$failures[] = 'Psr\\Container\\ContainerInterface should resolve to the global, un-scoped definition';
 }
-if ( interface_exists( 'DWS_CONSUMER_SMOKE_Deps\\Psr\\Container\\ContainerInterface' ) ) {
+if ( interface_exists( SCOPED_PREFIX . 'Psr\\Container\\ContainerInterface' ) ) {
 	$failures[] = 'Psr\\Container\\ContainerInterface was incorrectly prefixed';
 }
 

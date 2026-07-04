@@ -3,14 +3,15 @@
   "description": "INTERNAL FIXTURE — DO NOT PUBLISH. Smoke fixture that installs the framework as an external consumer would and exercises scoped autoload + class resolution. Catches scoping breakage, missing-require declarations, and autoload metadata drift at framework PR time.",
   "type": "project",
   "license": "GPL-2.0-or-later",
-
   "repositories": [
     {
       "type": "path",
       "url": "../../../packages/bootstrap",
       "options": {
         "symlink": false,
-        "versions": { "ahegyes/wp-framework-bootstrap": "2.0.x-dev" }
+        "versions": {
+          "ahegyes/wp-framework-bootstrap": "2.0.x-dev"
+        }
       }
     },
     {
@@ -18,7 +19,9 @@
       "url": "../../../packages/core",
       "options": {
         "symlink": false,
-        "versions": { "ahegyes/wp-framework-core": "2.0.x-dev" }
+        "versions": {
+          "ahegyes/wp-framework-core": "2.0.x-dev"
+        }
       }
     },
     {
@@ -26,7 +29,9 @@
       "url": "../../../packages/settings",
       "options": {
         "symlink": false,
-        "versions": { "ahegyes/wp-framework-settings": "2.0.x-dev" }
+        "versions": {
+          "ahegyes/wp-framework-settings": "2.0.x-dev"
+        }
       }
     },
     {
@@ -34,7 +39,9 @@
       "url": "../../../packages/shared",
       "options": {
         "symlink": false,
-        "versions": { "ahegyes/wp-framework-shared": "2.0.x-dev" }
+        "versions": {
+          "ahegyes/wp-framework-shared": "2.0.x-dev"
+        }
       }
     },
     {
@@ -42,7 +49,9 @@
       "url": "../../../packages/storage",
       "options": {
         "symlink": false,
-        "versions": { "ahegyes/wp-framework-storage": "2.0.x-dev" }
+        "versions": {
+          "ahegyes/wp-framework-storage": "2.0.x-dev"
+        }
       }
     },
     {
@@ -50,7 +59,9 @@
       "url": "../../../packages/utilities",
       "options": {
         "symlink": false,
-        "versions": { "ahegyes/wp-framework-utilities": "2.0.x-dev" }
+        "versions": {
+          "ahegyes/wp-framework-utilities": "2.0.x-dev"
+        }
       }
     },
     {
@@ -58,7 +69,9 @@
       "url": "../../../packages/woocommerce",
       "options": {
         "symlink": false,
-        "versions": { "ahegyes/wp-framework-woocommerce": "2.0.x-dev" }
+        "versions": {
+          "ahegyes/wp-framework-woocommerce": "2.0.x-dev"
+        }
       }
     },
     {
@@ -66,7 +79,6 @@
       "url": "https://github.com/ahegyes/wordpress-configs"
     }
   ],
-
   "require": {
     "php": ">=8.5",
     "psr/container": "^2"
@@ -82,25 +94,21 @@
     "ahegyes/wp-framework-woocommerce": "^2.0@dev",
     "humbug/php-scoper": "^0.18",
     "php-di/php-di": "^7",
-    "php-stubs/wordpress-stubs": "*",
-    "php-stubs/woocommerce-stubs": "^10.8"
+    "php-stubs/woocommerce-stubs": "^10.9",
+    "php-stubs/wordpress-stubs": "7.0.0 as 6.9999.0"
   },
-
   "minimum-stability": "dev",
   "prefer-stable": true,
-
   "autoload": {
     "files": [
       "dependencies/scoper-autoload.php"
     ]
   },
-
   "extra": {
     "text-domain": "consumer-smoke",
     "scoped-dependencies-dir": "dependencies",
-    "scoping-prefix": "DWS_CONSUMER_SMOKE_Deps"
+    "scoping-prefix": "DeepWebSolutions\\SmokeFixture\\Scoped"
   },
-
   "scripts": {
     "pre-autoload-dump": [
       "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::preAutoloadDump"
@@ -109,13 +117,12 @@
       "DeepWebSolutions\\Config\\Composer\\CollectScopingStubs::postAutoloadDump",
       "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::postAutoloadDump"
     ],
-    "scope-php-dependencies": [
-      "@php vendor/bin/php-scoper add-prefix --prefix=DWS_CONSUMER_SMOKE_Deps --output-dir=./dependencies --config=./scoper.inc.php --force --quiet"
+    "scope-php-dependencies": "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::run",
+    "scope-php-dependencies:raw": [
+      "@php vendor/bin/php-scoper add-prefix --prefix='DeepWebSolutions\\SmokeFixture\\Scoped' --config=./scoper.inc.php --force --quiet"
     ],
-
     "smoke": "@php smoke.php"
   },
-
   "config": {
     "allow-plugins": {
       "composer/*": true,
