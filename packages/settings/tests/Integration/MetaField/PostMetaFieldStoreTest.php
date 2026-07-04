@@ -96,6 +96,16 @@ final class PostMetaFieldStoreTest extends TestCase {
 		self::assertStringContainsString( 'name="dws_postmeta[note]"', $html );
 	}
 
+	public function test_the_box_row_binds_the_label_to_the_control_id(): void {
+		( new PostMetaFieldStore() )->register( $this->group(), $this->placement() );
+		\do_action( 'add_meta_boxes_post', \get_post( $this->post_id ) );
+
+		$html = $this->render_box();
+
+		self::assertStringContainsString( '<div class="dws-meta-box-field"><label for="dws_postmeta.note">Note</label><br />', $html );
+		self::assertStringContainsString( 'id="dws_postmeta.note"', $html );
+	}
+
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
 		$store = new PostMetaFieldStore();
 		$group = $this->group();

@@ -73,6 +73,65 @@ final class ObjectFieldFormTest extends TestCase {
 		self::assertStringContainsString( 'name="dws_box[note]"', $html );
 	}
 
+	public function test_render_hands_the_row_closure_the_derived_control_id(): void {
+		$seen = array();
+		$row  = static function ( SettingsField $field, string $control, string $control_id ) use ( &$seen ): string {
+			$seen[] = $control_id;
+
+			return $control;
+		};
+
+		\ob_start();
+		$this->form()->render( $this->group( $this->text_field() ), $this->post_id, $row );
+		\ob_end_clean();
+
+		self::assertSame( array( 'dws_box.note' ), $seen );
+	}
+
+	public function test_render_emits_the_control_id_the_row_closure_receives(): void {
+		\ob_start();
+		$this->form()->render( $this->group( $this->text_field() ), $this->post_id );
+		$html = (string) \ob_get_clean();
+
+		// The control carries the same derived id handed to the row closure, so a surface label-for resolves.
+		self::assertStringContainsString( 'id="dws_box.note"', $html );
+	}
+
+	public function test_two_groups_sharing_a_field_id_derive_distinct_control_ids(): void {
+		$form    = $this->form();
+		$field   = static fn (): SettingsField => new SettingsField( id: 'color', type: 'text', label: 'Color' );
+		$group_a = new FieldGroup( id: 'dws_box_a', title: 'A', fields_provider: static fn ( int $object_id ): array => array( $field() ) );
+		$group_b = new FieldGroup( id: 'dws_box_b', title: 'B', fields_provider: static fn ( int $object_id ): array => array( $field() ) );
+
+		\ob_start();
+		$form->render( $group_a, $this->post_id );
+		$form->render( $group_b, $this->post_id );
+		$html = (string) \ob_get_clean();
+
+		// The '.' separator lies outside the identifier charset, so the group/field boundary survives the
+		// join: a field id shared across groups can never collide into one DOM id.
+		self::assertSame( 1, \substr_count( $html, 'id="dws_box_a.color"' ) );
+		self::assertSame( 1, \substr_count( $html, 'id="dws_box_b.color"' ) );
+	}
+
+	public function test_render_hands_the_row_closure_a_descriptor_supplied_id(): void {
+		$field = new SettingsField( id: 'note', type: 'text', label: 'Note', attributes: array( 'id' => 'legacy-note' ) );
+		$seen  = array();
+		$row   = static function ( SettingsField $row_field, string $control, string $control_id ) use ( &$seen ): string {
+			$seen[] = $control_id;
+
+			return $control;
+		};
+
+		\ob_start();
+		$this->form()->render( $this->group( $field ), $this->post_id, $row );
+		$html = (string) \ob_get_clean();
+
+		// A descriptor-supplied id is the consumer's own: the closure receives it and the control carries it.
+		self::assertSame( array( 'legacy-note' ), $seen );
+		self::assertStringContainsString( 'id="legacy-note"', $html );
+	}
+
 	public function test_render_uses_a_bespoke_renderer_and_still_emits_the_nonce(): void {
 		$group = new FieldGroup(
 			id: self::GROUP_ID,

@@ -10,6 +10,8 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
+use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
+
 /**
  * Registers a field group on the WordPress user-profile surface and stores its fields as user meta.
  *
@@ -304,7 +306,7 @@ final class UserProfileFieldStore {
 	}
 
 	/**
-	 * The row closure wrapping each control in a form-table row.
+	 * The row closure wrapping each control in a form-table row, its label bound to the control's DOM id.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -312,8 +314,8 @@ final class UserProfileFieldStore {
 	 * @return  \Closure
 	 */
 	protected function row(): \Closure {
-		return static fn ( SettingsField $field, string $control ): string =>
-			'<tr><th scope="row">' . \esc_html( $field->label ) . '</th><td>' . $control . '</td></tr>';
+		return static fn ( SettingsField $field, string $control, string $control_id ): string =>
+			'<tr><th scope="row">' . field_label_html( $field, $control_id ) . '</th><td>' . $control . '</td></tr>';
 	}
 
 	// endregion

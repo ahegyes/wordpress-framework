@@ -69,6 +69,61 @@ function is_valid_global_name_prefix( string $prefix ): bool {
 }
 
 /**
+ * Derives the DOM id for a field control from its HTML name: each bracketed segment must be a valid
+ * settings identifier, and the segments join on '.' ('opt[color]' becomes 'opt.color'). The separator
+ * is valid in HTML ids and IDREFs but outside the identifier charset, so the derivation is injective —
+ * two distinct accepted names can never derive the same id. Returns the empty string for a name
+ * outside that shape — the caller emits no id rather than an unvetted one.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   string $name HTML name attribute of the control.
+ *
+ * @return  string
+ */
+function field_control_id( string $name ): string {
+	$segments = \explode( '[', $name );
+	foreach ( $segments as $index => $segment ) {
+		if ( $index > 0 ) {
+			if ( ! \str_ends_with( $segment, ']' ) ) {
+				return '';
+			}
+			$segment = \substr( $segment, 0, -1 );
+		}
+		if ( ! namespace\is_valid_identifier( $segment ) ) {
+			return '';
+		}
+		$segments[ $index ] = $segment;
+	}
+
+	return \implode( '.', $segments );
+}
+
+/**
+ * Resolves the DOM id for a field's control: a descriptor-supplied 'id' attribute (matched
+ * case-insensitively, as the attribute filter accepts any casing) is the consumer's own id and wins
+ * verbatim; otherwise the id derives from the control's HTML name via {@see field_control_id()}.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   SettingsField $field Field whose control id to resolve.
+ * @param   string        $name  HTML name attribute of the control.
+ *
+ * @return  string
+ */
+function resolve_field_control_id( SettingsField $field, string $name ): string {
+	foreach ( $field->attributes as $attribute => $value ) {
+		if ( 0 === \strcasecmp( (string) $attribute, 'id' ) && '' !== (string) $value ) {
+			return (string) $value;
+		}
+	}
+
+	return namespace\field_control_id( $name );
+}
+
+/**
  * The canonical checkbox truth rule: a value is checked only when it is boolean true, the integer 1,
  * the string '1', or the string 'yes'. Everything else — false, 0, '0', 'no', '', null, 'on', any
  * other string, an array — is unchecked.
@@ -114,6 +169,29 @@ function normalize_checkbox_value( mixed $value ): string {
  */
 function stringify_for_output( mixed $value ): string {
 	return \is_scalar( $value ) ? (string) $value : '';
+}
+
+/**
+ * Renders a field's visible label for a surface's label cell as an escaped HTML string: a label
+ * element bound to the control's DOM id where a single control carries the accessible name, or the
+ * escaped label text alone where none does — a radio group (its fieldset legend names it), a custom
+ * type (its renderer owns the control markup, so no id is guaranteed), or an empty control id.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   SettingsField $field      Field whose label to render.
+ * @param   string        $control_id DOM id of the field's rendered control; '' renders no association.
+ *
+ * @return  string
+ */
+function field_label_html( SettingsField $field, string $control_id ): string {
+	$type = FieldType::tryFrom( $field->type );
+	if ( '' === $control_id || null === $type || FieldType::Radio === $type ) {
+		return \esc_html( $field->label );
+	}
+
+	return \sprintf( '<label for="%s">%s</label>', \esc_attr( $control_id ), \esc_html( $field->label ) );
 }
 
 /**

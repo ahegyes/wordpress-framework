@@ -99,6 +99,28 @@ final class TermFieldStoreTest extends TestCase {
 		self::assertStringNotContainsString( '<tr', $html );
 	}
 
+	public function test_the_edit_row_binds_the_label_to_the_control_id(): void {
+		( new TermFieldStore() )->register( $this->term_group() );
+
+		\ob_start();
+		\do_action( 'category_edit_form_fields', \get_term( $this->term_id, 'category' ) );
+		$html = (string) \ob_get_clean();
+
+		self::assertStringContainsString( '<th scope="row"><label for="dws_termmeta.color">Color</label></th>', $html );
+		self::assertStringContainsString( 'id="dws_termmeta.color"', $html );
+	}
+
+	public function test_the_add_row_binds_the_label_to_the_control_id(): void {
+		( new TermFieldStore() )->register( $this->term_group() );
+
+		\ob_start();
+		\do_action( 'category_add_form_fields', 'category' );
+		$html = (string) \ob_get_clean();
+
+		self::assertStringContainsString( '<label for="dws_termmeta.color">Color</label>', $html );
+		self::assertStringContainsString( 'id="dws_termmeta.color"', $html );
+	}
+
 	public function test_the_hooks_are_registered_for_the_descriptor_taxonomy(): void {
 		( new TermFieldStore() )->register( $this->term_group() );
 

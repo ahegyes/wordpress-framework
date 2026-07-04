@@ -96,6 +96,17 @@ final class UserProfileFieldStoreTest extends TestCase {
 		self::assertStringContainsString( '<tr', $html );
 	}
 
+	public function test_the_profile_row_binds_the_label_to_the_control_id(): void {
+		( new UserProfileFieldStore() )->register( $this->profile() );
+
+		\ob_start();
+		\do_action( 'edit_user_profile', \get_userdata( $this->user_id ) );
+		$html = (string) \ob_get_clean();
+
+		self::assertStringContainsString( '<th scope="row"><label for="dws_prefs.pref">Preference</label></th>', $html );
+		self::assertStringContainsString( 'id="dws_prefs.pref"', $html );
+	}
+
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
 		( new UserProfileFieldStore() )->register( $this->profile() );
 

@@ -524,6 +524,107 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertStringContainsString( 'value="60"', $html );
 	}
 
+	public function test_render_associates_each_field_label_with_its_control(): void {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$this->register( $this->page() );
+		\do_action( 'admin_menu' );
+
+		\ob_start();
+		\do_action( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		$html = (string) \ob_get_clean();
+
+		// Each header cell holds a label targeting the control's derived DOM id, and the control carries it.
+		self::assertStringContainsString( '<th scope="row"><label for="dws-test-settings-general.site_name">Site Name</label></th>', $html );
+		self::assertStringContainsString( 'id="dws-test-settings-general.site_name"', $html );
+		self::assertStringContainsString( '<th scope="row"><label for="dws-test-settings-general.enabled">Enabled</label></th>', $html );
+		self::assertStringContainsString( 'id="dws-test-settings-general.enabled"', $html );
+		self::assertStringContainsString( '<th scope="row"><label for="dws-test-settings-advanced.cache_ttl">Cache TTL</label></th>', $html );
+		self::assertStringContainsString( 'id="dws-test-settings-advanced.cache_ttl"', $html );
+
+		// The '.' separator lies outside the identifier charset, so the option/field boundary survives
+		// the join and every control id is provably page-unique — no two names can derive the same id.
+		self::assertSame( 1, \substr_count( $html, 'id="dws-test-settings-general.site_name"' ) );
+		self::assertSame( 1, \substr_count( $html, 'id="dws-test-settings-general.enabled"' ) );
+		self::assertSame( 1, \substr_count( $html, 'id="dws-test-settings-advanced.cache_ttl"' ) );
+	}
+
+	public function test_render_binds_the_label_to_a_descriptor_supplied_id(): void {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			sections: array(
+				new SettingsSection(
+					'general',
+					'General',
+					array( new SettingsField( id: 'site_name', type: 'text', label: 'Site Name', attributes: array( 'id' => 'legacy-site-name' ) ) ),
+				),
+			),
+		);
+		$this->register( $page );
+		\do_action( 'admin_menu' );
+
+		\ob_start();
+		\do_action( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		$html = (string) \ob_get_clean();
+
+		// A descriptor-supplied id attribute is the consumer's own id: the label targets it and the
+		// control carries it exactly once, with no derived id beside it.
+		self::assertStringContainsString( '<th scope="row"><label for="legacy-site-name">Site Name</label></th>', $html );
+		self::assertSame( 1, \substr_count( $html, ' id="legacy-site-name"' ) );
+		self::assertStringNotContainsString( 'id="dws-test-settings-general.site_name"', $html );
+	}
+
+	public function test_render_names_a_radio_group_via_its_fieldset_legend(): void {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$page = new SettingsPage(
+			slug: self::SLUG,
+			page_title: 'DWS Test',
+			menu_title: 'DWS Test',
+			capability: 'edit_pages',
+			sections: array(
+				new SettingsSection(
+					'general',
+					'General',
+					array( new SettingsField( id: 'mode', type: 'radio', label: 'Mode', options: array( 'a' => 'Auto', 'm' => 'Manual' ) ) ),
+				),
+			),
+		);
+		$this->register( $page );
+		\do_action( 'admin_menu' );
+
+		\ob_start();
+		\do_action( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		$html = (string) \ob_get_clean();
+
+		// A radio group has no single control a label could target: the header stays plain text and the
+		// group is named by its fieldset's screen-reader legend.
+		self::assertStringContainsString( '<th scope="row">Mode</th>', $html );
+		self::assertStringContainsString( '<fieldset id="dws-test-settings-general.mode"><legend class="screen-reader-text">Mode</legend>', $html );
+		self::assertStringNotContainsString( '<label for="dws-test-settings-general.mode">', $html );
+	}
+
+	public function test_render_keeps_a_custom_type_header_as_plain_text(): void {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+		$this->register_with_custom( $this->custom_page() );
+		\do_action( 'admin_menu' );
+
+		\ob_start();
+		\do_action( \get_plugin_page_hookname( self::SLUG, 'options-general.php' ) );
+		$html = (string) \ob_get_clean();
+
+		// A custom renderer owns its control markup, so no DOM id is guaranteed; the header renders the
+		// label text alone rather than a label-for pointing at nothing.
+		self::assertStringContainsString( '<th scope="row">Home Page</th>', $html );
+		self::assertStringNotContainsString( '<label for="dws-test-settings-general.home_page">', $html );
+	}
+
 	public function test_render_surfaces_section_settings_errors_for_custom_location_pages(): void {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		require_once ABSPATH . 'wp-admin/includes/template.php';

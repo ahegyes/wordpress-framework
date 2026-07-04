@@ -16,7 +16,9 @@ use DeepWebSolutions\Framework\Storage\OptionsStore;
 use Psr\Log\LoggerInterface;
 
 use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
+use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
+use function DeepWebSolutions\Framework\Settings\Schema\resolve_field_control_id;
 use function DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
@@ -494,8 +496,10 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 				if ( ! is_field_editable_by_current_user( $field ) ) {
 					continue;
 				}
-				echo '<tr><th scope="row">' . \esc_html( $field->label ) . '</th><td>';
-				$this->render_field( $option_name, $field, $stored );
+				$control_name = $option_name . '[' . $field->id . ']';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_label_html returns markup escaped at each interpolation point.
+				echo '<tr><th scope="row">' . field_label_html( $field, resolve_field_control_id( $field, $control_name ) ) . '</th><td>';
+				$this->render_field( $control_name, $field, $stored );
 				echo '</td></tr>';
 			}
 			echo '</tbody></table>';
@@ -512,15 +516,15 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string               $option_name Section option the field persists into.
-	 * @param   SettingsField        $field       Field to render.
-	 * @param   array<string, mixed> $stored      Section option, read once by the caller.
+	 * @param   string               $control_name HTML name the control submits under.
+	 * @param   SettingsField        $field        Field to render.
+	 * @param   array<string, mixed> $stored       Section option, read once by the caller.
 	 */
-	protected function render_field( string $option_name, SettingsField $field, array $stored ): void {
+	protected function render_field( string $control_name, SettingsField $field, array $stored ): void {
 		$value = \array_key_exists( $field->id, $stored ) ? $stored[ $field->id ] : $field->default_value;
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldRenderer returns markup already escaped at each interpolation point.
-		echo $this->renderer->render( $field, $value, $option_name . '[' . $field->id . ']' );
+		echo $this->renderer->render( $field, $value, $control_name );
 	}
 
 	/**

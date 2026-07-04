@@ -15,17 +15,21 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
+use function DeepWebSolutions\Framework\Settings\Schema\field_control_id;
 use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
 use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_global_name_prefix;
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
 use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value;
+use function DeepWebSolutions\Framework\Settings\Schema\resolve_field_control_id;
 use function DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field;
 use function DeepWebSolutions\Framework\Settings\Schema\stringify_for_output;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\field_control_id' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\resolve_field_control_id' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_global_name_prefix' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
@@ -154,6 +158,95 @@ final class SchemaFunctionsTest extends TestCase {
 			'slash'              => array( 'my/field' ),
 			'trailing newline'   => array( "field\n" ),
 		);
+	}
+
+	public function test_field_control_id_joins_bracketed_segments_on_a_dot(): void {
+		self::assertSame( 'dws-shop-general.color', field_control_id( 'dws-shop-general[color]' ) );
+	}
+
+	public function test_field_control_id_passes_a_bare_name_through(): void {
+		self::assertSame( 'color', field_control_id( 'color' ) );
+	}
+
+	public function test_field_control_id_is_distinct_per_option_name_for_a_shared_field_id(): void {
+		// Two sections (or groups) carrying the same field id derive distinct DOM ids, because the
+		// option/group name is part of the control name the id derives from.
+		self::assertNotSame(
+			field_control_id( 'dws-shop-general[color]' ),
+			field_control_id( 'dws-shop-advanced[color]' ),
+		);
+	}
+
+	public function test_field_control_id_is_injective_across_underscore_boundaries(): void {
+		// The '.' separator lies outside the identifier charset, so segment boundaries survive the
+		// join: names whose segments merely share a flattened spelling cannot collide.
+		self::assertSame( 'general.cache_ttl', field_control_id( 'general[cache_ttl]' ) );
+		self::assertSame( 'general_cache.ttl', field_control_id( 'general_cache[ttl]' ) );
+		self::assertNotSame( field_control_id( 'general[cache_ttl]' ), field_control_id( 'general_cache[ttl]' ) );
+	}
+
+	public function test_a_field_id_ending_in_description_cannot_collide_with_a_description_id(): void {
+		// The renderer's description-paragraph id is the control id plus '..description' — a doubled
+		// dot no derived control id can contain, since ids join non-empty segments on single dots. A
+		// field literally named 'x-description' and a nested name ending in a 'description' segment
+		// both derive ids distinct from any description-paragraph id.
+		self::assertNotSame(
+			field_control_id( 'opt[x-description]' ),
+			field_control_id( 'opt[x]' ) . '..description',
+		);
+		self::assertNotSame(
+			field_control_id( 'opt[x][description]' ),
+			field_control_id( 'opt[x]' ) . '..description',
+		);
+	}
+
+	#[DataProvider( 'non_derivable_control_names' )]
+	public function test_field_control_id_is_empty_for_a_name_outside_the_charset( string $name ): void {
+		self::assertSame( '', field_control_id( $name ) );
+	}
+
+	/**
+	 * A name outside the segment shape — a segment outside the identifier charset, junk after a
+	 * bracket, or an empty segment — yields no id at all: the renderer emits no id attribute rather
+	 * than an unvetted one.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public static function non_derivable_control_names(): array {
+		return array(
+			'empty'                  => array( '' ),
+			'uppercase'              => array( 'Opt[color]' ),
+			'markup breaker'         => array( 'opt["><script>]' ),
+			'space'                  => array( 'opt[my field]' ),
+			'leading digit'          => array( '1opt[color]' ),
+			'junk after bracket'     => array( 'opt[x]y' ),
+			'empty trailing segment' => array( 'opt[tags][]' ),
+		);
+	}
+
+	public function test_resolve_field_control_id_prefers_a_descriptor_id_attribute(): void {
+		$field = new SettingsField( id: 'x', type: 'text', label: 'X', attributes: array( 'id' => 'legacy-id' ) );
+
+		self::assertSame( 'legacy-id', resolve_field_control_id( $field, 'opt[x]' ) );
+	}
+
+	public function test_resolve_field_control_id_matches_the_id_attribute_case_insensitively(): void {
+		// The attribute filter accepts any casing, so the precedence must too.
+		$field = new SettingsField( id: 'x', type: 'text', label: 'X', attributes: array( 'ID' => 'LegacyId' ) );
+
+		self::assertSame( 'LegacyId', resolve_field_control_id( $field, 'opt[x]' ) );
+	}
+
+	public function test_resolve_field_control_id_falls_back_to_derivation_without_an_id_attribute(): void {
+		$field = new SettingsField( id: 'x', type: 'text', label: 'X', attributes: array( 'class' => 'widefat' ) );
+
+		self::assertSame( 'opt.x', resolve_field_control_id( $field, 'opt[x]' ) );
+	}
+
+	public function test_resolve_field_control_id_ignores_an_empty_id_attribute(): void {
+		$field = new SettingsField( id: 'x', type: 'text', label: 'X', attributes: array( 'id' => '' ) );
+
+		self::assertSame( 'opt.x', resolve_field_control_id( $field, 'opt[x]' ) );
 	}
 
 	#[DataProvider( 'checkbox_truth_matrix' )]

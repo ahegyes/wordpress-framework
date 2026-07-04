@@ -13,6 +13,7 @@ use DeepWebSolutions\Framework\Shared\Result\Failure;
 
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
 use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value;
+use function DeepWebSolutions\Framework\Settings\Schema\resolve_field_control_id;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 /**
@@ -24,9 +25,14 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
  * an absent value renders unset (never the field default), absent or empty submissions delete the meta
  * key, and an invalid present submission preserves the existing value.
  *
- * A surface varies only in per-field markup, supplied as a row closure (table-row surfaces wrap each
- * control; meta-box surfaces echo it raw), and in the optional bespoke render/save closures the group
- * carries. The per-object surface capability is the caller's gate, checked before save runs.
+ * A surface varies only in per-field markup, supplied as a row closure receiving each field, its
+ * rendered control, and the control's DOM id, and in the optional bespoke render/save closures the
+ * group carries. The renderer emits that id on every built-in control — a radio group carries it on
+ * its fieldset and is named by the fieldset's legend, so label-for binds only single controls, and a
+ * custom type's closure owns its markup with no id guaranteed — so a row closure binds
+ * its label through {@see \DeepWebSolutions\Framework\Settings\Schema\field_label_html()}, which
+ * guards those cases. The per-object surface capability is the caller's gate, checked before save
+ * runs.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -76,13 +82,17 @@ final readonly class ObjectFieldForm {
 	 * Emits the nonce for every render — bespoke renderer included — so {@see self::save()} can verify it;
 	 * a bespoke group renderer then owns the rest of the markup. Otherwise each editable field renders with
 	 * its value read revoke-based (an absent value renders unset), wrapped by $row when given or echoed raw.
+	 * The id handed to $row is emitted by the renderer on every built-in control — on the fieldset for a
+	 * radio group, which its legend names, so label-for binds only single controls; a custom type's closure
+	 * owns its markup with no id guaranteed — so a closure binds its label
+	 * through {@see \DeepWebSolutions\Framework\Settings\Schema\field_label_html()} rather than a bare label-for.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   FieldGroup $group     Group to render.
 	 * @param   int        $object_id Object the fields are rendered for.
-	 * @param   ?\Closure  $row       Wraps a (SettingsField, control-html) pair into surface markup; null echoes the control raw.
+	 * @param   ?\Closure  $row       Wraps a (SettingsField, control-html, control-DOM-id) triple into surface markup; null echoes the control raw.
 	 *
 	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id.
 	 */
@@ -103,10 +113,11 @@ final readonly class ObjectFieldForm {
 			}
 			// Object fields are revoke-based: an absent meta renders as unset, NOT the field default, so a
 			// value cleared via delete-on-empty does not spring back to its default on the next render.
-			$value   = $this->repository->get( $object_id, $this->meta_key_for( $field ) );
-			$control = $this->renderer->render( $field, $value, $group->id . '[' . $field->id . ']' );
+			$value        = $this->repository->get( $object_id, $this->meta_key_for( $field ) );
+			$control_name = $group->id . '[' . $field->id . ']';
+			$control      = $this->renderer->render( $field, $value, $control_name );
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldRenderer returns escaped markup; a row closure escapes the surface chrome it adds.
-			echo null !== $row ? (string) ( $row )( $field, $control ) : $control;
+			echo null !== $row ? (string) ( $row )( $field, $control, resolve_field_control_id( $field, $control_name ) ) : $control;
 		}
 	}
 

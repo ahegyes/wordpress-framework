@@ -10,6 +10,8 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
+use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
+
 /**
  * Registers a field group on a taxonomy's term add/edit surfaces and stores its fields as term meta.
  *
@@ -326,7 +328,7 @@ final class TermFieldStore {
 	}
 
 	/**
-	 * The row closure wrapping each control in a term-add form field.
+	 * The row closure wrapping each control in a term-add form field, its label bound to the control's DOM id.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -334,13 +336,13 @@ final class TermFieldStore {
 	 * @return  \Closure
 	 */
 	protected function add_row(): \Closure {
-		return static fn ( SettingsField $field, string $control ): string =>
+		return static fn ( SettingsField $field, string $control, string $control_id ): string =>
 			'<div class="form-field term-' . \esc_attr( $field->id ) . '-wrap">'
-			. '<label>' . \esc_html( $field->label ) . '</label>' . $control . '</div>';
+			. field_label_html( $field, $control_id ) . $control . '</div>';
 	}
 
 	/**
-	 * The row closure wrapping each control in a term-edit form row.
+	 * The row closure wrapping each control in a term-edit form row, its label bound to the control's DOM id.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -348,8 +350,8 @@ final class TermFieldStore {
 	 * @return  \Closure
 	 */
 	protected function edit_row(): \Closure {
-		return static fn ( SettingsField $field, string $control ): string =>
-			'<tr class="form-field"><th scope="row">' . \esc_html( $field->label ) . '</th><td>' . $control . '</td></tr>';
+		return static fn ( SettingsField $field, string $control, string $control_id ): string =>
+			'<tr class="form-field"><th scope="row">' . field_label_html( $field, $control_id ) . '</th><td>' . $control . '</td></tr>';
 	}
 
 	// endregion

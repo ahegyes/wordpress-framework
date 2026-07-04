@@ -8,6 +8,9 @@ use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsField
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+
+use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
 
 /**
  * Registers a field group as a post meta box and stores its fields as post meta.
@@ -272,11 +275,26 @@ final class PostMetaFieldStore {
 		\add_meta_box(
 			$group->id,
 			\esc_html( $group->title ),
-			fn ( \WP_Post $screen_post ) => $this->form->render( $group, $screen_post->ID ),
+			fn ( \WP_Post $screen_post ) => $this->form->render( $group, $screen_post->ID, $this->box_row() ),
 			$placement->screen,
 			$placement->context,
 			$priority,
 		);
+	}
+
+	/**
+	 * The row closure wrapping each control in a meta-box row, its label bound to the control's DOM id.
+	 * A div, not a paragraph: a radio fieldset or the description paragraph inside a p would be reparsed
+	 * as invalid HTML.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  \Closure
+	 */
+	protected function box_row(): \Closure {
+		return static fn ( SettingsField $field, string $control, string $control_id ): string =>
+			'<div class="dws-meta-box-field">' . field_label_html( $field, $control_id ) . '<br />' . $control . '</div>';
 	}
 
 	/**
