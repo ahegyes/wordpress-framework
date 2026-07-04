@@ -435,15 +435,16 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	// Runs a callable expected to terminate via wp_die(), trapping the exit so the test can assert side
 	// effects; swaps the WP die handlers for a thrower for the duration of the call.
-	private function run_until_wp_die( callable $fn ): void {
-		$thrower = static fn() => static function (): void {
+	private function run_until_wp_die( callable $operation ): void {
+		$handler = static function (): void {
 			throw new \RuntimeException( '__dws_wp_die__' );
-		}
+		};
+		$thrower = static fn() => $handler;
 		\add_filter( 'wp_die_handler', $thrower );
 		\add_filter( 'wp_die_ajax_handler', $thrower );
 
 		try {
-			$fn();
+			$operation();
 			self::fail( 'Expected wp_die() to terminate the request.' );
 		} catch ( \RuntimeException $e ) {
 			if ( '__dws_wp_die__' !== $e->getMessage() ) {

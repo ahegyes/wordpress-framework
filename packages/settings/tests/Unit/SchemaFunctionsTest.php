@@ -436,7 +436,7 @@ final class SchemaFunctionsTest extends TestCase {
 
 		self::assertSame( 42, $number( '42' ) );
 		self::assertSame( 3.14, $number( '3.14' ) );
-		self::assertSame( '', $number( '0x1A' ) );
+		self::assertSame( '', $number( '0x1A' ) ); // phpcs:ignore PHPCompatibility.Numbers.RemovedHexadecimalNumericStrings.Found -- string test datum, never used numerically.
 		self::assertSame( '', $number( 'not a number' ) );
 		// An out-of-range exponent coerces to a non-finite float, which is never a settings value.
 		self::assertSame( '', $number( '1e309' ) );

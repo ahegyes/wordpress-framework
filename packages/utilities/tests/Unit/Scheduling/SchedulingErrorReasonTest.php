@@ -18,7 +18,7 @@ final class SchedulingErrorReasonTest extends TestCase {
 	public function test_holds_exactly_the_expected_cases(): void {
 		self::assertSame(
 			array( 'ActionSchedulerNotLoaded', 'UnsupportedGroup', 'InvalidInterval', 'ScheduleFailed' ),
-			\array_map( static fn ( SchedulingErrorReason $case ): string => $case->name, SchedulingErrorReason::cases() ),
+			\array_map( static fn ( SchedulingErrorReason $reason ): string => $reason->name, SchedulingErrorReason::cases() ),
 		);
 	}
 }

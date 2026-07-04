@@ -44,7 +44,7 @@ final class CompositeLoggerTest extends TestCase {
 		$caught = null;
 		try {
 			$logger->log( LogLevel::ERROR, 'Install failed', array( 'step' => 'schema' ) );
-		} catch ( \Throwable $caught ) {
+		} catch ( \Throwable $caught ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- asserted below; delivery must precede propagation.
 			// Asserted below; the record must have been delivered before propagation.
 		}
 

@@ -307,7 +307,7 @@ final class FunctionsTest extends TestCase {
 		try {
 			convert_to_primitives( $fixture );
 			self::fail( 'Expected a cyclic-graph RuntimeException.' );
-		} catch ( \RuntimeException ) {
+		} catch ( \RuntimeException ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- the assertion is the follow-up call below.
 			// The in-flight set must be unwound with the exception; a later call starts clean.
 		}
 
