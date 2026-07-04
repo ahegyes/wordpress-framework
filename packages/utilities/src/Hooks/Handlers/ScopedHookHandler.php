@@ -37,26 +37,15 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @param   BufferedHookHandler $buffer      Underlying buffered handler. Defaults to a fresh BufferedHookHandler with id "scoped-buffer".
 	 */
 	public function __construct(
-		protected string $id,
-		protected string $start_hook,
-		protected string $end_hook = '',
-		protected BufferedHookHandler $buffer = new BufferedHookHandler( 'scoped-buffer', new HookRegistry() ),
+		#[\Override] public string $id,
+		public string $start_hook,
+		public string $end_hook = '',
+		public BufferedHookHandler $buffer = new BufferedHookHandler( 'scoped-buffer', new HookRegistry() ),
 	) {}
 
 	// endregion
 
 	// region INHERITED METHODS
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 */
-	#[\Override]
-	public function get_id(): string {
-		return $this->id;
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -145,46 +134,6 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 		if ( '' !== $this->end_hook ) {
 			\add_action( $this->end_hook, array( $this->buffer, 'reset' ), 10, 0 );
 		}
-	}
-
-	// endregion
-
-	// region GETTERS
-
-	/**
-	 * Return the start hook name.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  string
-	 */
-	public function get_start_hook(): string {
-		return $this->start_hook;
-	}
-
-	/**
-	 * Return the end hook name. Empty string means no end hook is wired.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  string
-	 */
-	public function get_end_hook(): string {
-		return $this->end_hook;
-	}
-
-	/**
-	 * Return the underlying buffered handler.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  BufferedHookHandler
-	 */
-	public function get_buffer(): BufferedHookHandler {
-		return $this->buffer;
 	}
 
 	// endregion

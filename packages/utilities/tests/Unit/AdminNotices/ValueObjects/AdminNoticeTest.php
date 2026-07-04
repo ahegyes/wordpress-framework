@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\AdminNotices\ValueObjects;
 
+use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
+use DeepWebSolutions\Framework\Shared\ValueObject\Exceptions\InvalidValueObjectException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidAdminNoticeException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
@@ -12,7 +14,12 @@ use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( AdminNotice::class )]
+#[UsesClass( AbstractValueObject::class )]
+#[UsesClass( InvalidAdminNoticeException::class )]
+#[UsesClass( InvalidValueObjectException::class )]
 #[UsesClass( NoticeType::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Reflection\convert_to_primitives' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Reflection\get_public_property_names' )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id' )]
 final class AdminNoticeTest extends TestCase {
 	public function test_constructs_with_required_arguments(): void {
@@ -199,5 +206,39 @@ final class AdminNoticeTest extends TestCase {
 		$this->expectException( InvalidAdminNoticeException::class );
 
 		AdminNotice::from_array( array( 'id' => 'Bad.Id', 'message' => 'm' ) );
+	}
+
+	public function test_equals_is_true_for_attribute_equal_notices(): void {
+		$one = new AdminNotice( 'x', 'msg', NoticeType::Warning, false, true, 'edit_posts' );
+		$two = new AdminNotice( 'x', 'msg', NoticeType::Warning, false, true, 'edit_posts' );
+
+		self::assertTrue( $one->equals( $two ) );
+	}
+
+	public function test_equals_is_false_when_any_attribute_differs(): void {
+		$base = new AdminNotice( 'x', 'msg' );
+
+		self::assertFalse( $base->equals( new AdminNotice( 'y', 'msg' ) ) );
+		self::assertFalse( $base->equals( new AdminNotice( 'x', 'other' ) ) );
+		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', NoticeType::Error ) ) );
+		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', is_dismissible: false ) ) );
+		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', is_persistent: true ) ) );
+		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', capability: 'edit_posts' ) ) );
+	}
+
+	public function test_json_serialize_reduces_the_type_to_its_backing_string(): void {
+		$notice = new AdminNotice( 'id1', 'msg', NoticeType::Warning, false, true, 'edit_posts' );
+
+		self::assertSame(
+			array(
+				'id'             => 'id1',
+				'message'        => 'msg',
+				'type'           => 'warning',
+				'is_dismissible' => false,
+				'is_persistent'  => true,
+				'capability'     => 'edit_posts',
+			),
+			$notice->jsonSerialize(),
+		);
 	}
 }

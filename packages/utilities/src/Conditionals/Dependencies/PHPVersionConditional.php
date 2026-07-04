@@ -11,7 +11,7 @@ use DeepWebSolutions\Framework\Shared\Version\Version;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class PHPVersionConditional implements ConditionalInterface {
+final readonly class PHPVersionConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
@@ -23,7 +23,7 @@ final class PHPVersionConditional implements ConditionalInterface {
 	 * @param   Version $minimum Minimum PHP version that satisfies the gate.
 	 */
 	public function __construct(
-		protected readonly Version $minimum,
+		protected Version $minimum,
 	) {}
 
 	// endregion

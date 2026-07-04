@@ -10,7 +10,7 @@ use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class IsCliConditional implements ConditionalInterface {
+final readonly class IsCliConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
@@ -22,7 +22,7 @@ final class IsCliConditional implements ConditionalInterface {
 	 * @param   string $sapi SAPI name to probe; defaults to the running interpreter's `PHP_SAPI`.
 	 */
 	public function __construct(
-		protected readonly string $sapi = \PHP_SAPI,
+		protected string $sapi = \PHP_SAPI,
 	) {}
 
 	// endregion

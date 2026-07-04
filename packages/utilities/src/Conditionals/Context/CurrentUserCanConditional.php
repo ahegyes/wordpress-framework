@@ -10,7 +10,7 @@ use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class CurrentUserCanConditional implements ConditionalInterface {
+final readonly class CurrentUserCanConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
@@ -22,7 +22,7 @@ final class CurrentUserCanConditional implements ConditionalInterface {
 	 * @param   string $capability WordPress capability slug (e.g., `manage_options`).
 	 */
 	public function __construct(
-		protected readonly string $capability,
+		protected string $capability,
 	) {}
 
 	// endregion

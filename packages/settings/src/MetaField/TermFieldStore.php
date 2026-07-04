@@ -4,20 +4,25 @@ namespace DeepWebSolutions\Framework\Settings\MetaField;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\TermFieldGroup;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
-use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
-
 /**
- * Registers a field group on a taxonomy's term add/edit surfaces.
+ * Registers a field group on a taxonomy's term add/edit surfaces and stores its fields as term meta.
  *
  * Renders the group's fields into the add-new-term and term-edit screens for the descriptor's taxonomy and
  * saves them when the term is created or updated, reading and writing term meta through a metadata repository.
  * The current user must be able to edit the taxonomy's terms or edit the term; the per-field gate and the nonce
  * are the shared form engine's responsibility. The edit screen supplies the surrounding form table, so edit
  * fields render as rows; the add screen uses WordPress' div.form-field markup.
+ *
+ * Beyond registration, the store exposes field-addressed CRUD over the same storage keys and value
+ * semantics the form path applies — get/set/has/delete by group and field id — plus meta_keys() for the
+ * consumer's uninstall cleanup. Object fields are revoke-based, so reads never fall back to the field's
+ * declared default.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -26,14 +31,24 @@ final class TermFieldStore {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * Registered groups and forms keyed by taxonomy and group id.
+	 * Registered groups keyed by taxonomy and group id.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     array<string, array<string, array{group: FieldGroup, form: ObjectFieldForm}>>
+	 * @var     array<string, array<string, FieldGroup>>
 	 */
 	protected array $registrations = array();
+
+	/**
+	 * Shared form engine that renders and saves the registered groups and resolves their storage keys.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     ObjectFieldForm
+	 */
+	protected ObjectFieldForm $form;
 
 	// endregion
 
@@ -45,14 +60,16 @@ final class TermFieldStore {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   FieldRenderer   $renderer  Renderer for the field controls.
-	 * @param   ?FieldProcessor $processor Processor for sanitizing submitted values; null applies one carrying the per-type default sanitizers.
+	 * @param   FieldRenderer                 $renderer   Renderer for the field controls.
+	 * @param   ?FieldProcessor               $processor  Processor for sanitizing submitted values; null applies one carrying the per-type default sanitizers.
+	 * @param   ObjectMetaRepositoryInterface $repository Repository the groups' fields read from and write to.
 	 */
 	public function __construct(
-		protected FieldRenderer $renderer = new FieldRenderer(),
-		protected ?FieldProcessor $processor = null,
+		FieldRenderer $renderer = new FieldRenderer(),
+		?FieldProcessor $processor = null,
+		protected ObjectMetaRepositoryInterface $repository = new MetadataRepository( MetaType::Term ),
 	) {
-		$this->processor ??= new FieldProcessor( type_sanitizers: wordpress_field_type_sanitizers() );
+		$this->form = new ObjectFieldForm( $this->repository, $renderer, $processor );
 	}
 
 	// endregion
@@ -69,17 +86,113 @@ final class TermFieldStore {
 	 */
 	public function register( TermFieldGroup $term_group ): void {
 		$group = $term_group->group;
-		$form  = new ObjectFieldForm( new MetadataRepository( MetaType::Term ), $this->renderer, $this->processor );
 
-		$this->registrations[ $term_group->taxonomy ][ $group->id ] = array(
-			'group' => $group,
-			'form'  => $form,
-		);
+		$this->registrations[ $term_group->taxonomy ][ $group->id ] = $group;
 
 		\add_action( "{$term_group->taxonomy}_add_form_fields", array( $this, 'render_add_term' ) );
 		\add_action( "{$term_group->taxonomy}_edit_form_fields", array( $this, 'render_edit_term' ) );
 		\add_action( "created_{$term_group->taxonomy}", array( $this, 'save_created_term' ) );
 		\add_action( "edited_{$term_group->taxonomy}", array( $this, 'save_edited_term' ) );
+	}
+
+	/**
+	 * Retrieves a field's stored value for a term, or $default_value when nothing is stored. Object fields
+	 * are revoke-based, so the field's declared default is never a read-time fallback.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group         Group that declares the field.
+	 * @param   int        $term_id       Term to read.
+	 * @param   string     $field_id      Field whose value to read.
+	 * @param   mixed      $default_value Value to return when nothing is stored.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
+	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
+	 *
+	 * @return  mixed
+	 */
+	public function get( FieldGroup $group, int $term_id, string $field_id, mixed $default_value = null ): mixed {
+		return $this->repository->get( $term_id, $this->form->meta_key_of( $group, $term_id, $field_id ), $default_value );
+	}
+
+	/**
+	 * Persists a field's value for a term with the form path's store-or-revoke semantics: a checkbox
+	 * value is stored in its canonical 'yes'/'no' form (false stores 'no'), and a non-checkbox value a
+	 * form save would not store — false, a cleared field ('') or an empty multi-select (array()) —
+	 * revokes the meta key instead. The write is programmatic: the descriptor's sanitize/validate seam
+	 * applies to form submissions only.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group    Group that declares the field.
+	 * @param   int        $term_id  Term to write.
+	 * @param   string     $field_id Field whose value to write.
+	 * @param   mixed      $value    Value to persist.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
+	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
+	 */
+	public function set( FieldGroup $group, int $term_id, string $field_id, mixed $value ): void {
+		$this->form->store( $group, $term_id, $field_id, $value );
+	}
+
+	/**
+	 * Whether a real value is stored for a field on a term.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group    Group that declares the field.
+	 * @param   int        $term_id  Term to check.
+	 * @param   string     $field_id Field to check.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
+	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
+	 *
+	 * @return  bool
+	 */
+	public function has( FieldGroup $group, int $term_id, string $field_id ): bool {
+		return $this->repository->has( $term_id, $this->form->meta_key_of( $group, $term_id, $field_id ) );
+	}
+
+	/**
+	 * Deletes a field's stored value from a term.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group    Group that declares the field.
+	 * @param   int        $term_id  Term to clear.
+	 * @param   string     $field_id Field to clear.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
+	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
+	 *
+	 * @return  bool True if a value was deleted, false if none existed.
+	 */
+	public function delete( FieldGroup $group, int $term_id, string $field_id ): bool {
+		return $this->repository->delete( $term_id, $this->form->meta_key_of( $group, $term_id, $field_id ) );
+	}
+
+	/**
+	 * Returns every storage key a group's fields resolve to, for the consumer's uninstall cleanup. The
+	 * fields are built through the group's provider for object id 0 — the objectless evaluation the add
+	 * screen also uses — so a provider that varies its fields per object is enumerated by the consumer
+	 * per object instead.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group Group whose storage keys to enumerate.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
+	 *
+	 * @return  list<string>
+	 */
+	public function meta_keys( FieldGroup $group ): array {
+		return $this->form->meta_keys( $group );
 	}
 
 	// endregion
@@ -101,8 +214,8 @@ final class TermFieldStore {
 			return;
 		}
 
-		foreach ( $this->registrations_for( $taxonomy ) as $registration ) {
-			$registration['form']->render( $registration['group'], 0, $this->add_row() );
+		foreach ( $this->registrations_for( $taxonomy ) as $group ) {
+			$this->form->render( $group, 0, $this->add_row() );
 		}
 	}
 
@@ -120,8 +233,8 @@ final class TermFieldStore {
 			return;
 		}
 
-		foreach ( $this->registrations_for( $term->taxonomy ) as $registration ) {
-			$registration['form']->render( $registration['group'], $term->term_id, $this->edit_row() );
+		foreach ( $this->registrations_for( $term->taxonomy ) as $group ) {
+			$this->form->render( $group, $term->term_id, $this->edit_row() );
 		}
 	}
 
@@ -174,20 +287,20 @@ final class TermFieldStore {
 			return;
 		}
 
-		foreach ( $this->registrations_for( $term->taxonomy ) as $registration ) {
-			$registration['form']->save( $registration['group'], $term_id, $nonce_object_id );
+		foreach ( $this->registrations_for( $term->taxonomy ) as $group ) {
+			$this->form->save( $group, $term_id, $nonce_object_id );
 		}
 	}
 
 	/**
-	 * Registered groups and forms for a taxonomy.
+	 * Registered groups for a taxonomy.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   string $taxonomy Taxonomy to resolve.
 	 *
-	 * @return  array<string, array{group: FieldGroup, form: ObjectFieldForm}>
+	 * @return  array<string, FieldGroup>
 	 */
 	protected function registrations_for( string $taxonomy ): array {
 		return $this->registrations[ $taxonomy ] ?? array();

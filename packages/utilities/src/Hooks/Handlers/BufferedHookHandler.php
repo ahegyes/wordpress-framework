@@ -33,27 +33,16 @@ final readonly class BufferedHookHandler implements HookHandlerInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   string       $id        Handler ID. Defaults to 'buffered'.
-	 * @param   HookRegistry $registry  Internal record store. Defaults to a fresh HookRegistry.
+	 * @param   HookRegistry $registry  Internal record store, exposed for inspection and composition by ScopedHookHandler. Defaults to a fresh HookRegistry.
 	 */
 	public function __construct(
-		protected string $id = 'buffered',
-		protected HookRegistry $registry = new HookRegistry(),
+		#[\Override] public string $id = 'buffered',
+		public HookRegistry $registry = new HookRegistry(),
 	) {}
 
 	// endregion
 
 	// region INHERITED METHODS
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 */
-	#[\Override]
-	public function get_id(): string {
-		return $this->id;
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -111,7 +100,7 @@ final readonly class BufferedHookHandler implements HookHandlerInterface {
 	 */
 	#[\Override]
 	public function remove_all_actions(): void {
-		foreach ( $this->registry->get_actions() as $record ) {
+		foreach ( $this->registry->actions as $record ) {
 			\remove_action( $record['hook'], $record['callback'], $record['priority'] );
 		}
 		$this->registry->clear_actions();
@@ -125,7 +114,7 @@ final readonly class BufferedHookHandler implements HookHandlerInterface {
 	 */
 	#[\Override]
 	public function remove_all_filters(): void {
-		foreach ( $this->registry->get_filters() as $record ) {
+		foreach ( $this->registry->filters as $record ) {
 			\remove_filter( $record['hook'], $record['callback'], $record['priority'] );
 		}
 		$this->registry->clear_filters();
@@ -146,10 +135,10 @@ final readonly class BufferedHookHandler implements HookHandlerInterface {
 	 * @version 2.0.0
 	 */
 	public function flush(): void {
-		foreach ( $this->registry->get_actions() as $record ) {
+		foreach ( $this->registry->actions as $record ) {
 			\add_action( $record['hook'], $record['callback'], $record['priority'], $record['accepted_args'] );
 		}
-		foreach ( $this->registry->get_filters() as $record ) {
+		foreach ( $this->registry->filters as $record ) {
 			\add_filter( $record['hook'], $record['callback'], $record['priority'], $record['accepted_args'] );
 		}
 	}
@@ -165,30 +154,14 @@ final readonly class BufferedHookHandler implements HookHandlerInterface {
 	 * @version 2.0.0
 	 */
 	public function reset(): void {
-		foreach ( $this->registry->get_actions() as $record ) {
+		foreach ( $this->registry->actions as $record ) {
 			\remove_action( $record['hook'], $record['callback'], $record['priority'] );
 		}
-		foreach ( $this->registry->get_filters() as $record ) {
+		foreach ( $this->registry->filters as $record ) {
 			\remove_filter( $record['hook'], $record['callback'], $record['priority'] );
 		}
 		$this->registry->clear_actions();
 		$this->registry->clear_filters();
-	}
-
-	// endregion
-
-	// region GETTERS
-
-	/**
-	 * Return the internal registry. Exposed for inspection and composition by ScopedHookHandler.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  HookRegistry
-	 */
-	public function get_registry(): HookRegistry {
-		return $this->registry;
 	}
 
 	// endregion

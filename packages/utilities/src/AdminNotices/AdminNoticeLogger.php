@@ -19,7 +19,7 @@ use Psr\Log\LogLevel;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class AdminNoticeLogger implements LoggerInterface {
+final readonly class AdminNoticeLogger implements LoggerInterface {
 	// region TRAITS
 
 	use LoggerTrait;

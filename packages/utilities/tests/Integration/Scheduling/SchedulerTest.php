@@ -142,7 +142,7 @@ final class SchedulerTest extends TestCase {
 		// Hold the WordPress cron backend directly so tearDown can drop its 'cron_schedules' filter; the
 		// interval is unique to this test so no other schedule resolves the synthetic schedule asserted below.
 		$this->recurring_backend = new WPCronBackend();
-		$scheduler               = new Scheduler( new ActionSchedulerBackend(), $this->recurring_backend, static fn (): bool => false );
+		$scheduler               = new Scheduler( array( new ActionSchedulerBackend( null, static fn (): bool => false ), $this->recurring_backend ) );
 
 		self::assertInstanceOf( Success::class, $scheduler->schedule_recurring( self::HOOK, 263 ) );
 

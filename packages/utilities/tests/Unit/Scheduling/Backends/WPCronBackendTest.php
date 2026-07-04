@@ -17,6 +17,10 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( SchedulingError::class )]
 #[UsesClass( SchedulingErrorReason::class )]
 final class WPCronBackendTest extends TestCase {
+	public function test_is_ready_is_always_true(): void {
+		self::assertTrue( ( new WPCronBackend() )->is_ready() );
+	}
+
 	public function test_unschedule_with_non_empty_group_is_a_success_noop_without_calling_wp_cron(): void {
 		self::assertFalse( \function_exists( 'wp_clear_scheduled_hook' ), 'WP must not be loaded for this unit guard.' );
 

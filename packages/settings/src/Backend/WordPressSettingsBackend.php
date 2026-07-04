@@ -234,6 +234,22 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function option_keys( SettingsPage $page ): array {
+		$keys = array();
+		foreach ( $page->sections as $section ) {
+			$keys[] = $page->slug . '-' . $section->id;
+		}
+
+		return $keys;
+	}
+
 	// endregion
 
 	// region HOOKS

@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\AdminNotices\ValueObjects;
 
 use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
-use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidAdminNoticeException;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidDependencyRequirementException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\DependencyRequirement;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -42,7 +42,7 @@ final class DependencyRequirementTest extends TestCase {
 	}
 
 	public function test_an_explicit_unstable_id_is_rejected_at_construction(): void {
-		$this->expectException( InvalidAdminNoticeException::class );
+		$this->expectException( InvalidDependencyRequirementException::class );
 
 		new DependencyRequirement( $this->conditional( false ), 'WooCommerce', id: 'Bad.Id' );
 	}

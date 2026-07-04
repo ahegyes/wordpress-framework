@@ -134,6 +134,37 @@ final class ObjectFieldFormTest extends TestCase {
 		self::assertSame( 'no', $this->repo()->get( $this->post_id, 'unlocked' ) );
 	}
 
+	public function test_save_stores_a_custom_checkbox_sanitizers_output_verbatim(): void {
+		$form  = $this->form();
+		$group = $this->group(
+			new SettingsField(
+				id: 'unlocked',
+				type: 'checkbox',
+				label: 'Unlocked',
+				sanitize: static fn ( mixed $value ): string => 'yes' === $value ? '1' : '0',
+			),
+		);
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'unlocked' => '1' ) );
+		$form->save( $group, $this->post_id );
+
+		// The processor's sanitized value is the stored value — save() renormalizes nothing after it.
+		self::assertSame( '1', $this->repo()->get( $this->post_id, 'unlocked' ) );
+	}
+
+	public function test_save_revokes_on_a_present_but_cleared_submission(): void {
+		$form  = $this->form();
+		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$form->save( $group, $this->post_id );
+		self::assertTrue( $this->repo()->has( $this->post_id, 'note' ) );
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => '' ) );
+		$form->save( $group, $this->post_id );
+		self::assertFalse( $this->repo()->has( $this->post_id, 'note' ) );
+	}
+
 	public function test_save_is_skipped_without_a_valid_nonce(): void {
 		$group = $this->group( new SettingsField( id: 'unlocked', type: 'checkbox', label: 'Unlocked' ) );
 

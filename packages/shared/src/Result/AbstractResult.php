@@ -7,13 +7,17 @@ use DeepWebSolutions\Framework\Shared\Error\ErrorInterface;
 /**
  * Sealed-type base for an operation outcome — either a {@see Success} or a {@see Failure}.
  *
+ * Consumers branch via {@see self::is_success()} / {@see self::is_failure()} or {@see self::match()};
+ * after an instanceof or is_failure() check, reach {@see Success::$value} / {@see Failure::$error}
+ * directly — no assert() ceremony around the narrowed variant.
+ *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @template TValue
  * @template TError of ErrorInterface
  */
-abstract class AbstractResult {
+abstract readonly class AbstractResult {
 	// region MAGIC METHODS
 
 	/**

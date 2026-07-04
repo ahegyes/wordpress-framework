@@ -11,8 +11,8 @@ final class HookRegistryTest extends TestCase {
 	public function test_starts_empty(): void {
 		$registry = new HookRegistry();
 
-		self::assertSame( array(), $registry->get_actions() );
-		self::assertSame( array(), $registry->get_filters() );
+		self::assertSame( array(), $registry->actions );
+		self::assertSame( array(), $registry->filters );
 	}
 
 	public function test_record_action_appends(): void {
@@ -22,7 +22,7 @@ final class HookRegistryTest extends TestCase {
 		$registry->record_action( 'init', $cb, 10, 1 );
 		$registry->record_action( 'admin_init', $cb, 20, 2 );
 
-		$actions = $registry->get_actions();
+		$actions = $registry->actions;
 		self::assertCount( 2, $actions );
 		self::assertSame( 'init', $actions[0]['hook'] );
 		self::assertSame( 'admin_init', $actions[1]['hook'] );
@@ -36,8 +36,8 @@ final class HookRegistryTest extends TestCase {
 
 		$registry->record_filter( 'the_content', $cb, 5, 1 );
 
-		self::assertCount( 1, $registry->get_filters() );
-		self::assertSame( 'the_content', $registry->get_filters()[0]['hook'] );
+		self::assertCount( 1, $registry->filters );
+		self::assertSame( 'the_content', $registry->filters[0]['hook'] );
 	}
 
 	public function test_forget_action_removes_first_match(): void {
@@ -49,7 +49,7 @@ final class HookRegistryTest extends TestCase {
 
 		self::assertTrue( $registry->forget_action( 'init', $cb, 10 ) );
 
-		$actions = $registry->get_actions();
+		$actions = $registry->actions;
 		self::assertCount( 1, $actions );
 		self::assertSame( 'admin_init', $actions[0]['hook'] );
 	}
@@ -63,7 +63,7 @@ final class HookRegistryTest extends TestCase {
 
 		self::assertTrue( $registry->forget_action( 'init', $cb, 10 ) );
 
-		$actions = $registry->get_actions();
+		$actions = $registry->actions;
 		self::assertCount( 1, $actions );
 		self::assertSame( 'init', $actions[0]['hook'] );
 	}
@@ -75,7 +75,7 @@ final class HookRegistryTest extends TestCase {
 		$registry->record_action( 'init', $cb, 10, 1 );
 
 		self::assertFalse( $registry->forget_action( 'shutdown', $cb, 10 ) );
-		self::assertCount( 1, $registry->get_actions() );
+		self::assertCount( 1, $registry->actions );
 	}
 
 	public function test_forget_filter_removes_first_match(): void {
@@ -85,7 +85,7 @@ final class HookRegistryTest extends TestCase {
 		$registry->record_filter( 'the_title', $cb, 10, 1 );
 
 		self::assertTrue( $registry->forget_filter( 'the_title', $cb, 10 ) );
-		self::assertSame( array(), $registry->get_filters() );
+		self::assertSame( array(), $registry->filters );
 	}
 
 	public function test_clear_actions_empties_actions_only(): void {
@@ -97,8 +97,8 @@ final class HookRegistryTest extends TestCase {
 
 		$registry->clear_actions();
 
-		self::assertSame( array(), $registry->get_actions() );
-		self::assertCount( 1, $registry->get_filters() );
+		self::assertSame( array(), $registry->actions );
+		self::assertCount( 1, $registry->filters );
 	}
 
 	public function test_clear_filters_empties_filters_only(): void {
@@ -110,7 +110,7 @@ final class HookRegistryTest extends TestCase {
 
 		$registry->clear_filters();
 
-		self::assertCount( 1, $registry->get_actions() );
-		self::assertSame( array(), $registry->get_filters() );
+		self::assertCount( 1, $registry->actions );
+		self::assertSame( array(), $registry->filters );
 	}
 }

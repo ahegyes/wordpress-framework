@@ -7,10 +7,10 @@ use DeepWebSolutions\Framework\Utilities\Scheduling\Backends\WPCronBackend;
 use Psr\Log\LoggerInterface;
 
 /**
- * Builds a {@see Scheduler} wired to both backends and an Action Scheduler readiness probe.
+ * Builds a {@see Scheduler} wired to the default backend order: Action Scheduler, then WordPress cron.
  *
- * The returned scheduler targets schedule writes at Action Scheduler when the probe reports it ready
- * and at WordPress cron otherwise; its read and clear surface spans both backends. The probe is
+ * The returned scheduler targets schedule writes at Action Scheduler when it reports itself ready and
+ * at WordPress cron otherwise; its read and clear surface spans every ready backend. The probe is
  * injectable so the readiness branch is testable without driving the Action Scheduler runtime.
  *
  * @since   2.0.0
@@ -22,12 +22,11 @@ use Psr\Log\LoggerInterface;
  * @return  Scheduler
  */
 function create_scheduler( ?LoggerInterface $logger = null, ?callable $action_scheduler_ready_probe = null ): Scheduler {
-	$probe = $action_scheduler_ready_probe ?? static fn (): bool => namespace\action_scheduler_is_ready();
-
 	return new Scheduler(
-		new ActionSchedulerBackend( $logger ),
-		new WPCronBackend( $logger ),
-		\Closure::fromCallable( $probe ),
+		array(
+			new ActionSchedulerBackend( $logger, $action_scheduler_ready_probe ),
+			new WPCronBackend( $logger ),
+		),
 	);
 }
 

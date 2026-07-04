@@ -4,9 +4,10 @@ namespace DeepWebSolutions\Framework\Settings\Schema\Errors;
 
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessingErrorReason;
 use DeepWebSolutions\Framework\Shared\Error\ErrorInterface;
+use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
 
 /**
- * Failure payload for a rejected field submission, carried by a {@see \DeepWebSolutions\Framework\Shared\Result\Failure}.
+ * Value object for a rejected field submission's failure payload, carried by a {@see \DeepWebSolutions\Framework\Shared\Result\Failure}.
  *
  * Names the field whose submitted value a processing step rejected and the machine-readable reason —
  * a value of the wrong shape, a choice outside its options, or a value a validator refused — so a
@@ -16,7 +17,7 @@ use DeepWebSolutions\Framework\Shared\Error\ErrorInterface;
  * @since   2.0.0
  * @version 2.0.0
  */
-final readonly class FieldProcessingError implements ErrorInterface {
+final readonly class FieldProcessingError extends AbstractValueObject implements ErrorInterface {
 	// region MAGIC METHODS
 
 	/**

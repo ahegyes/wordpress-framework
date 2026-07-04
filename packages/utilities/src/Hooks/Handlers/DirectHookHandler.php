@@ -36,27 +36,16 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   string       $id        Handler ID. Defaults to 'direct'.
-	 * @param   HookRegistry $registry  Internal record store. Defaults to a fresh HookRegistry.
+	 * @param   HookRegistry $registry  Internal record store, exposed for inspection and for HooksService composition. Defaults to a fresh HookRegistry.
 	 */
 	public function __construct(
-		protected string $id = self::DEFAULT_ID,
-		protected HookRegistry $registry = new HookRegistry(),
+		#[\Override] public string $id = self::DEFAULT_ID,
+		public HookRegistry $registry = new HookRegistry(),
 	) {}
 
 	// endregion
 
 	// region INHERITED METHODS
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 */
-	#[\Override]
-	public function get_id(): string {
-		return $this->id;
-	}
 
 	/**
 	 * {@inheritDoc}
@@ -116,7 +105,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 */
 	#[\Override]
 	public function remove_all_actions(): void {
-		foreach ( $this->registry->get_actions() as $record ) {
+		foreach ( $this->registry->actions as $record ) {
 			\remove_action( $record['hook'], $record['callback'], $record['priority'] );
 		}
 		$this->registry->clear_actions();
@@ -130,26 +119,10 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 */
 	#[\Override]
 	public function remove_all_filters(): void {
-		foreach ( $this->registry->get_filters() as $record ) {
+		foreach ( $this->registry->filters as $record ) {
 			\remove_filter( $record['hook'], $record['callback'], $record['priority'] );
 		}
 		$this->registry->clear_filters();
-	}
-
-	// endregion
-
-	// region GETTERS
-
-	/**
-	 * Return the internal registry. Exposed for inspection and for HooksService composition.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  HookRegistry
-	 */
-	public function get_registry(): HookRegistry {
-		return $this->registry;
 	}
 
 	// endregion

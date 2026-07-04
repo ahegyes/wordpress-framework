@@ -16,7 +16,7 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class SettingsFieldAggregator {
+final readonly class SettingsFieldAggregator {
 	// region METHODS
 
 	/**

@@ -105,6 +105,26 @@ final class UserProfileFieldStoreTest extends TestCase {
 		self::assertTrue( $this->repo()->has( $this->user_id, 'pref' ) );
 	}
 
+	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
+		$store   = new UserProfileFieldStore();
+		$profile = $this->text_profile();
+		$group   = $profile->group;
+		$store->register( $profile );
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => 'weekly' ) );
+		\do_action( 'edit_user_profile_update', $this->user_id );
+
+		self::assertTrue( $store->has( $group, $this->user_id, 'pref' ) );
+		self::assertSame( 'weekly', $store->get( $group, $this->user_id, 'pref' ) );
+
+		$store->set( $group, $this->user_id, 'pref', 'daily' );
+		self::assertSame( 'daily', \get_user_meta( $this->user_id, 'pref', true ) );
+
+		self::assertTrue( $store->delete( $group, $this->user_id, 'pref' ) );
+		self::assertFalse( \metadata_exists( 'user', $this->user_id, 'pref' ) );
+		self::assertSame( array( 'pref' ), $store->meta_keys( $group ) );
+	}
+
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
 		$raw = '<b>x</b>';
 		( new UserProfileFieldStore() )->register( $this->text_profile() );

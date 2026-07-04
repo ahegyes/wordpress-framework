@@ -17,7 +17,7 @@ use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\DependencyReq
  * @since   2.0.0
  * @version 2.0.0
  */
-final class DependencyAdminNoticeRenderer {
+final readonly class DependencyAdminNoticeRenderer {
 	// region FIELDS AND CONSTANTS
 
 	/**

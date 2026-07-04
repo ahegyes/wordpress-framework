@@ -2,8 +2,10 @@
 
 namespace DeepWebSolutions\Framework\Settings\MetaField\ValueObjects;
 
+use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
+
 /**
- * Descriptor for a meta box's WordPress placement.
+ * Value object for a meta box's WordPress placement.
  *
  * The add_meta_box() triple — screen, context, priority — plus an optional capability that overrides a
  * registrar's default object capability for the box. Carried alongside a {@see FieldGroup} by the
@@ -12,7 +14,7 @@ namespace DeepWebSolutions\Framework\Settings\MetaField\ValueObjects;
  * @since   2.0.0
  * @version 2.0.0
  */
-final readonly class MetaBoxPlacement {
+final readonly class MetaBoxPlacement extends AbstractValueObject {
 	// region MAGIC METHODS
 
 	/**

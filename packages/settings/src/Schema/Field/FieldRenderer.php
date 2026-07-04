@@ -9,6 +9,7 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 
 use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
 use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
+use function DeepWebSolutions\Framework\Settings\Schema\stringify_for_output;
 
 /**
  * Renders a field descriptor to an escaped HTML control with its value bound.
@@ -23,7 +24,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class FieldRenderer {
+final readonly class FieldRenderer {
 	// region MAGIC METHODS
 
 	/**
@@ -102,7 +103,7 @@ final class FieldRenderer {
 			'<input type="%s" name="%s" value="%s"%s />',
 			\esc_attr( $type->value ),
 			\esc_attr( $name ),
-			\esc_attr( $this->stringify( $value ) ),
+			\esc_attr( stringify_for_output( $value ) ),
 			$this->render_attributes( $field->attributes ),
 		);
 	}
@@ -124,7 +125,7 @@ final class FieldRenderer {
 			'<textarea name="%s"%s>%s</textarea>',
 			\esc_attr( $name ),
 			$this->render_attributes( $field->attributes ),
-			\esc_textarea( $this->stringify( $value ) ),
+			\esc_textarea( stringify_for_output( $value ) ),
 		);
 	}
 
@@ -165,7 +166,7 @@ final class FieldRenderer {
 	protected function render_select( SettingsField $field, mixed $value, string $name, bool $multiple ): string {
 		$selected = array();
 		foreach ( $multiple ? ( \is_array( $value ) ? $value : array() ) : array( $value ) as $selected_value ) {
-			$selected[] = $this->stringify( $selected_value );
+			$selected[] = stringify_for_output( $selected_value );
 		}
 
 		$options = '';
@@ -174,7 +175,7 @@ final class FieldRenderer {
 				'<option value="%s"%s>%s</option>',
 				\esc_attr( (string) $option_value ),
 				\selected( \in_array( (string) $option_value, $selected, true ), true, false ),
-				\esc_html( $this->stringify( $label ) ),
+				\esc_html( stringify_for_output( $label ) ),
 			);
 		}
 
@@ -200,7 +201,7 @@ final class FieldRenderer {
 	 * @return  string
 	 */
 	protected function render_radio( SettingsField $field, mixed $value, string $name ): string {
-		$current  = $this->stringify( $value );
+		$current  = stringify_for_output( $value );
 		$rendered = '';
 		foreach ( $this->resolver->resolve( $field->options ) as $option_value => $label ) {
 			$rendered .= \sprintf(
@@ -209,7 +210,7 @@ final class FieldRenderer {
 				\esc_attr( (string) $option_value ),
 				\checked( (string) $option_value, $current, false ),
 				$this->render_attributes( $field->attributes ),
-				\esc_html( $this->stringify( $label ) ),
+				\esc_html( stringify_for_output( $label ) ),
 			);
 		}
 
@@ -233,20 +234,6 @@ final class FieldRenderer {
 		}
 
 		return $rendered;
-	}
-
-	/**
-	 * Coerces a value to a string for output; a non-scalar becomes an empty string.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   mixed $value Value to stringify.
-	 *
-	 * @return  string
-	 */
-	protected function stringify( mixed $value ): string {
-		return \is_scalar( $value ) ? (string) $value : '';
 	}
 
 	/**

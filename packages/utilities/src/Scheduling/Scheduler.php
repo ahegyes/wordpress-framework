@@ -4,21 +4,37 @@ namespace DeepWebSolutions\Framework\Utilities\Scheduling;
 
 use DeepWebSolutions\Framework\Shared\Result\AbstractResult;
 use DeepWebSolutions\Framework\Shared\Result\Success;
+use DeepWebSolutions\Framework\Utilities\Scheduling\Exceptions\InvalidSchedulerConfigurationException;
 
 /**
- * Backend-agnostic scheduling facade that routes schedule writes to the ready backend.
+ * Backend-agnostic scheduling facade over an ordered list of backends.
  *
- * Holds both backends — Action Scheduler and WordPress cron — plus a readiness probe. Schedule
- * writes target one backend per call: Action Scheduler when the probe reports it ready, WordPress
- * cron otherwise. The read and clear surface spans both backends — WordPress cron always, Action
- * Scheduler only while the probe reports it ready — so a job scheduled before Action Scheduler is
- * ready remains visible and cancellable after the preferred backend changes. Construct via
- * {@see create_scheduler()} for the default wiring, or inject backends and a probe directly.
+ * Holds one or more backends in declaration order, each reporting its own readiness via
+ * {@see SchedulerBackendInterface::is_ready()}. A schedule write targets the first ready
+ * backend, falling back to the last backend when none is ready. The read and clear surface
+ * spans every ready backend, so a job scheduled while a preferred backend was not ready
+ * remains visible and cancellable after the preference changes. Construct via
+ * {@see create_scheduler()} for the default Action Scheduler + WordPress cron wiring, or
+ * inject backends directly.
  *
  * @since   2.0.0
  * @version 2.0.0
  */
-final class Scheduler implements SchedulerBackendInterface {
+final readonly class Scheduler implements SchedulerBackendInterface {
+	// region FIELDS AND CONSTANTS
+
+	/**
+	 * Backends in declaration order: write preference, clear/query consultation, and failure precedence.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     non-empty-list<SchedulerBackendInterface>
+	 */
+	protected array $backends;
+
+	// endregion
+
 	// region MAGIC METHODS
 
 	/**
@@ -27,15 +43,17 @@ final class Scheduler implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   SchedulerBackendInterface $action_scheduler_backend  Backend targeting Action Scheduler.
-	 * @param   SchedulerBackendInterface $wp_cron_backend           Backend targeting WordPress cron.
-	 * @param   \Closure(): bool          $is_action_scheduler_ready Predicate reporting whether Action Scheduler is ready for schedule, clear, and query calls.
+	 * @param   array<SchedulerBackendInterface> $backends Backends in preference order (values re-indexed, keys ignored); must not be empty.
+	 *
+	 * @throws  InvalidSchedulerConfigurationException When $backends is empty.
 	 */
-	public function __construct(
-		protected SchedulerBackendInterface $action_scheduler_backend,
-		protected SchedulerBackendInterface $wp_cron_backend,
-		protected \Closure $is_action_scheduler_ready,
-	) {}
+	public function __construct( array $backends ) {
+		if ( array() === $backends ) {
+			throw new InvalidSchedulerConfigurationException( 'Scheduler requires at least one backend.' );
+		}
+
+		$this->backends = \array_values( $backends );
+	}
 
 	// endregion
 
@@ -50,7 +68,7 @@ final class Scheduler implements SchedulerBackendInterface {
 	#[\Override]
 	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function schedule_recurring( string $hook, int $interval, array $args = array(), ?int $first_run_timestamp = null, string $group = '' ): AbstractResult {
-		return $this->backend()->schedule_recurring( $hook, $interval, $args, $first_run_timestamp, $group );
+		return $this->write_backend()->schedule_recurring( $hook, $interval, $args, $first_run_timestamp, $group );
 	}
 
 	/**
@@ -62,11 +80,15 @@ final class Scheduler implements SchedulerBackendInterface {
 	#[\Override]
 	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function schedule_single( string $hook, int $timestamp, array $args = array(), string $group = '' ): AbstractResult {
-		return $this->backend()->schedule_single( $hook, $timestamp, $args, $group );
+		return $this->write_backend()->schedule_single( $hook, $timestamp, $args, $group );
 	}
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * Consults every ready backend; the first failure in declaration order wins. A backend
+	 * that is not ready is unreachable, so clears report the outcome of the ready backends
+	 * alone — none ready is a vacuous success.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -75,10 +97,9 @@ final class Scheduler implements SchedulerBackendInterface {
 	#[\NoDiscard( 'a scheduling failure must be handled, not dropped' )]
 	public function unschedule( string $hook, array $args = array(), string $group = '' ): AbstractResult {
 		$results = array();
-		if ( $this->should_consult_action_scheduler() ) {
-			$results[] = $this->action_scheduler_backend->unschedule( $hook, $args, $group );
+		foreach ( $this->ready_backends() as $backend ) {
+			$results[] = $backend->unschedule( $hook, $args, $group );
 		}
-		$results[] = $this->wp_cron_backend->unschedule( $hook, $args, $group );
 
 		foreach ( $results as $result ) {
 			if ( $result->is_failure() ) {
@@ -97,8 +118,13 @@ final class Scheduler implements SchedulerBackendInterface {
 	 */
 	#[\Override]
 	public function is_scheduled( string $hook, array $args = array(), string $group = '' ): bool {
-		return ( $this->should_consult_action_scheduler() && $this->action_scheduler_backend->is_scheduled( $hook, $args, $group ) )
-			|| $this->wp_cron_backend->is_scheduled( $hook, $args, $group );
+		foreach ( $this->ready_backends() as $backend ) {
+			if ( $backend->is_scheduled( $hook, $args, $group ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -109,28 +135,45 @@ final class Scheduler implements SchedulerBackendInterface {
 	 */
 	#[\Override]
 	public function get_next_scheduled( string $hook, array $args = array(), string $group = '' ): ?int {
-		$timestamps = array( $this->wp_cron_backend->get_next_scheduled( $hook, $args, $group ) );
-		if ( $this->should_consult_action_scheduler() ) {
-			$timestamps[] = $this->action_scheduler_backend->get_next_scheduled( $hook, $args, $group );
+		$timestamps = array();
+		foreach ( $this->ready_backends() as $backend ) {
+			$next = $backend->get_next_scheduled( $hook, $args, $group );
+			if ( \is_int( $next ) ) {
+				$timestamps[] = $next;
+			}
 		}
 
-		$next = \array_filter( $timestamps, \is_int( ... ) );
-
-		return array() === $next ? null : \min( $next );
+		return array() === $timestamps ? null : \min( $timestamps );
 	}
 
 	/**
 	 * {@inheritDoc}
 	 *
-	 * Wires both backends so the chosen one is ready whichever the readiness probe later selects.
+	 * The facade is ready as soon as any backend is; writes stay accepted regardless via the
+	 * last-backend fallback.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function is_ready(): bool {
+		return array() !== $this->ready_backends();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Wires every backend unconditionally, ready or not, so a backend that becomes ready
+	 * later in the request — or handles jobs scheduled on an earlier request — is prepared.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
 	#[\Override]
 	public function register_lifecycle(): void {
-		$this->action_scheduler_backend->register_lifecycle();
-		$this->wp_cron_backend->register_lifecycle();
+		foreach ( $this->backends as $backend ) {
+			$backend->register_lifecycle();
+		}
 	}
 
 	// endregion
@@ -138,38 +181,42 @@ final class Scheduler implements SchedulerBackendInterface {
 	// region HELPERS
 
 	/**
-	 * Selects the backend for a schedule write: Action Scheduler when ready, otherwise WordPress cron.
-	 *
-	 * Clear and query paths do not select one backend — they span WordPress cron and, when
-	 * {@see self::should_consult_action_scheduler()}, Action Scheduler.
+	 * Selects the backend for a schedule write: the first ready backend, or the last backend
+	 * when none is ready — a write must land somewhere, and the last backend is the wiring's
+	 * final fallback.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @return  SchedulerBackendInterface
 	 */
-	protected function backend(): SchedulerBackendInterface {
-		return $this->should_consult_action_scheduler()
-			? $this->action_scheduler_backend
-			: $this->wp_cron_backend;
+	protected function write_backend(): SchedulerBackendInterface {
+		foreach ( $this->backends as $backend ) {
+			if ( $backend->is_ready() ) {
+				return $backend;
+			}
+		}
+
+		return $this->backends[ \count( $this->backends ) - 1 ];
 	}
 
 	/**
-	 * Whether the current schedule, clear, or query call may consult Action Scheduler.
-	 *
-	 * Action Scheduler's procedural API returns no-op values before its datastore is ready, so the
-	 * schedule, clear, and query paths all gate Action Scheduler calls through this one probe. When
-	 * the probe fails there is nothing consultable: a dormant Action Scheduler store, if one persists
-	 * while its plugin is deactivated, is outside the facade's reach, so clear paths report the
-	 * outcome of the reachable backends alone.
+	 * The backends consultable for the current clear or query call, in declaration order.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @return  bool
+	 * @return  list<SchedulerBackendInterface>
 	 */
-	protected function should_consult_action_scheduler(): bool {
-		return ( $this->is_action_scheduler_ready )();
+	protected function ready_backends(): array {
+		$ready = array();
+		foreach ( $this->backends as $backend ) {
+			if ( $backend->is_ready() ) {
+				$ready[] = $backend;
+			}
+		}
+
+		return $ready;
 	}
 
 	// endregion

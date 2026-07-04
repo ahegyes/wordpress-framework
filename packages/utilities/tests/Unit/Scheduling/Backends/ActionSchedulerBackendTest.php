@@ -65,4 +65,9 @@ final class ActionSchedulerBackendTest extends TestCase {
 
 		(void) ( new ActionSchedulerBackend( $logger ) )->schedule_recurring( 'dws_hook', 300 );
 	}
+
+	public function test_is_ready_reports_the_injected_probe_result(): void {
+		self::assertTrue( ( new ActionSchedulerBackend( null, static fn (): bool => true ) )->is_ready() );
+		self::assertFalse( ( new ActionSchedulerBackend( null, static fn (): bool => false ) )->is_ready() );
+	}
 }

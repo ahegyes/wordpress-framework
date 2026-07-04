@@ -13,7 +13,7 @@ namespace DeepWebSolutions\Framework\Settings\MetaField;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class MetadataRepository implements ObjectMetaRepositoryInterface {
+final readonly class MetadataRepository implements ObjectMetaRepositoryInterface {
 	// region MAGIC METHODS
 
 	/**

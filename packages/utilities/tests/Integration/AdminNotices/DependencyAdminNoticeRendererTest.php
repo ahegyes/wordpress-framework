@@ -194,13 +194,13 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 		$tracker      = new DismissedNoticesTracker( new UserMetaStore( self::DISMISS_KEY ) );
 		$requirements = array( new DependencyRequirement( $this->conditional( false ), 'Jetpack', required: false ) );
 
-		$first = new AdminNoticesService( null, $tracker, self::DISMISS_ACTION );
+		$first = new AdminNoticesService( dismissals: $tracker, dismiss_action: self::DISMISS_ACTION );
 		( new DependencyAdminNoticeRenderer( $first, $requirements ) )->render();
 		self::assertStringContainsString( 'Jetpack', $this->capture_render( $first ) );
 
 		$tracker->dismiss( 'dep_jetpack' );
 
-		$second = new AdminNoticesService( null, $tracker, self::DISMISS_ACTION );
+		$second = new AdminNoticesService( dismissals: $tracker, dismiss_action: self::DISMISS_ACTION );
 		( new DependencyAdminNoticeRenderer( $second, $requirements ) )->render();
 		self::assertSame( '', $this->capture_render( $second ) );
 	}

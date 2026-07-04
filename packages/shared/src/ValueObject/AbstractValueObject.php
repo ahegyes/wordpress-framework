@@ -44,7 +44,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	 */
 	#[\Override]
 	final public function equals( ValueObjectInterface $other ): bool {
-		if ( \get_class( $other ) !== \get_class( $this ) ) {
+		if ( $other::class !== $this::class ) {
 			return false;
 		}
 

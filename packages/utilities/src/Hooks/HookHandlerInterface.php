@@ -15,15 +15,18 @@ namespace DeepWebSolutions\Framework\Utilities\Hooks;
  */
 interface HookHandlerInterface {
 	/**
-	 * Returns the unique identifier of this handler instance, used by the service to
-	 * route registration calls.
+	 * Unique identifier of this handler instance, used by the service to route
+	 * registration calls.
+	 *
+	 * PHP 8.4+ property hook (`{ get; }`) — PHPCompatibility's curly-brace
+	 * detector misreads it as removed PHP 7.4 array-access syntax.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @return  string
+	 * @var     string
 	 */
-	public function get_id(): string;
+	public string $id { get; } // phpcs:ignore PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess.Removed, Internal.ParseError.InterfaceHasMemberVar -- PHP 8.4 interface property hook, not a member var.
 
 	/**
 	 * Register a callback for a WordPress action.

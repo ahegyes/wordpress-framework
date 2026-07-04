@@ -26,7 +26,7 @@ final class HookRegistry {
 	 *
 	 * @var     list<array{hook: string, callback: callable, priority: int, accepted_args: int}>
 	 */
-	protected array $actions = array();
+	public protected(set) array $actions = array();
 
 	/**
 	 * Filter registration records.
@@ -36,7 +36,7 @@ final class HookRegistry {
 	 *
 	 * @var     list<array{hook: string, callback: callable, priority: int, accepted_args: int}>
 	 */
-	protected array $filters = array();
+	public protected(set) array $filters = array();
 
 	// endregion
 
@@ -132,34 +132,6 @@ final class HookRegistry {
 	 */
 	public function clear_filters(): void {
 		$this->filters = array();
-	}
-
-	// endregion
-
-	// region GETTERS
-
-	/**
-	 * Return all recorded action registrations.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  list<array{hook: string, callback: callable, priority: int, accepted_args: int}>
-	 */
-	public function get_actions(): array {
-		return $this->actions;
-	}
-
-	/**
-	 * Return all recorded filter registrations.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  list<array{hook: string, callback: callable, priority: int, accepted_args: int}>
-	 */
-	public function get_filters(): array {
-		return $this->filters;
 	}
 
 	// endregion

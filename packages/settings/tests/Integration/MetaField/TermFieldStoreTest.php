@@ -117,6 +117,26 @@ final class TermFieldStoreTest extends TestCase {
 		self::assertSame( 'blue', $this->repo()->get( $this->term_id, 'color' ) );
 	}
 
+	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
+		$store      = new TermFieldStore();
+		$term_group = $this->term_group();
+		$group      = $term_group->group;
+		$store->register( $term_group );
+
+		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => 'blue' ) );
+		\do_action( 'edited_category', $this->term_id );
+
+		self::assertTrue( $store->has( $group, $this->term_id, 'color' ) );
+		self::assertSame( 'blue', $store->get( $group, $this->term_id, 'color' ) );
+
+		$store->set( $group, $this->term_id, 'color', 'red' );
+		self::assertSame( 'red', \get_term_meta( $this->term_id, 'color', true ) );
+
+		self::assertTrue( $store->delete( $group, $this->term_id, 'color' ) );
+		self::assertFalse( \metadata_exists( 'term', $this->term_id, 'color' ) );
+		self::assertSame( array( 'color' ), $store->meta_keys( $group ) );
+	}
+
 	public function test_saving_a_created_term_persists_with_capability_and_a_valid_add_nonce(): void {
 		( new TermFieldStore() )->register( $this->term_group() );
 

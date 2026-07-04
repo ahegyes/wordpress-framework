@@ -21,7 +21,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value
  * @since   2.0.0
  * @version 2.0.0
  */
-final class FieldProcessor {
+final readonly class FieldProcessor {
 	// region MAGIC METHODS
 
 	/**

@@ -14,7 +14,7 @@ namespace DeepWebSolutions\Framework\Utilities\Permissions;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class CapabilityRegistrar {
+final readonly class CapabilityRegistrar {
 	// region METHODS
 
 	/**

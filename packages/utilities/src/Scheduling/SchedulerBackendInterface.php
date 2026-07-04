@@ -14,7 +14,8 @@ use DeepWebSolutions\Framework\Utilities\Scheduling\Errors\SchedulingError;
  * active, WordPress cron otherwise. Mutations return a {@see AbstractResult} carrying a
  * {@see SchedulingError} on failure; queries return plain scalars. Scheduling is
  * idempotent: re-scheduling a hook that is already queued with the same args (and group)
- * is a success no-op.
+ * is a success no-op. {@see self::is_ready()} reports whether the backend may be
+ * consulted at all, so a facade can route around a backend whose runtime is not loaded.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -95,6 +96,16 @@ interface SchedulerBackendInterface {
 	 * @return  int|null
 	 */
 	public function get_next_scheduled( string $hook, array $args = array(), string $group = '' ): ?int;
+
+	/**
+	 * Whether the backend may be consulted for schedule, clear, and query calls.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  bool
+	 */
+	public function is_ready(): bool;
 
 	/**
 	 * Wires any per-request setup the backend needs to keep its scheduled actions resolvable.

@@ -99,6 +99,24 @@ function normalize_checkbox_value( mixed $value ): string {
 }
 
 /**
+ * Coerces a value to a string for output; a non-scalar becomes an empty string.
+ *
+ * The one coercion rule for a value bound into a rendered control or handed to a WordPress or
+ * WooCommerce output seam that escapes strings, applied everywhere so the renderers and builders
+ * never disagree on how a non-scalar degrades.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   mixed $value Value to stringify.
+ *
+ * @return  string
+ */
+function stringify_for_output( mixed $value ): string {
+	return \is_scalar( $value ) ? (string) $value : '';
+}
+
+/**
  * Whether the current user may edit a field: a field with no capability is always editable, otherwise
  * the current user must hold the field's primitive capability. Object-scoped checks stay with the
  * hosting WordPress surface and stricter field sanitize/validate seams. A free function on purpose,

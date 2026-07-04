@@ -125,7 +125,7 @@ final readonly class NoticeStore {
 	/**
 	 * Rehydrate a stored row into a notice, or null when the row is not a well-formed notice stored
 	 * under its own ID (non-array, missing/non-string id or message, an id that does not match its key,
-	 * or an id the descriptor rejects as an unstable dismissal key).
+	 * or an id the value object rejects as an unstable dismissal key).
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

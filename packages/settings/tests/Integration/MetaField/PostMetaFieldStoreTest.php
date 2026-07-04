@@ -107,6 +107,25 @@ final class PostMetaFieldStoreTest extends TestCase {
 		self::assertSame( 'hi', $this->repo()->get( $this->post_id, 'note' ) );
 	}
 
+	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
+		$store = new PostMetaFieldStore();
+		$group = $this->group();
+		$store->register( $group, $this->placement() );
+
+		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => 'hi' ) );
+		\do_action( 'save_post_post', $this->post_id );
+
+		self::assertTrue( $store->has( $group, $this->post_id, 'note' ) );
+		self::assertSame( 'hi', $store->get( $group, $this->post_id, 'note' ) );
+
+		$store->set( $group, $this->post_id, 'note', 'bye' );
+		self::assertSame( 'bye', \get_post_meta( $this->post_id, 'note', true ) );
+
+		self::assertTrue( $store->delete( $group, $this->post_id, 'note' ) );
+		self::assertFalse( \metadata_exists( 'post', $this->post_id, 'note' ) );
+		self::assertSame( array( 'note' ), $store->meta_keys( $group ) );
+	}
+
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
 		$store = new PostMetaFieldStore();
 		$group = $this->group();

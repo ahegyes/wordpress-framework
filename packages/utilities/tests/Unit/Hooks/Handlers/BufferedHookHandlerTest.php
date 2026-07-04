@@ -14,13 +14,13 @@ final class BufferedHookHandlerTest extends TestCase {
 	public function test_default_id_is_buffered(): void {
 		$handler = new BufferedHookHandler();
 
-		self::assertSame( 'buffered', $handler->get_id() );
+		self::assertSame( 'buffered', $handler->id );
 	}
 
 	public function test_custom_id_is_returned(): void {
 		$handler = new BufferedHookHandler( 'admin-only' );
 
-		self::assertSame( 'admin-only', $handler->get_id() );
+		self::assertSame( 'admin-only', $handler->id );
 	}
 
 	public function test_add_action_queues_without_calling_wp(): void {
@@ -29,7 +29,7 @@ final class BufferedHookHandlerTest extends TestCase {
 
 		$handler->add_action( 'init', $cb, 10, 1 );
 
-		$queued = $handler->get_registry()->get_actions();
+		$queued = $handler->registry->actions;
 		self::assertCount( 1, $queued );
 		self::assertSame( 'init', $queued[0]['hook'] );
 		self::assertSame( 10, $queued[0]['priority'] );
@@ -42,7 +42,7 @@ final class BufferedHookHandlerTest extends TestCase {
 
 		$handler->add_filter( 'the_content', $cb, 5, 2 );
 
-		$queued = $handler->get_registry()->get_filters();
+		$queued = $handler->registry->filters;
 		self::assertCount( 1, $queued );
 		self::assertSame( 'the_content', $queued[0]['hook'] );
 		self::assertSame( 5, $queued[0]['priority'] );

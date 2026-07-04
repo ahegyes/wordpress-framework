@@ -11,7 +11,7 @@ namespace DeepWebSolutions\Framework\Shared\Result;
  * @template TValue
  * @extends AbstractResult<TValue, never>
  */
-final class Success extends AbstractResult {
+final readonly class Success extends AbstractResult {
 	// region MAGIC METHODS
 
 	/**
@@ -23,7 +23,7 @@ final class Success extends AbstractResult {
 	 * @param   mixed $value Return value carried by the success.
 	 */
 	protected function __construct(
-		public readonly mixed $value
+		public mixed $value
 	) {
 		parent::__construct();
 	}

@@ -9,9 +9,10 @@ use OutOfBoundsException;
  * Multi-handler hook registration facade.
  *
  * Holds a registry of HookHandlerInterface instances keyed by ID. Registration calls
- * accept an optional handler_id and route to the named handler. The default handler
- * is 'direct' — registered automatically on construction and used when no handler_id
- * is specified.
+ * accept an optional handler_id and route to the named handler. The constructor
+ * parameter default supplies a single DirectHookHandler under the 'direct' ID — an
+ * omitted argument yields it, while an explicit empty array registers no handlers —
+ * and 'direct' is the handler used when no handler_id is specified.
  *
  * Components inject HooksService and call add_action() etc. to register hook callbacks.
  * Plugins that need buffered or scoped registration register additional handlers via
@@ -40,18 +41,17 @@ final class HooksService {
 	/**
 	 * Constructor.
 	 *
-	 * Null (the default) registers a single DirectHookHandler under the 'direct' ID. An
+	 * Omitting the argument registers a single DirectHookHandler under the 'direct' ID. An
 	 * explicit array registers exactly those handlers, so an empty array yields a service
 	 * with no handlers (useful for tests or fully-custom setups).
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<int, HookHandlerInterface>|null $initial_handlers Handlers to register up front, or null for a single default DirectHookHandler.
+	 * @param   array<int, HookHandlerInterface> $initial_handlers Handlers to register up front. Defaults to a single DirectHookHandler.
 	 */
-	public function __construct( ?array $initial_handlers = null ) {
-		$handlers = $initial_handlers ?? array( new DirectHookHandler() );
-		foreach ( $handlers as $handler ) {
+	public function __construct( array $initial_handlers = array( new DirectHookHandler() ) ) {
+		foreach ( $initial_handlers as $handler ) {
 			$this->register_handler( $handler );
 		}
 	}
@@ -70,7 +70,7 @@ final class HooksService {
 	 * @param   HookHandlerInterface $handler Handler to register.
 	 */
 	public function register_handler( HookHandlerInterface $handler ): void {
-		$this->handlers[ $handler->get_id() ] = $handler;
+		$this->handlers[ $handler->id ] = $handler;
 	}
 
 	/**

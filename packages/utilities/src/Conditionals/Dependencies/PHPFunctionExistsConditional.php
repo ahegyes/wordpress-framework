@@ -10,7 +10,7 @@ use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class PHPFunctionExistsConditional implements ConditionalInterface {
+final readonly class PHPFunctionExistsConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
@@ -22,7 +22,7 @@ final class PHPFunctionExistsConditional implements ConditionalInterface {
 	 * @param   string $function_name Fully-qualified function name to check.
 	 */
 	public function __construct(
-		protected readonly string $function_name,
+		protected string $function_name,
 	) {}
 
 	// endregion

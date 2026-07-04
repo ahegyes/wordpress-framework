@@ -16,7 +16,7 @@ use Psr\Log\LoggerTrait;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class RedactingLogger implements LoggerInterface {
+final readonly class RedactingLogger implements LoggerInterface {
 	// region TRAITS
 
 	use LoggerTrait;

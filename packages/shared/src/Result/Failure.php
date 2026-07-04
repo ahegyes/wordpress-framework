@@ -13,7 +13,7 @@ use DeepWebSolutions\Framework\Shared\Error\ErrorInterface;
  * @template TError of ErrorInterface
  * @extends AbstractResult<never, TError>
  */
-final class Failure extends AbstractResult {
+final readonly class Failure extends AbstractResult {
 	// region MAGIC METHODS
 
 	/**
@@ -25,7 +25,7 @@ final class Failure extends AbstractResult {
 	 * @param   ErrorInterface $error Error payload carried by the failure.
 	 */
 	protected function __construct(
-		public readonly ErrorInterface $error
+		public ErrorInterface $error
 	) {
 		parent::__construct();
 	}

@@ -21,6 +21,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_valid_global_name_pre
 use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
 use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value;
 use function DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field;
+use function DeepWebSolutions\Framework\Settings\Schema\stringify_for_output;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids' )]
@@ -30,6 +31,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\stringify_for_output' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers' )]
 #[UsesClass( SettingsField::class )]
 #[UsesClass( SettingsSection::class )]
@@ -293,6 +295,32 @@ final class SchemaFunctionsTest extends TestCase {
 					new SettingsSection( 'general', 'Again', array( new SettingsField( id: 'dup', type: 'text', label: 'B' ) ) ),
 				),
 			),
+		);
+	}
+
+	#[DataProvider( 'output_stringification_matrix' )]
+	public function test_stringify_for_output_coerces_scalars_and_empties_non_scalars( mixed $value, string $expected ): void {
+		self::assertSame( $expected, stringify_for_output( $value ) );
+	}
+
+	/**
+	 * A scalar coerces through PHP's string cast (so false becomes ''); any non-scalar degrades to the
+	 * empty string rather than notice-ing or leaking a serialized representation into output.
+	 *
+	 * @return array<string, array{mixed, string}>
+	 */
+	public static function output_stringification_matrix(): array {
+		return array(
+			'string'     => array( 'label', 'label' ),
+			'empty string' => array( '', '' ),
+			'int'        => array( 42, '42' ),
+			'int zero'   => array( 0, '0' ),
+			'float'      => array( 3.5, '3.5' ),
+			'bool true'  => array( true, '1' ),
+			'bool false' => array( false, '' ),
+			'null'       => array( null, '' ),
+			'array'      => array( array( 'x' ), '' ),
+			'object'     => array( new \stdClass(), '' ),
 		);
 	}
 

@@ -11,7 +11,7 @@ use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class WPPluginActiveConditional implements ConditionalInterface {
+final readonly class WPPluginActiveConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
@@ -23,7 +23,7 @@ final class WPPluginActiveConditional implements ConditionalInterface {
 	 * @param   string $plugin_basename WordPress plugin basename (e.g., `woocommerce/woocommerce.php`).
 	 */
 	public function __construct(
-		protected readonly string $plugin_basename,
+		protected string $plugin_basename,
 	) {}
 
 	// endregion

@@ -10,6 +10,8 @@ use DeepWebSolutions\Framework\Utilities\Scheduling\SchedulerBackendInterface;
 use DeepWebSolutions\Framework\Utilities\Scheduling\SchedulingErrorReason;
 use Psr\Log\LoggerInterface;
 
+use function DeepWebSolutions\Framework\Utilities\Scheduling\action_scheduler_is_ready;
+
 /**
  * Scheduler backend over Action Scheduler.
  *
@@ -22,7 +24,21 @@ use Psr\Log\LoggerInterface;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class ActionSchedulerBackend implements SchedulerBackendInterface {
+final readonly class ActionSchedulerBackend implements SchedulerBackendInterface {
+	// region FIELDS AND CONSTANTS
+
+	/**
+	 * Predicate backing {@see self::is_ready()}.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     \Closure(): bool
+	 */
+	protected \Closure $ready_probe;
+
+	// endregion
+
 	// region MAGIC METHODS
 
 	/**
@@ -31,11 +47,15 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   LoggerInterface|null $logger Optional PSR-3 logger for the absent-scheduler and failed-cancellation conditions.
+	 * @param   LoggerInterface|null $logger      Optional PSR-3 logger for the absent-scheduler and failed-cancellation conditions.
+	 * @param   callable|null        $ready_probe Predicate backing is_ready(); defaults to {@see action_scheduler_is_ready()}. Injectable so the readiness branch is testable without driving the Action Scheduler runtime.
 	 */
 	public function __construct(
 		protected ?LoggerInterface $logger = null,
-	) {}
+		?callable $ready_probe = null,
+	) {
+		$this->ready_probe = \Closure::fromCallable( $ready_probe ?? static fn (): bool => action_scheduler_is_ready() );
+	}
 
 	// endregion
 
@@ -155,6 +175,21 @@ final class ActionSchedulerBackend implements SchedulerBackendInterface {
 
 		$next = \as_next_scheduled_action( $hook, $args, $group );
 		return \is_int( $next ) ? $next : null;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Action Scheduler's procedural API returns no-op values before its datastore has finished
+	 * initializing, so readiness needs more than the function table — the default probe also
+	 * requires the 'action_scheduler_init' signal.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function is_ready(): bool {
+		return ( $this->ready_probe )();
 	}
 
 	/**

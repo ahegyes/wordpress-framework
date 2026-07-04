@@ -2,6 +2,10 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Caching;
 
+use DeepWebSolutions\Framework\Utilities\Exceptions\InvalidGlobalNamePrefixException;
+
+use function DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix;
+
 /**
  * Runtime object cache with false-safe reads and versioned-group invalidation.
  *
@@ -22,11 +26,18 @@ final readonly class ObjectCache {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $group Cache group all keys live under, before the generation suffix.
+	 * @param   string $group Cache group all keys live under, before the generation suffix; also prefixes the generation option key.
+	 *
+	 * @throws  InvalidGlobalNamePrefixException If $group does not match the WordPress-global name charset.
 	 */
 	public function __construct(
 		protected string $group,
-	) {}
+	) {
+		if ( ! is_valid_global_name_prefix( $group ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new InvalidGlobalNamePrefixException( "Invalid object cache group: '$group'. Use an optionally-underscore-prefixed lowercase name (a-z, 0-9, _, -) so cache group and option names stay well-formed." );
+		}
+	}
 
 	// endregion
 

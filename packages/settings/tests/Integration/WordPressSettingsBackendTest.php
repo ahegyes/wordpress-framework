@@ -176,6 +176,25 @@ final class WordPressSettingsBackendTest extends TestCase {
 		self::assertFalse( $backend->delete( 'site_name' ) );
 	}
 
+	public function test_option_keys_names_exactly_the_rows_the_backend_persists_into(): void {
+		$backend = $this->register( $this->page() );
+
+		$backend->set( 'site_name', 'Acme' );
+		$backend->set( 'cache_ttl', 60 );
+
+		$keys = $backend->option_keys( $this->page() );
+
+		self::assertSame( array( self::GENERAL_OPTION, self::ADVANCED_OPTION ), $keys );
+
+		// Deleting exactly the enumerated rows clears the page — the uninstall flow the enumerator serves.
+		foreach ( $keys as $key ) {
+			self::assertNotFalse( \get_option( $key ) );
+			\delete_option( $key );
+		}
+		self::assertFalse( $backend->has( 'site_name' ) );
+		self::assertFalse( $backend->has( 'cache_ttl' ) );
+	}
+
 	public function test_does_not_touch_unrelated_options(): void {
 		\update_option( 'dws_unrelated_option', 'keep-me' );
 		$backend = $this->register( $this->page() );

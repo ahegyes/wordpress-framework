@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\AdminNotices;
 
+use DeepWebSolutions\Framework\Shared\ValueObject\Exceptions\InvalidValueObjectException;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidAdminNoticeException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
@@ -13,6 +15,8 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( NoticeStore::class )]
 #[UsesClass( AdminNotice::class )]
+#[UsesClass( InvalidAdminNoticeException::class )]
+#[UsesClass( InvalidValueObjectException::class )]
 #[UsesClass( NoticeType::class )]
 #[UsesClass( MemoryStore::class )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id' )]

@@ -2,13 +2,14 @@
 
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects;
 
+use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidAdminNoticeException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 
 use function DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id;
 
 /**
- * Descriptor for a single WordPress admin notice.
+ * Value object for a single WordPress admin notice.
  *
  * The $is_persistent flag governs post-render retention in a persistent store: a non-persistent
  * notice is consumed (removed) after it renders once, a persistent one recurs until dismissed or
@@ -19,7 +20,7 @@ use function DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_i
  * @since   2.0.0
  * @version 2.0.0
  */
-final readonly class AdminNotice {
+final readonly class AdminNotice extends AbstractValueObject {
 	// region MAGIC METHODS
 
 	/**

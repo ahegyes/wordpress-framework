@@ -45,7 +45,7 @@ final class BufferedHookHandlerTest extends TestCase {
 		self::assertTrue( $handler->remove_action( 'dws_buffered_rm', $cb, 10 ) );
 		// The live registration is gone, not just the queued record.
 		self::assertFalse( \has_action( 'dws_buffered_rm', $cb ) );
-		self::assertSame( array(), $handler->get_registry()->get_actions() );
+		self::assertSame( array(), $handler->registry->actions );
 	}
 
 	public function test_remove_action_returns_false_when_not_queued(): void {
@@ -65,7 +65,7 @@ final class BufferedHookHandlerTest extends TestCase {
 		self::assertTrue( $handler->remove_filter( 'dws_buffered_rm_filter', $cb, 10 ) );
 		// The live registration is gone, not just the queued record.
 		self::assertFalse( \has_filter( 'dws_buffered_rm_filter', $cb ) );
-		self::assertSame( array(), $handler->get_registry()->get_filters() );
+		self::assertSame( array(), $handler->registry->filters );
 	}
 
 	public function test_remove_filter_returns_false_when_not_queued(): void {
@@ -86,7 +86,7 @@ final class BufferedHookHandlerTest extends TestCase {
 
 		self::assertFalse( \has_action( 'dws_buffered_all_a', $cb ) );
 		self::assertFalse( \has_action( 'dws_buffered_all_b', $cb ) );
-		self::assertSame( array(), $handler->get_registry()->get_actions() );
+		self::assertSame( array(), $handler->registry->actions );
 	}
 
 	public function test_remove_all_filters_unregisters_flushed_hooks(): void {
@@ -98,6 +98,6 @@ final class BufferedHookHandlerTest extends TestCase {
 		$handler->remove_all_filters();
 
 		self::assertFalse( \has_filter( 'dws_buffered_filter_all', $cb ) );
-		self::assertSame( array(), $handler->get_registry()->get_filters() );
+		self::assertSame( array(), $handler->registry->filters );
 	}
 }

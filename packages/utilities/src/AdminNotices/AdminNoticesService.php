@@ -3,21 +3,24 @@
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
+use DeepWebSolutions\Framework\Utilities\Exceptions\InvalidGlobalNamePrefixException;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
+
+use function DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix;
 
 /**
  * Collects admin notices across one or more named stores (in-memory, wp_options, user_meta) and
  * renders them when {@see self::render_notices()} is invoked. Each notice is gated by the current
  * user's capability and, when persistent, by a per-user dismissal record; a non-persistent notice is
- * consumed (removed from its store) after it renders once. Renders use wp_admin_notice() (WP 6.4+)
- * with a wp_kses_post()-wrapped echo fallback for older WordPress sites. When a dismiss action and a
- * tracker are configured, it also wires the per-user AJAX dismissal transport via
- * {@see self::print_dismiss_script()} and {@see self::handle_dismiss()}.
+ * consumed (removed from its store) after it renders once. Renders use core's wp_admin_notice().
+ * When a dismiss action and a tracker are configured, it also wires the per-user AJAX dismissal
+ * transport via {@see self::print_dismiss_script()} and {@see self::handle_dismiss()}. A consumer
+ * calls {@see self::register_hooks()} once during boot to wire every callback to WordPress.
  *
  * @since   2.0.0
  * @version 2.0.0
  */
-final class AdminNoticesService {
+final readonly class AdminNoticesService {
 	// region FIELDS AND CONSTANTS
 
 	/**
@@ -30,16 +33,6 @@ final class AdminNoticesService {
 	 */
 	public const DEFAULT_STORE = 'memory';
 
-	/**
-	 * Registered notice stores, indexed by name.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     array<string, NoticeStore>
-	 */
-	protected(set) array $stores;
-
 	// endregion
 
 	// region MAGIC METHODS
@@ -50,37 +43,42 @@ final class AdminNoticesService {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<string, NoticeStore>|null $stores         Stores to register, indexed by name. Null registers a single in-memory store under DEFAULT_STORE; an empty array registers none.
-	 * @param   DismissedNoticesTracker|null    $dismissals     Per-user dismissal record. When null, persistent notices are never suppressed.
-	 * @param   string|null                     $dismiss_action Plugin-unique AJAX action backing per-user dismissal. With a tracker, wires the dismiss transport; null wires none.
+	 * @param   array<string, NoticeStore>   $stores         Stores to register, indexed by name; an empty array registers none. Defaults to a single in-memory store under DEFAULT_STORE.
+	 * @param   DismissedNoticesTracker|null $dismissals     Per-user dismissal record. When null, persistent notices are never suppressed.
+	 * @param   string|null                  $dismiss_action Plugin-unique AJAX action backing per-user dismissal. With a tracker, wires the dismiss transport; null wires none.
+	 *
+	 * @throws  InvalidGlobalNamePrefixException If $dismiss_action does not match the WordPress-global name charset.
 	 */
 	public function __construct(
-		?array $stores = null,
+		public array $stores = array( self::DEFAULT_STORE => new NoticeStore( new MemoryStore() ) ),
 		protected ?DismissedNoticesTracker $dismissals = null,
-		protected ?string $dismiss_action = null,
+		public ?string $dismiss_action = null,
 	) {
-		$this->stores = $stores ?? array( self::DEFAULT_STORE => new NoticeStore( new MemoryStore() ) );
-	}
-
-	// endregion
-
-	// region GETTERS
-
-	/**
-	 * Returns the plugin-unique AJAX action backing per-user dismissal, or null when no transport is wired.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  string|null
-	 */
-	public function get_dismiss_action(): ?string {
-		return $this->dismiss_action;
+		if ( null !== $dismiss_action && ! is_valid_global_name_prefix( $dismiss_action ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new InvalidGlobalNamePrefixException( "Invalid dismiss action: '$dismiss_action'. Use an optionally-underscore-prefixed lowercase name (a-z, 0-9, _, -) so the wp_ajax_ hook name stays well-formed." );
+		}
 	}
 
 	// endregion
 
 	// region METHODS
+
+	/**
+	 * Wires the service's callbacks to WordPress: {@see self::render_notices()} on 'admin_notices',
+	 * {@see self::print_dismiss_script()} on 'admin_footer', and — when a dismiss action is
+	 * configured — {@see self::handle_dismiss()} on its wp_ajax_ endpoint. Call once during boot.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function register_hooks(): void {
+		\add_action( 'admin_notices', array( $this, 'render_notices' ) );
+		\add_action( 'admin_footer', array( $this, 'print_dismiss_script' ) );
+		if ( null !== $this->dismiss_action ) {
+			\add_action( 'wp_ajax_' . $this->dismiss_action, array( $this, 'handle_dismiss' ) );
+		}
+	}
 
 	/**
 	 * Queue a notice in the named store. Replaces any notice already stored under the same ID there.
@@ -250,8 +248,7 @@ final class AdminNoticesService {
 	}
 
 	/**
-	 * Render a single notice using wp_admin_notice() when available, falling back to a
-	 * sanitized echo for older WordPress versions.
+	 * Render a single notice through core's wp_admin_notice(), which sanitizes the generated markup.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -268,30 +265,15 @@ final class AdminNoticesService {
 			$data_attributes['data-dismiss-action'] = $this->dismiss_action;
 		}
 
-		$attributes = array(
-			'id'             => 'dws-notice-' . $notice->id,
-			'type'           => $notice->type->value,
-			'dismissible'    => $notice->is_dismissible,
-			'paragraph_wrap' => true,
-			'attributes'     => $data_attributes,
-		);
-
-		if ( \function_exists( 'wp_admin_notice' ) ) {
-			\wp_admin_notice( $notice->message, $attributes );
-			return;
-		}
-
-		// Dead at the WP 7.0 floor: wp_admin_notice() and its data-attribute support ship in WP 6.4, so
-		// the dismiss transport cannot run on the pre-6.4 path reached here.
-		$classes = 'notice notice-' . $notice->type->value;
-		if ( $notice->is_dismissible ) {
-			$classes .= ' is-dismissible';
-		}
-		printf(
-			'<div id="%1$s" class="%2$s"><p>%3$s</p></div>',
-			\esc_attr( $attributes['id'] ),
-			\esc_attr( $classes ),
-			\wp_kses_post( $notice->message ),
+		\wp_admin_notice(
+			$notice->message,
+			array(
+				'id'             => 'dws-notice-' . $notice->id,
+				'type'           => $notice->type->value,
+				'dismissible'    => $notice->is_dismissible,
+				'paragraph_wrap' => true,
+				'attributes'     => $data_attributes,
+			),
 		);
 	}
 

@@ -10,6 +10,11 @@ use DeepWebSolutions\Framework\Shared\Version\Exceptions\InvalidVersionException
  * MAJOR[.MINOR[.PATCH]][-PRERELEASE][+BUILD]. Provides type-safe ordering and
  * equality.
  *
+ * Version equality is {@see self::is_equal_to()} (version_compare() semantics:
+ * '2.0' equals '2.00'). The inherited {@see AbstractValueObject::equals()} is
+ * structural string identity — '2.0' does NOT equal '2.0.0' there — so reach
+ * for is_equal_to() unless raw-string identity is genuinely intended.
+ *
  * @since   2.0.0
  * @version 2.0.0
  */

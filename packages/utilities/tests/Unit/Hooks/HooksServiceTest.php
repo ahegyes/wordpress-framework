@@ -189,13 +189,9 @@ final class HooksServiceTest extends TestCase {
 			public array $calls = array();
 
 			public function __construct(
-				private readonly string $id,
+				public readonly string $id,
 				public readonly bool $next_remove = false,
 			) {}
-
-			public function get_id(): string {
-				return $this->id;
-			}
 
 			public function add_action( string $hook, callable $callback, int $priority, int $accepted_args ): void {
 				$this->calls[] = array( 'add_action', $hook, $callback, $priority, $accepted_args );

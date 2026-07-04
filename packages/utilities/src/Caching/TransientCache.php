@@ -2,6 +2,10 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Caching;
 
+use DeepWebSolutions\Framework\Utilities\Exceptions\InvalidGlobalNamePrefixException;
+
+use function DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix;
+
 /**
  * Per-plugin transient cache with versioned-group invalidation.
  *
@@ -50,11 +54,18 @@ final readonly class TransientCache {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $key_prefix Per-plugin namespace prepended to every key (a safe slug).
+	 * @param   string $key_prefix Per-plugin namespace prepended to every key; also prefixes the generation option key.
+	 *
+	 * @throws  InvalidGlobalNamePrefixException If $key_prefix does not match the WordPress-global name charset.
 	 */
 	public function __construct(
 		protected string $key_prefix,
-	) {}
+	) {
+		if ( ! is_valid_global_name_prefix( $key_prefix ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new InvalidGlobalNamePrefixException( "Invalid transient key prefix: '$key_prefix'. Use an optionally-underscore-prefixed lowercase name (a-z, 0-9, _, -) so transient and option names stay well-formed." );
+		}
+	}
 
 	// endregion
 

@@ -10,7 +10,7 @@ use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class PHPExtensionLoadedConditional implements ConditionalInterface {
+final readonly class PHPExtensionLoadedConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
@@ -22,7 +22,7 @@ final class PHPExtensionLoadedConditional implements ConditionalInterface {
 	 * @param   string $extension PHP extension name (e.g., `json`, `mbstring`).
 	 */
 	public function __construct(
-		protected readonly string $extension,
+		protected string $extension,
 	) {}
 
 	// endregion

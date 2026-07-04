@@ -6,6 +6,7 @@ use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticesService;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
+use DeepWebSolutions\Framework\Utilities\Exceptions\InvalidGlobalNamePrefixException;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -18,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( NoticeType::class )]
 #[UsesClass( MemoryStore::class )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix' )]
 final class AdminNoticesServiceTest extends TestCase {
 	public function test_constructs_with_a_default_memory_store(): void {
 		$service = new AdminNoticesService();
@@ -101,14 +103,26 @@ final class AdminNoticesServiceTest extends TestCase {
 		self::assertTrue( $service->stores['extra']->has( 'x' ) );
 	}
 
-	public function test_get_dismiss_action_returns_the_configured_action(): void {
-		$service = new AdminNoticesService( null, null, 'dws_test_dismiss_notice' );
+	public function test_dismiss_action_exposes_the_configured_action(): void {
+		$service = new AdminNoticesService( dismiss_action: 'dws_test_dismiss_notice' );
 
-		self::assertSame( 'dws_test_dismiss_notice', $service->get_dismiss_action() );
+		self::assertSame( 'dws_test_dismiss_notice', $service->dismiss_action );
 	}
 
-	public function test_get_dismiss_action_is_null_when_unconfigured(): void {
-		self::assertNull( ( new AdminNoticesService() )->get_dismiss_action() );
+	public function test_dismiss_action_is_null_when_unconfigured(): void {
+		self::assertNull( ( new AdminNoticesService() )->dismiss_action );
+	}
+
+	public function test_rejects_a_dismiss_action_outside_the_global_name_charset(): void {
+		$this->expectException( InvalidGlobalNamePrefixException::class );
+
+		new AdminNoticesService( dismiss_action: 'Dws Bad Action' );
+	}
+
+	public function test_accepts_an_underscore_prefixed_dismiss_action(): void {
+		$service = new AdminNoticesService( dismiss_action: '_dws_dismiss' );
+
+		self::assertSame( '_dws_dismiss', $service->dismiss_action );
 	}
 
 	public function test_print_dismiss_script_is_noop_without_a_dismiss_action(): void {
@@ -122,7 +136,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	public function test_print_dismiss_script_is_noop_without_a_tracker(): void {
 		// Action set but no tracker means nowhere to record a dismissal, so nothing is printed.
-		$service = new AdminNoticesService( null, null, 'dws_test_dismiss_notice' );
+		$service = new AdminNoticesService( dismiss_action: 'dws_test_dismiss_notice' );
 
 		\ob_start();
 		$service->print_dismiss_script();

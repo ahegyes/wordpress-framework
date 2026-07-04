@@ -227,8 +227,8 @@ final class AdminNoticesServiceTest extends TestCase {
 	}
 
 	public function test_two_services_print_independently_scoped_scripts(): void {
-		$alpha = new AdminNoticesService( null, $this->tracker(), 'dws_alpha_dismiss' );
-		$beta  = new AdminNoticesService( null, $this->tracker(), 'dws_beta_dismiss' );
+		$alpha = new AdminNoticesService( dismissals: $this->tracker(), dismiss_action: 'dws_alpha_dismiss' );
+		$beta  = new AdminNoticesService( dismissals: $this->tracker(), dismiss_action: 'dws_beta_dismiss' );
 
 		\ob_start();
 		$alpha->print_dismiss_script();
@@ -242,6 +242,37 @@ final class AdminNoticesServiceTest extends TestCase {
 		self::assertStringNotContainsString( 'dws_beta_dismiss', $alpha_output );
 		self::assertStringContainsString( 'dws_beta_dismiss', $beta_output );
 		self::assertStringNotContainsString( 'dws_alpha_dismiss', $beta_output );
+	}
+
+	public function test_register_hooks_wires_render_footer_and_ajax_callbacks(): void {
+		$service = $this->transport_service();
+
+		try {
+			$service->register_hooks();
+
+			self::assertSame( 10, \has_action( 'admin_notices', array( $service, 'render_notices' ) ) );
+			self::assertSame( 10, \has_action( 'admin_footer', array( $service, 'print_dismiss_script' ) ) );
+			self::assertSame( 10, \has_action( 'wp_ajax_' . self::DISMISS_ACTION, array( $service, 'handle_dismiss' ) ) );
+		} finally {
+			\remove_action( 'admin_notices', array( $service, 'render_notices' ) );
+			\remove_action( 'admin_footer', array( $service, 'print_dismiss_script' ) );
+			\remove_action( 'wp_ajax_' . self::DISMISS_ACTION, array( $service, 'handle_dismiss' ) );
+		}
+	}
+
+	public function test_register_hooks_without_a_dismiss_action_wires_no_ajax_endpoint(): void {
+		$service = new AdminNoticesService();
+
+		try {
+			$service->register_hooks();
+
+			self::assertSame( 10, \has_action( 'admin_notices', array( $service, 'render_notices' ) ) );
+			self::assertSame( 10, \has_action( 'admin_footer', array( $service, 'print_dismiss_script' ) ) );
+			self::assertFalse( \has_action( 'wp_ajax_', array( $service, 'handle_dismiss' ) ) );
+		} finally {
+			\remove_action( 'admin_notices', array( $service, 'render_notices' ) );
+			\remove_action( 'admin_footer', array( $service, 'print_dismiss_script' ) );
+		}
 	}
 
 	public function test_handle_dismiss_records_dismissal_with_a_valid_nonce(): void {

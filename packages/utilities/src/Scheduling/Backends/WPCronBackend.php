@@ -198,6 +198,19 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	/**
 	 * {@inheritDoc}
 	 *
+	 * WordPress cron ships with core, so this backend is always consultable.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function is_ready(): bool {
+		return true;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
 	 * Registers the 'cron_schedules' filter so a synthetic schedule resolves on a request that
 	 * never calls a schedule method — wp-cron itself — letting WordPress reschedule a recurring
 	 * event stored on an earlier request. The filter callback rebuilds the interval set from the

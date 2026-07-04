@@ -73,4 +73,18 @@ interface SettingsBackendInterface {
 	 * @return  bool True if a value was deleted, false if none existed.
 	 */
 	public function delete( string $field_id ): bool;
+
+	/**
+	 * Returns every wp_options key the backend persists a page's fields into, for the consumer's
+	 * uninstall cleanup. Derived from the page descriptor alone, so an uninstall path can enumerate
+	 * the keys without registering the page.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   SettingsPage $page Page whose option keys to enumerate.
+	 *
+	 * @return  list<string>
+	 */
+	public function option_keys( SettingsPage $page ): array;
 }
