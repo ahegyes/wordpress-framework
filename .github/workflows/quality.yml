@@ -10,6 +10,6 @@ permissions:
 
 jobs:
   lint-php:
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@db1f56b3c96ae1fae91eb10ec162ba8095b904ad
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@714fc2a66d6ae5011999beb18a4b01fb1992f4bd
     with:
       scripts: '["lint:php:phpcs", "lint:php:phpstan", "lint:php:deptrac", "lint:php:composer-require-checker", "changelog:validate"]'

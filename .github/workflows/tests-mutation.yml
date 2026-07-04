@@ -16,26 +16,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: pcov
           tools: composer:v2
 
       - name: Install Composer dependencies
-        uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
+        uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
 
       - name: Run Infection
         run: composer test:mutation
 
       - name: Upload Infection logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: infection-logs
           path: build/infection/
+
+  infection-integration:
+    name: Run Infection (Integration)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@714fc2a66d6ae5011999beb18a4b01fb1992f4bd
+    with:
+      php-version: '8.5'
+      composer-script: 'test:mutation:integration'
+      wp-env-config-file: '.wp-env.tests.json'
+      # In-container coverage driver for Infection (the composer script's preflight accepts xdebug coverage mode).
+      wp-env-xdebug: 'coverage'

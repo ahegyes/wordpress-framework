@@ -12,36 +12,16 @@ on:
     - cron: '0 6 * * 1'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
-  actionlint:
-    name: Actionlint
-    runs-on: ubuntu-latest
+  checks:
     permissions:
       contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with:
-          persist-credentials: false
-
-      - name: Run actionlint
-        uses: raven-actions/actionlint@205b530c5d9fa8f44ae9ed59f341a0db994aa6f8
-
-  zizmor:
-    name: Zizmor
-    runs-on: ubuntu-latest
-    permissions:
       security-events: write
-      contents: read
       actions: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with:
-          persist-credentials: false
-
-      # Advanced Security mode: findings go to the Security tab, do not fail CI.
-      - name: Run zizmor
-        uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-workflow-checks.yml@714fc2a66d6ae5011999beb18a4b01fb1992f4bd

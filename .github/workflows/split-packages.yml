@@ -26,7 +26,7 @@ jobs:
           - { dir: 'utilities',   repo: 'wp-framework-utilities' }
           - { dir: 'woocommerce', repo: 'wp-framework-woocommerce' }
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
           # Don't install the credential helper that auths as github-actions[bot].
@@ -40,14 +40,23 @@ jobs:
           # linux/amd64 binary; v2.0.0 was tagged in 2023 with no assets attached.
           # The tool's `--prefix` behavior hasn't materially changed since v1.
           curl -fsSL -o splitsh.tar.gz https://github.com/splitsh/lite/releases/download/v1.0.1/lite_linux_amd64.tar.gz
+          # sha256 computed from the v1.0.1 release asset (upstream publishes no checksums — trust-on-first-use pin).
+          echo "2539301ce5e21d0ca44b689d0dd2c1b20d9f9e996c1fe6c462afb8af4e7141cc  splitsh.tar.gz" | sha256sum -c -
           tar -xzf splitsh.tar.gz
           sudo mv splitsh-lite /usr/local/bin/
           rm splitsh.tar.gz
 
       - name: Compute split SHA for packages/${{ matrix.package.dir }}
         id: split
+        env:
+          PKG_DIR: ${{ matrix.package.dir }}
         run: |
-          SHA=$(splitsh-lite --prefix=packages/${{ matrix.package.dir }})
+          SHA=$(splitsh-lite --prefix="packages/$PKG_DIR")
+          # An empty SHA would turn the force-push refspec into remote branch deletion.
+          if [ -z "$SHA" ] || ! git cat-file -e "$SHA^{commit}"; then
+            echo "::error::splitsh produced no valid commit for packages/$PKG_DIR"
+            exit 1
+          fi
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           echo "Split SHA: $SHA"
 

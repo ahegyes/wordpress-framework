@@ -12,7 +12,7 @@ permissions:
 jobs:
   unit:
     name: Unit
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@db1f56b3c96ae1fae91eb10ec162ba8095b904ad
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@714fc2a66d6ae5011999beb18a4b01fb1992f4bd
     with:
       php-version: '8.5'
       composer-script: 'test:unit'
@@ -35,37 +35,36 @@ jobs:
           - label: 'WP 6.9.4 (below floor)'
             php-version: '8.5'
             wp-env-core: 'WordPress/WordPress#tags/6.9.4'
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@db1f56b3c96ae1fae91eb10ec162ba8095b904ad
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@714fc2a66d6ae5011999beb18a4b01fb1992f4bd
     with:
       php-version: ${{ matrix.php-version }}
       wp-env-core: ${{ matrix.wp-env-core }}
       composer-script: 'test:integration'
-      node-version: '24'
       wp-env-config-file: '.wp-env.tests.json'
 
   smoke:
     name: Consumer Smoke
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.5'
           coverage: none
           tools: composer:v2
 
       - name: Install consumer-smoke fixture
-        uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
+        uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
         with:
           working-directory: tests/Fixtures/consumer-smoke
           composer-options: '--prefer-dist'
 
       - name: Install consumer-smoke-b fixture
-        uses: ramsey/composer-install@26d8a556604053a9612623447203a691f406fbe6
+        uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
         with:
           working-directory: tests/Fixtures/consumer-smoke-b
           composer-options: '--prefer-dist'
