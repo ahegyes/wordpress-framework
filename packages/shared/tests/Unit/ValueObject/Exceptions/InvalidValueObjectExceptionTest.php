@@ -9,9 +9,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 final class FixtureInvalidValueObjectException extends InvalidValueObjectException {
-	protected string $value_object_type {
-		get => 'FixtureValueObject';
-	}
+	protected string $value_object_type [ get => 'FixtureValueObject'; ]
 }
 
 #[CoversClass( InvalidValueObjectException::class )]

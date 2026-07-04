@@ -438,7 +438,7 @@ final class AdminNoticesServiceTest extends TestCase {
 	private function run_until_wp_die( callable $fn ): void {
 		$thrower = static fn() => static function (): void {
 			throw new \RuntimeException( '__dws_wp_die__' );
-		};
+		}
 		\add_filter( 'wp_die_handler', $thrower );
 		\add_filter( 'wp_die_ajax_handler', $thrower );
 

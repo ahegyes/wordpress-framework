@@ -29,9 +29,9 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
 final class UserProfileFieldStoreTest extends TestCase {
-	private const GROUP_ID     = 'dws_prefs';
-	private const NONCE_NAME   = 'dws_object_field_dws_prefs_nonce';
-	private const NONCE_ACTION = 'dws_object_field_dws_prefs';
+	private const GROUP_ID       = 'dws_prefs';
+	private const NONCE_NAME     = 'dws_object_field_dws_prefs_nonce';
+	private const NONCE_ACTION   = 'dws_object_field_dws_prefs';
 	private const ISOLATED_HOOKS = array(
 		'show_user_profile',
 		'edit_user_profile',
@@ -61,7 +61,11 @@ final class UserProfileFieldStoreTest extends TestCase {
 		}
 
 		$user_id = \wp_insert_user(
-			array( 'user_login' => 'dws_target_' . \uniqid(), 'user_pass' => 'x', 'role' => 'subscriber' ),
+			array(
+				'user_login' => 'dws_target_' . \uniqid(),
+				'user_pass'  => 'x',
+				'role'       => 'subscriber',
+			),
 		);
 		\assert( \is_int( $user_id ) );
 		$this->user_id = $user_id;
@@ -110,7 +114,10 @@ final class UserProfileFieldStoreTest extends TestCase {
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
 		( new UserProfileFieldStore() )->register( $this->profile() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => '1' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'pref' => '1' ),
+		);
 		\do_action( 'edit_user_profile_update', $this->user_id );
 
 		self::assertTrue( $this->repo()->has( $this->user_id, 'pref' ) );
@@ -122,7 +129,10 @@ final class UserProfileFieldStoreTest extends TestCase {
 		$group   = $profile->group;
 		$store->register( $profile );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => 'weekly' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'pref' => 'weekly' ),
+		);
 		\do_action( 'edit_user_profile_update', $this->user_id );
 
 		self::assertTrue( $store->has( $group, $this->user_id, 'pref' ) );
@@ -140,7 +150,10 @@ final class UserProfileFieldStoreTest extends TestCase {
 		$raw = '<b>x</b>';
 		( new UserProfileFieldStore() )->register( $this->text_profile() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => $raw ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'pref' => $raw ),
+		);
 		\do_action( 'edit_user_profile_update', $this->user_id );
 
 		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->user_id, 'pref' ) );
@@ -154,7 +167,10 @@ final class UserProfileFieldStoreTest extends TestCase {
 		);
 
 		$this->repo()->set( $this->user_id, 'pref', 'red' );
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => 'blue' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'pref' => 'blue' ),
+		);
 		\do_action( 'edit_user_profile_update', $this->user_id );
 
 		self::assertSame( 'red', $this->repo()->get( $this->user_id, 'pref' ) );
@@ -188,14 +204,21 @@ final class UserProfileFieldStoreTest extends TestCase {
 
 	public function test_saving_is_skipped_for_a_user_who_cannot_edit_the_target(): void {
 		$other = \wp_insert_user(
-			array( 'user_login' => 'dws_other_' . \uniqid(), 'user_pass' => 'x', 'role' => 'subscriber' ),
+			array(
+				'user_login' => 'dws_other_' . \uniqid(),
+				'user_pass'  => 'x',
+				'role'       => 'subscriber',
+			),
 		);
 		\assert( \is_int( $other ) );
 		\wp_set_current_user( $other );
 
 		( new UserProfileFieldStore() )->register( $this->profile() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'pref' => '1' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'pref' => '1' ),
+		);
 		\do_action( 'edit_user_profile_update', $this->user_id );
 
 		self::assertFalse( $this->repo()->has( $this->user_id, 'pref' ) );
@@ -205,7 +228,11 @@ final class UserProfileFieldStoreTest extends TestCase {
 
 	public function test_rendering_is_skipped_for_a_user_who_cannot_edit_the_target(): void {
 		$other = \wp_insert_user(
-			array( 'user_login' => 'dws_other_render_' . \uniqid(), 'user_pass' => 'x', 'role' => 'subscriber' ),
+			array(
+				'user_login' => 'dws_other_render_' . \uniqid(),
+				'user_pass'  => 'x',
+				'role'       => 'subscriber',
+			),
 		);
 		\assert( \is_int( $other ) );
 		\wp_set_current_user( $other );

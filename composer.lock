@@ -657,12 +657,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "ce65367d2f12a29bafd1635fbf4d88aee605f362"
+                "reference": "a3d1d37396d9fac6f95f7ebb50d852931372b901"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/ce65367d2f12a29bafd1635fbf4d88aee605f362",
-                "reference": "ce65367d2f12a29bafd1635fbf4d88aee605f362",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/a3d1d37396d9fac6f95f7ebb50d852931372b901",
+                "reference": "a3d1d37396d9fac6f95f7ebb50d852931372b901",
                 "shasum": ""
             },
             "require": {
@@ -741,12 +741,12 @@
                 "test:unit": [
                     "@php vendor/bin/phpunit --testsuite=Unit"
                 ],
-                "test:mutation": [
+                "test:unit:mutation": [
                     "@php vendor/bin/infection --threads=max"
                 ],
                 "test:all": [
                     "@test:unit",
-                    "@test:mutation"
+                    "@test:unit:mutation"
                 ],
                 "quality-check": [
                     "@lint:php",
@@ -771,7 +771,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-07-04T23:31:09+00:00"
+            "time": "2026-07-04T23:40:33+00:00"
         },
         {
             "name": "automattic/jetpack-changelogger",

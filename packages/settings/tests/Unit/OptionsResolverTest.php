@@ -11,9 +11,20 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( OptionsResolver::class )]
 final class OptionsResolverTest extends TestCase {
 	public function test_resolves_an_array_source_as_is(): void {
-		$result = ( new OptionsResolver() )->resolve( array( 'a' => 'A', 'b' => 'B' ) );
+		$result = ( new OptionsResolver() )->resolve(
+			array(
+				'a' => 'A',
+				'b' => 'B',
+			)
+		);
 
-		self::assertSame( array( 'a' => 'A', 'b' => 'B' ), $result );
+		self::assertSame(
+			array(
+				'a' => 'A',
+				'b' => 'B',
+			),
+			$result
+		);
 	}
 
 	public function test_resolves_a_closure_source(): void {
@@ -35,16 +46,30 @@ final class OptionsResolverTest extends TestCase {
 	}
 
 	public function test_all_three_sources_yield_the_same_resolved_set(): void {
-		$expected = array( 'x' => 'X', 'y' => 'Y' );
+		$expected = array(
+			'x' => 'X',
+			'y' => 'Y',
+		);
 		$provider = new class() implements SettingsOptionsProviderInterface {
 			public function get_options(): array {
-				return array( 'x' => 'X', 'y' => 'Y' );
+				return array(
+					'x' => 'X',
+					'y' => 'Y',
+				);
 			}
 		};
 		$resolver = new OptionsResolver();
 
 		self::assertSame( $expected, $resolver->resolve( $expected ) );
-		self::assertSame( $expected, $resolver->resolve( static fn (): array => array( 'x' => 'X', 'y' => 'Y' ) ) );
+		self::assertSame(
+			$expected,
+			$resolver->resolve(
+				static fn (): array => array(
+					'x' => 'X',
+					'y' => 'Y',
+				)
+			)
+		);
 		self::assertSame( $expected, $resolver->resolve( $provider ) );
 	}
 

@@ -31,7 +31,7 @@ final class FixtureWithPublics implements \JsonSerializable {
 }
 
 final class FixtureWithMixedVisibility {
-	public string $public_value = 'visible';
+	public string $public_value    = 'visible';
 	protected int $protected_value = 42;
 	/** @phpstan-ignore property.onlyWritten */
 	private string $private_value = 'secret';
@@ -199,7 +199,7 @@ final class FunctionsTest extends TestCase {
 	}
 
 	public function test_convert_to_primitives_recurses_into_nested_json_serializable_results(): void {
-		$when = new \DateTimeImmutable( '2026-05-15T12:34:56+00:00' );
+		$when   = new \DateTimeImmutable( '2026-05-15T12:34:56+00:00' );
 		$nested = new class( new FixtureRawSerializable( $when ) ) implements \JsonSerializable {
 			public function __construct(
 				public FixtureRawSerializable $child,

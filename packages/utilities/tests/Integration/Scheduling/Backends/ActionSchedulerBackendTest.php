@@ -147,7 +147,12 @@ final class ActionSchedulerBackendTest extends TestCase {
 		// Force the action to running: the cancel loop removes only pending actions, but the verify counts
 		// running ones too, so an action that cannot be cancelled surfaces as a Failure.
 		$id = \as_get_scheduled_actions(
-			array( 'hook' => self::HOOK, 'group' => self::GROUP, 'status' => \ActionScheduler_Store::STATUS_PENDING, 'per_page' => 1 ),
+			array(
+				'hook'     => self::HOOK,
+				'group'    => self::GROUP,
+				'status'   => \ActionScheduler_Store::STATUS_PENDING,
+				'per_page' => 1,
+			),
 			'ids',
 		)[0] ?? null;
 		self::assertNotNull( $id );
@@ -169,7 +174,13 @@ final class ActionSchedulerBackendTest extends TestCase {
 	 * @return  void
 	 */
 	private function clear_hook(): void {
-		foreach ( \as_get_scheduled_actions( array( 'hook' => self::HOOK, 'per_page' => -1 ), 'ids' ) as $id ) {
+		foreach ( \as_get_scheduled_actions(
+			array(
+				'hook'     => self::HOOK,
+				'per_page' => -1,
+			),
+			'ids'
+		) as $id ) {
 			\ActionScheduler_Store::instance()->delete_action( (string) $id );
 		}
 	}

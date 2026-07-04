@@ -28,8 +28,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( FieldType::class )]
 #[UsesClass( CustomFieldType::class )]
 final class ObjectFieldFormTest extends TestCase {
-	private const GROUP_ID    = 'dws_box';
-	private const NONCE_NAME  = 'dws_object_field_dws_box_nonce';
+	private const GROUP_ID     = 'dws_box';
+	private const NONCE_NAME   = 'dws_object_field_dws_box_nonce';
 	private const NONCE_ACTION = 'dws_object_field_dws_box';
 
 	private int $post_id = 0;
@@ -40,7 +40,12 @@ final class ObjectFieldFormTest extends TestCase {
 		\wp_set_current_user( 1 );
 		$_POST = array();
 
-		$post_id = \wp_insert_post( array( 'post_title' => 'Probe', 'post_status' => 'publish' ) );
+		$post_id = \wp_insert_post(
+			array(
+				'post_title'  => 'Probe',
+				'post_status' => 'publish',
+			)
+		);
 		\assert( \is_int( $post_id ) );
 		$this->post_id = $post_id;
 	}
@@ -173,7 +178,10 @@ final class ObjectFieldFormTest extends TestCase {
 		$form  = $this->form();
 		$group = $this->group( new SettingsField( id: 'unlocked', type: 'checkbox', label: 'Unlocked' ) );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'unlocked' => '1' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'unlocked' => '1' ),
+		);
 		$form->save( $group, $this->post_id );
 		self::assertTrue( $this->repo()->has( $this->post_id, 'unlocked' ) );
 		self::assertSame( 'yes', $this->repo()->get( $this->post_id, 'unlocked' ) );
@@ -187,7 +195,10 @@ final class ObjectFieldFormTest extends TestCase {
 		$form  = $this->form();
 		$group = $this->group( new SettingsField( id: 'unlocked', type: 'checkbox', label: 'Unlocked' ) );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'unlocked' => 'off' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'unlocked' => 'off' ),
+		);
 		$form->save( $group, $this->post_id );
 
 		self::assertSame( 'no', $this->repo()->get( $this->post_id, 'unlocked' ) );
@@ -204,7 +215,10 @@ final class ObjectFieldFormTest extends TestCase {
 			),
 		);
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'unlocked' => '1' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'unlocked' => '1' ),
+		);
 		$form->save( $group, $this->post_id );
 
 		// The processor's sanitized value is the stored value — save() renormalizes nothing after it.
@@ -215,11 +229,17 @@ final class ObjectFieldFormTest extends TestCase {
 		$form  = $this->form();
 		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'note' => 'hi' ),
+		);
 		$form->save( $group, $this->post_id );
 		self::assertTrue( $this->repo()->has( $this->post_id, 'note' ) );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => '' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'note' => '' ),
+		);
 		$form->save( $group, $this->post_id );
 		self::assertFalse( $this->repo()->has( $this->post_id, 'note' ) );
 	}
@@ -260,7 +280,10 @@ final class ObjectFieldFormTest extends TestCase {
 			),
 		);
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'flag' => '1' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'flag' => '1' ),
+		);
 
 		$this->expectException( DuplicateSettingsFieldException::class );
 		$this->form()->save( $group, $this->post_id );
@@ -270,7 +293,10 @@ final class ObjectFieldFormTest extends TestCase {
 		$form  = $this->form();
 		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => '0' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'note' => '0' ),
+		);
 		$form->save( $group, $this->post_id );
 
 		self::assertTrue( $this->repo()->has( $this->post_id, 'note' ) );
@@ -282,7 +308,10 @@ final class ObjectFieldFormTest extends TestCase {
 		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
 		$raw   = '<b>x</b>';
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'note' => $raw ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'note' => $raw ),
+		);
 		$form->save( $group, $this->post_id );
 
 		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->post_id, 'note' ) );
@@ -295,7 +324,10 @@ final class ObjectFieldFormTest extends TestCase {
 		);
 
 		$this->repo()->set( $this->post_id, 'color', 'red' );
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => 'blue' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'color' => 'blue' ),
+		);
 		$form->save( $group, $this->post_id );
 
 		self::assertSame( 'red', $this->repo()->get( $this->post_id, 'color' ) );
@@ -312,7 +344,13 @@ final class ObjectFieldFormTest extends TestCase {
 			),
 		);
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'first' => 'A', 'second' => 'B' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array(
+				'first'  => 'A',
+				'second' => 'B',
+			),
+		);
 		$form->save( $group, $this->post_id );
 
 		self::assertSame( 'A', $this->repo()->get( $this->post_id, 'first' ) );
@@ -332,7 +370,10 @@ final class ObjectFieldFormTest extends TestCase {
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
-			self::GROUP_ID   => array( 'open' => 'visible', 'secret' => 'tampered' ),
+			self::GROUP_ID   => array(
+				'open'   => 'visible',
+				'secret' => 'tampered',
+			),
 		);
 		$form->save( $group, $this->post_id );
 
@@ -346,7 +387,10 @@ final class ObjectFieldFormTest extends TestCase {
 			new SettingsField( id: 'unlocked', type: 'checkbox', label: 'Unlocked', meta_key: '_lpm_unlocked' ),
 		);
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'unlocked' => '1' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'unlocked' => '1' ),
+		);
 		$form->save( $group, $this->post_id );
 
 		self::assertTrue( $this->repo()->has( $this->post_id, '_lpm_unlocked' ) );
@@ -363,7 +407,13 @@ final class ObjectFieldFormTest extends TestCase {
 			),
 		);
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'a' => 'x', 'b' => '' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array(
+				'a' => 'x',
+				'b' => '',
+			),
+		);
 
 		$this->expectException( DuplicateSettingsFieldException::class );
 		$this->form()->save( $group, $this->post_id );
@@ -377,12 +427,12 @@ final class ObjectFieldFormTest extends TestCase {
 					'<input name="' . \esc_attr( $name ) . '" value="' . \esc_attr( (string) $value ) . '" />',
 			),
 		);
-		$form  = new ObjectFieldForm(
+		$form         = new ObjectFieldForm(
 			$this->repo(),
 			new FieldRenderer( custom_types: $custom_types ),
 			new FieldProcessor( custom_types: $custom_types ),
 		);
-		$group = $this->group(
+		$group        = $this->group(
 			new SettingsField( id: 'picker', type: 'page_picker', label: 'Picker', default_value: 'DEFAULT' ),
 		);
 

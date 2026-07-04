@@ -50,7 +50,7 @@ final class AdminNoticesServiceTest extends TestCase {
 				'extra'  => new NoticeStore( new MemoryStore() ),
 			),
 		);
-		$notice = new AdminNotice( 'x', 'msg' );
+		$notice  = new AdminNotice( 'x', 'msg' );
 
 		$service->add_notice( $notice, 'extra' );
 

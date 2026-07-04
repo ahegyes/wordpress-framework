@@ -119,25 +119,47 @@ final class AdminNoticeTest extends TestCase {
 	}
 
 	public function test_from_array_defaults_unknown_type_string_to_info(): void {
-		$notice = AdminNotice::from_array( array( 'id' => 'x', 'message' => 'm', 'type' => 'bogus' ) );
+		$notice = AdminNotice::from_array(
+			array(
+				'id'      => 'x',
+				'message' => 'm',
+				'type'    => 'bogus',
+			)
+		);
 
 		self::assertSame( NoticeType::Info, $notice->type );
 	}
 
 	public function test_from_array_defaults_absent_type_to_info(): void {
-		$notice = AdminNotice::from_array( array( 'id' => 'x', 'message' => 'm' ) );
+		$notice = AdminNotice::from_array(
+			array(
+				'id'      => 'x',
+				'message' => 'm',
+			)
+		);
 
 		self::assertSame( NoticeType::Info, $notice->type );
 	}
 
 	public function test_from_array_tolerates_non_string_type_without_error(): void {
-		$notice = AdminNotice::from_array( array( 'id' => 'x', 'message' => 'm', 'type' => 5 ) );
+		$notice = AdminNotice::from_array(
+			array(
+				'id'      => 'x',
+				'message' => 'm',
+				'type'    => 5,
+			)
+		);
 
 		self::assertSame( NoticeType::Info, $notice->type );
 	}
 
 	public function test_from_array_absent_flags_fall_back_to_constructor_defaults(): void {
-		$notice = AdminNotice::from_array( array( 'id' => 'x', 'message' => 'm' ) );
+		$notice = AdminNotice::from_array(
+			array(
+				'id'      => 'x',
+				'message' => 'm',
+			)
+		);
 
 		self::assertTrue( $notice->is_dismissible );
 		self::assertFalse( $notice->is_persistent );
@@ -205,7 +227,12 @@ final class AdminNoticeTest extends TestCase {
 	public function test_from_array_throws_on_an_unstable_id(): void {
 		$this->expectException( InvalidAdminNoticeException::class );
 
-		AdminNotice::from_array( array( 'id' => 'Bad.Id', 'message' => 'm' ) );
+		AdminNotice::from_array(
+			array(
+				'id'      => 'Bad.Id',
+				'message' => 'm',
+			)
+		);
 	}
 
 	public function test_equals_is_true_for_attribute_equal_notices(): void {

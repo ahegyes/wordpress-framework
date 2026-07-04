@@ -29,7 +29,11 @@ final class CurrentUserCanConditionalTest extends TestCase {
 
 	public function test_capable_user_passes_the_gate(): void {
 		$admin = \wp_insert_user(
-			array( 'user_login' => 'dws_admin_' . \uniqid(), 'user_pass' => 'x', 'role' => 'administrator' ),
+			array(
+				'user_login' => 'dws_admin_' . \uniqid(),
+				'user_pass'  => 'x',
+				'role'       => 'administrator',
+			),
 		);
 		\assert( \is_int( $admin ) );
 		\wp_set_current_user( $admin );

@@ -28,9 +28,22 @@ final class TransientCacheTest extends TestCase {
 
 	public function test_set_then_get_round_trips_an_array_payload(): void {
 		$cache = new TransientCache( self::PREFIX );
-		$cache->set( 'k', array( 'a' => 1, 'b' => 2 ), HOUR_IN_SECONDS );
+		$cache->set(
+			'k',
+			array(
+				'a' => 1,
+				'b' => 2,
+			),
+			HOUR_IN_SECONDS
+		);
 
-		self::assertSame( array( 'a' => 1, 'b' => 2 ), $cache->get( 'k' ) );
+		self::assertSame(
+			array(
+				'a' => 1,
+				'b' => 2,
+			),
+			$cache->get( 'k' )
+		);
 	}
 
 	public function test_get_returns_default_for_a_missing_key(): void {

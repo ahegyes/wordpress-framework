@@ -45,11 +45,11 @@ final class FieldGroupTest extends TestCase {
 				return array( 'object' => $object_id );
 			}
 		};
-		$group = new FieldGroup(
+		$group  = new FieldGroup(
 			id: 'g',
 			title: 'G',
 			fields_provider: array( $source, 'fields' ),
-			render: static fn ( int $object_id ): string => 'rendered:'.$object_id,
+			render: static fn ( int $object_id ): string => 'rendered:' . $object_id,
 			save: 'strlen',
 		);
 

@@ -43,7 +43,7 @@ final class CrossComponentSettingsTest extends TestCase {
 			label: 'Volume',
 			validate: static fn ( mixed $value ): bool => \in_array( $value, array( 'low', 'high' ), true ),
 		);
-		$mode = new SettingsField(
+		$mode   = new SettingsField(
 			id: 'mode',
 			type: 'text',
 			label: 'Mode',
@@ -56,7 +56,12 @@ final class CrossComponentSettingsTest extends TestCase {
 		// Both fields receive 'auto', which only mode's validator accepts and volume's rejects. Volume
 		// coercing to false while mode survives proves each field ran its OWN validator, not the other's
 		// — a swap would let 'auto' through on volume or reject it on mode.
-		$this->save( array( 'volume' => 'auto', 'mode' => 'auto' ) );
+		$this->save(
+			array(
+				'volume' => 'auto',
+				'mode'   => 'auto',
+			)
+		);
 
 		self::assertFalse( $backend->get( 'volume' ) );
 		self::assertSame( 'auto', $backend->get( 'mode' ) );
@@ -69,7 +74,12 @@ final class CrossComponentSettingsTest extends TestCase {
 		);
 		\do_action( 'admin_init' );
 
-		$this->save( array( 'first' => 'A', 'second' => 'B' ) );
+		$this->save(
+			array(
+				'first'  => 'A',
+				'second' => 'B',
+			)
+		);
 
 		self::assertSame( 'A', $backend->get( 'first' ) );
 		self::assertSame( 'B', $backend->get( 'second' ) );

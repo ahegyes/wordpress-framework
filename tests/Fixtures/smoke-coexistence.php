@@ -42,7 +42,10 @@ foreach ( array( PREFIX_A, PREFIX_B ) as $prefix ) {
 }
 
 // Each copy resolves from its OWN scoped tree — no cross-wiring between consumers.
-foreach ( array( PREFIX_A => $fixture_a, PREFIX_B => $fixture_b ) as $prefix => $fixture_dir ) {
+foreach ( array(
+	PREFIX_A => $fixture_a,
+	PREFIX_B => $fixture_b,
+) as $prefix => $fixture_dir ) {
 	if ( ! class_exists( $prefix . $shared_class ) ) {
 		continue; // Already reported above.
 	}

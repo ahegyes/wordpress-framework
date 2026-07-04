@@ -19,7 +19,12 @@ final class MetadataRepositoryTest extends TestCase {
 		// wp_delete_user() lives in the admin includes, absent from the CLI context the suite runs in.
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 
-		$post_id = \wp_insert_post( array( 'post_title' => 'Probe', 'post_status' => 'publish' ) );
+		$post_id = \wp_insert_post(
+			array(
+				'post_title'  => 'Probe',
+				'post_status' => 'publish',
+			)
+		);
 		\assert( \is_int( $post_id ) );
 		$this->post_id = $post_id;
 	}
@@ -73,7 +78,10 @@ final class MetadataRepositoryTest extends TestCase {
 
 		$repo->apply(
 			$this->post_id,
-			array( '_dws_a' => 'A', '_dws_b' => 'B' ),
+			array(
+				'_dws_a' => 'A',
+				'_dws_b' => 'B',
+			),
 			array( '_dws_old' ),
 		);
 
@@ -132,7 +140,11 @@ final class MetadataRepositoryTest extends TestCase {
 
 	public function test_repository_targets_user_meta(): void {
 		$user_id = \wp_insert_user(
-			array( 'user_login' => 'dws_meta_probe_' . $this->post_id, 'user_pass' => 'x', 'role' => 'subscriber' ),
+			array(
+				'user_login' => 'dws_meta_probe_' . $this->post_id,
+				'user_pass'  => 'x',
+				'role'       => 'subscriber',
+			),
 		);
 		\assert( \is_int( $user_id ) );
 		$repo = new MetadataRepository( MetaType::User );
@@ -160,7 +172,12 @@ final class MetadataRepositoryTest extends TestCase {
 	}
 
 	public function test_repository_targets_comment_meta(): void {
-		$comment_id = \wp_insert_comment( array( 'comment_post_ID' => $this->post_id, 'comment_content' => 'hi' ) );
+		$comment_id = \wp_insert_comment(
+			array(
+				'comment_post_ID' => $this->post_id,
+				'comment_content' => 'hi',
+			)
+		);
 		\assert( \is_int( $comment_id ) );
 		$repo = new MetadataRepository( MetaType::Comment );
 

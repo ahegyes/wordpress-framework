@@ -82,7 +82,7 @@ final class SettingsFieldTest extends TestCase {
 				return \trim( $value );
 			}
 		};
-		$field = new SettingsField( id: 'f', type: 'text', label: 'F', sanitize: array( $cleaner, 'clean' ) );
+		$field   = new SettingsField( id: 'f', type: 'text', label: 'F', sanitize: array( $cleaner, 'clean' ) );
 
 		self::assertInstanceOf( \Closure::class, $field->sanitize );
 		self::assertSame( 'y', ( $field->sanitize )( ' y ' ) );
@@ -114,7 +114,7 @@ final class SettingsFieldTest extends TestCase {
 				return array( 'k' => 'V' );
 			}
 		};
-		$field = new SettingsField( id: 'f', type: 'select', label: 'F', options: $provider );
+		$field    = new SettingsField( id: 'f', type: 'select', label: 'F', options: $provider );
 
 		self::assertSame( $provider, $field->options );
 	}

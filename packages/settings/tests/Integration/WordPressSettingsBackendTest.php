@@ -83,7 +83,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 		$entries = \is_array( $submenu ) && isset( $submenu['options-general.php'] ) && \is_array( $submenu['options-general.php'] )
 			? $submenu['options-general.php']
 			: array();
-		$title = '';
+		$title   = '';
 		foreach ( $entries as $entry ) {
 			if ( \is_array( $entry ) && self::SLUG === ( $entry[2] ?? null ) ) {
 				$title = (string) ( $entry[0] ?? '' );
@@ -222,7 +222,13 @@ final class WordPressSettingsBackendTest extends TestCase {
 		$this->register( $this->page() );
 		\do_action( 'admin_init' );
 
-		$this->form_save( self::GENERAL_OPTION, array( 'site_name' => 'Acme', 'enabled' => '1' ) );
+		$this->form_save(
+			self::GENERAL_OPTION,
+			array(
+				'site_name' => 'Acme',
+				'enabled'   => '1',
+			)
+		);
 
 		self::assertSame( 'yes', \get_option( self::GENERAL_OPTION )['enabled'] ?? null );
 	}
@@ -252,14 +258,20 @@ final class WordPressSettingsBackendTest extends TestCase {
 		$backend->set( 'secret', 'classified' );
 
 		// User 1 lacks dws_protected_cap; a form save tries to change both fields.
-		$this->form_save( self::GENERAL_OPTION, array( 'site_name' => 'after', 'secret' => 'tampered' ) );
+		$this->form_save(
+			self::GENERAL_OPTION,
+			array(
+				'site_name' => 'after',
+				'secret'    => 'tampered',
+			)
+		);
 
 		self::assertSame( 'after', $backend->get( 'site_name' ) );
 		self::assertSame( 'classified', $backend->get( 'secret' ) );
 	}
 
 	public function test_a_scalar_submission_is_processed_not_stored_raw(): void {
-		$page = new SettingsPage(
+		$page    = new SettingsPage(
 			slug: self::SLUG,
 			page_title: 'DWS Test',
 			menu_title: 'DWS Test',
@@ -370,7 +382,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 	}
 
 	public function test_a_nested_programmatic_write_does_not_cause_the_outer_write_to_be_processed(): void {
-		$backend     = $this->register( $this->page() );
+		$backend = $this->register( $this->page() );
 		\do_action( 'admin_init' );
 		$nested_done = false;
 
@@ -426,7 +438,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 	}
 
 	public function test_a_custom_field_type_rejection_preserves_the_prior_value(): void {
-		$page = new SettingsPage(
+		$page    = new SettingsPage(
 			slug: self::SLUG,
 			page_title: 'DWS Test',
 			menu_title: 'DWS Test',
@@ -458,7 +470,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 	}
 
 	public function test_a_section_autoloads_its_option_only_when_a_field_opts_in(): void {
-		$page = new SettingsPage(
+		$page    = new SettingsPage(
 			slug: self::SLUG,
 			page_title: 'DWS Test',
 			menu_title: 'DWS Test',
@@ -591,7 +603,17 @@ final class WordPressSettingsBackendTest extends TestCase {
 				new SettingsSection(
 					'general',
 					'General',
-					array( new SettingsField( id: 'mode', type: 'radio', label: 'Mode', options: array( 'a' => 'Auto', 'm' => 'Manual' ) ) ),
+					array(
+						new SettingsField(
+							id: 'mode',
+							type: 'radio',
+							label: 'Mode',
+							options: array(
+								'a' => 'Auto',
+								'm' => 'Manual',
+							)
+						),
+					),
 				),
 			),
 		);
@@ -711,7 +733,7 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 	public function test_a_rejected_submission_preserves_the_prior_value_and_registers_an_error(): void {
 		require_once ABSPATH . 'wp-admin/includes/template.php';
-		$page = new SettingsPage(
+		$page    = new SettingsPage(
 			slug: self::SLUG,
 			page_title: 'DWS Test',
 			menu_title: 'DWS Test',
@@ -749,7 +771,13 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 		$this->form_save(
 			self::API_OPTION,
-			array( 'site_name' => 'Acme', 'enabled' => '1', 'count' => '42', 'tags' => array( 'a', 'c' ), 'color' => 'red' ),
+			array(
+				'site_name' => 'Acme',
+				'enabled'   => '1',
+				'count'     => '42',
+				'tags'      => array( 'a', 'c' ),
+				'color'     => 'red',
+			),
 		);
 
 		$data = $this->rest_get_settings();
@@ -772,7 +800,13 @@ final class WordPressSettingsBackendTest extends TestCase {
 		\do_action( 'rest_api_init' );
 
 		// The form omits the checkbox, the number, and the multiselect; the section row stores each type's empty.
-		$this->form_save( self::API_OPTION, array( 'site_name' => 'Acme', 'color' => 'red' ) );
+		$this->form_save(
+			self::API_OPTION,
+			array(
+				'site_name' => 'Acme',
+				'color'     => 'red',
+			)
+		);
 
 		$data = $this->rest_get_settings();
 
@@ -792,7 +826,15 @@ final class WordPressSettingsBackendTest extends TestCase {
 		// A REST write carries the whole section, as the schema requires every field.
 		$request = new \WP_REST_Request( 'PUT', '/wp/v2/settings' );
 		$request->set_body_params(
-			array( self::API_OPTION => array( 'site_name' => 'Via REST', 'enabled' => true, 'count' => 7, 'tags' => array( 'b' ), 'color' => 'blue' ) ),
+			array(
+				self::API_OPTION => array(
+					'site_name' => 'Via REST',
+					'enabled'   => true,
+					'count'     => 7,
+					'tags'      => array( 'b' ),
+					'color'     => 'blue',
+				),
+			),
 		);
 		$response = \rest_do_request( $request );
 
@@ -813,7 +855,13 @@ final class WordPressSettingsBackendTest extends TestCase {
 
 		$this->form_save(
 			self::API_OPTION,
-			array( 'site_name' => 'Acme', 'enabled' => '1', 'count' => '42', 'tags' => array( 'a' ), 'color' => 'red' ),
+			array(
+				'site_name' => 'Acme',
+				'enabled'   => '1',
+				'count'     => '42',
+				'tags'      => array( 'a' ),
+				'color'     => 'red',
+			),
 		);
 
 		// The settings endpoint replaces an option on write, so a REST write carrying only site_name replaces
@@ -1013,8 +1061,27 @@ final class WordPressSettingsBackendTest extends TestCase {
 						new SettingsField( id: 'site_name', type: 'text', label: 'Site Name', show_in_rest: true ),
 						new SettingsField( id: 'enabled', type: 'checkbox', label: 'Enabled', show_in_rest: true ),
 						new SettingsField( id: 'count', type: 'number', label: 'Count', show_in_rest: true ),
-						new SettingsField( id: 'tags', type: 'multiselect', label: 'Tags', show_in_rest: true, options: array( 'a' => 'A', 'b' => 'B', 'c' => 'C' ) ),
-						new SettingsField( id: 'color', type: 'select', label: 'Color', show_in_rest: true, options: array( 'red' => 'Red', 'blue' => 'Blue' ) ),
+						new SettingsField(
+							id: 'tags',
+							type: 'multiselect',
+							label: 'Tags',
+							show_in_rest: true,
+							options: array(
+								'a' => 'A',
+								'b' => 'B',
+								'c' => 'C',
+							)
+						),
+						new SettingsField(
+							id: 'color',
+							type: 'select',
+							label: 'Color',
+							show_in_rest: true,
+							options: array(
+								'red'  => 'Red',
+								'blue' => 'Blue',
+							)
+						),
 					),
 				),
 				new SettingsSection(

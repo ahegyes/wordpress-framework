@@ -158,7 +158,13 @@ final class SchedulerTest extends TestCase {
 	private function clear_hook(): void {
 		\wp_unschedule_hook( self::HOOK );
 		if ( \function_exists( 'as_get_scheduled_actions' ) ) {
-			foreach ( \as_get_scheduled_actions( array( 'hook' => self::HOOK, 'per_page' => -1 ), 'ids' ) as $id ) {
+			foreach ( \as_get_scheduled_actions(
+				array(
+					'hook'     => self::HOOK,
+					'per_page' => -1,
+				),
+				'ids'
+			) as $id ) {
 				\ActionScheduler_Store::instance()->delete_action( (string) $id );
 			}
 		}

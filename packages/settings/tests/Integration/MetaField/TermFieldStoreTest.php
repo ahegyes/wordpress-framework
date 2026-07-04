@@ -29,9 +29,9 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
 final class TermFieldStoreTest extends TestCase {
-	private const GROUP_ID     = 'dws_termmeta';
-	private const NONCE_NAME   = 'dws_object_field_dws_termmeta_nonce';
-	private const NONCE_ACTION = 'dws_object_field_dws_termmeta';
+	private const GROUP_ID       = 'dws_termmeta';
+	private const NONCE_NAME     = 'dws_object_field_dws_termmeta_nonce';
+	private const NONCE_ACTION   = 'dws_object_field_dws_termmeta';
 	private const ISOLATED_HOOKS = array( 'category_add_form_fields', 'category_edit_form_fields', 'created_category', 'edited_category' );
 
 	private int $term_id = 0;
@@ -133,7 +133,10 @@ final class TermFieldStoreTest extends TestCase {
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
 		( new TermFieldStore() )->register( $this->term_group() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => 'blue' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'color' => 'blue' ),
+		);
 		\do_action( 'edited_category', $this->term_id );
 
 		self::assertSame( 'blue', $this->repo()->get( $this->term_id, 'color' ) );
@@ -145,7 +148,10 @@ final class TermFieldStoreTest extends TestCase {
 		$group      = $term_group->group;
 		$store->register( $term_group );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => 'blue' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'color' => 'blue' ),
+		);
 		\do_action( 'edited_category', $this->term_id );
 
 		self::assertTrue( $store->has( $group, $this->term_id, 'color' ) );
@@ -162,7 +168,10 @@ final class TermFieldStoreTest extends TestCase {
 	public function test_saving_a_created_term_persists_with_capability_and_a_valid_add_nonce(): void {
 		( new TermFieldStore() )->register( $this->term_group() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce_for( 0 ), self::GROUP_ID => array( 'color' => 'blue' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce_for( 0 ),
+			self::GROUP_ID   => array( 'color' => 'blue' ),
+		);
 		\do_action( 'created_category', $this->term_id );
 
 		self::assertSame( 'blue', $this->repo()->get( $this->term_id, 'color' ) );
@@ -172,7 +181,10 @@ final class TermFieldStoreTest extends TestCase {
 		$raw = '<b>x</b>';
 		( new TermFieldStore() )->register( $this->term_group() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => $raw ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'color' => $raw ),
+		);
 		\do_action( 'edited_category', $this->term_id );
 
 		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->term_id, 'color' ) );
@@ -186,7 +198,10 @@ final class TermFieldStoreTest extends TestCase {
 		);
 
 		$this->repo()->set( $this->term_id, 'color', 'red' );
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => 'blue' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'color' => 'blue' ),
+		);
 		\do_action( 'edited_category', $this->term_id );
 
 		self::assertSame( 'red', $this->repo()->get( $this->term_id, 'color' ) );
@@ -203,14 +218,21 @@ final class TermFieldStoreTest extends TestCase {
 
 	public function test_saving_is_skipped_for_a_user_without_the_term_capability(): void {
 		$subscriber = \wp_insert_user(
-			array( 'user_login' => 'dws_sub_' . \uniqid(), 'user_pass' => 'x', 'role' => 'subscriber' ),
+			array(
+				'user_login' => 'dws_sub_' . \uniqid(),
+				'user_pass'  => 'x',
+				'role'       => 'subscriber',
+			),
 		);
 		\assert( \is_int( $subscriber ) );
 		\wp_set_current_user( $subscriber );
 
 		( new TermFieldStore() )->register( $this->term_group() );
 
-		$_POST = array( self::NONCE_NAME => $this->nonce(), self::GROUP_ID => array( 'color' => 'blue' ) );
+		$_POST = array(
+			self::NONCE_NAME => $this->nonce(),
+			self::GROUP_ID   => array( 'color' => 'blue' ),
+		);
 		\do_action( 'edited_category', $this->term_id );
 
 		self::assertFalse( $this->repo()->has( $this->term_id, 'color' ) );
@@ -234,7 +256,11 @@ final class TermFieldStoreTest extends TestCase {
 		);
 
 		$author = \wp_insert_user(
-			array( 'user_login' => 'dws_author_' . \uniqid(), 'user_pass' => 'x', 'role' => 'author' ),
+			array(
+				'user_login' => 'dws_author_' . \uniqid(),
+				'user_pass'  => 'x',
+				'role'       => 'author',
+			),
 		);
 		\assert( \is_int( $author ) );
 		\wp_set_current_user( $author );
@@ -269,7 +295,11 @@ final class TermFieldStoreTest extends TestCase {
 
 	public function test_rendering_is_skipped_for_a_user_without_the_term_capability(): void {
 		$subscriber = \wp_insert_user(
-			array( 'user_login' => 'dws_sub_render_' . \uniqid(), 'user_pass' => 'x', 'role' => 'subscriber' ),
+			array(
+				'user_login' => 'dws_sub_render_' . \uniqid(),
+				'user_pass'  => 'x',
+				'role'       => 'subscriber',
+			),
 		);
 		\assert( \is_int( $subscriber ) );
 		\wp_set_current_user( $subscriber );

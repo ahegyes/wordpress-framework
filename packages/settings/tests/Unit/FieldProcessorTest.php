@@ -411,7 +411,7 @@ final class FieldProcessorTest extends TestCase {
 			type_sanitizers: array( 'text' => static fn ( mixed $value ): string => 'MANGLED' ),
 		);
 
-		$result = $processor->process_or_reject( $this->field( 'name', 'text' ), array( 'name' => false ) );
+		$result    = $processor->process_or_reject( $this->field( 'name', 'text' ), array( 'name' => false ) );
 
 		self::assertInstanceOf( Success::class, $result );
 		self::assertFalse( $result->value );
@@ -446,7 +446,15 @@ final class FieldProcessorTest extends TestCase {
 	}
 
 	public function test_process_or_reject_filters_a_multiselect_to_valid_options_as_a_success(): void {
-		$field  = new SettingsField( id: 'tags', type: 'multiselect', label: 'T', options: array( 'a' => 'A', 'b' => 'B' ) );
+		$field  = new SettingsField(
+			id: 'tags',
+			type: 'multiselect',
+			label: 'T',
+			options: array(
+				'a' => 'A',
+				'b' => 'B',
+			)
+		);
 		$result = ( new FieldProcessor() )->process_or_reject( $field, array( 'tags' => array( 'a', 'x', 'b' ) ) );
 
 		self::assertInstanceOf( Success::class, $result );

@@ -39,15 +39,15 @@ final class IsValidGlobalNamePrefixTest extends TestCase {
 	 */
 	public static function invalid_prefixes(): array {
 		return array(
-			'empty'              => array( '' ),
-			'underscore only'    => array( '_' ),
-			'double underscore'  => array( '__dws' ),
-			'leading digit'      => array( '2dws' ),
-			'uppercase'          => array( 'Dws' ),
-			'space'              => array( 'dws cache' ),
-			'dot'                => array( 'dws.cache' ),
-			'trailing newline'   => array( "dws\n" ),
-			'leading hyphen'     => array( '-dws' ),
+			'empty'             => array( '' ),
+			'underscore only'   => array( '_' ),
+			'double underscore' => array( '__dws' ),
+			'leading digit'     => array( '2dws' ),
+			'uppercase'         => array( 'Dws' ),
+			'space'             => array( 'dws cache' ),
+			'dot'               => array( 'dws.cache' ),
+			'trailing newline'  => array( "dws\n" ),
+			'leading hyphen'    => array( '-dws' ),
 		);
 	}
 }

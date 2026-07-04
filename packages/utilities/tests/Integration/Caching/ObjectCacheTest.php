@@ -77,8 +77,8 @@ final class ObjectCacheTest extends TestCase {
 	}
 
 	public function test_remember_returns_the_cached_value_without_recomputing(): void {
-		$cache = new ObjectCache( self::GROUP );
-		$calls = 0;
+		$cache   = new ObjectCache( self::GROUP );
+		$calls   = 0;
 		$compute = function () use ( &$calls ): string {
 			++$calls;
 			return 'computed';
@@ -90,8 +90,8 @@ final class ObjectCacheTest extends TestCase {
 	}
 
 	public function test_remember_caches_a_falsey_value_without_recomputing(): void {
-		$cache = new ObjectCache( self::GROUP );
-		$calls = 0;
+		$cache   = new ObjectCache( self::GROUP );
+		$calls   = 0;
 		$compute = function () use ( &$calls ): bool {
 			++$calls;
 			return false;
@@ -128,10 +128,13 @@ final class ObjectCacheTest extends TestCase {
 	public function test_remember_does_not_let_a_value_survive_a_flush_during_its_callback(): void {
 		$cache = new ObjectCache( self::GROUP );
 
-		$value = $cache->remember( 'key', function () use ( $cache ): string {
-			$cache->flush();
-			return 'computed';
-		} );
+		$value = $cache->remember(
+			'key',
+			function () use ( $cache ): string {
+				$cache->flush();
+				return 'computed';
+			}
+		);
 
 		// The caller still gets the computed value, but it was stored under the pre-flush generation, so
 		// the flush leaves it unreachable rather than letting it outlive the invalidation it raced.

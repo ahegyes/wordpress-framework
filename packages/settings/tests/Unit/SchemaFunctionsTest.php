@@ -47,11 +47,21 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
 final class SchemaFunctionsTest extends TestCase {
 	public function test_keeps_well_formed_non_event_attribute_names(): void {
 		$kept = filter_field_attributes(
-			array( 'class' => 'widefat', 'data-foo' => 'bar', 'min' => '0', 'step' => '1' ),
+			array(
+				'class'    => 'widefat',
+				'data-foo' => 'bar',
+				'min'      => '0',
+				'step'     => '1',
+			),
 		);
 
 		self::assertSame(
-			array( 'class' => 'widefat', 'data-foo' => 'bar', 'min' => '0', 'step' => '1' ),
+			array(
+				'class'    => 'widefat',
+				'data-foo' => 'bar',
+				'min'      => '0',
+				'step'     => '1',
+			),
 			$kept,
 		);
 	}
@@ -79,11 +89,11 @@ final class SchemaFunctionsTest extends TestCase {
 	 */
 	public static function event_handler_names(): array {
 		return array(
-			'onclick'      => array( 'onclick' ),
-			'onmouseover'  => array( 'onmouseover' ),
-			'onfocus'      => array( 'onfocus' ),
-			'once'         => array( 'once' ),
-			'on-call'      => array( 'on-call' ),
+			'onclick'       => array( 'onclick' ),
+			'onmouseover'   => array( 'onmouseover' ),
+			'onfocus'       => array( 'onfocus' ),
+			'once'          => array( 'once' ),
+			'on-call'       => array( 'on-call' ),
 			'mixed-case ON' => array( 'ONload' ),
 		);
 	}
@@ -101,19 +111,23 @@ final class SchemaFunctionsTest extends TestCase {
 	 */
 	public static function malformed_attribute_names(): array {
 		return array(
-			'empty'            => array( '' ),
-			'leading digit'    => array( '1bad' ),
-			'leading hyphen'   => array( '-bad' ),
-			'underscore'       => array( 'data_foo' ),
-			'space-separated'  => array( 'autofocus onfocus' ),
-			'dot'              => array( 'data.foo' ),
+			'empty'           => array( '' ),
+			'leading digit'   => array( '1bad' ),
+			'leading hyphen'  => array( '-bad' ),
+			'underscore'      => array( 'data_foo' ),
+			'space-separated' => array( 'autofocus onfocus' ),
+			'dot'             => array( 'data.foo' ),
 		);
 	}
 
 	public function test_keeps_valid_drops_invalid_in_one_pass(): void {
 		// The dropped names precede the kept one so a skip that fell through to break would drop it too.
 		$kept = filter_field_attributes(
-			array( 'onclick' => 'evil()', '1bad' => 'x', 'min' => '0' ),
+			array(
+				'onclick' => 'evil()',
+				'1bad'    => 'x',
+				'min'     => '0',
+			),
 		);
 
 		self::assertSame( array( 'min' => '0' ), $kept );
@@ -267,22 +281,22 @@ final class SchemaFunctionsTest extends TestCase {
 	 */
 	public static function checkbox_truth_matrix(): array {
 		return array(
-			'bool true'          => array( true, true ),
-			'int 1'              => array( 1, true ),
-			'string 1'          => array( '1', true ),
-			'string yes'        => array( 'yes', true ),
-			'bool false'         => array( false, false ),
-			'int 0'              => array( 0, false ),
-			'string 0'          => array( '0', false ),
-			'string no'         => array( 'no', false ),
-			'string off'        => array( 'off', false ),
-			'string false'      => array( 'false', false ),
-			'string on'         => array( 'on', false ),
-			'arbitrary string'   => array( 'anything', false ),
-			'empty string'       => array( '', false ),
-			'null'               => array( null, false ),
-			'array'              => array( array( 'yes' ), false ),
-			'int 2'              => array( 2, false ),
+			'bool true'        => array( true, true ),
+			'int 1'            => array( 1, true ),
+			'string 1'         => array( '1', true ),
+			'string yes'       => array( 'yes', true ),
+			'bool false'       => array( false, false ),
+			'int 0'            => array( 0, false ),
+			'string 0'         => array( '0', false ),
+			'string no'        => array( 'no', false ),
+			'string off'       => array( 'off', false ),
+			'string false'     => array( 'false', false ),
+			'string on'        => array( 'on', false ),
+			'arbitrary string' => array( 'anything', false ),
+			'empty string'     => array( '', false ),
+			'null'             => array( null, false ),
+			'array'            => array( array( 'yes' ), false ),
+			'int 2'            => array( 2, false ),
 		);
 	}
 
@@ -296,10 +310,10 @@ final class SchemaFunctionsTest extends TestCase {
 	 */
 	public static function valid_global_name_prefixes(): array {
 		return array(
-			'word'             => array( 'dws' ),
-			'with separators'  => array( 'dws-wrwc_cache' ),
-			'hidden meta key'  => array( '_dws-wrwc_' ),
-			'with digit'       => array( 'dws2_' ),
+			'word'            => array( 'dws' ),
+			'with separators' => array( 'dws-wrwc_cache' ),
+			'hidden meta key' => array( '_dws-wrwc_' ),
+			'with digit'      => array( 'dws2_' ),
 		);
 	}
 
@@ -404,16 +418,16 @@ final class SchemaFunctionsTest extends TestCase {
 	 */
 	public static function output_stringification_matrix(): array {
 		return array(
-			'string'     => array( 'label', 'label' ),
+			'string'       => array( 'label', 'label' ),
 			'empty string' => array( '', '' ),
-			'int'        => array( 42, '42' ),
-			'int zero'   => array( 0, '0' ),
-			'float'      => array( 3.5, '3.5' ),
-			'bool true'  => array( true, '1' ),
-			'bool false' => array( false, '' ),
-			'null'       => array( null, '' ),
-			'array'      => array( array( 'x' ), '' ),
-			'object'     => array( new \stdClass(), '' ),
+			'int'          => array( 42, '42' ),
+			'int zero'     => array( 0, '0' ),
+			'float'        => array( 3.5, '3.5' ),
+			'bool true'    => array( true, '1' ),
+			'bool false'   => array( false, '' ),
+			'null'         => array( null, '' ),
+			'array'        => array( array( 'x' ), '' ),
+			'object'       => array( new \stdClass(), '' ),
 		);
 	}
 
@@ -453,7 +467,13 @@ final class SchemaFunctionsTest extends TestCase {
 			'number'      => array( 'number', array( 'type' => array( 'integer', 'number', 'string', 'boolean' ) ) ),
 			'select'      => array( 'select', array( 'type' => array( 'string', 'integer', 'boolean' ) ) ),
 			'radio'       => array( 'radio', array( 'type' => array( 'string', 'integer', 'boolean' ) ) ),
-			'multiselect' => array( 'multiselect', array( 'type' => 'array', 'items' => array( 'type' => array( 'string', 'integer' ) ) ) ),
+			'multiselect' => array(
+				'multiselect',
+				array(
+					'type'  => 'array',
+					'items' => array( 'type' => array( 'string', 'integer' ) ),
+				),
+			),
 		);
 	}
 

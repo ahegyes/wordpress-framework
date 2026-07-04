@@ -62,7 +62,13 @@ final class NoticeStoreTest extends TestCase {
 
 		$all = $store->get_all();
 
-		self::assertEquals( array( 'a' => $a, 'b' => $b ), $all );
+		self::assertEquals(
+			array(
+				'a' => $a,
+				'b' => $b,
+			),
+			$all
+		);
 	}
 
 	public function test_get_all_is_empty_initially(): void {
@@ -91,7 +97,13 @@ final class NoticeStoreTest extends TestCase {
 
 	public function test_get_all_skips_an_entry_whose_id_mismatches_its_key(): void {
 		$backing = new MemoryStore();
-		$backing->set( 'stored-key', array( 'id' => 'different-id', 'message' => 'm' ) );
+		$backing->set(
+			'stored-key',
+			array(
+				'id'      => 'different-id',
+				'message' => 'm',
+			)
+		);
 		$store = new NoticeStore( $backing );
 
 		self::assertSame( array(), $store->get_all() );
@@ -109,7 +121,13 @@ final class NoticeStoreTest extends TestCase {
 
 	public function test_get_all_skips_an_entry_with_an_empty_id(): void {
 		$backing = new MemoryStore();
-		$backing->set( '', array( 'id' => '', 'message' => 'm' ) );
+		$backing->set(
+			'',
+			array(
+				'id'      => '',
+				'message' => 'm',
+			)
+		);
 		$store = new NoticeStore( $backing );
 
 		self::assertSame( array(), $store->get_all() );
@@ -118,7 +136,13 @@ final class NoticeStoreTest extends TestCase {
 
 	public function test_get_all_skips_an_entry_with_an_unstable_id(): void {
 		$backing = new MemoryStore();
-		$backing->set( 'My.Notice', array( 'id' => 'My.Notice', 'message' => 'm' ) );
+		$backing->set(
+			'My.Notice',
+			array(
+				'id'      => 'My.Notice',
+				'message' => 'm',
+			)
+		);
 		$store = new NoticeStore( $backing );
 
 		self::assertSame( array(), $store->get_all() );

@@ -29,7 +29,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
 final class PostMetaFieldStoreTest extends TestCase {
-	private const GROUP_ID     = 'dws_postmeta';
+	private const GROUP_ID       = 'dws_postmeta';
 	private const ISOLATED_HOOKS = array( 'add_meta_boxes_post', 'save_post_post' );
 
 	private int $post_id = 0;
@@ -56,7 +56,12 @@ final class PostMetaFieldStoreTest extends TestCase {
 			unset( $wp_filter[ $hook ] );
 		}
 
-		$post_id = \wp_insert_post( array( 'post_title' => 'Probe', 'post_status' => 'publish' ) );
+		$post_id = \wp_insert_post(
+			array(
+				'post_title'  => 'Probe',
+				'post_status' => 'publish',
+			)
+		);
 		\assert( \is_int( $post_id ) );
 		$this->post_id = $post_id;
 	}
@@ -111,7 +116,10 @@ final class PostMetaFieldStoreTest extends TestCase {
 		$group = $this->group();
 		$store->register( $group, $this->placement() );
 
-		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$_POST = array(
+			$this->nonce_name( $group ) => $this->nonce( $group ),
+			self::GROUP_ID              => array( 'note' => 'hi' ),
+		);
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertSame( 'hi', $this->repo()->get( $this->post_id, 'note' ) );
@@ -122,7 +130,10 @@ final class PostMetaFieldStoreTest extends TestCase {
 		$group = $this->group();
 		$store->register( $group, $this->placement() );
 
-		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$_POST = array(
+			$this->nonce_name( $group ) => $this->nonce( $group ),
+			self::GROUP_ID              => array( 'note' => 'hi' ),
+		);
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertTrue( $store->has( $group, $this->post_id, 'note' ) );
@@ -142,7 +153,10 @@ final class PostMetaFieldStoreTest extends TestCase {
 		$raw   = '<b>x</b>';
 		$store->register( $group, $this->placement() );
 
-		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => $raw ) );
+		$_POST = array(
+			$this->nonce_name( $group ) => $this->nonce( $group ),
+			self::GROUP_ID              => array( 'note' => $raw ),
+		);
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertSame( \sanitize_text_field( $raw ), $this->repo()->get( $this->post_id, 'note' ) );
@@ -156,7 +170,10 @@ final class PostMetaFieldStoreTest extends TestCase {
 		$store->register( $group, $this->placement() );
 
 		$this->repo()->set( $this->post_id, 'color', 'red' );
-		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'color' => 'blue' ) );
+		$_POST = array(
+			$this->nonce_name( $group ) => $this->nonce( $group ),
+			self::GROUP_ID              => array( 'color' => 'blue' ),
+		);
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertSame( 'red', $this->repo()->get( $this->post_id, 'color' ) );
@@ -173,7 +190,11 @@ final class PostMetaFieldStoreTest extends TestCase {
 
 	public function test_saving_is_skipped_for_a_user_without_the_edit_capability(): void {
 		$subscriber = \wp_insert_user(
-			array( 'user_login' => 'dws_sub_' . \uniqid(), 'user_pass' => 'x', 'role' => 'subscriber' ),
+			array(
+				'user_login' => 'dws_sub_' . \uniqid(),
+				'user_pass'  => 'x',
+				'role'       => 'subscriber',
+			),
 		);
 		\assert( \is_int( $subscriber ) );
 		\wp_set_current_user( $subscriber );
@@ -181,7 +202,10 @@ final class PostMetaFieldStoreTest extends TestCase {
 		$group = $this->group();
 		( new PostMetaFieldStore() )->register( $group, $this->placement() );
 
-		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$_POST = array(
+			$this->nonce_name( $group ) => $this->nonce( $group ),
+			self::GROUP_ID              => array( 'note' => 'hi' ),
+		);
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertFalse( $this->repo()->has( $this->post_id, 'note' ) );
@@ -197,7 +221,10 @@ final class PostMetaFieldStoreTest extends TestCase {
 		$store->register( $group, $placement );
 
 		// The administrator passes the default edit_post but lacks the configured capability, so the save is refused.
-		$_POST = array( $this->nonce_name( $group ) => $this->nonce( $group ), self::GROUP_ID => array( 'note' => 'hi' ) );
+		$_POST = array(
+			$this->nonce_name( $group ) => $this->nonce( $group ),
+			self::GROUP_ID              => array( 'note' => 'hi' ),
+		);
 		\do_action( 'save_post_post', $this->post_id );
 
 		self::assertFalse( $this->repo()->has( $this->post_id, 'note' ) );
