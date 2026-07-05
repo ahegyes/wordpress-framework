@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( UserProfileFieldGroup::class )]
 #[UsesClass( FieldGroup::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier' )]
 final class UserProfileFieldGroupTest extends TestCase {
 	public function test_it_wraps_a_field_group_and_shows_on_the_own_profile_by_default(): void {
 		$group   = $this->group();

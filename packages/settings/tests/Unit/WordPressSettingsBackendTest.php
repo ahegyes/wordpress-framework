@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( FieldRenderer::class )]
 #[UsesClass( FieldProcessor::class )]
 #[UsesClass( OptionsResolver::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier' )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers' )]
 final class WordPressSettingsBackendTest extends TestCase {
 	public function test_option_keys_derives_one_grouped_key_per_section_in_declaration_order(): void {

@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( SettingsField::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier' )]
 final class SettingsFieldTest extends TestCase {
 	public function test_minimal_construction_exposes_documented_defaults(): void {
 		$field = new SettingsField( id: 'my_field', type: 'text', label: 'My Field' );

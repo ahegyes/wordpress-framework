@@ -39,10 +39,22 @@ deptrac:
         - type: classLike
           value: '^DeepWebSolutions\\Framework\\Utilities\\.*$'
 
-    - name: Settings
+    # The settings package is three disjoint concept sublayers (deptrac warns on tokens in more than
+    # one layer, so there is no umbrella Settings layer); the package boundary is their union.
+    - name: Settings_Schema
       collectors:
         - type: classLike
-          value: '^DeepWebSolutions\\Framework\\Settings\\.*$'
+          value: '^DeepWebSolutions\\Framework\\Settings\\Schema\\.*$'
+
+    - name: Settings_Backend
+      collectors:
+        - type: classLike
+          value: '^DeepWebSolutions\\Framework\\Settings\\Backend\\.*$'
+
+    - name: Settings_MetaField
+      collectors:
+        - type: classLike
+          value: '^DeepWebSolutions\\Framework\\Settings\\MetaField\\.*$'
 
     - name: WooCommerce
       collectors:
@@ -51,10 +63,10 @@ deptrac:
 
   # Allowed direct dependencies per layer.
   # Shared is the runtime-WP-aware shared kernel; zero internal framework deps; no WP-specific abstractions; may be required directly by any layer above Bootstrap (Common Closure Principle).
-  # Storage is a second zero-dep leaf (KV storage backends; WP-runtime-coupled but no internal framework deps) — required directly by Utilities and Settings.
-  # Settings is the declarative-settings stack (descriptors + WP/object-field backends) — depends only on Storage + Shared, NOT Core or Utilities.
+  # Storage is a second zero-dep leaf (KV storage backends + object-meta repositories; WP-runtime-coupled but no internal framework deps) — required directly by Utilities, Settings, and WooCommerce.
+  # The Settings_* sublayers union to the settings package: Schema is the package-internal sink; Backend and MetaField sit on it and never on each other; the package as a whole depends only on Storage + Shared.
   # Bootstrap stays minimal (PHP 5.6+, pre-autoload) — cannot depend on Shared (PHP 8.5+).
-  # Cross-layer shortcuts are forbidden (Utilities → Bootstrap directly is NOT allowed; must go through Core).
+  # Only Core may depend on Bootstrap; no other layer has Bootstrap access, direct or indirect (allowances are not transitive).
   ruleset:
     Bootstrap: ~
     Shared: ~
@@ -66,10 +78,20 @@ deptrac:
       - Core
       - Shared
       - Storage
-    Settings:
+    Settings_Schema:
+      - Shared
+    Settings_Backend:
+      - Settings_Schema
+      - Storage
+      - Shared
+    Settings_MetaField:
+      - Settings_Schema
       - Storage
       - Shared
     WooCommerce:
       - Core
       - Shared
-      - Settings
+      - Storage
+      - Settings_Schema
+      - Settings_Backend
+      - Settings_MetaField

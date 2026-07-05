@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
  * in the integration suite.
  */
 #[CoversClass( TransientCache::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_global_name_prefix' )]
 final class TransientCacheTest extends TestCase {
 	public function test_rejects_a_key_prefix_outside_the_global_name_charset(): void {
 		$this->expectException( InvalidGlobalNamePrefixException::class );

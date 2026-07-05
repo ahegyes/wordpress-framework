@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( NoticeType::class )]
 #[UsesClass( MemoryStore::class )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_id' )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_global_name_prefix' )]
 final class AdminNoticesServiceTest extends TestCase {
 	public function test_constructs_with_a_default_memory_store(): void {
 		$service = new AdminNoticesService();

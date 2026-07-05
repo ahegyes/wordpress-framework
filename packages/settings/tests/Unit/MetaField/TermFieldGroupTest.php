@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( TermFieldGroup::class )]
 #[UsesClass( FieldGroup::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier' )]
 final class TermFieldGroupTest extends TestCase {
 	public function test_it_wraps_a_field_group_and_a_taxonomy(): void {
 		$group = $this->group();

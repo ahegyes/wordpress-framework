@@ -1,11 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField;
+namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField\Stores;
 
-use DeepWebSolutions\Framework\Settings\MetaField\MetaType;
-use DeepWebSolutions\Framework\Settings\MetaField\MetadataRepository;
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
-use DeepWebSolutions\Framework\Settings\MetaField\UserProfileFieldStore;
+use DeepWebSolutions\Framework\Settings\MetaField\Stores\UserProfileFieldStore;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\UserProfileFieldGroup;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
@@ -13,6 +11,8 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsResolver;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\MetadataRepository;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\MetaType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

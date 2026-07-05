@@ -4,7 +4,7 @@ namespace DeepWebSolutions\Framework\Settings\MetaField\ValueObjects;
 
 use DeepWebSolutions\Framework\Settings\MetaField\Exceptions\InvalidFieldGroupException;
 
-use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
+use function DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier;
 
 /**
  * Descriptor for a surface-agnostic group of object fields.
@@ -14,6 +14,10 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
  * state-conditional fields. Optional render and save closures are an escape hatch for bespoke per-object
  * UI and persistence. Surface placement (a meta box's screen, a term's taxonomy) rides a separate
  * per-surface descriptor.
+ *
+ * The group carries no meta-key prefix: each field stores under its own meta_key override or bare id,
+ * so prefixing storage keys against collisions in the shared meta table is the consumer's per-field
+ * responsibility — the form engine rejects duplicate storage keys only within the group.
  *
  * @since   2.0.0
  * @version 2.0.0

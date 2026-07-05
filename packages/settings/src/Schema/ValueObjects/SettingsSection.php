@@ -4,7 +4,7 @@ namespace DeepWebSolutions\Framework\Settings\Schema\ValueObjects;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsSectionException;
 
-use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
+use function DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier;
 
 /**
  * Descriptor for a settings section: a titled group of fields.

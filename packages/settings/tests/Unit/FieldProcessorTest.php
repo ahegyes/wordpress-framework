@@ -24,7 +24,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( Failure::class )]
 #[UsesClass( FieldProcessingError::class )]
 #[UsesClass( FieldProcessingErrorReason::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier' )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value' )]
 final class FieldProcessorTest extends TestCase {

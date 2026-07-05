@@ -10,6 +10,7 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Shared\Result\Failure;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\ObjectMetaRepositoryInterface;
 
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
 use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value;

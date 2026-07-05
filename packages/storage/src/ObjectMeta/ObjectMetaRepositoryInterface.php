@@ -1,15 +1,15 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\MetaField;
+namespace DeepWebSolutions\Framework\Storage\ObjectMeta;
 
 /**
  * Reads, writes, and batch-applies an object's metadata, addressed by an explicit object id and meta key.
  *
- * The field id and the storage key stay distinct, so a consumer can persist under runtime keys the
- * settings id charset forbids. Beyond per-key CRUD, {@see self::apply()} is the batch primitive every
- * backend implements: it applies a group of writes and deletes together, so a backend whose object
- * persists as a unit writes K fields once rather than K times. Each metadata surface backs this
- * contract with its own implementation.
+ * The contract speaks only object id, meta key, and value, so any per-object persistence rides it
+ * under whatever runtime keys the consumer derives. Beyond per-key CRUD, {@see self::apply()} is the
+ * batch primitive every backend implements: it applies a group of writes and deletes together, so a
+ * backend whose object persists as a unit writes K keys once rather than K times. Each metadata
+ * surface backs this contract with its own implementation.
  *
  * @since   2.0.0
  * @version 2.0.0

@@ -9,6 +9,8 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 
+use function DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier;
+
 /**
  * Filters a descriptor's HTML attribute map to the names safe to emit into a control unescaped.
  *
@@ -39,40 +41,8 @@ function filter_field_attributes( array $attributes ): array {
 }
 
 /**
- * Whether a string is a valid settings identifier: a lowercase letter followed by lowercase letters,
- * digits, underscores, or hyphens. One charset backs the whole descriptor family — a container
- * descriptor names its identifier `slug` (a page), a member descriptor names it `id` (a section,
- * a field); the naming split carries the container/member role, not a different rule.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string $identifier Identifier to validate.
- *
- * @return  bool
- */
-function is_valid_identifier( string $identifier ): bool {
-	return 1 === \preg_match( '/\A[a-z][a-z0-9_-]*\z/', $identifier );
-}
-
-/**
- * Whether a string is a valid WordPress-global name prefix: an optional leading underscore,
- * then a lowercase letter followed by lowercase letters, digits, underscores, or hyphens.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @param   string $prefix Prefix to validate.
- *
- * @return  bool
- */
-function is_valid_global_name_prefix( string $prefix ): bool {
-	return 1 === \preg_match( '/\A_?[a-z][a-z0-9_-]*\z/', $prefix );
-}
-
-/**
  * Derives the DOM id for a field control from its HTML name: each bracketed segment must be a valid
- * settings identifier, and the segments join on '.' ('opt[color]' becomes 'opt.color'). The separator
+ * identifier, and the segments join on '.' ('opt[color]' becomes 'opt.color'). The separator
  * is valid in HTML ids and IDREFs but outside the identifier charset, so the derivation is injective —
  * two distinct accepted names can never derive the same id. Returns the empty string for a name
  * outside that shape — the caller emits no id rather than an unvetted one.
@@ -93,7 +63,7 @@ function field_control_id( string $name ): string {
 			}
 			$segment = \substr( $segment, 0, -1 );
 		}
-		if ( ! namespace\is_valid_identifier( $segment ) ) {
+		if ( ! is_valid_identifier( $segment ) ) {
 			return '';
 		}
 		$segments[ $index ] = $segment;

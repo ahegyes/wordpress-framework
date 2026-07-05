@@ -6,4 +6,5 @@
  * @version 2.0.0
  */
 
+require_once __DIR__ . '/src/Identifier/functions.php';
 require_once __DIR__ . '/src/Reflection/functions.php';

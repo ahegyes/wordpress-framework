@@ -2,8 +2,6 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField;
 
-use DeepWebSolutions\Framework\Settings\MetaField\MetadataRepository;
-use DeepWebSolutions\Framework\Settings\MetaField\MetaType;
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
@@ -13,6 +11,8 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsResolver;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\CustomFieldType;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\MetadataRepository;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\MetaType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;

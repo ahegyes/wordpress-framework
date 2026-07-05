@@ -4,7 +4,7 @@ namespace DeepWebSolutions\Framework\Utilities\Caching;
 
 use DeepWebSolutions\Framework\Utilities\Exceptions\InvalidGlobalNamePrefixException;
 
-use function DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix;
+use function DeepWebSolutions\Framework\Shared\Identifier\is_valid_global_name_prefix;
 
 /**
  * Runtime object cache with false-safe reads and versioned-group invalidation.

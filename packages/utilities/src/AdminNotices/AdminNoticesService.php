@@ -6,7 +6,7 @@ use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\Exceptions\InvalidGlobalNamePrefixException;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
 
-use function DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix;
+use function DeepWebSolutions\Framework\Shared\Identifier\is_valid_global_name_prefix;
 
 /**
  * Collects admin notices across one or more named stores (in-memory, wp_options, user_meta) and

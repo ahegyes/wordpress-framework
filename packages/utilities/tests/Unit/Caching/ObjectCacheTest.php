@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
  * in the integration suite.
  */
 #[CoversClass( ObjectCache::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Utilities\is_valid_global_name_prefix' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_global_name_prefix' )]
 final class ObjectCacheTest extends TestCase {
 	public function test_rejects_a_group_outside_the_global_name_charset(): void {
 		$this->expectException( InvalidGlobalNamePrefixException::class );

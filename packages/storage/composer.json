@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wp-framework-storage",
-  "description": "Key-value storage backends — in-memory, wp_options, and user-meta — for WordPress plugins built on the DWS framework.",
+  "description": "Key-value storage backends — in-memory, wp_options, and user-meta — plus object-meta repositories for WordPress plugins built on the DWS framework.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",

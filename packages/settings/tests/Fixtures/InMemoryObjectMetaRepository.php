@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Fixtures;
 
-use DeepWebSolutions\Framework\Settings\MetaField\ObjectMetaRepositoryInterface;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\ObjectMetaRepositoryInterface;
 
 /**
  * In-memory object-meta repository for unit tests: per-object key/value maps, presence tracked with

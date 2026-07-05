@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( SettingsSection::class )]
 #[UsesClass( SettingsField::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier' )]
 final class SettingsSectionTest extends TestCase {
 	public function test_construction_round_trips_id_title_and_fields(): void {
 		$fields  = array(

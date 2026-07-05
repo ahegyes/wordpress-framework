@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\MetaField;
+namespace DeepWebSolutions\Framework\Storage\ObjectMeta;
 
 /**
  * The WordPress core metadata object types a metadata repository can target.

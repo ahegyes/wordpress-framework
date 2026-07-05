@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( FieldGroup::class )]
-#[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier' )]
 final class FieldGroupTest extends TestCase {
 	public function test_minimal_construction_round_trips(): void {
 		$provider = static fn ( int $object_id ): array => array();

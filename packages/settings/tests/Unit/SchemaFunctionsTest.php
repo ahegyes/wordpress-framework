@@ -12,14 +12,13 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsSection;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
 use function DeepWebSolutions\Framework\Settings\Schema\field_control_id;
 use function DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes;
 use function DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked;
-use function DeepWebSolutions\Framework\Settings\Schema\is_valid_global_name_prefix;
-use function DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier;
 use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value;
 use function DeepWebSolutions\Framework\Settings\Schema\resolve_field_control_id;
 use function DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field;
@@ -30,8 +29,6 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\field_control_id' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\filter_field_attributes' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\resolve_field_control_id' )]
-#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_identifier' )]
-#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_valid_global_name_prefix' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field' )]
@@ -44,6 +41,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
 #[UsesClass( DuplicateSettingsSectionException::class )]
 #[UsesClass( DuplicateSettingsFieldException::class )]
 #[UsesClass( UnsupportedRestExposureException::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Identifier\is_valid_identifier' )]
 final class SchemaFunctionsTest extends TestCase {
 	public function test_keeps_well_formed_non_event_attribute_names(): void {
 		$kept = filter_field_attributes(
@@ -131,47 +129,6 @@ final class SchemaFunctionsTest extends TestCase {
 		);
 
 		self::assertSame( array( 'min' => '0' ), $kept );
-	}
-
-	#[DataProvider( 'valid_identifiers' )]
-	public function test_accepts_valid_identifiers( string $identifier ): void {
-		self::assertTrue( is_valid_identifier( $identifier ) );
-	}
-
-	/**
-	 * @return array<string, array{string}>
-	 */
-	public static function valid_identifiers(): array {
-		return array(
-			'single letter'   => array( 'a' ),
-			'word'            => array( 'field' ),
-			'with digit'      => array( 'field2' ),
-			'with underscore' => array( 'my_field' ),
-			'with hyphen'     => array( 'my-field' ),
-			'mixed'           => array( 'a1_b-2' ),
-		);
-	}
-
-	#[DataProvider( 'invalid_identifiers' )]
-	public function test_rejects_invalid_identifiers( string $identifier ): void {
-		self::assertFalse( is_valid_identifier( $identifier ) );
-	}
-
-	/**
-	 * @return array<string, array{string}>
-	 */
-	public static function invalid_identifiers(): array {
-		return array(
-			'empty'              => array( '' ),
-			'leading digit'      => array( '1field' ),
-			'leading hyphen'     => array( '-field' ),
-			'leading underscore' => array( '_field' ),
-			'uppercase'          => array( 'Field' ),
-			'space'              => array( 'my field' ),
-			'dot'                => array( 'my.field' ),
-			'slash'              => array( 'my/field' ),
-			'trailing newline'   => array( "field\n" ),
-		);
 	}
 
 	public function test_field_control_id_joins_bracketed_segments_on_a_dot(): void {
@@ -297,42 +254,6 @@ final class SchemaFunctionsTest extends TestCase {
 			'null'             => array( null, false ),
 			'array'            => array( array( 'yes' ), false ),
 			'int 2'            => array( 2, false ),
-		);
-	}
-
-	#[DataProvider( 'valid_global_name_prefixes' )]
-	public function test_accepts_valid_global_name_prefixes( string $prefix ): void {
-		self::assertTrue( is_valid_global_name_prefix( $prefix ) );
-	}
-
-	/**
-	 * @return array<string, array{string}>
-	 */
-	public static function valid_global_name_prefixes(): array {
-		return array(
-			'word'            => array( 'dws' ),
-			'with separators' => array( 'dws-wrwc_cache' ),
-			'hidden meta key' => array( '_dws-wrwc_' ),
-			'with digit'      => array( 'dws2_' ),
-		);
-	}
-
-	#[DataProvider( 'invalid_global_name_prefixes' )]
-	public function test_rejects_invalid_global_name_prefixes( string $prefix ): void {
-		self::assertFalse( is_valid_global_name_prefix( $prefix ) );
-	}
-
-	/**
-	 * @return array<string, array{string}>
-	 */
-	public static function invalid_global_name_prefixes(): array {
-		return array(
-			'empty'           => array( '' ),
-			'leading digit'   => array( '1dws' ),
-			'uppercase'       => array( 'DWS' ),
-			'space'           => array( 'dws cache' ),
-			'slash'           => array( 'dws/cache' ),
-			'only underscore' => array( '_' ),
 		);
 	}
 

@@ -1,7 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\MetaField;
+namespace DeepWebSolutions\Framework\Settings\MetaField\Stores;
 
+use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\UserProfileFieldGroup;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
@@ -9,6 +10,9 @@ use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldEx
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\MetadataRepository;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\MetaType;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\ObjectMetaRepositoryInterface;
 
 use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
 

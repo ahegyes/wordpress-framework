@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField;
+namespace DeepWebSolutions\Framework\Storage\Tests\Integration\ObjectMeta;
 
-use DeepWebSolutions\Framework\Settings\MetaField\MetadataRepository;
-use DeepWebSolutions\Framework\Settings\MetaField\MetaType;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\MetadataRepository;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\MetaType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
