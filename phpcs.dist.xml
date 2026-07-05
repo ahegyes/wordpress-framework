@@ -2,4 +2,16 @@
 <ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/squizlabs/php_codesniffer/phpcs.xsd">
 	<!-- Extend the shared ruleset from wordpress-configs. -->
 	<rule ref="./vendor/ahegyes/wordpress-configs/php/quality-assurance/phpcs.dist.xml"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="wp-framework-bootstrap"/>
+				<element value="wp-framework-core"/>
+				<element value="wp-framework-infrastructure"/>
+				<element value="wp-framework-shared"/>
+				<element value="wp-framework-woocommerce"/>
+			</property>
+		</properties>
+	</rule>
 </ruleset>

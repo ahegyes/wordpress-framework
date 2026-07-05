@@ -248,7 +248,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 				'interval' => $interval,
 				'display'  => \sprintf(
 					/* translators: %d: interval in seconds. */
-					\__( 'Every %d seconds', 'wp-framework-utilities' ),
+					\__( 'Every %d seconds', 'wp-framework-infrastructure' ),
 					$interval
 				),
 			);

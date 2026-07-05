@@ -604,7 +604,7 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 						$field->id,
 						\sprintf(
 							/* translators: %s: settings field label. */
-							\esc_html__( 'The value for “%s” was invalid and was not saved; the previous value was kept.', 'wp-framework-settings' ),
+							\esc_html__( 'The value for “%s” was invalid and was not saved; the previous value was kept.', 'wp-framework-infrastructure' ),
 							\esc_html( $field->label ),
 						),
 					);

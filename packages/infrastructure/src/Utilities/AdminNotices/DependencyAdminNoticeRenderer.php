@@ -136,18 +136,18 @@ final readonly class DependencyAdminNoticeRenderer {
 	 */
 	protected function build_message( DependencyRequirement $requirement ): string {
 		if ( $requirement->required ) {
-			$subject = $this->source ?? \__( 'This plugin', 'wp-framework-utilities' );
+			$subject = $this->source ?? \__( 'This plugin', 'wp-framework-infrastructure' );
 			/* translators: 1: plugin or feature name, 2: required dependency label. */
-			return \sprintf( \__( '%1$s requires %2$s to be active.', 'wp-framework-utilities' ), $subject, $requirement->label );
+			return \sprintf( \__( '%1$s requires %2$s to be active.', 'wp-framework-infrastructure' ), $subject, $requirement->label );
 		}
 
 		if ( null !== $this->source ) {
 			/* translators: 1: optional dependency label, 2: plugin or feature name. */
-			return \sprintf( \__( '%1$s is recommended for %2$s.', 'wp-framework-utilities' ), $requirement->label, $this->source );
+			return \sprintf( \__( '%1$s is recommended for %2$s.', 'wp-framework-infrastructure' ), $requirement->label, $this->source );
 		}
 
 		/* translators: %s: optional dependency label. */
-		return \sprintf( \__( '%s is recommended.', 'wp-framework-utilities' ), $requirement->label );
+		return \sprintf( \__( '%s is recommended.', 'wp-framework-infrastructure' ), $requirement->label );
 	}
 
 	// endregion
