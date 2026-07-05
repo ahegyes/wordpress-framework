@@ -126,8 +126,8 @@ jobs:
             exit 1
           fi
 
-          if grep -rqE "${prefix_re}as_[a-z_]+" dependencies/ahegyes/wp-framework-utilities/; then
-            echo "FAIL: an Action Scheduler as_* call got prefixed inside scoped utilities" >&2
-            grep -rnE "${prefix_re}as_[a-z_]+" dependencies/ahegyes/wp-framework-utilities/ >&2
+          if grep -rqE "${prefix_re}as_[a-z_]+" dependencies/ahegyes/wp-framework-infrastructure/; then
+            echo "FAIL: an Action Scheduler as_* call got prefixed inside scoped infrastructure" >&2
+            grep -rnE "${prefix_re}as_[a-z_]+" dependencies/ahegyes/wp-framework-infrastructure/ >&2
             exit 1
           fi

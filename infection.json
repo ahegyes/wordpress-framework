@@ -5,10 +5,10 @@
         "directories": [
             "packages/bootstrap/src",
             "packages/core/src",
-            "packages/settings/src",
+            "packages/infrastructure/src/Settings",
             "packages/shared/src",
-            "packages/storage/src",
-            "packages/utilities/src",
+            "packages/infrastructure/src/Storage",
+            "packages/infrastructure/src/Utilities",
             "packages/woocommerce/src"
         ],
         "excludes": [

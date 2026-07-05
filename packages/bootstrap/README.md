@@ -39,7 +39,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 When the plugin is built through the framework's per-plugin php-scoper pipeline, the require path moves into the plugin's scoped-dependencies directory and the `DeepWebSolutions\Framework\Bootstrap\…` namespace gains the plugin's scope prefix.
 
-For dependency checks beyond PHP/WP versions — e.g. requiring WooCommerce, a PHP extension, or a custom predicate — use the framework's Conditionals system in `wp-framework-core` / `wp-framework-utilities`, which runs after the autoloader and integrates with Feature gating and `AdminNoticesService`. Bootstrap stays narrowly scoped to "make the autoloader safe to require."
+For dependency checks beyond PHP/WP versions — e.g. requiring WooCommerce, a PHP extension, or a custom predicate — use the framework's Conditionals system in `wp-framework-core` / `wp-framework-infrastructure`, which runs after the autoloader and integrates with Feature gating and `AdminNoticesService`. Bootstrap stays narrowly scoped to "make the autoloader safe to require."
 
 ## API
 

@@ -1,6 +1,6 @@
 {
-  "name": "ahegyes/wp-framework-settings",
-  "description": "Declarative settings screens with pluggable persistence — a WordPress options backend, per-entity object fields, and a WP-free descriptor/render layer — for plugins built on the DWS framework.",
+  "name": "ahegyes/wp-framework-infrastructure",
+  "description": "Persistence, declarative settings, and runtime services — the framework tier every full plugin builds on.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -10,7 +10,7 @@
       "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
     }
   ],
-  "keywords": ["wordpress", "wordpress-plugin", "framework", "settings", "options"],
+  "keywords": ["wordpress", "wordpress-plugin", "framework", "infrastructure", "storage", "settings", "hooks", "admin-notices", "caching", "conditionals", "scheduling", "permissions", "logging", "helpers"],
   "support": {
     "issues": "https://github.com/ahegyes/wordpress-framework/issues",
     "source": "https://github.com/ahegyes/wordpress-framework"
@@ -18,14 +18,21 @@
 
   "require": {
     "php": ">=8.5",
+    "ahegyes/wp-framework-core": "^2.0@dev",
     "ahegyes/wp-framework-shared": "^2.0@dev",
-    "ahegyes/wp-framework-storage": "^2.0@dev",
     "psr/log": "^3"
+  },
+  "replace": {
+    "ahegyes/wp-framework-storage": "self.version",
+    "ahegyes/wp-framework-settings": "self.version",
+    "ahegyes/wp-framework-utilities": "self.version"
   },
 
   "autoload": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Settings\\": "src/"
+      "DeepWebSolutions\\Framework\\Storage\\": "src/Storage/",
+      "DeepWebSolutions\\Framework\\Settings\\": "src/Settings/",
+      "DeepWebSolutions\\Framework\\Utilities\\": "src/Utilities/"
     },
     "files": [
       "functions.php"
@@ -33,7 +40,9 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Settings\\Tests\\": "tests/"
+      "DeepWebSolutions\\Framework\\Storage\\Tests\\": "tests/Storage/",
+      "DeepWebSolutions\\Framework\\Settings\\Tests\\": "tests/Settings/",
+      "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "tests/Utilities/"
     }
   },
 
@@ -42,7 +51,8 @@
       "dev-trunk": "2.0.x-dev"
     },
     "scoping-stubs": [
-      "php-stubs/wordpress-stubs"
+      "php-stubs/wordpress-stubs",
+      "php-stubs/woocommerce-stubs:woocommerce-packages-stubs.php"
     ],
     "changelogger": {
       "versioning": "semver",

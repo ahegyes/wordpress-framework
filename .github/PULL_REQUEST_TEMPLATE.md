@@ -6,10 +6,8 @@
 
 - [ ] `wp-framework-bootstrap`
 - [ ] `wp-framework-shared`
-- [ ] `wp-framework-storage`
 - [ ] `wp-framework-core`
-- [ ] `wp-framework-utilities`
-- [ ] `wp-framework-settings`
+- [ ] `wp-framework-infrastructure`
 - [ ] `wp-framework-woocommerce`
 
 ## Checklist

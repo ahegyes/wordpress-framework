@@ -15,7 +15,7 @@
 
 $root = \dirname( __DIR__ );
 
-$packages = array( 'bootstrap', 'shared', 'storage', 'core', 'utilities', 'settings', 'woocommerce' );
+$packages = array( 'bootstrap', 'shared', 'core', 'infrastructure', 'woocommerce' );
 
 $checker = $root . '/vendor/bin/composer-require-checker';
 if ( ! \is_file( $checker ) ) {

@@ -9,10 +9,8 @@ For a PR touching a specific package, use the matching script:
 ```bash
 composer changelog:add:bootstrap     # wp-framework-bootstrap
 composer changelog:add:core          # wp-framework-core
-composer changelog:add:settings      # wp-framework-settings
+composer changelog:add:infrastructure # wp-framework-infrastructure
 composer changelog:add:shared        # wp-framework-shared
-composer changelog:add:storage       # wp-framework-storage
-composer changelog:add:utilities     # wp-framework-utilities
 composer changelog:add:woocommerce   # wp-framework-woocommerce
 ```
 
@@ -23,7 +21,7 @@ The interactive prompt asks for `Significance` (patch/minor/major) and `Type` (a
 Per package:
 
 ```bash
-composer changelog:write:bootstrap   # or :core / :settings / :shared / :storage / :utilities / :woocommerce
+composer changelog:write:bootstrap   # or :core / :infrastructure / :shared / :woocommerce
 ```
 
 Aggregates `packages/<name>/changelog/*` → new version block in `packages/<name>/CHANGELOG.md`, computes the next semver from fragment significance levels, deletes the fragments. Commit the diff. The split-packages workflow propagates the package (with its updated CHANGELOG.md) into the per-package consumer-facing repo on `push` to `trunk`.

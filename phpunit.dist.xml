@@ -19,9 +19,11 @@
 	<testsuites>
 		<testsuite name="Unit">
 			<directory>packages/*/tests/Unit</directory>
+			<directory>packages/infrastructure/tests/*/Unit</directory>
 		</testsuite>
 		<testsuite name="Integration">
 			<directory>packages/*/tests/Integration</directory>
+			<directory>packages/infrastructure/tests/*/Integration</directory>
 		</testsuite>
 	</testsuites>
 

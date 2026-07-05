@@ -20,10 +20,8 @@ jobs:
         package:
           - { dir: 'bootstrap',   repo: 'wp-framework-bootstrap' }
           - { dir: 'core',        repo: 'wp-framework-core' }
-          - { dir: 'settings',    repo: 'wp-framework-settings' }
+          - { dir: 'infrastructure', repo: 'wp-framework-infrastructure' }
           - { dir: 'shared',      repo: 'wp-framework-shared' }
-          - { dir: 'storage',     repo: 'wp-framework-storage' }
-          - { dir: 'utilities',   repo: 'wp-framework-utilities' }
           - { dir: 'woocommerce', repo: 'wp-framework-woocommerce' }
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wordpress-framework",
-  "description": "DWS WordPress Framework — monorepo development root. Aggregates bootstrap, shared, storage, core, utilities, settings, and woocommerce packages for local dev and cross-package testing.",
+  "description": "DWS WordPress Framework — monorepo development root. Aggregates bootstrap, shared, core, infrastructure, and woocommerce packages for local dev and cross-package testing.",
   "type": "project",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -15,10 +15,8 @@
     "php": ">=8.5",
     "ahegyes/wp-framework-bootstrap": "^2.0@dev",
     "ahegyes/wp-framework-core": "^2.0@dev",
-    "ahegyes/wp-framework-settings": "^2.0@dev",
+    "ahegyes/wp-framework-infrastructure": "^2.0@dev",
     "ahegyes/wp-framework-shared": "^2.0@dev",
-    "ahegyes/wp-framework-storage": "^2.0@dev",
-    "ahegyes/wp-framework-utilities": "^2.0@dev",
     "ahegyes/wp-framework-woocommerce": "^2.0@dev"
   },
   "require-dev": {
@@ -47,22 +45,12 @@
     },
     {
       "type": "path",
-      "url": "packages/settings",
+      "url": "packages/infrastructure",
       "options": { "symlink": true }
     },
     {
       "type": "path",
       "url": "packages/shared",
-      "options": { "symlink": true }
-    },
-    {
-      "type": "path",
-      "url": "packages/storage",
-      "options": { "symlink": true }
-    },
-    {
-      "type": "path",
-      "url": "packages/utilities",
       "options": { "symlink": true }
     },
     {
@@ -88,10 +76,10 @@
     "psr-4": {
       "DeepWebSolutions\\Framework\\Bootstrap\\Tests\\": "packages/bootstrap/tests/",
       "DeepWebSolutions\\Framework\\Core\\Tests\\": "packages/core/tests/",
-      "DeepWebSolutions\\Framework\\Settings\\Tests\\": "packages/settings/tests/",
+      "DeepWebSolutions\\Framework\\Settings\\Tests\\": "packages/infrastructure/tests/Settings/",
       "DeepWebSolutions\\Framework\\Shared\\Tests\\": "packages/shared/tests/",
-      "DeepWebSolutions\\Framework\\Storage\\Tests\\": "packages/storage/tests/",
-      "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "packages/utilities/tests/",
+      "DeepWebSolutions\\Framework\\Storage\\Tests\\": "packages/infrastructure/tests/Storage/",
+      "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "packages/infrastructure/tests/Utilities/",
       "DeepWebSolutions\\Framework\\WooCommerce\\Tests\\": "packages/woocommerce/tests/"
     }
   },
@@ -115,10 +103,10 @@
     "lint:php:phpstan": [
       "phpstan analyse -c packages/bootstrap/phpstan.neon --memory-limit=1G",
       "phpstan analyse -c packages/shared/phpstan.neon --memory-limit=1G",
-      "phpstan analyse -c packages/storage/phpstan.neon --memory-limit=1G",
+      "phpstan analyse -c packages/infrastructure/phpstan.storage.neon --memory-limit=1G",
       "phpstan analyse -c packages/core/phpstan.neon --memory-limit=1G",
-      "phpstan analyse -c packages/utilities/phpstan.neon --memory-limit=1G",
-      "phpstan analyse -c packages/settings/phpstan.neon --memory-limit=1G",
+      "phpstan analyse -c packages/infrastructure/phpstan.utilities.neon --memory-limit=1G",
+      "phpstan analyse -c packages/infrastructure/phpstan.settings.neon --memory-limit=1G",
       "phpstan analyse -c packages/woocommerce/phpstan.neon --memory-limit=1G"
     ],
     "lint:php:deptrac": "deptrac analyse --no-interaction --cache-file=tests/.cache/deptrac",
@@ -186,19 +174,19 @@
     "packages:core:changelog:validate": "cd packages/core && ../../vendor/bin/changelogger validate",
     "packages:core:changelog:write": "cd packages/core && ../../vendor/bin/changelogger write",
 
-    "packages:settings:test": [
-      "@packages:settings:test:unit",
-      "@packages:settings:test:integration"
+    "packages:infrastructure:test": [
+      "@packages:infrastructure:test:unit",
+      "@packages:infrastructure:test:integration"
     ],
-    "packages:settings:test:unit": "@php vendor/bin/phpunit packages/settings/tests/Unit",
-    "packages:settings:test:integration": [
+    "packages:infrastructure:test:unit": "@php vendor/bin/phpunit packages/infrastructure/tests/Storage/Unit packages/infrastructure/tests/Settings/Unit packages/infrastructure/tests/Utilities/Unit",
+    "packages:infrastructure:test:integration": [
       "@putenv CI=1",
       "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/settings/tests/Integration"
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/infrastructure/tests/Storage/Integration packages/infrastructure/tests/Settings/Integration packages/infrastructure/tests/Utilities/Integration"
     ],
-    "packages:settings:changelog:add": "cd packages/settings && ../../vendor/bin/changelogger add",
-    "packages:settings:changelog:validate": "cd packages/settings && ../../vendor/bin/changelogger validate",
-    "packages:settings:changelog:write": "cd packages/settings && ../../vendor/bin/changelogger write",
+    "packages:infrastructure:changelog:add": "cd packages/infrastructure && ../../vendor/bin/changelogger add",
+    "packages:infrastructure:changelog:validate": "cd packages/infrastructure && ../../vendor/bin/changelogger validate",
+    "packages:infrastructure:changelog:write": "cd packages/infrastructure && ../../vendor/bin/changelogger write",
 
     "packages:shared:test": [
       "@packages:shared:test:unit",
@@ -213,34 +201,6 @@
     "packages:shared:changelog:add": "cd packages/shared && ../../vendor/bin/changelogger add",
     "packages:shared:changelog:validate": "cd packages/shared && ../../vendor/bin/changelogger validate",
     "packages:shared:changelog:write": "cd packages/shared && ../../vendor/bin/changelogger write",
-
-    "packages:storage:test": [
-      "@packages:storage:test:unit",
-      "@packages:storage:test:integration"
-    ],
-    "packages:storage:test:unit": "@php vendor/bin/phpunit packages/storage/tests/Unit",
-    "packages:storage:test:integration": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/storage/tests/Integration"
-    ],
-    "packages:storage:changelog:add": "cd packages/storage && ../../vendor/bin/changelogger add",
-    "packages:storage:changelog:validate": "cd packages/storage && ../../vendor/bin/changelogger validate",
-    "packages:storage:changelog:write": "cd packages/storage && ../../vendor/bin/changelogger write",
-
-    "packages:utilities:test": [
-      "@packages:utilities:test:unit",
-      "@packages:utilities:test:integration"
-    ],
-    "packages:utilities:test:unit": "@php vendor/bin/phpunit packages/utilities/tests/Unit",
-    "packages:utilities:test:integration": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/utilities/tests/Integration"
-    ],
-    "packages:utilities:changelog:add": "cd packages/utilities && ../../vendor/bin/changelogger add",
-    "packages:utilities:changelog:validate": "cd packages/utilities && ../../vendor/bin/changelogger validate",
-    "packages:utilities:changelog:write": "cd packages/utilities && ../../vendor/bin/changelogger write",
 
     "packages:woocommerce:test": [
       "@packages:woocommerce:test:unit",
@@ -259,19 +219,15 @@
     "packages:changelog:validate": [
       "@packages:bootstrap:changelog:validate",
       "@packages:core:changelog:validate",
-      "@packages:settings:changelog:validate",
+      "@packages:infrastructure:changelog:validate",
       "@packages:shared:changelog:validate",
-      "@packages:storage:changelog:validate",
-      "@packages:utilities:changelog:validate",
       "@packages:woocommerce:changelog:validate"
     ],
     "packages:changelog:write": [
       "@packages:bootstrap:changelog:write",
       "@packages:core:changelog:write",
-      "@packages:settings:changelog:write",
+      "@packages:infrastructure:changelog:write",
       "@packages:shared:changelog:write",
-      "@packages:storage:changelog:write",
-      "@packages:utilities:changelog:write",
       "@packages:woocommerce:changelog:write"
     ],
 

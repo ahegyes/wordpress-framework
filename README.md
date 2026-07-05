@@ -4,16 +4,14 @@ A modern, modular framework for building WordPress plugins. Composer-only librar
 
 ## Architecture
 
-Monorepo publishing seven Composer packages:
+Monorepo publishing five Composer packages:
 
 | Package                            | Purpose                                                                          | PHP min |
 | ---------------------------------- | -------------------------------------------------------------------------------- | ------- |
 | `ahegyes/wp-framework-bootstrap`   | Pre-autoload PHP/WP version check with graceful admin-notice fallback.           | 5.6     |
 | `ahegyes/wp-framework-shared`      | Substrate primitives: result/value-object patterns, error/exception scaffolding. | 8.5     |
-| `ahegyes/wp-framework-storage`     | Key-value storage backends: in-memory, wp_options, and user-meta.                | 8.5     |
 | `ahegyes/wp-framework-core`        | Plugin kernel, feature/lifecycle/installer interfaces, conditional gating.       | 8.5     |
-| `ahegyes/wp-framework-utilities`   | Hooks, admin notices, caching, conditionals, scheduling, permissions, logging, helpers. | 8.5     |
-| `ahegyes/wp-framework-settings`    | Declarative settings screens; WordPress options and object-field backends.       | 8.5     |
+| `ahegyes/wp-framework-infrastructure` | Storage, declarative settings, and runtime services for full plugins.         | 8.5     |
 | `ahegyes/wp-framework-woocommerce` | WooCommerce settings backend, product/order-data fields, PSR-3 logger.            | 8.5     |
 
 The `bootstrap` package runs before any modern PHP 8.5+ code parses, so consumer plugins on incompatible runtimes get a graceful admin notice instead of a fatal error.

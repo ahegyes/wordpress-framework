@@ -2,7 +2,7 @@
 /**
  * Smoke run — exercises every framework symbol the consumer contract exposes,
  * forcing autoload to resolve scoped classes/functions across all three sources
- * (bootstrap files-autoload, core/shared/storage/utilities/woocommerce PSR-4,
+ * (bootstrap files-autoload, core/shared/infrastructure/woocommerce PSR-4,
  * PHP-DI PSR-4 + transitive deps).
  *
  * Failure modes this catches:
@@ -47,12 +47,12 @@ foreach ( $core_classes as $class ) {
 	}
 }
 
-// Storage PSR-4: the extracted leaf package's classes resolve under the scoped prefix.
+// Storage PSR-4: the infrastructure package's storage classes resolve under the scoped prefix.
 if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Storage\\MemoryStore' ) ) {
 	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Storage\\MemoryStore';
 }
 
-// Utilities PSR-4: the rollup package's classes resolve under the scoped prefix, with the
+// Utilities PSR-4: the infrastructure package's utilities classes resolve under the scoped prefix, with the
 // unscoped Psr\Log contract CompositeLogger implements provided by the consumer's vendor.
 if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Utilities\\Logging\\CompositeLogger' ) ) {
 	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\Utilities\\Logging\\CompositeLogger';

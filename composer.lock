@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f36bb18833bbec3c51b14468581b3d48",
+    "content-hash": "2b4a512d37ab5817cf696c96b22357e2",
     "packages": [
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -159,18 +159,23 @@
             }
         },
         {
-            "name": "ahegyes/wp-framework-settings",
+            "name": "ahegyes/wp-framework-infrastructure",
             "version": "dev-trunk",
             "dist": {
                 "type": "path",
-                "url": "packages/settings",
-                "reference": "27b07e45f6a1eb36d5ca2934c9143caea18236b0"
+                "url": "packages/infrastructure",
+                "reference": "1b097500a9c58d1a6130d7147b0bea62802ae60f"
             },
             "require": {
+                "ahegyes/wp-framework-core": "^2.0@dev",
                 "ahegyes/wp-framework-shared": "^2.0@dev",
-                "ahegyes/wp-framework-storage": "^2.0@dev",
                 "php": ">=8.5",
                 "psr/log": "^3"
+            },
+            "replace": {
+                "ahegyes/wp-framework-settings": "self.version",
+                "ahegyes/wp-framework-storage": "self.version",
+                "ahegyes/wp-framework-utilities": "self.version"
             },
             "type": "library",
             "extra": {
@@ -178,7 +183,8 @@
                     "dev-trunk": "2.0.x-dev"
                 },
                 "scoping-stubs": [
-                    "php-stubs/wordpress-stubs"
+                    "php-stubs/wordpress-stubs",
+                    "php-stubs/woocommerce-stubs:woocommerce-packages-stubs.php"
                 ],
                 "changelogger": {
                     "versioning": "semver",
@@ -197,7 +203,9 @@
             },
             "autoload": {
                 "psr-4": {
-                    "DeepWebSolutions\\Framework\\Settings\\": "src/"
+                    "DeepWebSolutions\\Framework\\Storage\\": "src/Storage/",
+                    "DeepWebSolutions\\Framework\\Settings\\": "src/Settings/",
+                    "DeepWebSolutions\\Framework\\Utilities\\": "src/Utilities/"
                 },
                 "files": [
                     "functions.php"
@@ -205,7 +213,9 @@
             },
             "autoload-dev": {
                 "psr-4": {
-                    "DeepWebSolutions\\Framework\\Settings\\Tests\\": "tests/"
+                    "DeepWebSolutions\\Framework\\Storage\\Tests\\": "tests/Storage/",
+                    "DeepWebSolutions\\Framework\\Settings\\Tests\\": "tests/Settings/",
+                    "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "tests/Utilities/"
                 }
             },
             "license": [
@@ -217,12 +227,21 @@
                     "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
                 }
             ],
-            "description": "Declarative settings screens with pluggable persistence — a WordPress options backend, per-entity object fields, and a WP-free descriptor/render layer — for plugins built on the DWS framework.",
+            "description": "Persistence, declarative settings, and runtime services — the framework tier every full plugin builds on.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "keywords": [
+                "admin-notices",
+                "caching",
+                "conditionals",
                 "framework",
-                "options",
+                "helpers",
+                "hooks",
+                "infrastructure",
+                "logging",
+                "permissions",
+                "scheduling",
                 "settings",
+                "storage",
                 "wordpress",
                 "wordpress-plugin"
             ],
@@ -310,175 +329,16 @@
             }
         },
         {
-            "name": "ahegyes/wp-framework-storage",
-            "version": "dev-trunk",
-            "dist": {
-                "type": "path",
-                "url": "packages/storage",
-                "reference": "2810f53494c1409078d5d2b4ca3f3e608fc08b62"
-            },
-            "require": {
-                "php": ">=8.5"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-trunk": "2.0.x-dev"
-                },
-                "scoping-stubs": [
-                    "php-stubs/wordpress-stubs"
-                ],
-                "changelogger": {
-                    "versioning": "semver",
-                    "changelog": "CHANGELOG.md",
-                    "changes-dir": "changelog",
-                    "default-type": "changed",
-                    "types": {
-                        "added": "Added",
-                        "changed": "Changed",
-                        "deprecated": "Deprecated",
-                        "removed": "Removed",
-                        "fixed": "Fixed",
-                        "security": "Security"
-                    }
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "DeepWebSolutions\\Framework\\Storage\\": "src/"
-                },
-                "files": [
-                    "functions.php"
-                ]
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "DeepWebSolutions\\Framework\\Storage\\Tests\\": "tests/"
-                }
-            },
-            "license": [
-                "GPL-2.0-or-later"
-            ],
-            "authors": [
-                {
-                    "name": "Contributors",
-                    "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
-                }
-            ],
-            "description": "Key-value storage backends — in-memory, wp_options, and user-meta — for WordPress plugins built on the DWS framework.",
-            "homepage": "https://github.com/ahegyes/wordpress-framework",
-            "keywords": [
-                "framework",
-                "key-value",
-                "storage",
-                "wordpress",
-                "wordpress-plugin"
-            ],
-            "support": {
-                "issues": "https://github.com/ahegyes/wordpress-framework/issues",
-                "source": "https://github.com/ahegyes/wordpress-framework"
-            },
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
-            "name": "ahegyes/wp-framework-utilities",
-            "version": "dev-trunk",
-            "dist": {
-                "type": "path",
-                "url": "packages/utilities",
-                "reference": "1197194243b7f2b535f4f8d805427df6ca025b4c"
-            },
-            "require": {
-                "ahegyes/wp-framework-core": "^2.0@dev",
-                "ahegyes/wp-framework-shared": "^2.0@dev",
-                "ahegyes/wp-framework-storage": "^2.0@dev",
-                "php": ">=8.5",
-                "psr/log": "^3"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-trunk": "2.0.x-dev"
-                },
-                "scoping-stubs": [
-                    "php-stubs/wordpress-stubs",
-                    "php-stubs/woocommerce-stubs:woocommerce-packages-stubs.php"
-                ],
-                "changelogger": {
-                    "versioning": "semver",
-                    "changelog": "CHANGELOG.md",
-                    "changes-dir": "changelog",
-                    "default-type": "changed",
-                    "types": {
-                        "added": "Added",
-                        "changed": "Changed",
-                        "deprecated": "Deprecated",
-                        "removed": "Removed",
-                        "fixed": "Fixed",
-                        "security": "Security"
-                    }
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "DeepWebSolutions\\Framework\\Utilities\\": "src/"
-                },
-                "files": [
-                    "functions.php"
-                ]
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "tests/"
-                }
-            },
-            "license": [
-                "GPL-2.0-or-later"
-            ],
-            "authors": [
-                {
-                    "name": "Contributors",
-                    "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
-                }
-            ],
-            "description": "Hooks, admin notices, caching, conditionals, scheduling, permissions, logging, and helpers for WordPress plugins built on the DWS framework.",
-            "homepage": "https://github.com/ahegyes/wordpress-framework",
-            "keywords": [
-                "admin-notices",
-                "caching",
-                "conditionals",
-                "framework",
-                "helpers",
-                "hooks",
-                "logging",
-                "permissions",
-                "scheduling",
-                "wordpress",
-                "wordpress-plugin"
-            ],
-            "support": {
-                "issues": "https://github.com/ahegyes/wordpress-framework/issues",
-                "source": "https://github.com/ahegyes/wordpress-framework"
-            },
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
-        },
-        {
             "name": "ahegyes/wp-framework-woocommerce",
             "version": "dev-trunk",
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "125fc6a29746476f03a9440c32e1d6124aba07c1"
+                "reference": "9c4f77356ad588c05b9ec9ec8f3a951aa55b21e5"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
-                "ahegyes/wp-framework-settings": "^2.0@dev",
+                "ahegyes/wp-framework-infrastructure": "^2.0@dev",
                 "ahegyes/wp-framework-shared": "^2.0@dev",
                 "php": ">=8.5",
                 "psr/log": "^3"
@@ -3431,11 +3291,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.2.4",
+            "version": "2.2.5",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/f0fe3fb03bb53ce68cc2416785b260e62226ec27",
-                "reference": "f0fe3fb03bb53ce68cc2416785b260e62226ec27",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/909c1e5fef7989ac0d0c1c5c42e32a5c4f6198a0",
+                "reference": "909c1e5fef7989ac0d0c1c5c42e32a5c4f6198a0",
                 "shasum": ""
             },
             "require": {
@@ -3491,7 +3351,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-03T07:00:23+00:00"
+            "time": "2026-07-05T06:31:06+00:00"
         },
         {
             "name": "phpstan/phpstan-deprecation-rules",
@@ -8951,10 +8811,8 @@
         "ahegyes/wordpress-configs": 20,
         "ahegyes/wp-framework-bootstrap": 20,
         "ahegyes/wp-framework-core": 20,
-        "ahegyes/wp-framework-settings": 20,
+        "ahegyes/wp-framework-infrastructure": 20,
         "ahegyes/wp-framework-shared": 20,
-        "ahegyes/wp-framework-storage": 20,
-        "ahegyes/wp-framework-utilities": 20,
         "ahegyes/wp-framework-woocommerce": 20
     },
     "prefer-stable": true,

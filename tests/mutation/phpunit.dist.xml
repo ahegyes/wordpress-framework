@@ -18,6 +18,7 @@
 	<testsuites>
 		<testsuite name="Integration">
 			<directory>../../packages/*/tests/Integration</directory>
+			<directory>../../packages/infrastructure/tests/*/Integration</directory>
 		</testsuite>
 	</testsuites>
 
