@@ -517,16 +517,17 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "db1b3851fbd8e2a15c08b3d73086e5670d469b06"
+                "reference": "7c1ef45c6be4cffdea69b05e855ec0c03e51166c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/db1b3851fbd8e2a15c08b3d73086e5670d469b06",
-                "reference": "db1b3851fbd8e2a15c08b3d73086e5670d469b06",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/7c1ef45c6be4cffdea69b05e855ec0c03e51166c",
+                "reference": "7c1ef45c6be4cffdea69b05e855ec0c03e51166c",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
+                "ext-tokenizer": "*",
                 "johnbillion/wp-compat": "^1",
                 "nikic/php-parser": "^5",
                 "php": ">=8.5",
@@ -537,23 +538,22 @@
                 "phpstan/phpstan-strict-rules": "^2",
                 "roave/security-advisories": "dev-latest",
                 "swissspidy/phpstan-no-private": "^1",
-                "szepeviktor/phpstan-wordpress": "^2",
+                "szepeviktor/phpstan-wordpress": "2.x-dev",
                 "wp-coding-standards/wpcs": "^3"
             },
             "require-dev": {
                 "composer/composer": "^2",
                 "humbug/php-scoper": "^0.18",
-                "infection/infection": "^0.33",
+                "infection/infection": "^0.34",
                 "maglnet/composer-require-checker": "^4",
                 "phpunit/phpunit": "^13"
             },
+            "suggest": {
+                "humbug/php-scoper": "Required for the dependency-scoping pipeline (ScopePhpDependencies + the scoper-base config).",
+                "php-stubs/woocommerce-stubs": "Declares the WooCommerce symbol catalogs for scoping exclusions via extra.scoping-stubs."
+            },
             "default-branch": true,
             "type": "library",
-            "extra": {
-                "scoping-stubs": [
-                    "ahegyes/wordpress-configs:php/stubs/action-scheduler.php"
-                ]
-            },
             "autoload": {
                 "classmap": [
                     "php/composer"
@@ -569,14 +569,14 @@
             },
             "scripts": {
                 "generate-autoloader": [
-                    "@composer dump-autoload --ignore-platform-reqs -o"
+                    "@composer dump-autoload --ignore-platform-req=php+ -o"
                 ],
                 "packages-install": [
-                    "@composer install --ignore-platform-reqs --no-interaction"
+                    "@composer install --ignore-platform-req=php+ --no-interaction"
                 ],
                 "packages-update": [
                     "@composer clear-cache",
-                    "@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+                    "@composer update --prefer-stable --ignore-platform-req=php+ --no-interaction"
                 ],
                 "format:php": [
                     "phpcbf --standard=./phpcs.dist.xml --basepath=. ./ -v"
@@ -602,7 +602,7 @@
                     "@php vendor/bin/phpunit --testsuite=Unit"
                 ],
                 "test:unit:mutation": [
-                    "@php vendor/bin/infection --threads=max"
+                    "@php vendor/bin/infection --threads=max --show-mutations=0"
                 ],
                 "test:all": [
                     "@test:unit",
@@ -631,7 +631,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-07-04T23:51:35+00:00"
+            "time": "2026-07-06T11:19:11+00:00"
         },
         {
             "name": "automattic/jetpack-changelogger",
@@ -8248,21 +8248,21 @@
         },
         {
             "name": "szepeviktor/phpstan-wordpress",
-            "version": "v2.0.3",
+            "version": "2.x-dev",
             "source": {
                 "type": "git",
                 "url": "https://github.com/szepeviktor/phpstan-wordpress.git",
-                "reference": "aa722f037b2d034828cd6c55ebe9e5c74961927e"
+                "reference": "84577e2ea1e4c2a95537fe5ea2ac8e18f4ceab1a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/szepeviktor/phpstan-wordpress/zipball/aa722f037b2d034828cd6c55ebe9e5c74961927e",
-                "reference": "aa722f037b2d034828cd6c55ebe9e5c74961927e",
+                "url": "https://api.github.com/repos/szepeviktor/phpstan-wordpress/zipball/84577e2ea1e4c2a95537fe5ea2ac8e18f4ceab1a",
+                "reference": "84577e2ea1e4c2a95537fe5ea2ac8e18f4ceab1a",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.4 || ^8.0",
-                "php-stubs/wordpress-stubs": "^6.6.2",
+                "php-stubs/wordpress-stubs": ">=6.6.2",
                 "phpstan/phpstan": "^2.0"
             },
             "require-dev": {
@@ -8278,6 +8278,7 @@
             "suggest": {
                 "swissspidy/phpstan-no-private": "Detect usage of internal core functions, classes and methods"
             },
+            "default-branch": true,
             "type": "phpstan-extension",
             "extra": {
                 "phpstan": {
@@ -8305,9 +8306,9 @@
             ],
             "support": {
                 "issues": "https://github.com/szepeviktor/phpstan-wordpress/issues",
-                "source": "https://github.com/szepeviktor/phpstan-wordpress/tree/v2.0.3"
+                "source": "https://github.com/szepeviktor/phpstan-wordpress/tree/2.x"
             },
-            "time": "2025-09-14T02:58:22+00:00"
+            "time": "2026-05-22T16:22:09+00:00"
         },
         {
             "name": "thecodingmachine/safe",
