@@ -7,6 +7,7 @@ use DeepWebSolutions\Framework\Settings\Tests\Support\CreatesUsers;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticesService;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\DependencyAdminNoticeRenderer;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\DismissedNoticesTracker;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\UnknownNoticeStoreException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\DependencyRequirement;
@@ -26,6 +27,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( AdminNotice::class )]
 #[UsesClass( DependencyRequirement::class )]
 #[UsesClass( NoticeType::class )]
+#[UsesClass( UnknownNoticeStoreException::class )]
 #[UsesClass( MemoryStore::class )]
 #[UsesClass( OptionsStore::class )]
 #[UsesClass( UserMetaStore::class )]
@@ -156,28 +158,14 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 		self::assertTrue( $service->stores['memory']->has( 'dep_flaky_dependency' ) );
 	}
 
-	public function test_an_unknown_store_triggers_doing_it_wrong(): void {
-		$fired = 0;
-		$spy   = static function () use ( &$fired ) {
-			++$fired;
-		};
-		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		\add_action( 'doing_it_wrong_run', $spy );
+	public function test_an_unknown_store_throws_at_construction(): void {
+		$this->expectException( UnknownNoticeStoreException::class );
 
-		try {
-			$service = new AdminNoticesService();
-			( new DependencyAdminNoticeRenderer(
-				$service,
-				array( new DependencyRequirement( $this->conditional( false ), 'WooCommerce' ) ),
-				store: 'nope',
-			) )->render();
-
-			self::assertGreaterThan( 0, $fired );
-			self::assertSame( array(), $service->stores['memory']->get_all() );
-		} finally {
-			\remove_action( 'doing_it_wrong_run', $spy );
-			\remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		}
+		new DependencyAdminNoticeRenderer(
+			new AdminNoticesService(),
+			array( new DependencyRequirement( $this->conditional( false ), 'WooCommerce' ) ),
+			store: 'nope',
+		);
 	}
 
 	public function test_renders_for_a_capable_user_and_hides_from_others(): void {

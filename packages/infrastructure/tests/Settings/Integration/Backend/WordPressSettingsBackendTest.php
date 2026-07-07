@@ -125,8 +125,8 @@ final class WordPressSettingsBackendTest extends TestCase {
 		$registered_once = $count_autoload_filters();
 		\do_action( 'rest_api_init' );
 
-		// admin_init performs the registration (one autoload filter per section); rest_api_init adds none.
-		self::assertSame( $baseline + 2, $registered_once );
+		// admin_init performs the registration (a single page-wide autoload filter); rest_api_init adds none.
+		self::assertSame( $baseline + 1, $registered_once );
 		self::assertSame( $registered_once, $count_autoload_filters() );
 	}
 

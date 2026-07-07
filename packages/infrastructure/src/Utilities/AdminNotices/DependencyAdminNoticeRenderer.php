@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\UnknownNoticeStoreException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\DependencyRequirement;
 
@@ -45,6 +46,8 @@ final readonly class DependencyAdminNoticeRenderer {
 	 * @param   string|null                 $source       Plugin or feature display name woven into the notice text; null uses a generic subject.
 	 * @param   string                      $store        Name of the service store to queue into. Defaults to AdminNoticesService::DEFAULT_STORE.
 	 * @param   string                      $capability   Capability required to see the notices. Defaults to DEFAULT_CAPABILITY.
+	 *
+	 * @throws  UnknownNoticeStoreException When no store is registered on the service under $store.
 	 */
 	public function __construct(
 		protected AdminNoticesService $service,
@@ -52,7 +55,14 @@ final readonly class DependencyAdminNoticeRenderer {
 		protected ?string $source = null,
 		protected string $store = AdminNoticesService::DEFAULT_STORE,
 		protected string $capability = self::DEFAULT_CAPABILITY,
-	) {}
+	) {
+		// Validated at wiring time: render() runs inside an admin hook on every request, where an
+		// unknown-store throw would fatal the whole admin instead of failing the one mis-wired consumer.
+		if ( ! isset( $service->stores[ $store ] ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new UnknownNoticeStoreException( "No notice store is registered under name '$store'." );
+		}
+	}
 
 	// endregion
 
