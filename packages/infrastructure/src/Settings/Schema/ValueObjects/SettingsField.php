@@ -91,7 +91,7 @@ final readonly class SettingsField {
 	) {
 		if ( ! is_valid_identifier( $id ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidSettingsFieldException( "Invalid settings field id: '$id'" );
+			throw new InvalidSettingsFieldException( "Invalid settings field id: '$id'." );
 		}
 
 		$this->sanitize = null !== $sanitize ? \Closure::fromCallable( $sanitize ) : null;

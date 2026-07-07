@@ -53,6 +53,7 @@ final class SettingsPageTest extends TestCase {
 			page_title: 'T',
 			menu_title: 'T',
 			capability: 'manage_options',
+			sections: array(),
 		);
 
 		self::assertSame( $valid_slug, $page->slug );
@@ -79,6 +80,7 @@ final class SettingsPageTest extends TestCase {
 			page_title: 'T',
 			menu_title: 'T',
 			capability: 'manage_options',
+			sections: array(),
 		);
 	}
 

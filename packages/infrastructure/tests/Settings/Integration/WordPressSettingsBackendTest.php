@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Settings\Tests\Integration;
 
+use DeepWebSolutions\Framework\Settings\Backend\Exceptions\BackendAlreadyBoundException;
 use DeepWebSolutions\Framework\Settings\Backend\WordPressSettingsBackend;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
@@ -369,6 +370,16 @@ final class WordPressSettingsBackendTest extends TestCase {
 		$this->expectException( DuplicateSettingsSectionException::class );
 
 		( new WordPressSettingsBackend() )->register_page( $page );
+	}
+
+	public function test_registering_a_second_page_on_the_same_instance_throws(): void {
+		$backend = $this->register( $this->page() );
+
+		// The backend is per-page: a second registration would silently re-route every field lookup to the
+		// new page while the first page's hooks stay live, so it must fail loudly instead.
+		$this->expectException( BackendAlreadyBoundException::class );
+
+		$backend->register_page( $this->page() );
 	}
 
 	public function test_a_programmatic_delete_bypasses_the_registered_sanitizer(): void {

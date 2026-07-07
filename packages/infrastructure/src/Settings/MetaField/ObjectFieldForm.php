@@ -18,13 +18,15 @@ use function DeepWebSolutions\Framework\Settings\Schema\resolve_field_control_id
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 /**
- * Shared render and save engine for object-field surfaces.
+ * Shared render, save, and field-addressed CRUD engine for object-field surfaces.
  *
  * Drives a {@see FieldGroup} against an injected object-meta repository: on render it emits an
  * object-scoped nonce and each editable field's control; on save it verifies that nonce, processes each
- * editable field, and applies the batch through a single apply() call. Object fields are revoke-based:
- * an absent value renders unset (never the field default), absent or empty submissions delete the meta
- * key, and an invalid present submission preserves the existing value.
+ * editable field, and applies the batch through a single apply() call. The get/set/has/delete verbs
+ * address one field by group and field id over the same storage keys, so every surface shares one set
+ * of value semantics. Object fields are revoke-based: an absent value renders unset (never the field
+ * default), absent or empty submissions delete the meta key, and an invalid present submission
+ * preserves the existing value.
  *
  * A surface varies only in per-field markup, supplied as a row closure receiving each field, its
  * rendered control, and the control's DOM id, and in the optional bespoke render/save closures the
@@ -114,7 +116,7 @@ final readonly class ObjectFieldForm {
 			}
 			// Object fields are revoke-based: an absent meta renders as unset, NOT the field default, so a
 			// value cleared via delete-on-empty does not spring back to its default on the next render.
-			$value        = $this->repository->get( $object_id, $this->meta_key_for( $field ) );
+			$value        = $this->repository->get( $object_id, $this->resolve_meta_key( $field ) );
 			$control_name = $group->id . '[' . $field->id . ']';
 			$control      = $this->renderer->render( $field, $value, $control_name );
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FieldRenderer returns escaped markup; a row closure escapes the surface chrome it adds.
@@ -166,7 +168,7 @@ final readonly class ObjectFieldForm {
 				continue;
 			}
 
-			$meta_key = $this->meta_key_for( $field );
+			$meta_key = $this->resolve_meta_key( $field );
 
 			// Object fields are revoke-based: an unsubmitted field deletes its meta key rather than keeping
 			// or defaulting it. Checked before processing because a custom type folds an absent submission to
@@ -195,7 +197,28 @@ final readonly class ObjectFieldForm {
 	}
 
 	/**
-	 * Stores one field's value for an object with the form path's store-or-revoke semantics: a checkbox
+	 * Retrieves a field's stored value for an object, or $default_value when nothing is stored. Object
+	 * fields are revoke-based, so the field's declared default is never a read-time fallback.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group         Group that declares the field.
+	 * @param   int        $object_id     Object to read.
+	 * @param   string     $field_id      Field whose value to read.
+	 * @param   mixed      $default_value Value to return when nothing is stored.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
+	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
+	 *
+	 * @return  mixed
+	 */
+	public function get( FieldGroup $group, int $object_id, string $field_id, mixed $default_value = null ): mixed {
+		return $this->repository->get( $object_id, $this->meta_key_of( $group, $object_id, $field_id ), $default_value );
+	}
+
+	/**
+	 * Persists one field's value for an object with the form path's store-or-revoke semantics: a checkbox
 	 * value is stored in its canonical 'yes'/'no' form (false stores 'no'), and a non-checkbox value a
 	 * form save would not store — false, a cleared field ('') or an empty multi-select (array()) — revokes
 	 * the meta key instead, exactly like a submission clearing the field. The write is programmatic: the
@@ -212,15 +235,53 @@ final readonly class ObjectFieldForm {
 	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
 	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
 	 */
-	public function store( FieldGroup $group, int $object_id, string $field_id, mixed $value ): void {
+	public function set( FieldGroup $group, int $object_id, string $field_id, mixed $value ): void {
 		$field = $this->field_of( $group, $object_id, $field_id );
 		$value = $this->storable_value( $field, $value );
 
 		if ( $this->should_store( $value ) ) {
-			$this->repository->set( $object_id, $this->meta_key_for( $field ), $value );
+			$this->repository->set( $object_id, $this->resolve_meta_key( $field ), $value );
 		} else {
-			$this->repository->delete( $object_id, $this->meta_key_for( $field ) );
+			$this->repository->delete( $object_id, $this->resolve_meta_key( $field ) );
 		}
+	}
+
+	/**
+	 * Whether a real value is stored for a field on an object.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group     Group that declares the field.
+	 * @param   int        $object_id Object to check.
+	 * @param   string     $field_id  Field to check.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
+	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
+	 *
+	 * @return  bool
+	 */
+	public function has( FieldGroup $group, int $object_id, string $field_id ): bool {
+		return $this->repository->has( $object_id, $this->meta_key_of( $group, $object_id, $field_id ) );
+	}
+
+	/**
+	 * Deletes a field's stored value from an object.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   FieldGroup $group     Group that declares the field.
+	 * @param   int        $object_id Object to clear.
+	 * @param   string     $field_id  Field to clear.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
+	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
+	 *
+	 * @return  bool True if a value was deleted, false if none existed.
+	 */
+	public function delete( FieldGroup $group, int $object_id, string $field_id ): bool {
+		return $this->repository->delete( $object_id, $this->meta_key_of( $group, $object_id, $field_id ) );
 	}
 
 	/**
@@ -240,7 +301,7 @@ final readonly class ObjectFieldForm {
 	 * @return  string
 	 */
 	public function meta_key_of( FieldGroup $group, int $object_id, string $field_id ): string {
-		return $this->meta_key_for( $this->field_of( $group, $object_id, $field_id ) );
+		return $this->resolve_meta_key( $this->field_of( $group, $object_id, $field_id ) );
 	}
 
 	/**
@@ -263,7 +324,7 @@ final readonly class ObjectFieldForm {
 	public function meta_keys( FieldGroup $group, int $object_id = 0 ): array {
 		$keys = array();
 		foreach ( $this->fields_of( $group, $object_id ) as $field ) {
-			$keys[] = $this->meta_key_for( $field );
+			$keys[] = $this->resolve_meta_key( $field );
 		}
 
 		return $keys;
@@ -334,7 +395,7 @@ final readonly class ObjectFieldForm {
 			}
 			$seen_ids[ $field->id ] = true;
 
-			$meta_key = $this->meta_key_for( $field );
+			$meta_key = $this->resolve_meta_key( $field );
 			if ( \array_key_exists( $meta_key, $seen_keys ) ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
 				throw new DuplicateSettingsFieldException( "Duplicate object field storage key in group '$group->id': '$meta_key'" );
@@ -381,14 +442,14 @@ final readonly class ObjectFieldForm {
 	 *
 	 * @return  string
 	 */
-	protected function meta_key_for( SettingsField $field ): string {
+	protected function resolve_meta_key( SettingsField $field ): string {
 		return $field->meta_key ?? $field->id;
 	}
 
 	/**
 	 * The canonical stored representation of a raw programmatic value: a checkbox value normalizes to
 	 * the canonical 'yes'/'no' string; any other field's value passes through unchanged. Only the
-	 * {@see self::store()} path normalizes here — a form submission's normalization belongs to the field
+	 * {@see self::set()} path normalizes here — a form submission's normalization belongs to the field
 	 * processor, whose processed value (a custom sanitizer's output included) is stored verbatim.
 	 *
 	 * @since   2.0.0

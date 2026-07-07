@@ -101,8 +101,7 @@ final class PostMetaFieldSurface {
 	}
 
 	/**
-	 * Retrieves a field's stored value for a post, or $default_value when nothing is stored. Object fields
-	 * are revoke-based, so the field's declared default is never a read-time fallback.
+	 * Retrieves a field's stored value for a post — {@see ObjectFieldForm::get()} for the read semantics.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -118,15 +117,11 @@ final class PostMetaFieldSurface {
 	 * @return  mixed
 	 */
 	public function get( FieldGroup $group, int $post_id, string $field_id, mixed $default_value = null ): mixed {
-		return $this->repository->get( $post_id, $this->form->meta_key_of( $group, $post_id, $field_id ), $default_value );
+		return $this->form->get( $group, $post_id, $field_id, $default_value );
 	}
 
 	/**
-	 * Persists a field's value for a post with the form path's store-or-revoke semantics: a checkbox
-	 * value is stored in its canonical 'yes'/'no' form (false stores 'no'), and a non-checkbox value a
-	 * form save would not store — false, a cleared field ('') or an empty multi-select (array()) —
-	 * revokes the meta key instead. The write is programmatic: the descriptor's sanitize/validate seam
-	 * applies to form submissions only.
+	 * Persists a field's value for a post — {@see ObjectFieldForm::set()} for the store-or-revoke semantics.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -140,11 +135,11 @@ final class PostMetaFieldSurface {
 	 * @throws  InvalidSettingsFieldException If the group declares no field with the given id.
 	 */
 	public function set( FieldGroup $group, int $post_id, string $field_id, mixed $value ): void {
-		$this->form->store( $group, $post_id, $field_id, $value );
+		$this->form->set( $group, $post_id, $field_id, $value );
 	}
 
 	/**
-	 * Whether a real value is stored for a field on a post.
+	 * Whether a real value is stored for a field on a post — {@see ObjectFieldForm::has()}.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -159,11 +154,11 @@ final class PostMetaFieldSurface {
 	 * @return  bool
 	 */
 	public function has( FieldGroup $group, int $post_id, string $field_id ): bool {
-		return $this->repository->has( $post_id, $this->form->meta_key_of( $group, $post_id, $field_id ) );
+		return $this->form->has( $group, $post_id, $field_id );
 	}
 
 	/**
-	 * Deletes a field's stored value from a post.
+	 * Deletes a field's stored value from a post — {@see ObjectFieldForm::delete()}.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -178,7 +173,7 @@ final class PostMetaFieldSurface {
 	 * @return  bool True if a value was deleted, false if none existed.
 	 */
 	public function delete( FieldGroup $group, int $post_id, string $field_id ): bool {
-		return $this->repository->delete( $post_id, $this->form->meta_key_of( $group, $post_id, $field_id ) );
+		return $this->form->delete( $group, $post_id, $field_id );
 	}
 
 	/**
@@ -267,14 +262,12 @@ final class PostMetaFieldSurface {
 	protected function add_box( FieldGroup $group, MetaBoxPlacement $placement, \WP_Post $post ): void {
 		// Gate the box on the same capability as the save, so a user who reaches the edit screen but lacks
 		// the box's capability for this post is neither shown the controls nor disclosed the stored values.
-		if ( ! \current_user_can( $placement->capability ?? 'edit_post', $post->ID ) ) {
+		if ( ! \current_user_can( $placement->get_capability(), $post->ID ) ) {
 			return;
 		}
 
-		$priority = match ( $placement->priority ) {
-			'core', 'high', 'low' => $placement->priority,
-			default               => 'default',
-		};
+		/** @var 'high'|'core'|'default'|'low' $priority */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- inline @var type assertion; the placement constructor validates the closed set.
+		$priority = $placement->priority;
 
 		\add_meta_box(
 			$group->id,
@@ -315,8 +308,7 @@ final class PostMetaFieldSurface {
 	 * @param   int              $post_id   Post whose meta to write.
 	 */
 	protected function save_box( FieldGroup $group, MetaBoxPlacement $placement, int $post_id ): void {
-		$capability = $placement->capability ?? 'edit_post';
-		if ( ! \current_user_can( $capability, $post_id ) ) {
+		if ( ! \current_user_can( $placement->get_capability(), $post_id ) ) {
 			return;
 		}
 

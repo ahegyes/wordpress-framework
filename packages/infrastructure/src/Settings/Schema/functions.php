@@ -1,5 +1,12 @@
 <?php declare( strict_types=1 );
 
+/**
+ * Schema helper functions. All are WP-free except field_label_html(), is_field_editable_by_current_user(),
+ * and wordpress_field_type_sanitizers(), which call WordPress functions and need the WP runtime.
+ *
+ * @package DeepWebSolutions\Framework\Settings\Schema
+ */
+
 namespace DeepWebSolutions\Framework\Settings\Schema;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;

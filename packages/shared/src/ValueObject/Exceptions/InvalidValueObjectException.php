@@ -34,7 +34,7 @@ abstract class InvalidValueObjectException extends AbstractInvalidArgumentExcept
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string          $reason   Why the value object is invalid.
+	 * @param   string          $reason   Why the value object is invalid; supplies its own terminal period — the message template appends no punctuation.
 	 * @param   int             $code     Exception code.
 	 * @param   \Throwable|null $previous Previous exception for chaining.
 	 */

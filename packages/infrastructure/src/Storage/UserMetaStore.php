@@ -46,28 +46,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	// region INHERITED METHODS
 
 	/**
-	 * Persist a value under the given key for a user. Overwrites any existing value at the same key.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $key     Identifier under which to store the value.
-	 * @param   mixed  $value   Value to persist.
-	 * @param   int    $user_id User to target, or 0 for the current user. Defaults to 0.
-	 */
-	#[\Override]
-	public function set( string $key, mixed $value, int $user_id = 0 ): void {
-		$user_id = $this->resolve_user_id( $user_id );
-		if ( $user_id < 1 ) {
-			return;
-		}
-		$entries         = $this->load( $user_id );
-		$entries[ $key ] = $value;
-		$this->save( $user_id, $entries );
-	}
-
-	/**
-	 * Retrieve a value by key for a user, or the default if no value is stored under it.
+	 * Retrieves a value by key for a user, or the default if no value is stored under it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -89,7 +68,28 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	}
 
 	/**
-	 * Check whether a value is stored at the given key for a user.
+	 * Persists a value under the given key for a user. Overwrites any existing value at the same key.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $key     Identifier under which to store the value.
+	 * @param   mixed  $value   Value to persist.
+	 * @param   int    $user_id User to target, or 0 for the current user. Defaults to 0.
+	 */
+	#[\Override]
+	public function set( string $key, mixed $value, int $user_id = 0 ): void {
+		$user_id = $this->resolve_user_id( $user_id );
+		if ( $user_id < 1 ) {
+			return;
+		}
+		$entries         = $this->load( $user_id );
+		$entries[ $key ] = $value;
+		$this->save( $user_id, $entries );
+	}
+
+	/**
+	 * Checks whether a value is stored at the given key for a user.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -109,7 +109,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	}
 
 	/**
-	 * Delete the value stored at the given key for a user.
+	 * Deletes the value stored at the given key for a user.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -117,7 +117,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	 * @param   string $key     Identifier to delete.
 	 * @param   int    $user_id User to target, or 0 for the current user. Defaults to 0.
 	 *
-	 * @return  bool True if a value was deleted, false if no value existed under the key.
+	 * @return  bool True if a value was deleted, false if none existed.
 	 */
 	#[\Override]
 	public function delete( string $key, int $user_id = 0 ): bool {
@@ -135,7 +135,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	}
 
 	/**
-	 * Return all stored values for a user as a key-indexed array.
+	 * Returns all stored values for a user as a key-indexed array.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -154,7 +154,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	}
 
 	/**
-	 * Remove every stored value for a user.
+	 * Removes every stored value for a user.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -175,7 +175,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	// region HELPERS
 
 	/**
-	 * Resolve a passed user ID to a concrete target, defaulting to the current user when 0.
+	 * Resolves a passed user ID to a concrete target, defaulting to the current user when 0.
 	 * Non-positive results signal "no valid target" and are handled as no-ops by the callers.
 	 *
 	 * @since   2.0.0
@@ -190,7 +190,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	}
 
 	/**
-	 * Load the entries array from user_meta for the given user. Returns an empty array if
+	 * Loads the entries array from user_meta for the given user. Returns an empty array if
 	 * the meta key doesn't exist or holds a non-array value.
 	 *
 	 * @since   2.0.0
@@ -206,7 +206,7 @@ final readonly class UserMetaStore implements KeyValueStoreInterface {
 	}
 
 	/**
-	 * Persist the entries array to user_meta for the given user.
+	 * Persists the entries array to user_meta for the given user.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

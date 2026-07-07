@@ -56,11 +56,14 @@ final class WordPressSettingsBackendTest extends TestCase {
 	}
 
 	public function test_option_keys_is_empty_for_a_sectionless_page(): void {
+		// A sectionless page is never declared by a consumer (sections is a required parameter) but is a
+		// real derived shape: a page projection whose sections were all dropped still enumerates cleanly.
 		$page = new SettingsPage(
 			slug: 'dws-shop',
 			page_title: 'Shop',
 			menu_title: 'Shop',
 			capability: 'manage_options',
+			sections: array(),
 		);
 
 		self::assertSame( array(), ( new WordPressSettingsBackend() )->option_keys( $page ) );

@@ -19,20 +19,7 @@ namespace DeepWebSolutions\Framework\Storage;
  */
 interface KeyValueStoreInterface {
 	/**
-	 * Persist a value under the given key. Overwrites any existing value at the same key.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @phpstan-param T $value
-	 *
-	 * @param   string $key   Identifier under which to store the value.
-	 * @param   mixed  $value Value to persist.
-	 */
-	public function set( string $key, mixed $value ): void;
-
-	/**
-	 * Retrieve a value by key, or the default if no value is stored under it.
+	 * Retrieves a value by key, or the default if no value is stored under it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -48,7 +35,20 @@ interface KeyValueStoreInterface {
 	public function get( string $key, mixed $default_value = null ): mixed;
 
 	/**
-	 * Check whether a value is stored at the given key.
+	 * Persists a value under the given key. Overwrites any existing value at the same key.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @phpstan-param T $value
+	 *
+	 * @param   string $key   Identifier under which to store the value.
+	 * @param   mixed  $value Value to persist.
+	 */
+	public function set( string $key, mixed $value ): void;
+
+	/**
+	 * Checks whether a value is stored at the given key.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -60,19 +60,19 @@ interface KeyValueStoreInterface {
 	public function has( string $key ): bool;
 
 	/**
-	 * Delete the value stored at the given key.
+	 * Deletes the value stored at the given key.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   string $key Identifier to delete.
 	 *
-	 * @return  bool True if a value was deleted, false if no value existed under the key.
+	 * @return  bool True if a value was deleted, false if none existed.
 	 */
 	public function delete( string $key ): bool;
 
 	/**
-	 * Return all stored values as a key-indexed array.
+	 * Returns all stored values as a key-indexed array.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -82,7 +82,7 @@ interface KeyValueStoreInterface {
 	public function get_all(): array;
 
 	/**
-	 * Remove every stored value.
+	 * Removes every stored value.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

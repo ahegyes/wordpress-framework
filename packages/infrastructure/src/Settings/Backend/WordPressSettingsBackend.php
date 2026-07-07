@@ -2,9 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Settings\Backend;
 
+use DeepWebSolutions\Framework\Settings\Backend\Exceptions\BackendAlreadyBoundException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsPageException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\UnsupportedRestExposureException;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
@@ -159,12 +161,25 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @throws  BackendAlreadyBoundException If the instance is already bound to a page.
+	 * @throws  InvalidSettingsPageException If the page declares no sections.
 	 * @throws  DuplicateSettingsSectionException If two sections on the page share an id.
 	 * @throws  DuplicateSettingsFieldException If two fields on the page share an id.
 	 * @throws  UnsupportedRestExposureException If a section's REST exposure cannot be represented.
 	 */
 	#[\Override]
 	public function register_page( SettingsPage $page ): void {
+		if ( null !== $this->page ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new BackendAlreadyBoundException( "Settings backend is already bound to page '{$this->page->slug}'; use a new backend instance for page '$page->slug'." );
+		}
+		// The authoring-time seam: a registered page with zero sections is a permanently blank admin
+		// surface, while the render-time capability projection may legitimately empty a page per user.
+		if ( array() === $page->sections ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new InvalidSettingsPageException( "Settings page '$page->slug' declares no sections; a registered page must carry at least one section to render." );
+		}
+
 		$this->page                 = $page;
 		$this->field_section        = $this->map_fields( $page );
 		$this->section_autoload     = $this->map_section_autoload( $page );
@@ -297,7 +312,6 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 		foreach ( $page->sections as $section ) {
 			$option_name = $page->slug . '-' . $section->id;
 			$rest_schema = $this->section_rest_schemas[ $section->id ] ?? null;
-			$autoload    = $this->section_autoload[ $section->id ] ?? false;
 
 			$args = array(
 				// A REST-exposed section is an object keyed by field id; a plain section is an opaque map.
@@ -310,17 +324,55 @@ final class WordPressSettingsBackend implements SettingsBackendInterface {
 			}
 
 			\register_setting( $option_name, $option_name, $args );
-			\add_filter( "option_page_capability_{$option_name}", fn () => $page->capability );
-
-			// The form save calls update_option with no autoload argument, so WP would resolve the option's
-			// autoload by size rather than the section policy; pin the policy so both write paths agree.
-			\add_filter(
-				'wp_default_autoload_value',
-				static fn ( ?bool $default_value, string $option ): ?bool => $option === $option_name ? $autoload : $default_value,
-				10,
-				2,
-			);
+			\add_filter( "option_page_capability_{$option_name}", array( $this, 'filter_option_page_capability' ) );
 		}
+
+		\add_filter( 'wp_default_autoload_value', array( $this, 'filter_default_autoload' ), 10, 2 );
+	}
+
+	/**
+	 * Filters the capability required to save one of the page's section options, so options.php's
+	 * permission check matches the page capability. Hooked to option_page_capability_{$option_name}
+	 * for each section option.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $capability Capability options.php would otherwise require.
+	 *
+	 * @return  string
+	 */
+	public function filter_option_page_capability( string $capability ): string {
+		return $this->page->capability ?? $capability;
+	}
+
+	/**
+	 * Pins a section option's default autoload to the section policy. The form save calls update_option
+	 * with no autoload argument, so WordPress would resolve the option's autoload by size rather than
+	 * the section policy; pinning it keeps both write paths in agreement. An option that is not one of
+	 * the page's section options passes through untouched. Hooked to wp_default_autoload_value.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   ?bool  $autoload Default autoload value WordPress resolved so far; null lets WordPress decide.
+	 * @param   string $option   Option being written.
+	 *
+	 * @return  ?bool
+	 */
+	public function filter_default_autoload( ?bool $autoload, string $option ): ?bool {
+		$page = $this->page;
+		if ( null === $page ) {
+			return $autoload;
+		}
+
+		foreach ( $page->sections as $section ) {
+			if ( $page->slug . '-' . $section->id === $option ) {
+				return $this->section_autoload[ $section->id ] ?? false;
+			}
+		}
+
+		return $autoload;
 	}
 
 	// endregion

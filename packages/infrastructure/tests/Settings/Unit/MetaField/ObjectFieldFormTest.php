@@ -132,62 +132,90 @@ final class ObjectFieldFormTest extends TestCase {
 		self::assertSame( array( '_dws_note_9' ), $this->form()->meta_keys( $group, 9 ) );
 	}
 
-	public function test_store_writes_under_the_resolved_storage_key(): void {
+	public function test_set_writes_under_the_resolved_storage_key(): void {
 		$repository = new InMemoryObjectMetaRepository();
 		$form       = new ObjectFieldForm( $repository );
 		$group      = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note', meta_key: '_dws_note' ) );
 
-		$form->store( $group, 7, 'note', 'hello' );
+		$form->set( $group, 7, 'note', 'hello' );
 
 		self::assertSame( 'hello', $repository->get( 7, '_dws_note' ) );
 		self::assertFalse( $repository->has( 7, 'note' ) );
 	}
 
-	public function test_store_normalizes_a_checkbox_to_its_canonical_yes_no_form(): void {
+	public function test_set_normalizes_a_checkbox_to_its_canonical_yes_no_form(): void {
 		$repository = new InMemoryObjectMetaRepository();
 		$form       = new ObjectFieldForm( $repository );
 		$group      = $this->group( new SettingsField( id: 'flag', type: 'checkbox', label: 'Flag' ) );
 
-		$form->store( $group, 7, 'flag', '1' );
+		$form->set( $group, 7, 'flag', '1' );
 		self::assertSame( 'yes', $repository->get( 7, 'flag' ) );
 
-		$form->store( $group, 7, 'flag', false );
+		$form->set( $group, 7, 'flag', false );
 		self::assertSame( 'no', $repository->get( 7, 'flag' ) );
 		self::assertTrue( $repository->has( 7, 'flag' ) );
 	}
 
-	public function test_store_revokes_the_key_for_each_value_a_form_save_would_not_store(): void {
+	public function test_set_revokes_the_key_for_each_value_a_form_save_would_not_store(): void {
 		$repository = new InMemoryObjectMetaRepository();
 		$form       = new ObjectFieldForm( $repository );
 		$group      = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
 
 		foreach ( array( false, '', array() ) as $empty ) {
-			$form->store( $group, 7, 'note', 'kept' );
-			$form->store( $group, 7, 'note', $empty );
+			$form->set( $group, 7, 'note', 'kept' );
+			$form->set( $group, 7, 'note', $empty );
 
 			self::assertFalse( $repository->has( 7, 'note' ) );
 		}
 	}
 
-	public function test_store_preserves_a_meaningful_zero(): void {
+	public function test_set_preserves_a_meaningful_zero(): void {
 		$repository = new InMemoryObjectMetaRepository();
 		$form       = new ObjectFieldForm( $repository );
 		$group      = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
 
-		$form->store( $group, 7, 'note', '0' );
+		$form->set( $group, 7, 'note', '0' );
 
 		self::assertSame( '0', $repository->get( 7, 'note' ) );
 	}
 
-	public function test_store_rejects_a_field_the_group_does_not_declare(): void {
+	public function test_set_rejects_a_field_the_group_does_not_declare(): void {
 		$this->expectException( InvalidSettingsFieldException::class );
 
-		( new ObjectFieldForm( new InMemoryObjectMetaRepository() ) )->store(
+		( new ObjectFieldForm( new InMemoryObjectMetaRepository() ) )->set(
 			$this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) ),
 			7,
 			'missing',
 			'x',
 		);
+	}
+
+	public function test_get_reads_the_resolved_storage_key_and_falls_back_to_the_caller_default(): void {
+		$repository = new InMemoryObjectMetaRepository();
+		$form       = new ObjectFieldForm( $repository );
+		$group      = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note', meta_key: '_dws_note', default_value: 'declared-default' ) );
+
+		self::assertNull( $form->get( $group, 7, 'note' ) );
+		self::assertSame( 'fallback', $form->get( $group, 7, 'note', 'fallback' ) );
+
+		$repository->set( 7, '_dws_note', 'hello' );
+
+		self::assertSame( 'hello', $form->get( $group, 7, 'note' ) );
+	}
+
+	public function test_has_and_delete_address_the_resolved_storage_key(): void {
+		$repository = new InMemoryObjectMetaRepository();
+		$form       = new ObjectFieldForm( $repository );
+		$group      = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note', meta_key: '_dws_note' ) );
+
+		self::assertFalse( $form->has( $group, 7, 'note' ) );
+
+		$repository->set( 7, '_dws_note', 'hello' );
+
+		self::assertTrue( $form->has( $group, 7, 'note' ) );
+		self::assertTrue( $form->delete( $group, 7, 'note' ) );
+		self::assertFalse( $form->has( $group, 7, 'note' ) );
+		self::assertFalse( $form->delete( $group, 7, 'note' ) );
 	}
 
 	private function form(): ObjectFieldForm {

@@ -39,8 +39,8 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
-	public function set( string $key, mixed $value ): void {
-		$this->entries[ $key ] = $value;
+	public function get( string $key, mixed $default_value = null ): mixed {
+		return \array_key_exists( $key, $this->entries ) ? $this->entries[ $key ] : $default_value;
 	}
 
 	/**
@@ -50,8 +50,8 @@ final class MemoryStore implements KeyValueStoreInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
-	public function get( string $key, mixed $default_value = null ): mixed {
-		return \array_key_exists( $key, $this->entries ) ? $this->entries[ $key ] : $default_value;
+	public function set( string $key, mixed $value ): void {
+		$this->entries[ $key ] = $value;
 	}
 
 	/**

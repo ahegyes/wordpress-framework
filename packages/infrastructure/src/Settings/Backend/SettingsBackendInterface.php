@@ -16,7 +16,8 @@ use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
  */
 interface SettingsBackendInterface {
 	/**
-	 * Registers the page's admin menu and settings with WordPress.
+	 * Registers the page's admin surface and settings with WordPress. How the page is mounted is
+	 * backend-interpreted — an admin submenu for a menu-based backend, a settings tab for a tab-based one.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
