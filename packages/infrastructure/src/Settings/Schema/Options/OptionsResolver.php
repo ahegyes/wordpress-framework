@@ -24,14 +24,14 @@ final readonly class OptionsResolver {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<array-key, mixed>|\Closure|SettingsOptionsProviderInterface $options Options source to resolve.
+	 * @param   array<array-key, mixed>|\Closure|OptionsProviderInterface $options Options source to resolve.
 	 *
 	 * @throws  InvalidSettingsOptionsException If a closure source resolves to a non-array.
 	 *
 	 * @return  array<array-key, mixed>
 	 */
-	public function resolve( array|\Closure|SettingsOptionsProviderInterface $options ): array {
-		if ( $options instanceof SettingsOptionsProviderInterface ) {
+	public function resolve( array|\Closure|OptionsProviderInterface $options ): array {
+		if ( $options instanceof OptionsProviderInterface ) {
 			return $options->get_options();
 		}
 

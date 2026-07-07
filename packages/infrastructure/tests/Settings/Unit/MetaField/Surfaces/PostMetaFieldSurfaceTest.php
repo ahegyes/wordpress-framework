@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Tests\Unit\MetaField\Stores;
+namespace DeepWebSolutions\Framework\Settings\Tests\Unit\MetaField\Surfaces;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
-use DeepWebSolutions\Framework\Settings\MetaField\Stores\PostMetaFieldStore;
+use DeepWebSolutions\Framework\Settings\MetaField\Surfaces\PostMetaFieldSurface;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass( PostMetaFieldStore::class )]
+#[CoversClass( PostMetaFieldSurface::class )]
 #[UsesClass( ObjectFieldForm::class )]
 #[UsesClass( FieldGroup::class )]
 #[UsesClass( SettingsField::class )]
@@ -29,15 +29,15 @@ use PHPUnit\Framework\TestCase;
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value' )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers' )]
-final class PostMetaFieldStoreTest extends TestCase {
+final class PostMetaFieldSurfaceTest extends TestCase {
 	private ObjectMetaRepositoryInterface $repository;
-	private PostMetaFieldStore $store;
+	private PostMetaFieldSurface $store;
 
 	protected function setUp(): void {
 		parent::setUp();
 
 		$this->repository = new InMemoryObjectMetaRepository();
-		$this->store      = new PostMetaFieldStore( repository: $this->repository );
+		$this->store      = new PostMetaFieldSurface( repository: $this->repository );
 	}
 
 	public function test_a_value_round_trips_under_the_field_id_when_no_meta_key_override_is_set(): void {

@@ -65,8 +65,8 @@ if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\Settings\\Sch
 
 // WooCommerce order-field store: the class that references WooCommerce symbols resolves under the
 // scoped prefix, with those symbols left unprefixed via the fixture's woocommerce-stubs catalog.
-if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldStore' ) ) {
-	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldStore';
+if ( ! class_exists( SCOPED_PREFIX . 'DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldSurface' ) ) {
+	$failures[] = 'missing scoped class: DeepWebSolutions\\Framework\\WooCommerce\\OrderData\\OrderFieldSurface';
 }
 
 // PHP-DI PSR-4 + files-autoloaded factory().

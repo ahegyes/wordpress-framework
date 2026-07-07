@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Tests\Unit\MetaField\Stores;
+namespace DeepWebSolutions\Framework\Settings\Tests\Unit\MetaField\Surfaces;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
-use DeepWebSolutions\Framework\Settings\MetaField\Stores\UserProfileFieldStore;
+use DeepWebSolutions\Framework\Settings\MetaField\Surfaces\UserProfileFieldSurface;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass( UserProfileFieldStore::class )]
+#[CoversClass( UserProfileFieldSurface::class )]
 #[UsesClass( ObjectFieldForm::class )]
 #[UsesClass( FieldGroup::class )]
 #[UsesClass( SettingsField::class )]
@@ -28,15 +28,15 @@ use PHPUnit\Framework\TestCase;
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\is_checkbox_checked' )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value' )]
 #[UsesFunction( 'DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers' )]
-final class UserProfileFieldStoreTest extends TestCase {
+final class UserProfileFieldSurfaceTest extends TestCase {
 	private ObjectMetaRepositoryInterface $repository;
-	private UserProfileFieldStore $store;
+	private UserProfileFieldSurface $store;
 
 	protected function setUp(): void {
 		parent::setUp();
 
 		$this->repository = new InMemoryObjectMetaRepository();
-		$this->store      = new UserProfileFieldStore( repository: $this->repository );
+		$this->store      = new UserProfileFieldSurface( repository: $this->repository );
 	}
 
 	public function test_a_value_round_trips_under_the_resolved_storage_key(): void {

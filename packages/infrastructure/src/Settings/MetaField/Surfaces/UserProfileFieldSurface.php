@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\MetaField\Stores;
+namespace DeepWebSolutions\Framework\Settings\MetaField\Surfaces;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
@@ -17,7 +17,7 @@ use DeepWebSolutions\Framework\Storage\ObjectMeta\ObjectMetaRepositoryInterface;
 use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
 
 /**
- * Registers a field group on the WordPress user-profile surface and stores its fields as user meta.
+ * Surface that mounts a field group onto the WordPress user-profile screens and stores its fields as user meta.
  *
  * Renders the group on the profile edit screens — always when an administrator edits another user
  * (edit_user_profile), and on a user's own profile (show_user_profile) unless the descriptor restricts
@@ -25,7 +25,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
  * repository. The current user must be able to edit the target user; the per-field gate and the nonce
  * are the shared form engine's responsibility.
  *
- * Beyond registration, the store exposes field-addressed CRUD over the same storage keys and value
+ * Beyond registration, the surface exposes field-addressed CRUD over the same storage keys and value
  * semantics the form path applies — get/set/has/delete by group and field id — plus meta_keys() for the
  * consumer's uninstall cleanup. Object fields are revoke-based, so reads never fall back to the field's
  * declared default.
@@ -33,7 +33,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class UserProfileFieldStore {
+final class UserProfileFieldSurface {
 	// region FIELDS AND CONSTANTS
 
 	/**

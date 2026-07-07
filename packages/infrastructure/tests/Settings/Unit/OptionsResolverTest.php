@@ -4,7 +4,7 @@ namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsOptionsException;
 use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsResolver;
-use DeepWebSolutions\Framework\Settings\Schema\Options\SettingsOptionsProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsProviderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -34,7 +34,7 @@ final class OptionsResolverTest extends TestCase {
 	}
 
 	public function test_resolves_a_provider_source(): void {
-		$provider = new class() implements SettingsOptionsProviderInterface {
+		$provider = new class() implements OptionsProviderInterface {
 			public function get_options(): array {
 				return array( 'a' => 'A' );
 			}
@@ -50,7 +50,7 @@ final class OptionsResolverTest extends TestCase {
 			'x' => 'X',
 			'y' => 'Y',
 		);
-		$provider = new class() implements SettingsOptionsProviderInterface {
+		$provider = new class() implements OptionsProviderInterface {
 			public function get_options(): array {
 				return array(
 					'x' => 'X',

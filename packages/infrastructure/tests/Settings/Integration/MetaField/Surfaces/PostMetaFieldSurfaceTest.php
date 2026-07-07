@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField\Stores;
+namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField\Surfaces;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
-use DeepWebSolutions\Framework\Settings\MetaField\Stores\PostMetaFieldStore;
+use DeepWebSolutions\Framework\Settings\MetaField\Surfaces\PostMetaFieldSurface;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\MetaBoxPlacement;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass( PostMetaFieldStore::class )]
+#[CoversClass( PostMetaFieldSurface::class )]
 #[UsesClass( ObjectFieldForm::class )]
 #[UsesClass( MetadataRepository::class )]
 #[UsesClass( MetaType::class )]
@@ -28,7 +28,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( FieldProcessor::class )]
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
-final class PostMetaFieldStoreTest extends TestCase {
+final class PostMetaFieldSurfaceTest extends TestCase {
 	private const GROUP_ID       = 'dws_postmeta';
 	private const ISOLATED_HOOKS = array( 'add_meta_boxes_post', 'save_post_post' );
 
@@ -84,7 +84,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_register_adds_the_meta_box_on_the_screen(): void {
-		( new PostMetaFieldStore() )->register( $this->group(), $this->placement() );
+		( new PostMetaFieldSurface() )->register( $this->group(), $this->placement() );
 		\do_action( 'add_meta_boxes_post', \get_post( $this->post_id ) );
 
 		self::assertArrayHasKey( self::GROUP_ID, $this->boxes_on( 'post' ) );
@@ -92,7 +92,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 
 	public function test_the_registered_box_renders_a_nonce_and_its_control(): void {
 		$group = $this->group();
-		( new PostMetaFieldStore() )->register( $group, $this->placement() );
+		( new PostMetaFieldSurface() )->register( $group, $this->placement() );
 		\do_action( 'add_meta_boxes_post', \get_post( $this->post_id ) );
 
 		$html = $this->render_box();
@@ -102,7 +102,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_the_box_row_binds_the_label_to_the_control_id(): void {
-		( new PostMetaFieldStore() )->register( $this->group(), $this->placement() );
+		( new PostMetaFieldSurface() )->register( $this->group(), $this->placement() );
 		\do_action( 'add_meta_boxes_post', \get_post( $this->post_id ) );
 
 		$html = $this->render_box();
@@ -112,7 +112,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
-		$store = new PostMetaFieldStore();
+		$store = new PostMetaFieldSurface();
 		$group = $this->group();
 		$store->register( $group, $this->placement() );
 
@@ -126,7 +126,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
-		$store = new PostMetaFieldStore();
+		$store = new PostMetaFieldSurface();
 		$group = $this->group();
 		$store->register( $group, $this->placement() );
 
@@ -148,7 +148,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
-		$store = new PostMetaFieldStore();
+		$store = new PostMetaFieldSurface();
 		$group = $this->group();
 		$raw   = '<b>x</b>';
 		$store->register( $group, $this->placement() );
@@ -163,7 +163,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
-		$store = new PostMetaFieldStore();
+		$store = new PostMetaFieldSurface();
 		$group = $this->group_with(
 			new SettingsField( id: 'color', type: 'select', label: 'Color', options: array( 'red' => 'Red' ) ),
 		);
@@ -180,7 +180,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
-		( new PostMetaFieldStore() )->register( $this->group(), $this->placement() );
+		( new PostMetaFieldSurface() )->register( $this->group(), $this->placement() );
 
 		$_POST = array( self::GROUP_ID => array( 'note' => 'hi' ) );
 		\do_action( 'save_post_post', $this->post_id );
@@ -200,7 +200,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 		\wp_set_current_user( $subscriber );
 
 		$group = $this->group();
-		( new PostMetaFieldStore() )->register( $group, $this->placement() );
+		( new PostMetaFieldSurface() )->register( $group, $this->placement() );
 
 		$_POST = array(
 			$this->nonce_name( $group ) => $this->nonce( $group ),
@@ -215,7 +215,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 	}
 
 	public function test_a_configured_box_capability_overrides_the_default(): void {
-		$store     = new PostMetaFieldStore();
+		$store     = new PostMetaFieldSurface();
 		$placement = new MetaBoxPlacement( screen: 'post', context: 'side', priority: 'default', capability: 'dws_nonexistent_cap' );
 		$group     = $this->group();
 		$store->register( $group, $placement );
@@ -232,7 +232,7 @@ final class PostMetaFieldStoreTest extends TestCase {
 
 	public function test_a_configured_capability_hides_the_box_on_render(): void {
 		$placement = new MetaBoxPlacement( screen: 'post', context: 'side', priority: 'default', capability: 'dws_nonexistent_cap' );
-		( new PostMetaFieldStore() )->register( $this->group(), $placement );
+		( new PostMetaFieldSurface() )->register( $this->group(), $placement );
 		\do_action( 'add_meta_boxes_post', \get_post( $this->post_id ) );
 
 		// The administrator reaches the edit screen but lacks the configured capability, so the box is not added.

@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Settings\Tests\Unit;
 
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
-use DeepWebSolutions\Framework\Settings\Schema\Options\SettingsOptionsProviderInterface;
+use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsProviderInterface;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -109,7 +109,7 @@ final class SettingsFieldTest extends TestCase {
 	}
 
 	public function test_options_accepts_a_provider(): void {
-		$provider = new class() implements SettingsOptionsProviderInterface {
+		$provider = new class() implements OptionsProviderInterface {
 			public function get_options(): array {
 				return array( 'k' => 'V' );
 			}

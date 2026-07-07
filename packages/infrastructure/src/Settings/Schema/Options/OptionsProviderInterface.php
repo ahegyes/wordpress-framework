@@ -13,7 +13,7 @@ namespace DeepWebSolutions\Framework\Settings\Schema\Options;
  * @since   2.0.0
  * @version 2.0.0
  */
-interface SettingsOptionsProviderInterface {
+interface OptionsProviderInterface {
 	/**
 	 * Returns the available options as a value-to-label map.
 	 *

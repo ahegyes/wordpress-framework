@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\MetaField\Stores;
+namespace DeepWebSolutions\Framework\Settings\MetaField\Surfaces;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
@@ -17,14 +17,14 @@ use DeepWebSolutions\Framework\Storage\ObjectMeta\ObjectMetaRepositoryInterface;
 use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
 
 /**
- * Registers a field group as a post meta box and stores its fields as post meta.
+ * Surface that mounts a field group onto the post edit screen as a meta box and stores its fields as post meta.
  *
  * Adds a meta box on the post-type screen named by the placement and saves it on that type's save_post
  * hook, reading and writing post meta through a metadata repository. The placement's screen is the post
  * type. The current user must hold the placement's capability — by default the post's own edit_post meta
  * capability — for the object; the per-field gate and the nonce are the shared form engine's responsibility.
  *
- * Beyond registration, the store exposes field-addressed CRUD over the same storage keys and value
+ * Beyond registration, the surface exposes field-addressed CRUD over the same storage keys and value
  * semantics the form path applies — get/set/has/delete by group and field id — plus meta_keys() for the
  * consumer's uninstall cleanup. Object fields are revoke-based, so reads never fall back to the field's
  * declared default.
@@ -32,7 +32,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
  * @since   2.0.0
  * @version 2.0.0
  */
-final class PostMetaFieldStore {
+final class PostMetaFieldSurface {
 	// region FIELDS AND CONSTANTS
 
 	/**

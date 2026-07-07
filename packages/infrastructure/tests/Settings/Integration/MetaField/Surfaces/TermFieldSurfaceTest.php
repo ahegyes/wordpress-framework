@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField\Stores;
+namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField\Surfaces;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
-use DeepWebSolutions\Framework\Settings\MetaField\Stores\TermFieldStore;
+use DeepWebSolutions\Framework\Settings\MetaField\Surfaces\TermFieldSurface;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\TermFieldGroup;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass( TermFieldStore::class )]
+#[CoversClass( TermFieldSurface::class )]
 #[UsesClass( ObjectFieldForm::class )]
 #[UsesClass( MetadataRepository::class )]
 #[UsesClass( MetaType::class )]
@@ -28,7 +28,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( FieldProcessor::class )]
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
-final class TermFieldStoreTest extends TestCase {
+final class TermFieldSurfaceTest extends TestCase {
 	private const GROUP_ID       = 'dws_termmeta';
 	private const NONCE_NAME     = 'dws_object_field_dws_termmeta_nonce';
 	private const NONCE_ACTION   = 'dws_object_field_dws_termmeta';
@@ -75,7 +75,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_editing_a_term_renders_the_nonce_and_control(): void {
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		\ob_start();
 		\do_action( 'category_edit_form_fields', \get_term( $this->term_id, 'category' ) );
@@ -87,7 +87,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_adding_a_term_renders_the_nonce_and_control_in_add_form_markup(): void {
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		\ob_start();
 		\do_action( 'category_add_form_fields', 'category' );
@@ -100,7 +100,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_the_edit_row_binds_the_label_to_the_control_id(): void {
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		\ob_start();
 		\do_action( 'category_edit_form_fields', \get_term( $this->term_id, 'category' ) );
@@ -111,7 +111,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_the_add_row_binds_the_label_to_the_control_id(): void {
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		\ob_start();
 		\do_action( 'category_add_form_fields', 'category' );
@@ -122,7 +122,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_the_hooks_are_registered_for_the_descriptor_taxonomy(): void {
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		self::assertNotFalse( \has_action( 'category_edit_form_fields' ) );
 		self::assertNotFalse( \has_action( 'edited_category' ) );
@@ -131,7 +131,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
@@ -143,7 +143,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
-		$store      = new TermFieldStore();
+		$store      = new TermFieldSurface();
 		$term_group = $this->term_group();
 		$group      = $term_group->group;
 		$store->register( $term_group );
@@ -166,7 +166,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_a_created_term_persists_with_capability_and_a_valid_add_nonce(): void {
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce_for( 0 ),
@@ -179,7 +179,7 @@ final class TermFieldStoreTest extends TestCase {
 
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
 		$raw = '<b>x</b>';
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
@@ -191,7 +191,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
-		( new TermFieldStore() )->register(
+		( new TermFieldSurface() )->register(
 			$this->term_group_with(
 				new SettingsField( id: 'color', type: 'select', label: 'Color', options: array( 'red' => 'Red' ) ),
 			),
@@ -208,7 +208,7 @@ final class TermFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		$_POST = array( self::GROUP_ID => array( 'color' => 'blue' ) );
 		\do_action( 'edited_category', $this->term_id );
@@ -227,7 +227,7 @@ final class TermFieldStoreTest extends TestCase {
 		\assert( \is_int( $subscriber ) );
 		\wp_set_current_user( $subscriber );
 
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
@@ -272,7 +272,7 @@ final class TermFieldStoreTest extends TestCase {
 				title: 'Split Cap Meta',
 				fields_provider: static fn ( int $object_id ): array => array( $field ),
 			);
-			( new TermFieldStore() )->register( new TermFieldGroup( group: $group, taxonomy: 'dws_split_cap_tax' ) );
+			( new TermFieldSurface() )->register( new TermFieldGroup( group: $group, taxonomy: 'dws_split_cap_tax' ) );
 
 			\ob_start();
 			\do_action( 'dws_split_cap_tax_add_form_fields', 'dws_split_cap_tax' );
@@ -304,7 +304,7 @@ final class TermFieldStoreTest extends TestCase {
 		\assert( \is_int( $subscriber ) );
 		\wp_set_current_user( $subscriber );
 
-		( new TermFieldStore() )->register( $this->term_group() );
+		( new TermFieldSurface() )->register( $this->term_group() );
 
 		\ob_start();
 		\do_action( 'category_edit_form_fields', \get_term( $this->term_id, 'category' ) );

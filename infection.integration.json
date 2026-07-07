@@ -14,7 +14,7 @@
         "excludes": [
             "tests",
             "changelog",
-            "Backend/DescriptorBackedWCSettingsPage.php"
+            "Backend/DescriptorBackedWooCommerceSettingsPage.php"
         ]
     },
     "phpUnit": {

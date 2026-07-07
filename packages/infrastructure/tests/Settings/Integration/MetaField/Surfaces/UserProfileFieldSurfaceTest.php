@@ -1,9 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField\Stores;
+namespace DeepWebSolutions\Framework\Settings\Tests\Integration\MetaField\Surfaces;
 
 use DeepWebSolutions\Framework\Settings\MetaField\ObjectFieldForm;
-use DeepWebSolutions\Framework\Settings\MetaField\Stores\UserProfileFieldStore;
+use DeepWebSolutions\Framework\Settings\MetaField\Surfaces\UserProfileFieldSurface;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
 use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\UserProfileFieldGroup;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldProcessor;
@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass( UserProfileFieldStore::class )]
+#[CoversClass( UserProfileFieldSurface::class )]
 #[UsesClass( ObjectFieldForm::class )]
 #[UsesClass( MetadataRepository::class )]
 #[UsesClass( MetaType::class )]
@@ -28,7 +28,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( FieldProcessor::class )]
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
-final class UserProfileFieldStoreTest extends TestCase {
+final class UserProfileFieldSurfaceTest extends TestCase {
 	private const GROUP_ID       = 'dws_prefs';
 	private const NONCE_NAME     = 'dws_object_field_dws_prefs_nonce';
 	private const NONCE_ACTION   = 'dws_object_field_dws_prefs';
@@ -88,7 +88,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	public function test_editing_a_profile_renders_the_nonce_control_and_form_table(): void {
-		( new UserProfileFieldStore() )->register( $this->profile() );
+		( new UserProfileFieldSurface() )->register( $this->profile() );
 
 		\ob_start();
 		\do_action( 'edit_user_profile', \get_userdata( $this->user_id ) );
@@ -101,7 +101,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	public function test_the_profile_row_binds_the_label_to_the_control_id(): void {
-		( new UserProfileFieldStore() )->register( $this->profile() );
+		( new UserProfileFieldSurface() )->register( $this->profile() );
 
 		\ob_start();
 		\do_action( 'edit_user_profile', \get_userdata( $this->user_id ) );
@@ -112,7 +112,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
-		( new UserProfileFieldStore() )->register( $this->profile() );
+		( new UserProfileFieldSurface() )->register( $this->profile() );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
@@ -124,7 +124,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
-		$store   = new UserProfileFieldStore();
+		$store   = new UserProfileFieldSurface();
 		$profile = $this->text_profile();
 		$group   = $profile->group;
 		$store->register( $profile );
@@ -148,7 +148,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
 		$raw = '<b>x</b>';
-		( new UserProfileFieldStore() )->register( $this->text_profile() );
+		( new UserProfileFieldSurface() )->register( $this->text_profile() );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
@@ -160,7 +160,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
-		( new UserProfileFieldStore() )->register(
+		( new UserProfileFieldSurface() )->register(
 			$this->profile_with(
 				new SettingsField( id: 'pref', type: 'select', label: 'Preference', options: array( 'red' => 'Red' ) ),
 			),
@@ -177,7 +177,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	public function test_saving_is_skipped_without_a_valid_nonce(): void {
-		( new UserProfileFieldStore() )->register( $this->profile() );
+		( new UserProfileFieldSurface() )->register( $this->profile() );
 
 		$_POST = array( self::GROUP_ID => array( 'pref' => '1' ) );
 		\do_action( 'edit_user_profile_update', $this->user_id );
@@ -186,7 +186,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 	}
 
 	public function test_the_own_profile_surface_is_registered_by_default(): void {
-		( new UserProfileFieldStore() )->register( $this->profile() );
+		( new UserProfileFieldSurface() )->register( $this->profile() );
 
 		self::assertNotFalse( \has_action( 'show_user_profile' ) );
 		self::assertNotFalse( \has_action( 'personal_options_update' ) );
@@ -194,7 +194,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 
 	public function test_the_own_profile_surface_is_omitted_when_restricted_to_admins(): void {
 		$profile = new UserProfileFieldGroup( group: $this->group(), on_own_profile: false );
-		( new UserProfileFieldStore() )->register( $profile );
+		( new UserProfileFieldSurface() )->register( $profile );
 
 		self::assertFalse( \has_action( 'show_user_profile' ) );
 		self::assertFalse( \has_action( 'personal_options_update' ) );
@@ -213,7 +213,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 		\assert( \is_int( $other ) );
 		\wp_set_current_user( $other );
 
-		( new UserProfileFieldStore() )->register( $this->profile() );
+		( new UserProfileFieldSurface() )->register( $this->profile() );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
@@ -237,7 +237,7 @@ final class UserProfileFieldStoreTest extends TestCase {
 		\assert( \is_int( $other ) );
 		\wp_set_current_user( $other );
 
-		( new UserProfileFieldStore() )->register( $this->profile() );
+		( new UserProfileFieldSurface() )->register( $this->profile() );
 
 		\ob_start();
 		\do_action( 'edit_user_profile', \get_userdata( $this->user_id ) );
