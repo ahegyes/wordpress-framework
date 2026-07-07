@@ -171,9 +171,9 @@ final readonly class Scheduler implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
-	public function register_lifecycle(): void {
+	public function register_hooks(): void {
 		foreach ( $this->backends as $backend ) {
-			$backend->register_lifecycle();
+			$backend->register_hooks();
 		}
 	}
 

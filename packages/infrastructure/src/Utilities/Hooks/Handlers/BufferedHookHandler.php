@@ -24,6 +24,20 @@ use DeepWebSolutions\Framework\Utilities\Hooks\HookRegistry;
  * @version 2.0.0
  */
 final readonly class BufferedHookHandler implements HookHandlerInterface {
+	// region FIELDS AND CONSTANTS
+
+	/**
+	 * Default handler ID a buffered handler is constructed under.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const DEFAULT_ID = 'buffered';
+
+	// endregion
+
 	// region MAGIC METHODS
 
 	/**
@@ -36,7 +50,7 @@ final readonly class BufferedHookHandler implements HookHandlerInterface {
 	 * @param   HookRegistry $registry  Internal record store, exposed for inspection and composition by ScopedHookHandler. Defaults to a fresh HookRegistry.
 	 */
 	public function __construct(
-		#[\Override] public string $id = 'buffered',
+		#[\Override] public string $id = self::DEFAULT_ID,
 		public HookRegistry $registry = new HookRegistry(),
 	) {}
 
@@ -119,6 +133,18 @@ final readonly class BufferedHookHandler implements HookHandlerInterface {
 		}
 		$this->registry->clear_filters();
 	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * The buffer is driven by explicit {@see self::flush()} / {@see self::reset()} calls
+	 * (or a composing ScopedHookHandler), so there is nothing to self-wire.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function register_hooks(): void {}
 
 	// endregion
 

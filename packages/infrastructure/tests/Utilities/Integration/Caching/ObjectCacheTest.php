@@ -119,10 +119,16 @@ final class ObjectCacheTest extends TestCase {
 		$cache->set( 'a', 1 );
 		$cache->set( 'b', 2 );
 
-		$cache->delete( 'a' );
+		self::assertTrue( $cache->delete( 'a' ) );
 
 		self::assertSame( 'gone', $cache->get( 'a', 'gone' ) );
 		self::assertSame( 2, $cache->get( 'b' ) );
+	}
+
+	public function test_delete_returns_false_for_an_absent_key(): void {
+		$cache = new ObjectCache( self::GROUP );
+
+		self::assertFalse( $cache->delete( 'never-stored' ) );
 	}
 
 	public function test_remember_does_not_let_a_value_survive_a_flush_during_its_callback(): void {

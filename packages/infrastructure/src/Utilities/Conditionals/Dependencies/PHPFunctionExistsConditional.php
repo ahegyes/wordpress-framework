@@ -14,7 +14,7 @@ final readonly class PHPFunctionExistsConditional implements ConditionalInterfac
 	// region MAGIC METHODS
 
 	/**
-	 * Constructs the conditional with the function name to probe.
+	 * Constructor.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

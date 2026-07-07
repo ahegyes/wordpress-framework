@@ -36,7 +36,7 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   string       $id        Handler ID. Defaults to 'direct'.
-	 * @param   HookRegistry $registry  Internal record store, exposed for inspection and for HooksService composition. Defaults to a fresh HookRegistry.
+	 * @param   HookRegistry $registry  Internal record store tracking every registration so remove_all_* can revert exhaustively. Defaults to a fresh HookRegistry.
 	 */
 	public function __construct(
 		#[\Override] public string $id = self::DEFAULT_ID,
@@ -124,6 +124,17 @@ final readonly class DirectHookHandler implements HookHandlerInterface {
 		}
 		$this->registry->clear_filters();
 	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Direct passthrough registration needs no self-wiring.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function register_hooks(): void {}
 
 	// endregion
 }

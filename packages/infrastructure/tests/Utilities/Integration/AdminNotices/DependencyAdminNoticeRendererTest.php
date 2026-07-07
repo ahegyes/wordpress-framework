@@ -76,8 +76,8 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 
 		self::assertInstanceOf( AdminNotice::class, $notice );
 		self::assertSame( NoticeType::Error, $notice->type );
-		self::assertFalse( $notice->is_dismissible );
-		self::assertFalse( $notice->is_persistent );
+		self::assertFalse( $notice->dismissible );
+		self::assertFalse( $notice->persistent );
 		self::assertSame( 'activate_plugins', $notice->capability );
 		self::assertSame( 'Linked Orders requires WooCommerce to be active.', $notice->message );
 	}
@@ -94,8 +94,8 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 
 		self::assertInstanceOf( AdminNotice::class, $notice );
 		self::assertSame( NoticeType::Warning, $notice->type );
-		self::assertTrue( $notice->is_dismissible );
-		self::assertTrue( $notice->is_persistent );
+		self::assertTrue( $notice->dismissible );
+		self::assertTrue( $notice->persistent );
 		self::assertSame( 'Jetpack is recommended for Linked Orders.', $notice->message );
 	}
 

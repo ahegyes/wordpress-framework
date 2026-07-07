@@ -14,7 +14,7 @@ final readonly class IsCliConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
-	 * Constructs the conditional, capturing the SAPI name to compare against.
+	 * Constructor.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

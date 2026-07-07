@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\UnknownNoticeStoreException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\Exceptions\InvalidGlobalNamePrefixException;
 use DeepWebSolutions\Framework\Storage\MemoryStore;
@@ -88,15 +89,13 @@ final readonly class AdminNoticesService {
 	 *
 	 * @param   AdminNotice $notice Notice to queue.
 	 * @param   string      $store  Name of the store to queue it in. Defaults to DEFAULT_STORE.
+	 *
+	 * @throws  UnknownNoticeStoreException When no store is registered under $store.
 	 */
 	public function add_notice( AdminNotice $notice, string $store = self::DEFAULT_STORE ): void {
 		if ( ! isset( $this->stores[ $store ] ) ) {
-			\_doing_it_wrong(
-				__METHOD__,
-				\esc_html( \sprintf( 'Unknown notice store "%s"; the notice was not queued.', $store ) ),
-				'2.0.0'
-			);
-			return;
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new UnknownNoticeStoreException( "No notice store is registered under name '$store'." );
 		}
 
 		$this->stores[ $store ]->add( $notice );
@@ -111,11 +110,18 @@ final readonly class AdminNoticesService {
 	 * @param   string      $id    ID of the notice to remove.
 	 * @param   string|null $store Store to remove it from, or null to search every store.
 	 *
+	 * @throws  UnknownNoticeStoreException When no store is registered under an explicit $store.
+	 *
 	 * @return  bool True if a notice was removed from any store, false otherwise.
 	 */
 	public function remove_notice( string $id, ?string $store = null ): bool {
 		if ( null !== $store ) {
-			return isset( $this->stores[ $store ] ) && $this->stores[ $store ]->remove( $id );
+			if ( ! isset( $this->stores[ $store ] ) ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+				throw new UnknownNoticeStoreException( "No notice store is registered under name '$store'." );
+			}
+
+			return $this->stores[ $store ]->remove( $id );
 		}
 
 		$removed = false;
@@ -126,6 +132,10 @@ final readonly class AdminNoticesService {
 		}
 		return $removed;
 	}
+
+	// endregion
+
+	// region HOOKS
 
 	/**
 	 * Render every queued notice the current user may see. Hook this onto the `admin_notices` action.
@@ -144,22 +154,18 @@ final readonly class AdminNoticesService {
 					continue;
 				}
 
-				$suppressed = $notice->is_persistent && $notice->is_dismissible
+				$suppressed = $notice->persistent && $notice->dismissible
 					&& true === $this->dismissals?->is_dismissed( $notice->id );
 				if ( ! $suppressed ) {
 					$this->render_one( $notice );
 				}
 
-				if ( ! $notice->is_persistent ) {
+				if ( ! $notice->persistent ) {
 					$store->remove( $notice->id );
 				}
 			}
 		}
 	}
-
-	// endregion
-
-	// region HOOKS
 
 	/**
 	 * Prints the inline script that turns a notice's dismiss button into a persisted, per-user dismissal.
@@ -239,7 +245,7 @@ final readonly class AdminNoticesService {
 	protected function is_dismissible_notice_known_to_current_user( string $id ): bool {
 		foreach ( $this->stores as $store ) {
 			$notice = $store->get( $id );
-			if ( null !== $notice && $notice->is_persistent && $notice->is_dismissible && \current_user_can( $notice->capability ) ) {
+			if ( null !== $notice && $notice->persistent && $notice->dismissible && \current_user_can( $notice->capability ) ) {
 				return true;
 			}
 		}
@@ -260,7 +266,7 @@ final readonly class AdminNoticesService {
 		// The transport marker only goes on notices a dismissal would actually suppress (persistent +
 		// dismissible), so clicking a one-shot's dismiss never records a stale, never-consulted row.
 		if ( null !== $this->dismiss_action && null !== $this->dismissals
-			&& $notice->is_persistent && $notice->is_dismissible
+			&& $notice->persistent && $notice->dismissible
 		) {
 			$data_attributes['data-dismiss-action'] = $this->dismiss_action;
 		}
@@ -270,7 +276,7 @@ final readonly class AdminNoticesService {
 			array(
 				'id'             => 'dws-notice-' . $notice->id,
 				'type'           => $notice->type->value,
-				'dismissible'    => $notice->is_dismissible,
+				'dismissible'    => $notice->dismissible,
 				'paragraph_wrap' => true,
 				'attributes'     => $data_attributes,
 			),

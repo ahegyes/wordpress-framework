@@ -62,10 +62,6 @@ final readonly class RedactingLogger implements LoggerInterface {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @param   mixed                   $level   Log level.
-	 * @param   string|\Stringable      $message Log message.
-	 * @param   array<array-key, mixed> $context Log context.
 	 */
 	#[\Override]
 	public function log( $level, string|\Stringable $message, array $context = array() ): void {

@@ -67,7 +67,7 @@ final class AdminNoticeLoggerTest extends TestCase {
 		// The notice persisted to wp_options, so a fresh service — a later request — still reads it.
 		$notice = $this->notice_service()->stores['options']->get( self::NOTICE_ID );
 		self::assertNotNull( $notice );
-		self::assertTrue( $notice->is_persistent );
+		self::assertTrue( $notice->persistent );
 		self::assertSame( NoticeType::Error, $notice->type );
 
 		// And it renders for a capable admin.

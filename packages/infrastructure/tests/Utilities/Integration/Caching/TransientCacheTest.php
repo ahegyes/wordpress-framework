@@ -286,11 +286,11 @@ final class TransientCacheTest extends TestCase {
 
 		\wp_cache_delete( 'alloptions', 'options' );
 
-		self::assertArrayNotHasKey( self::PREFIX . '_cache_invalidation_suffix', \wp_load_alloptions() );
+		self::assertArrayNotHasKey( self::PREFIX . '_transient_cache_generation', \wp_load_alloptions() );
 	}
 
 	public function test_a_corrupt_suffix_degrades_to_generation_one(): void {
-		\update_option( self::PREFIX . '_cache_invalidation_suffix', 'foo' );
+		\update_option( self::PREFIX . '_transient_cache_generation', 'foo' );
 
 		$cache = new TransientCache( self::PREFIX );
 		$cache->set( 'k', 'v', HOUR_IN_SECONDS );
@@ -353,6 +353,6 @@ final class TransientCacheTest extends TestCase {
 			)
 		);
 
-		\delete_option( $prefix . '_cache_invalidation_suffix' );
+		\delete_option( $prefix . '_transient_cache_generation' );
 	}
 }

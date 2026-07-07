@@ -16,13 +16,27 @@ use DeepWebSolutions\Framework\Utilities\Hooks\HookRegistry;
  * Use this when a hook should only be live during a specific phase — e.g., admin-only
  * filters that should not affect the front end, or hooks scoped to a single REST request.
  *
- * Wire the start/end lifecycle by calling {@see self::register_lifecycle()} after
+ * Wire the start/end lifecycle by calling {@see self::register_hooks()} after
  * construction; this keeps the constructor side-effect-free for testability.
  *
  * @since   2.0.0
  * @version 2.0.0
  */
 final readonly class ScopedHookHandler implements HookHandlerInterface {
+	// region FIELDS AND CONSTANTS
+
+	/**
+	 * Default handler ID of the internally-composed buffered handler.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	public const DEFAULT_BUFFER_ID = 'scoped-buffer';
+
+	// endregion
+
 	// region MAGIC METHODS
 
 	/**
@@ -40,7 +54,7 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 		#[\Override] public string $id,
 		public string $start_hook,
 		public string $end_hook = '',
-		public BufferedHookHandler $buffer = new BufferedHookHandler( 'scoped-buffer', new HookRegistry() ),
+		public BufferedHookHandler $buffer = new BufferedHookHandler( self::DEFAULT_BUFFER_ID, new HookRegistry() ),
 	) {}
 
 	// endregion
@@ -113,15 +127,12 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 		$this->buffer->remove_all_filters();
 	}
 
-	// endregion
-
-	// region METHODS
-
 	/**
-	 * Wire the start and end WordPress hooks to flush and reset the buffer.
+	 * {@inheritDoc}
 	 *
-	 * The flush/reset callbacks are stable [object, method] pairs, so WordPress
-	 * de-duplicates repeat registrations and calling this more than once is harmless.
+	 * Wires the start and end WordPress hooks to flush and reset the buffer. The flush/reset
+	 * callbacks are stable [object, method] pairs, so WordPress de-duplicates repeat
+	 * registrations and calling this more than once is harmless.
 	 *
 	 * The handler runs a single start->end cycle: reset() empties the queue, so a second
 	 * start_hook firing re-registers nothing. Re-queue hooks after a reset for repeat use.
@@ -129,7 +140,8 @@ final readonly class ScopedHookHandler implements HookHandlerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
-	public function register_lifecycle(): void {
+	#[\Override]
+	public function register_hooks(): void {
 		\add_action( $this->start_hook, array( $this->buffer, 'flush' ), 10, 0 );
 		if ( '' !== $this->end_hook ) {
 			\add_action( $this->end_hook, array( $this->buffer, 'reset' ), 10, 0 );

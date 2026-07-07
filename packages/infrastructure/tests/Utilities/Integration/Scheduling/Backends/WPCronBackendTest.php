@@ -210,9 +210,9 @@ final class WPCronBackendTest extends TestCase {
 		self::assertSame( $first, $second );
 	}
 
-	public function test_register_lifecycle_wires_the_schedule_filter_without_a_schedule_call(): void {
+	public function test_register_hooks_wires_the_schedule_filter_without_a_schedule_call(): void {
 		$backend = $this->backend();
-		$backend->register_lifecycle();
+		$backend->register_hooks();
 
 		// The filter must be present on a request that only boots — wp-cron itself never schedules —
 		// so a recurring event's named schedule resolves when WordPress reschedules it.
@@ -237,7 +237,7 @@ final class WPCronBackendTest extends TestCase {
 
 		// Simulate a later request: drop the scheduling backend's filter, then wire only the lifecycle.
 		\remove_filter( 'cron_schedules', array( $scheduler, 'register_synthetic_schedules' ) );
-		$this->backend()->register_lifecycle();
+		$this->backend()->register_hooks();
 
 		// wp_reschedule_event re-validates the schedule name through wp_get_schedules(); the reconstructed
 		// 'dws_every_300s' must resolve, or it returns a WP_Error and WordPress drops the recurring event.

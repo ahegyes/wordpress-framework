@@ -14,7 +14,8 @@ final class BufferedHookHandlerTest extends TestCase {
 	public function test_default_id_is_buffered(): void {
 		$handler = new BufferedHookHandler();
 
-		self::assertSame( 'buffered', $handler->id );
+		self::assertSame( 'buffered', BufferedHookHandler::DEFAULT_ID );
+		self::assertSame( BufferedHookHandler::DEFAULT_ID, $handler->id );
 	}
 
 	public function test_custom_id_is_returned(): void {

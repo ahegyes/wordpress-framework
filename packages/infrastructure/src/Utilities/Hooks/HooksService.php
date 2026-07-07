@@ -2,26 +2,26 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Hooks;
 
+use DeepWebSolutions\Framework\Utilities\Hooks\Exceptions\UnknownHookHandlerException;
 use DeepWebSolutions\Framework\Utilities\Hooks\Handlers\DirectHookHandler;
-use OutOfBoundsException;
 
 /**
  * Multi-handler hook registration facade.
  *
- * Holds a registry of HookHandlerInterface instances keyed by ID. Registration calls
- * accept an optional handler_id and route to the named handler. The constructor
- * parameter default supplies a single DirectHookHandler under the 'direct' ID — an
- * omitted argument yields it, while an explicit empty array registers no handlers —
- * and 'direct' is the handler used when no handler_id is specified.
+ * Holds a map of HookHandlerInterface instances keyed by handler ID, fixed at
+ * construction — the consumer states its handlers, matching the Scheduler's
+ * consumer-states-its-backends pattern. Registration calls accept an optional
+ * handler_id and route to the named handler. The constructor parameter default
+ * supplies a single DirectHookHandler under the 'direct' ID — an omitted argument
+ * yields it, while an explicit empty array registers no handlers — and 'direct' is
+ * the handler used when no handler_id is specified.
  *
  * Components inject HooksService and call add_action() etc. to register hook callbacks.
- * Plugins that need buffered or scoped registration register additional handlers via
- * {@see self::register_handler()} during plugin boot.
  *
  * @since   2.0.0
  * @version 2.0.0
  */
-final class HooksService {
+final readonly class HooksService {
 	// region FIELDS AND CONSTANTS
 
 	/**
@@ -32,7 +32,7 @@ final class HooksService {
 	 *
 	 * @var     array<string, HookHandlerInterface>
 	 */
-	protected(set) array $handlers = array();
+	public array $handlers;
 
 	// endregion
 
@@ -48,12 +48,15 @@ final class HooksService {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<int, HookHandlerInterface> $initial_handlers Handlers to register up front. Defaults to a single DirectHookHandler.
+	 * @param   array<int, HookHandlerInterface> $initial_handlers Handlers to register, keyed into the map by each handler's ID. Defaults to a single DirectHookHandler.
 	 */
 	public function __construct( array $initial_handlers = array( new DirectHookHandler() ) ) {
+		$handlers = array();
 		foreach ( $initial_handlers as $handler ) {
-			$this->register_handler( $handler );
+			$handlers[ $handler->id ] = $handler;
 		}
+
+		$this->handlers = $handlers;
 	}
 
 	// endregion
@@ -61,30 +64,17 @@ final class HooksService {
 	// region METHODS
 
 	/**
-	 * Register a handler with the service. Subsequent calls naming this handler's ID
-	 * will route through it.
+	 * Wires every registered handler's one-time WordPress self-wiring, so one consumer
+	 * call during boot prepares each handler (a scoped handler's start/end lifecycle,
+	 * say) before components register hooks through the service.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @param   HookHandlerInterface $handler Handler to register.
 	 */
-	public function register_handler( HookHandlerInterface $handler ): void {
-		$this->handlers[ $handler->id ] = $handler;
-	}
-
-	/**
-	 * Look up a registered handler by ID.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $id Handler ID.
-	 *
-	 * @return  HookHandlerInterface|null
-	 */
-	public function get_handler( string $id ): ?HookHandlerInterface {
-		return $this->handlers[ $id ] ?? null;
+	public function register_hooks(): void {
+		foreach ( $this->handlers as $handler ) {
+			$handler->register_hooks();
+		}
 	}
 
 	/**
@@ -191,13 +181,13 @@ final class HooksService {
 	 *
 	 * @return  HookHandlerInterface
 	 *
-	 * @throws  OutOfBoundsException When no handler is registered under $id.
+	 * @throws  UnknownHookHandlerException When no handler is registered under $id.
 	 */
 	protected function resolve_handler( string $id ): HookHandlerInterface {
-		$handler = $this->get_handler( $id );
+		$handler = $this->handlers[ $id ] ?? null;
 		if ( null === $handler ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new OutOfBoundsException( "No hook handler is registered under id '$id'." );
+			throw new UnknownHookHandlerException( "No hook handler is registered under id '$id'." );
 		}
 		return $handler;
 	}

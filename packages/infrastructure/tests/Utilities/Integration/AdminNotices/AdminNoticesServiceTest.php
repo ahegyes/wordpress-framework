@@ -74,7 +74,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	public function test_non_persistent_notice_is_consumed_after_rendering_once(): void {
 		$this->user_meta_service()->add_notice(
-			new AdminNotice( 'flash', 'Saved.', NoticeType::Success, is_persistent: false ),
+			new AdminNotice( 'flash', 'Saved.', NoticeType::Success, persistent: false ),
 			'user-meta',
 		);
 
@@ -89,7 +89,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	public function test_persistent_notice_recurs_until_dismissed(): void {
 		$this->user_meta_service()->add_notice(
-			new AdminNotice( 'setup', 'Finish setup.', NoticeType::Warning, is_persistent: true ),
+			new AdminNotice( 'setup', 'Finish setup.', NoticeType::Warning, persistent: true ),
 			'user-meta',
 		);
 
@@ -109,7 +109,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 		$service = $this->user_meta_service();
 		$service->add_notice(
-			new AdminNotice( 'reused', 'A brand-new error.', NoticeType::Error, is_persistent: false ),
+			new AdminNotice( 'reused', 'A brand-new error.', NoticeType::Error, persistent: false ),
 			'user-meta',
 		);
 
@@ -124,7 +124,7 @@ final class AdminNoticesServiceTest extends TestCase {
 			$this->tracker(),
 		);
 		$service->add_notice(
-			new AdminNotice( 'wc_missing', 'WooCommerce is required.', NoticeType::Error, is_persistent: true ),
+			new AdminNotice( 'wc_missing', 'WooCommerce is required.', NoticeType::Error, persistent: true ),
 			'options',
 		);
 
@@ -162,7 +162,7 @@ final class AdminNoticesServiceTest extends TestCase {
 		// belong in a per-user store. This test characterizes the single-request behavior.
 		$service = $this->options_service();
 		$service->add_notice(
-			new AdminNotice( 'broadcast', 'Seen once, by whoever is first.', NoticeType::Info, is_persistent: false ),
+			new AdminNotice( 'broadcast', 'Seen once, by whoever is first.', NoticeType::Info, persistent: false ),
 			'options',
 		);
 
@@ -173,30 +173,10 @@ final class AdminNoticesServiceTest extends TestCase {
 		self::assertSame( '', $this->capture_render( $this->options_service() ) );
 	}
 
-	public function test_unknown_store_triggers_doing_it_wrong_and_stores_nothing(): void {
-		$fired = 0;
-		$spy   = static function () use ( &$fired ) {
-			++$fired;
-		};
-		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		\add_action( 'doing_it_wrong_run', $spy );
-
-		try {
-			$service = new AdminNoticesService();
-			$service->add_notice( new AdminNotice( 'x', 'msg' ), 'nope' );
-
-			self::assertGreaterThan( 0, $fired );
-			self::assertSame( '', $this->capture_render( $service ) );
-		} finally {
-			\remove_action( 'doing_it_wrong_run', $spy );
-			\remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		}
-	}
-
 	public function test_render_emits_notice_id_and_scopes_dismiss_action_when_configured(): void {
 		$with = $this->transport_service();
 		$with->add_notice(
-			new AdminNotice( 'setup', 'Configure me.', NoticeType::Warning, is_persistent: true ),
+			new AdminNotice( 'setup', 'Configure me.', NoticeType::Warning, persistent: true ),
 			'user-meta',
 		);
 		$with_output = $this->capture_render( $with );
@@ -277,7 +257,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	public function test_handle_dismiss_records_dismissal_with_a_valid_nonce(): void {
 		$this->transport_service()->add_notice(
-			new AdminNotice( 'dep_woocommerce', 'WooCommerce is required.', NoticeType::Error, is_persistent: true ),
+			new AdminNotice( 'dep_woocommerce', 'WooCommerce is required.', NoticeType::Error, persistent: true ),
 			'user-meta',
 		);
 		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
@@ -328,7 +308,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	public function test_handle_dismiss_ignores_a_known_non_persistent_notice(): void {
 		$this->transport_service()->add_notice(
-			new AdminNotice( 'flash_notice', 'Saved.', NoticeType::Success, is_persistent: false ),
+			new AdminNotice( 'flash_notice', 'Saved.', NoticeType::Success, persistent: false ),
 			'user-meta',
 		);
 		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
@@ -341,7 +321,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	public function test_handle_dismiss_ignores_a_known_non_dismissible_notice(): void {
 		$this->transport_service()->add_notice(
-			new AdminNotice( 'fixed_notice', 'Fixed.', NoticeType::Info, is_dismissible: false, is_persistent: true ),
+			new AdminNotice( 'fixed_notice', 'Fixed.', NoticeType::Info, dismissible: false, persistent: true ),
 			'user-meta',
 		);
 		$_REQUEST['_wpnonce'] = \wp_create_nonce( self::DISMISS_ACTION );
@@ -354,7 +334,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	public function test_handle_dismiss_ignores_a_known_notice_the_current_user_cannot_see(): void {
 		$this->options_transport_service()->add_notice(
-			new AdminNotice( 'admin_only', 'Admins only.', NoticeType::Warning, is_persistent: true, capability: 'manage_options' ),
+			new AdminNotice( 'admin_only', 'Admins only.', NoticeType::Warning, persistent: true, capability: 'manage_options' ),
 			'options',
 		);
 
@@ -378,7 +358,7 @@ final class AdminNoticesServiceTest extends TestCase {
 
 	public function test_endpoint_dismissal_suppresses_the_notice_on_the_next_render(): void {
 		$this->transport_service()->add_notice(
-			new AdminNotice( 'dep_wc', 'WooCommerce is required.', NoticeType::Error, is_persistent: true ),
+			new AdminNotice( 'dep_wc', 'WooCommerce is required.', NoticeType::Error, persistent: true ),
 			'user-meta',
 		);
 
@@ -398,11 +378,11 @@ final class AdminNoticesServiceTest extends TestCase {
 	public function test_render_scopes_dismiss_action_only_for_sticky_notices(): void {
 		$service = $this->transport_service();
 		$service->add_notice(
-			new AdminNotice( 'sticky_dep', 'Sticky.', NoticeType::Warning, is_dismissible: true, is_persistent: true ),
+			new AdminNotice( 'sticky_dep', 'Sticky.', NoticeType::Warning, dismissible: true, persistent: true ),
 			'user-meta',
 		);
 		$service->add_notice(
-			new AdminNotice( 'flash_msg', 'Flash.', NoticeType::Info, is_dismissible: true, is_persistent: false ),
+			new AdminNotice( 'flash_msg', 'Flash.', NoticeType::Info, dismissible: true, persistent: false ),
 			'user-meta',
 		);
 

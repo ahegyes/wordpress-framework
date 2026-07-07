@@ -118,8 +118,8 @@ final readonly class DependencyAdminNoticeRenderer {
 			id: $requirement->get_notice_id(),
 			message: $this->build_message( $requirement ),
 			type: $requirement->get_notice_type(),
-			is_dismissible: $requirement->is_dismissible(),
-			is_persistent: $requirement->is_persistent(),
+			dismissible: $requirement->is_dismissible(),
+			persistent: $requirement->is_persistent(),
 			capability: $this->capability,
 		);
 	}

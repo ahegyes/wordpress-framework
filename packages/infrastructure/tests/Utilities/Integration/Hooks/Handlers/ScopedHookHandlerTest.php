@@ -36,7 +36,7 @@ final class ScopedHookHandlerTest extends TestCase {
 		$handler = new ScopedHookHandler( 'scoped-test', 'dws_scope_start', 'dws_scope_end' );
 		$cb      = static function (): void {};
 		$handler->add_action( 'dws_scoped_target', $cb, 10, 1 );
-		$handler->register_lifecycle();
+		$handler->register_hooks();
 
 		// Nothing registered until the start hook fires.
 		self::assertFalse( \has_action( 'dws_scoped_target', $cb ) );
@@ -52,23 +52,23 @@ final class ScopedHookHandlerTest extends TestCase {
 		$handler = new ScopedHookHandler( 'scoped-persist', 'dws_scope_start_2' );
 		$cb      = static function (): void {};
 		$handler->add_action( 'dws_scoped_target_2', $cb, 10, 1 );
-		$handler->register_lifecycle();
+		$handler->register_hooks();
 
 		\do_action( 'dws_scope_start_2' );
 		self::assertNotFalse( \has_action( 'dws_scoped_target_2', $cb ) );
 	}
 
-	public function test_register_lifecycle_is_idempotent(): void {
+	public function test_register_hooks_is_idempotent(): void {
 		$handler = new ScopedHookHandler( 'scoped-idem', 'dws_scope_idem_start' );
 		$count   = 0;
 		$cb      = static function () use ( &$count ): void {
 			++$count;
 		};
 		$handler->add_action( 'dws_scope_idem_target', $cb, 10, 1 );
-		$handler->register_lifecycle();
-		$handler->register_lifecycle();
+		$handler->register_hooks();
+		$handler->register_hooks();
 
-		// Two register_lifecycle calls wire a single flush (stable callbacks de-dup), so one
+		// Two register_hooks calls wire a single flush (stable callbacks de-dup), so one
 		// start fire registers the queued callback exactly once — it runs once when fired.
 		\do_action( 'dws_scope_idem_start' );
 		\do_action( 'dws_scope_idem_target' );
@@ -80,7 +80,7 @@ final class ScopedHookHandlerTest extends TestCase {
 		$handler = new ScopedHookHandler( 'scoped-filter', 'dws_scope_filter_start', 'dws_scope_filter_end' );
 		$cb      = static fn ( $v ) => $v;
 		$handler->add_filter( 'dws_scoped_filter_target', $cb, 10, 1 );
-		$handler->register_lifecycle();
+		$handler->register_hooks();
 
 		// Nothing registered until the start hook fires.
 		self::assertFalse( \has_filter( 'dws_scoped_filter_target', $cb ) );
@@ -98,7 +98,7 @@ final class ScopedHookHandlerTest extends TestCase {
 		$handler->add_action( 'dws_scope_rm_target', $cb, 10, 1 );
 
 		$handler->remove_all_actions();
-		$handler->register_lifecycle();
+		$handler->register_hooks();
 		\do_action( 'dws_scope_rm_start' );
 
 		// The queue was emptied before flush, so the start hook registers nothing.
@@ -111,7 +111,7 @@ final class ScopedHookHandlerTest extends TestCase {
 		$handler->add_filter( 'dws_scoped_filter_rm_target', $cb, 10, 1 );
 
 		$handler->remove_all_filters();
-		$handler->register_lifecycle();
+		$handler->register_hooks();
 		\do_action( 'dws_scope_filter_rm_start' );
 
 		// The queue was emptied before flush, so the start hook registers nothing.

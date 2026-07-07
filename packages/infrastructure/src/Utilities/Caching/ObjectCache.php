@@ -81,9 +81,11 @@ final readonly class ObjectCache {
 	 * @version 2.0.0
 	 *
 	 * @param   string $key Key to delete.
+	 *
+	 * @return  bool True when an entry existed and was removed, false otherwise.
 	 */
-	public function delete( string $key ): void {
-		\wp_cache_delete( $key, $this->effective_group() );
+	public function delete( string $key ): bool {
+		return \wp_cache_delete( $key, $this->effective_group() );
 	}
 
 	/**

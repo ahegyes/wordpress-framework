@@ -15,7 +15,7 @@ final readonly class WPVersionConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
-	 * Constructs the conditional with the minimum WordPress version required.
+	 * Constructor.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
