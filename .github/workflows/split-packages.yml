@@ -27,16 +27,12 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
-          # Don't install the credential helper that auths as github-actions[bot].
-          # We push to the split repos via PAT embedded in the URL — the helper
-          # would otherwise hijack the auth and fail with 403.
+          # The default credential helper would hijack the PAT-in-URL push auth and fail with 403.
           persist-credentials: false
 
       - name: Install splitsh-lite
         run: |
-          # v1.0.1 (2017) is the latest splitsh-lite release with a published
-          # linux/amd64 binary; v2.0.0 was tagged in 2023 with no assets attached.
-          # The tool's `--prefix` behavior hasn't materially changed since v1.
+          # v1.0.1 is the latest splitsh-lite release with a published linux/amd64 binary (v2.0.0 was tagged with no assets).
           curl -fsSL -o splitsh.tar.gz https://github.com/splitsh/lite/releases/download/v1.0.1/lite_linux_amd64.tar.gz
           # sha256 computed from the v1.0.1 release asset (upstream publishes no checksums — trust-on-first-use pin).
           echo "2539301ce5e21d0ca44b689d0dd2c1b20d9f9e996c1fe6c462afb8af4e7141cc  splitsh.tar.gz" | sha256sum -c -

@@ -59,12 +59,8 @@ deptrac:
         - type: classLike
           value: '^DeepWebSolutions\\Framework\\WooCommerce\\.*$'
 
-  # Allowed direct dependencies per layer.
-  # Shared is the runtime-WP-aware shared kernel; zero internal framework deps; no WP-specific abstractions; may be required directly by any layer above Bootstrap (Common Closure Principle).
-  # Storage is a second zero-dep namespace surface (KV storage backends + object-meta repositories; WP-runtime-coupled but no internal framework deps) — required directly by Utilities, Settings, and WooCommerce.
-  # The Settings_* sublayers union to the Settings namespace surface: Schema is the internal sink; Backend and MetaField sit on it and never on each other; the surface as a whole depends only on Storage + Shared.
-  # Bootstrap stays minimal (PHP 5.6+, pre-autoload) — cannot depend on Shared (PHP 8.5+).
-  # Only Core may depend on Bootstrap; no other layer has Bootstrap access, direct or indirect (allowances are not transitive).
+  # Allowed direct dependencies per layer; allowances are not transitive, so no layer reaches Bootstrap through Core.
+  # Bootstrap (PHP 5.6+, pre-autoload) cannot depend on the PHP 8.5+ Shared kernel.
   ruleset:
     Bootstrap: ~
     Shared: ~

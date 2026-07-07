@@ -7,11 +7,11 @@ Each package maintains its own `CHANGELOG.md` in Keep-a-Changelog format. To avo
 For a PR touching a specific package, use the matching script:
 
 ```bash
-composer changelog:add:bootstrap     # wp-framework-bootstrap
-composer changelog:add:core          # wp-framework-core
-composer changelog:add:infrastructure # wp-framework-infrastructure
-composer changelog:add:shared        # wp-framework-shared
-composer changelog:add:woocommerce   # wp-framework-woocommerce
+composer packages:bootstrap:changelog:add        # wp-framework-bootstrap
+composer packages:core:changelog:add             # wp-framework-core
+composer packages:infrastructure:changelog:add   # wp-framework-infrastructure
+composer packages:shared:changelog:add           # wp-framework-shared
+composer packages:woocommerce:changelog:add      # wp-framework-woocommerce
 ```
 
 The interactive prompt asks for `Significance` (patch/minor/major) and `Type` (added/changed/deprecated/removed/fixed/security). Commit the fragment file with the rest of the PR. CI validates every fragment via `composer changelog:validate`.
@@ -21,7 +21,7 @@ The interactive prompt asks for `Significance` (patch/minor/major) and `Type` (a
 Per package:
 
 ```bash
-composer changelog:write:bootstrap   # or :core / :infrastructure / :shared / :woocommerce
+composer packages:bootstrap:changelog:write   # swap "bootstrap" for core / infrastructure / shared / woocommerce
 ```
 
 Aggregates `packages/<name>/changelog/*` → new version block in `packages/<name>/CHANGELOG.md`, computes the next semver from fragment significance levels, deletes the fragments. Commit the diff. The split-packages workflow propagates the package (with its updated CHANGELOG.md) into the per-package consumer-facing repo on `push` to `trunk`.

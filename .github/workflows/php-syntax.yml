@@ -1,9 +1,8 @@
 name: PHP Syntax
 
 # Parse-lints the pre-autoload bootstrap package across its full PHP floor so a
-# modern-syntax token can't slip in and parse-fatal on a legacy runtime — the
-# one place that would defeat the package's graceful-degradation job. index.php
-# guards are excluded on purpose: they may fatal on a stray direct hit.
+# modern-syntax token can't slip in and parse-fatal on a legacy runtime (index.php
+# guards excluded — their strict_types declare doesn't parse below PHP 7).
 
 on:
   push:

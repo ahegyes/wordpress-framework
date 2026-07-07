@@ -15,7 +15,6 @@ return $base_config_factory(
 		'project_dir'   => __DIR__,
 		'finders'       => array_merge( $wp_framework['finders'], $php_di_partial['finders'] ),
 		'exclude_files' => $php_di_partial['exclude_files'],
-		// `patchers` postdates `finders` in the wp-framework partial; tolerate an older installed wordpress-configs.
-		'patchers'      => $wp_framework['patchers'] ?? array(),
+		'patchers'      => $wp_framework['patchers'],
 	)
 );

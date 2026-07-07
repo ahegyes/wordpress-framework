@@ -6,9 +6,9 @@
             "packages/bootstrap/src",
             "packages/core/src",
             "packages/infrastructure/src/Settings",
-            "packages/shared/src",
             "packages/infrastructure/src/Storage",
             "packages/infrastructure/src/Utilities",
+            "packages/shared/src",
             "packages/woocommerce/src"
         ],
         "excludes": [
