@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Tests\Integration\AdminNotices;
 
+use DeepWebSolutions\Framework\Settings\Tests\Support\CreatesUsers;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticesService;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\DismissedNoticesTracker;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
@@ -23,6 +24,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( OptionsStore::class )]
 #[UsesClass( UserMetaStore::class )]
 final class AdminNoticesServiceTest extends TestCase {
+	use CreatesUsers;
+
 	private const NOTICE_KEY     = 'dws_test_service_notices';
 	private const DISMISS_KEY    = 'dws_test_service_dismissed';
 	private const DISMISS_ACTION = 'dws_test_dismiss_notice';
@@ -466,27 +469,6 @@ final class AdminNoticesServiceTest extends TestCase {
 		\ob_start();
 		$service->render_notices();
 		return (string) \ob_get_clean();
-	}
-
-	private function make_admin( string $login ): int {
-		return $this->make_user( $login, 'administrator' );
-	}
-
-	private function make_user( string $login, string $role ): int {
-		$existing = \get_user_by( 'login', $login );
-		if ( $existing instanceof \WP_User ) {
-			return $existing->ID;
-		}
-
-		$id = \wp_insert_user(
-			array(
-				'user_login' => $login,
-				'user_pass'  => 'password',
-				'role'       => $role,
-			),
-		);
-		self::assertIsInt( $id );
-		return $id;
 	}
 
 	private function delete_user( int $id ): void {

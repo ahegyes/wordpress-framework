@@ -11,6 +11,7 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsResolver;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Tests\Support\IsolatesHooks;
 use DeepWebSolutions\Framework\Storage\ObjectMeta\MetadataRepository;
 use DeepWebSolutions\Framework\Storage\ObjectMeta\MetaType;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,15 +30,12 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
 final class PostMetaFieldSurfaceTest extends TestCase {
-	private const GROUP_ID       = 'dws_postmeta';
-	private const ISOLATED_HOOKS = array( 'add_meta_boxes_post', 'save_post_post' );
+	use IsolatesHooks;
+
+	private const GROUP_ID         = 'dws_postmeta';
+	protected const ISOLATED_HOOKS = array( 'add_meta_boxes_post', 'save_post_post' );
 
 	private int $post_id = 0;
-
-	/**
-	 * @var array<string, mixed>
-	 */
-	private array $saved_hooks = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -49,12 +47,6 @@ final class PostMetaFieldSurfaceTest extends TestCase {
 		\wp_set_current_user( 1 );
 		$_POST                    = array();
 		$GLOBALS['wp_meta_boxes'] = array();
-
-		global $wp_filter;
-		foreach ( self::ISOLATED_HOOKS as $hook ) {
-			$this->saved_hooks[ $hook ] = $wp_filter[ $hook ] ?? null;
-			unset( $wp_filter[ $hook ] );
-		}
 
 		$post_id = \wp_insert_post(
 			array(
@@ -70,15 +62,6 @@ final class PostMetaFieldSurfaceTest extends TestCase {
 		\wp_delete_post( $this->post_id, true );
 		$_POST                    = array();
 		$GLOBALS['wp_meta_boxes'] = array();
-
-		global $wp_filter;
-		foreach ( $this->saved_hooks as $hook => $saved ) {
-			if ( null !== $saved ) {
-				$wp_filter[ $hook ] = $saved;
-			} else {
-				unset( $wp_filter[ $hook ] );
-			}
-		}
 
 		parent::tearDown();
 	}
@@ -112,9 +95,9 @@ final class PostMetaFieldSurfaceTest extends TestCase {
 	}
 
 	public function test_saving_persists_with_capability_and_a_valid_nonce(): void {
-		$store = new PostMetaFieldSurface();
-		$group = $this->group();
-		$store->register( $group, $this->placement() );
+		$surface = new PostMetaFieldSurface();
+		$group   = $this->group();
+		$surface->register( $group, $this->placement() );
 
 		$_POST = array(
 			$this->nonce_name( $group ) => $this->nonce( $group ),
@@ -126,9 +109,9 @@ final class PostMetaFieldSurfaceTest extends TestCase {
 	}
 
 	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
-		$store = new PostMetaFieldSurface();
-		$group = $this->group();
-		$store->register( $group, $this->placement() );
+		$surface = new PostMetaFieldSurface();
+		$group   = $this->group();
+		$surface->register( $group, $this->placement() );
 
 		$_POST = array(
 			$this->nonce_name( $group ) => $this->nonce( $group ),
@@ -136,22 +119,22 @@ final class PostMetaFieldSurfaceTest extends TestCase {
 		);
 		\do_action( 'save_post_post', $this->post_id );
 
-		self::assertTrue( $store->has( $group, $this->post_id, 'note' ) );
-		self::assertSame( 'hi', $store->get( $group, $this->post_id, 'note' ) );
+		self::assertTrue( $surface->has( $group, $this->post_id, 'note' ) );
+		self::assertSame( 'hi', $surface->get( $group, $this->post_id, 'note' ) );
 
-		$store->set( $group, $this->post_id, 'note', 'bye' );
+		$surface->set( $group, $this->post_id, 'note', 'bye' );
 		self::assertSame( 'bye', \get_post_meta( $this->post_id, 'note', true ) );
 
-		self::assertTrue( $store->delete( $group, $this->post_id, 'note' ) );
+		self::assertTrue( $surface->delete( $group, $this->post_id, 'note' ) );
 		self::assertFalse( \metadata_exists( 'post', $this->post_id, 'note' ) );
-		self::assertSame( array( 'note' ), $store->meta_keys( $group ) );
+		self::assertSame( array( 'note' ), $surface->meta_keys( $group ) );
 	}
 
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {
-		$store = new PostMetaFieldSurface();
-		$group = $this->group();
-		$raw   = '<b>x</b>';
-		$store->register( $group, $this->placement() );
+		$surface = new PostMetaFieldSurface();
+		$group   = $this->group();
+		$raw     = '<b>x</b>';
+		$surface->register( $group, $this->placement() );
 
 		$_POST = array(
 			$this->nonce_name( $group ) => $this->nonce( $group ),
@@ -163,11 +146,11 @@ final class PostMetaFieldSurfaceTest extends TestCase {
 	}
 
 	public function test_saving_preserves_an_existing_value_when_a_present_submission_is_invalid(): void {
-		$store = new PostMetaFieldSurface();
-		$group = $this->group_with(
+		$surface = new PostMetaFieldSurface();
+		$group   = $this->group_with(
 			new SettingsField( id: 'color', type: 'select', label: 'Color', options: array( 'red' => 'Red' ) ),
 		);
-		$store->register( $group, $this->placement() );
+		$surface->register( $group, $this->placement() );
 
 		$this->repo()->set( $this->post_id, 'color', 'red' );
 		$_POST = array(
@@ -215,10 +198,10 @@ final class PostMetaFieldSurfaceTest extends TestCase {
 	}
 
 	public function test_a_configured_box_capability_overrides_the_default(): void {
-		$store     = new PostMetaFieldSurface();
+		$surface   = new PostMetaFieldSurface();
 		$placement = new MetaBoxPlacement( screen: 'post', context: 'side', priority: 'default', capability: 'dws_nonexistent_cap' );
 		$group     = $this->group();
-		$store->register( $group, $placement );
+		$surface->register( $group, $placement );
 
 		// The administrator passes the default edit_post but lacks the configured capability, so the save is refused.
 		$_POST = array(

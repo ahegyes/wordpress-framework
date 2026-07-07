@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Shared\Tests\Integration\ValueObject;
 
 use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 final readonly class FixtureValueObject extends AbstractValueObject {
@@ -52,6 +53,8 @@ final readonly class DateFixtureValueObject extends AbstractValueObject {
 }
 
 #[CoversClass( AbstractValueObject::class )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Reflection\get_public_property_names' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Shared\Reflection\convert_to_primitives' )]
 final class AbstractValueObjectTest extends TestCase {
 	public function test_equals_returns_true_for_structurally_identical_objects(): void {
 		$a = new FixtureValueObject( 'foo', 1 );

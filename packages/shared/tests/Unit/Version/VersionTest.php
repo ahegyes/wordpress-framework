@@ -7,6 +7,7 @@ use DeepWebSolutions\Framework\Shared\ValueObject\Exceptions\InvalidValueObjectE
 use DeepWebSolutions\Framework\Shared\Version\Version;
 use DeepWebSolutions\Framework\Shared\Version\Exceptions\InvalidVersionException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
@@ -43,15 +44,23 @@ final class VersionTest extends TestCase {
 		Version::from_string( 'not-a-version' );
 	}
 
-	public function test_from_string_rejects_empty_prerelease_and_build_identifiers(): void {
-		foreach ( array( '1.0.0-', '1.0.0-.', '1.0.0-alpha..1', '1.0.0+', '1.0.0+.' ) as $invalid ) {
-			try {
-				Version::from_string( $invalid );
-				self::fail( "Expected InvalidVersionException for '{$invalid}'." );
-			} catch ( InvalidVersionException ) {
-				$this->addToAssertionCount( 1 );
-			}
-		}
+	#[DataProvider( 'invalid_prerelease_and_build_versions' )]
+	public function test_from_string_rejects_empty_prerelease_and_build_identifiers( string $version ): void {
+		$this->expectException( InvalidVersionException::class );
+		Version::from_string( $version );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function invalid_prerelease_and_build_versions(): array {
+		return array(
+			'empty prerelease'         => array( '1.0.0-' ),
+			'dot-only prerelease'      => array( '1.0.0-.' ),
+			'empty prerelease segment' => array( '1.0.0-alpha..1' ),
+			'empty build'              => array( '1.0.0+' ),
+			'dot-only build'           => array( '1.0.0+.' ),
+		);
 	}
 
 	public function test_from_parts_composes_only_supplied_components(): void {
@@ -66,15 +75,24 @@ final class VersionTest extends TestCase {
 		Version::from_parts( 2, null, 0 );
 	}
 
-	public function test_from_parts_throws_on_invalid_composed_parts(): void {
-		foreach ( array( array( -2 ), array( 2, 0, 0, 'beta..1' ), array( 2, 0, 0, null, '.' ) ) as $parts ) {
-			try {
-				Version::from_parts( ...$parts );
-				self::fail( 'Expected InvalidVersionException for parts: ' . \json_encode( $parts ) );
-			} catch ( InvalidVersionException ) {
-				$this->addToAssertionCount( 1 );
-			}
-		}
+	/**
+	 * @param array{0: int, 1?: int|null, 2?: int|null, 3?: string|null, 4?: string|null} $parts
+	 */
+	#[DataProvider( 'invalid_version_parts' )]
+	public function test_from_parts_throws_on_invalid_composed_parts( array $parts ): void {
+		$this->expectException( InvalidVersionException::class );
+		Version::from_parts( ...$parts );
+	}
+
+	/**
+	 * @return array<string, array{array{0: int, 1?: int|null, 2?: int|null, 3?: string|null, 4?: string|null}}>
+	 */
+	public static function invalid_version_parts(): array {
+		return array(
+			'negative major'           => array( array( -2 ) ),
+			'empty prerelease segment' => array( array( 2, 0, 0, 'beta..1' ) ),
+			'dot-only build'           => array( array( 2, 0, 0, null, '.' ) ),
+		);
 	}
 
 	public function test_is_greater_than(): void {

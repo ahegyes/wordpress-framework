@@ -11,6 +11,7 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsResolver;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Tests\Support\IsolatesHooks;
 use DeepWebSolutions\Framework\Storage\ObjectMeta\MetadataRepository;
 use DeepWebSolutions\Framework\Storage\ObjectMeta\MetaType;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,10 +30,12 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
 final class UserProfileFieldSurfaceTest extends TestCase {
-	private const GROUP_ID       = 'dws_prefs';
-	private const NONCE_NAME     = 'dws_object_field_dws_prefs_nonce';
-	private const NONCE_ACTION   = 'dws_object_field_dws_prefs';
-	private const ISOLATED_HOOKS = array(
+	use IsolatesHooks;
+
+	private const GROUP_ID         = 'dws_prefs';
+	private const NONCE_NAME       = 'dws_object_field_dws_prefs_nonce';
+	private const NONCE_ACTION     = 'dws_object_field_dws_prefs';
+	protected const ISOLATED_HOOKS = array(
 		'show_user_profile',
 		'edit_user_profile',
 		'personal_options_update',
@@ -41,11 +44,6 @@ final class UserProfileFieldSurfaceTest extends TestCase {
 
 	private int $user_id = 0;
 
-	/**
-	 * @var array<string, mixed>
-	 */
-	private array $saved_hooks = array();
-
 	protected function setUp(): void {
 		parent::setUp();
 
@@ -53,12 +51,6 @@ final class UserProfileFieldSurfaceTest extends TestCase {
 
 		\wp_set_current_user( 1 );
 		$_POST = array();
-
-		global $wp_filter;
-		foreach ( self::ISOLATED_HOOKS as $hook ) {
-			$this->saved_hooks[ $hook ] = $wp_filter[ $hook ] ?? null;
-			unset( $wp_filter[ $hook ] );
-		}
 
 		$user_id = \wp_insert_user(
 			array(
@@ -74,15 +66,6 @@ final class UserProfileFieldSurfaceTest extends TestCase {
 	protected function tearDown(): void {
 		\wp_delete_user( $this->user_id );
 		$_POST = array();
-
-		global $wp_filter;
-		foreach ( $this->saved_hooks as $hook => $saved ) {
-			if ( null !== $saved ) {
-				$wp_filter[ $hook ] = $saved;
-			} else {
-				unset( $wp_filter[ $hook ] );
-			}
-		}
 
 		parent::tearDown();
 	}
@@ -124,10 +107,10 @@ final class UserProfileFieldSurfaceTest extends TestCase {
 	}
 
 	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
-		$store   = new UserProfileFieldSurface();
+		$surface = new UserProfileFieldSurface();
 		$profile = $this->text_profile();
 		$group   = $profile->group;
-		$store->register( $profile );
+		$surface->register( $profile );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
@@ -135,15 +118,15 @@ final class UserProfileFieldSurfaceTest extends TestCase {
 		);
 		\do_action( 'edit_user_profile_update', $this->user_id );
 
-		self::assertTrue( $store->has( $group, $this->user_id, 'pref' ) );
-		self::assertSame( 'weekly', $store->get( $group, $this->user_id, 'pref' ) );
+		self::assertTrue( $surface->has( $group, $this->user_id, 'pref' ) );
+		self::assertSame( 'weekly', $surface->get( $group, $this->user_id, 'pref' ) );
 
-		$store->set( $group, $this->user_id, 'pref', 'daily' );
+		$surface->set( $group, $this->user_id, 'pref', 'daily' );
 		self::assertSame( 'daily', \get_user_meta( $this->user_id, 'pref', true ) );
 
-		self::assertTrue( $store->delete( $group, $this->user_id, 'pref' ) );
+		self::assertTrue( $surface->delete( $group, $this->user_id, 'pref' ) );
 		self::assertFalse( \metadata_exists( 'user', $this->user_id, 'pref' ) );
-		self::assertSame( array( 'pref' ), $store->meta_keys( $group ) );
+		self::assertSame( array( 'pref' ), $surface->meta_keys( $group ) );
 	}
 
 	public function test_saving_applies_the_builtin_default_sanitizer(): void {

@@ -1,0 +1,115 @@
+<?php declare( strict_types=1 );
+
+namespace DeepWebSolutions\Framework\Settings\Tests\Unit\MetaField\Surfaces;
+
+use DeepWebSolutions\Framework\Settings\MetaField\Surfaces\PostMetaFieldSurface;
+use DeepWebSolutions\Framework\Settings\MetaField\Surfaces\TermFieldSurface;
+use DeepWebSolutions\Framework\Settings\MetaField\Surfaces\UserProfileFieldSurface;
+use DeepWebSolutions\Framework\Settings\MetaField\ValueObjects\FieldGroup;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Tests\Fixtures\InMemoryObjectMetaRepository;
+use DeepWebSolutions\Framework\Storage\ObjectMeta\ObjectMetaRepositoryInterface;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Shared contract for the descriptor-addressed CRUD every object-field surface exposes: each
+ * concrete suite supplies its surface through make_surface() and inherits these tests, keeping
+ * only its genuinely surface-specific cases. Not collected directly — the file name carries no
+ * Test.php suffix — and the concrete subclasses declare their own coverage attributes.
+ */
+abstract class ObjectFieldSurfaceContractTestCase extends TestCase {
+	protected ObjectMetaRepositoryInterface $repository;
+	protected PostMetaFieldSurface|TermFieldSurface|UserProfileFieldSurface $surface;
+
+	protected function setUp(): void {
+		parent::setUp();
+
+		$this->repository = new InMemoryObjectMetaRepository();
+		$this->surface    = $this->make_surface( $this->repository );
+	}
+
+	abstract protected function make_surface( ObjectMetaRepositoryInterface $repository ): PostMetaFieldSurface|TermFieldSurface|UserProfileFieldSurface;
+
+	public function test_a_value_round_trips_under_the_resolved_storage_key(): void {
+		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
+
+		$this->surface->set( $group, 7, 'note', 'hello' );
+
+		self::assertSame( 'hello', $this->surface->get( $group, 7, 'note' ) );
+		self::assertSame( 'hello', $this->repository->get( 7, 'note' ) );
+		self::assertTrue( $this->surface->has( $group, 7, 'note' ) );
+		self::assertFalse( $this->surface->has( $group, 8, 'note' ) );
+	}
+
+	public function test_a_meta_key_override_is_the_byte_exact_storage_key(): void {
+		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note', meta_key: '_dws_note' ) );
+
+		$this->surface->set( $group, 7, 'note', 'hello' );
+
+		self::assertSame( 'hello', $this->repository->get( 7, '_dws_note' ) );
+		self::assertFalse( $this->repository->has( 7, 'note' ) );
+	}
+
+	public function test_get_returns_the_caller_fallback_never_the_field_default_when_nothing_is_stored(): void {
+		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note', default_value: 'declared-default' ) );
+
+		self::assertNull( $this->surface->get( $group, 7, 'note' ) );
+		self::assertSame( 'fallback', $this->surface->get( $group, 7, 'note', 'fallback' ) );
+	}
+
+	public function test_set_stores_a_checkbox_in_its_canonical_yes_no_form(): void {
+		$group = $this->group( new SettingsField( id: 'flag', type: 'checkbox', label: 'Flag' ) );
+
+		$this->surface->set( $group, 7, 'flag', true );
+		self::assertSame( 'yes', $this->repository->get( 7, 'flag' ) );
+
+		$this->surface->set( $group, 7, 'flag', false );
+		self::assertSame( 'no', $this->repository->get( 7, 'flag' ) );
+		self::assertTrue( $this->surface->has( $group, 7, 'flag' ) );
+	}
+
+	public function test_set_revokes_the_key_for_a_value_a_form_save_would_not_store(): void {
+		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
+
+		$this->surface->set( $group, 7, 'note', 'hello' );
+		$this->surface->set( $group, 7, 'note', '' );
+
+		self::assertFalse( $this->surface->has( $group, 7, 'note' ) );
+	}
+
+	public function test_delete_removes_a_stored_value_and_reports_a_missing_one(): void {
+		$group = $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) );
+
+		$this->surface->set( $group, 7, 'note', 'hello' );
+
+		self::assertTrue( $this->surface->delete( $group, 7, 'note' ) );
+		self::assertFalse( $this->surface->has( $group, 7, 'note' ) );
+		self::assertFalse( $this->surface->delete( $group, 7, 'note' ) );
+	}
+
+	public function test_a_field_the_group_does_not_declare_is_rejected(): void {
+		$this->expectException( InvalidSettingsFieldException::class );
+
+		$this->surface->get( $this->group( new SettingsField( id: 'note', type: 'text', label: 'Note' ) ), 7, 'missing' );
+	}
+
+	public function test_meta_keys_enumerates_the_resolved_storage_keys(): void {
+		$group = $this->group(
+			new SettingsField( id: 'note', type: 'text', label: 'Note' ),
+			new SettingsField( id: 'color', type: 'text', label: 'Color', meta_key: '_dws_color' ),
+		);
+
+		self::assertSame( array( 'note', '_dws_color' ), $this->surface->meta_keys( $group ) );
+	}
+
+	protected function group( SettingsField ...$fields ): FieldGroup {
+		$fields = \array_values( $fields );
+
+		return new FieldGroup(
+			id: 'dws_group',
+			title: 'Group',
+			fields_provider: static fn ( int $object_id ): array => $fields,
+		);
+	}
+}

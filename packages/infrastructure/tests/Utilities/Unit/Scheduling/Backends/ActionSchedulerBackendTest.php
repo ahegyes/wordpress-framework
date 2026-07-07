@@ -9,7 +9,8 @@ use DeepWebSolutions\Framework\Utilities\Scheduling\SchedulingErrorReason;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LogLevel;
 
 /**
  * Action Scheduler is absent in the unit context, so every mutation reports the
@@ -60,14 +61,41 @@ final class ActionSchedulerBackendTest extends TestCase {
 	}
 
 	public function test_logs_the_not_loaded_condition_when_a_logger_is_given(): void {
-		$logger = $this->createMock( LoggerInterface::class );
-		$logger->expects( self::once() )->method( 'error' );
+		$logger = new ActionSchedulerRecordingLogger();
 
 		(void) ( new ActionSchedulerBackend( $logger ) )->schedule_recurring( 'dws_hook', 300 );
+
+		self::assertCount( 1, $logger->records );
+		self::assertSame( LogLevel::ERROR, $logger->records[0]['level'] );
 	}
 
 	public function test_is_ready_reports_the_injected_probe_result(): void {
 		self::assertTrue( ( new ActionSchedulerBackend( null, static fn (): bool => true ) )->is_ready() );
 		self::assertFalse( ( new ActionSchedulerBackend( null, static fn (): bool => false ) )->is_ready() );
+	}
+}
+
+final class ActionSchedulerRecordingLogger extends AbstractLogger {
+	/**
+	 * Logged records.
+	 *
+	 * @var list<array{level: mixed, message: string|\Stringable, context: array<array-key, mixed>}>
+	 */
+	public array $records = array();
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param mixed                   $level   Log level.
+	 * @param string|\Stringable      $message Log message.
+	 * @param array<array-key, mixed> $context Log context.
+	 */
+	#[\Override]
+	public function log( $level, string|\Stringable $message, array $context = array() ): void {
+		$this->records[] = array(
+			'level'   => $level,
+			'message' => $message,
+			'context' => $context,
+		);
 	}
 }

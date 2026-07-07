@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Tests\Integration\AdminNotices;
 
+use DeepWebSolutions\Framework\Settings\Tests\Support\CreatesUsers;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\DismissedNoticesTracker;
 use DeepWebSolutions\Framework\Storage\UserMetaStore;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -11,6 +12,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( DismissedNoticesTracker::class )]
 #[UsesClass( UserMetaStore::class )]
 final class DismissedNoticesTrackerTest extends TestCase {
+	use CreatesUsers;
+
 	private const META_KEY = 'dws_test_dismissed_notices';
 
 	private int $user_a;
@@ -62,23 +65,6 @@ final class DismissedNoticesTrackerTest extends TestCase {
 		$for_b = new DismissedNoticesTracker( new UserMetaStore( self::META_KEY ) );
 
 		self::assertFalse( $for_b->is_dismissed( 'dep_woocommerce' ) );
-	}
-
-	private function make_user( string $login ): int {
-		$existing = \get_user_by( 'login', $login );
-		if ( $existing instanceof \WP_User ) {
-			return $existing->ID;
-		}
-
-		$id = \wp_insert_user(
-			array(
-				'user_login' => $login,
-				'user_pass'  => 'password',
-				'role'       => 'subscriber',
-			),
-		);
-		self::assertIsInt( $id );
-		return $id;
 	}
 
 	private function delete_user( int $id ): void {

@@ -9,6 +9,7 @@ use DeepWebSolutions\Framework\Core\PluginInterface;
 use DeepWebSolutions\Framework\Core\PluginKernel;
 use DeepWebSolutions\Framework\Core\ValueObjects\PluginHeader;
 use DeepWebSolutions\Framework\Core\Feature\FeatureInterface;
+use DeepWebSolutions\Framework\Settings\Tests\Support\CreatesUsers;
 use DeepWebSolutions\Framework\Shared\Version\Version;
 use DeepWebSolutions\Framework\Storage\OptionsStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticeLogger;
@@ -33,6 +34,8 @@ use Psr\Container\ContainerInterface;
 #[UsesClass( NoticeType::class )]
 #[UsesClass( OptionsStore::class )]
 final class AdminNoticeLoggerTest extends TestCase {
+	use CreatesUsers;
+
 	private const VERSION_OPTION = 'dws_reference_plugin_version';
 	private const NOTICE_OPTION  = 'dws_reference_plugin_notices';
 	private const NOTICE_ID      = 'plugin-install-failure';
@@ -43,7 +46,7 @@ final class AdminNoticeLoggerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		$this->original_user = \get_current_user_id();
-		$this->admin         = $this->make_admin();
+		$this->admin         = $this->make_admin( 'dws_reference_admin' );
 		\wp_set_current_user( $this->admin );
 	}
 
@@ -169,23 +172,6 @@ final class AdminNoticeLoggerTest extends TestCase {
 		\ob_start();
 		$service->render_notices();
 		return (string) \ob_get_clean();
-	}
-
-	private function make_admin(): int {
-		$existing = \get_user_by( 'login', 'dws_reference_admin' );
-		if ( $existing instanceof \WP_User ) {
-			return $existing->ID;
-		}
-
-		$id = \wp_insert_user(
-			array(
-				'user_login' => 'dws_reference_admin',
-				'user_pass'  => 'password',
-				'role'       => 'administrator',
-			),
-		);
-		self::assertIsInt( $id );
-		return $id;
 	}
 
 	private function delete_user( int $id ): void {

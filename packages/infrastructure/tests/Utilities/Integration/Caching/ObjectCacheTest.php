@@ -37,23 +37,25 @@ final class ObjectCacheTest extends TestCase {
 		self::assertNull( $cache->get( 'absent' ) );
 	}
 
-	#[DataProvider( 'falsey_values' )]
-	public function test_get_reads_a_cached_falsey_value_as_a_hit_not_a_miss( mixed $value ): void {
+	/**
+	 * @return array<string, array{mixed}>
+	 */
+	public static function falsy_values(): array {
+		return array(
+			'false'        => array( false ),
+			'zero'         => array( 0 ),
+			'empty-string' => array( '' ),
+			'null'         => array( null ),
+		);
+	}
+
+	#[DataProvider( 'falsy_values' )]
+	public function test_get_reads_a_cached_falsy_value_as_a_hit_not_a_miss( mixed $value ): void {
 		$cache = new ObjectCache( self::GROUP );
 		$cache->set( 'flag', $value );
 
 		self::assertSame( $value, $cache->get( 'flag', 'default' ) );
 		self::assertSame( 'default', $cache->get( 'absent', 'default' ) );
-	}
-
-	/**
-	 * @return iterable<string, array{mixed}>
-	 */
-	public static function falsey_values(): iterable {
-		yield 'false'        => array( false );
-		yield 'null'         => array( null );
-		yield 'zero'         => array( 0 );
-		yield 'empty string' => array( '' );
 	}
 
 	public function test_get_multiple_cannot_distinguish_a_stored_false_from_a_miss(): void {
@@ -89,7 +91,7 @@ final class ObjectCacheTest extends TestCase {
 		self::assertSame( 1, $calls );
 	}
 
-	public function test_remember_caches_a_falsey_value_without_recomputing(): void {
+	public function test_remember_caches_a_falsy_value_without_recomputing(): void {
 		$cache   = new ObjectCache( self::GROUP );
 		$calls   = 0;
 		$compute = function () use ( &$calls ): bool {

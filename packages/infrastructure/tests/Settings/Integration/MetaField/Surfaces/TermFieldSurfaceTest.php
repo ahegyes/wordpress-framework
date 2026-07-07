@@ -11,6 +11,7 @@ use DeepWebSolutions\Framework\Settings\Schema\Field\FieldRenderer;
 use DeepWebSolutions\Framework\Settings\Schema\Field\FieldType;
 use DeepWebSolutions\Framework\Settings\Schema\Options\OptionsResolver;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
+use DeepWebSolutions\Framework\Settings\Tests\Support\IsolatesHooks;
 use DeepWebSolutions\Framework\Storage\ObjectMeta\MetadataRepository;
 use DeepWebSolutions\Framework\Storage\ObjectMeta\MetaType;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,29 +30,20 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( OptionsResolver::class )]
 #[UsesClass( FieldType::class )]
 final class TermFieldSurfaceTest extends TestCase {
-	private const GROUP_ID       = 'dws_termmeta';
-	private const NONCE_NAME     = 'dws_object_field_dws_termmeta_nonce';
-	private const NONCE_ACTION   = 'dws_object_field_dws_termmeta';
-	private const ISOLATED_HOOKS = array( 'category_add_form_fields', 'category_edit_form_fields', 'created_category', 'edited_category' );
+	use IsolatesHooks;
+
+	private const GROUP_ID         = 'dws_termmeta';
+	private const NONCE_NAME       = 'dws_object_field_dws_termmeta_nonce';
+	private const NONCE_ACTION     = 'dws_object_field_dws_termmeta';
+	protected const ISOLATED_HOOKS = array( 'category_add_form_fields', 'category_edit_form_fields', 'created_category', 'edited_category' );
 
 	private int $term_id = 0;
-
-	/**
-	 * @var array<string, mixed>
-	 */
-	private array $saved_hooks = array();
 
 	protected function setUp(): void {
 		parent::setUp();
 
 		\wp_set_current_user( 1 );
 		$_POST = array();
-
-		global $wp_filter;
-		foreach ( self::ISOLATED_HOOKS as $hook ) {
-			$this->saved_hooks[ $hook ] = $wp_filter[ $hook ] ?? null;
-			unset( $wp_filter[ $hook ] );
-		}
 
 		$term = \wp_insert_term( 'DWS Probe ' . \uniqid(), 'category' );
 		\assert( \is_array( $term ) );
@@ -61,15 +53,6 @@ final class TermFieldSurfaceTest extends TestCase {
 	protected function tearDown(): void {
 		\wp_delete_term( $this->term_id, 'category' );
 		$_POST = array();
-
-		global $wp_filter;
-		foreach ( $this->saved_hooks as $hook => $saved ) {
-			if ( null !== $saved ) {
-				$wp_filter[ $hook ] = $saved;
-			} else {
-				unset( $wp_filter[ $hook ] );
-			}
-		}
 
 		parent::tearDown();
 	}
@@ -143,10 +126,10 @@ final class TermFieldSurfaceTest extends TestCase {
 	}
 
 	public function test_crud_addresses_the_same_meta_key_the_form_save_writes(): void {
-		$store      = new TermFieldSurface();
+		$surface    = new TermFieldSurface();
 		$term_group = $this->term_group();
 		$group      = $term_group->group;
-		$store->register( $term_group );
+		$surface->register( $term_group );
 
 		$_POST = array(
 			self::NONCE_NAME => $this->nonce(),
@@ -154,15 +137,15 @@ final class TermFieldSurfaceTest extends TestCase {
 		);
 		\do_action( 'edited_category', $this->term_id );
 
-		self::assertTrue( $store->has( $group, $this->term_id, 'color' ) );
-		self::assertSame( 'blue', $store->get( $group, $this->term_id, 'color' ) );
+		self::assertTrue( $surface->has( $group, $this->term_id, 'color' ) );
+		self::assertSame( 'blue', $surface->get( $group, $this->term_id, 'color' ) );
 
-		$store->set( $group, $this->term_id, 'color', 'red' );
+		$surface->set( $group, $this->term_id, 'color', 'red' );
 		self::assertSame( 'red', \get_term_meta( $this->term_id, 'color', true ) );
 
-		self::assertTrue( $store->delete( $group, $this->term_id, 'color' ) );
+		self::assertTrue( $surface->delete( $group, $this->term_id, 'color' ) );
 		self::assertFalse( \metadata_exists( 'term', $this->term_id, 'color' ) );
-		self::assertSame( array( 'color' ), $store->meta_keys( $group ) );
+		self::assertSame( array( 'color' ), $surface->meta_keys( $group ) );
 	}
 
 	public function test_saving_a_created_term_persists_with_capability_and_a_valid_add_nonce(): void {
