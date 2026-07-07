@@ -23,6 +23,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value
 use function DeepWebSolutions\Framework\Settings\Schema\resolve_field_control_id;
 use function DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field;
 use function DeepWebSolutions\Framework\Settings\Schema\stringify_for_output;
+use function DeepWebSolutions\Framework\Settings\Schema\stringify_option_labels;
 use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers;
 
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids' )]
@@ -33,6 +34,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_san
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\normalize_checkbox_value' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\rest_schema_for_field' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\stringify_for_output' )]
+#[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\stringify_option_labels' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Settings\Schema\wordpress_field_type_sanitizers' )]
 #[UsesClass( SettingsField::class )]
 #[UsesClass( SettingsSection::class )]
@@ -349,6 +351,27 @@ final class SchemaFunctionsTest extends TestCase {
 			'null'         => array( null, '' ),
 			'array'        => array( array( 'x' ), '' ),
 			'object'       => array( new \stdClass(), '' ),
+		);
+	}
+
+	public function test_stringify_option_labels_coerces_each_label_and_preserves_keys(): void {
+		$labels = stringify_option_labels(
+			array(
+				'stripe' => 'Stripe',
+				1        => 100,
+				'bad'    => array( 'nested' ),
+				'flag'   => false,
+			),
+		);
+
+		self::assertSame(
+			array(
+				'stripe' => 'Stripe',
+				1        => '100',
+				'bad'    => '',
+				'flag'   => '',
+			),
+			$labels,
 		);
 	}
 

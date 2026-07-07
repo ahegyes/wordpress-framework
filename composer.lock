@@ -334,7 +334,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "9c4f77356ad588c05b9ec9ec8f3a951aa55b21e5"
+                "reference": "e2842b1d5915abc0a6279d593be244bb000ec004"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0@dev",
@@ -370,10 +370,7 @@
             "autoload": {
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\WooCommerce\\": "src/"
-                },
-                "files": [
-                    "functions.php"
-                ]
+                }
             },
             "autoload-dev": {
                 "psr-4": {

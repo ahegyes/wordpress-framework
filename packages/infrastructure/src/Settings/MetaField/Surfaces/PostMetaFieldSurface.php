@@ -14,7 +14,7 @@ use DeepWebSolutions\Framework\Storage\ObjectMeta\MetadataRepository;
 use DeepWebSolutions\Framework\Storage\ObjectMeta\MetaType;
 use DeepWebSolutions\Framework\Storage\ObjectMeta\ObjectMetaRepositoryInterface;
 
-use function DeepWebSolutions\Framework\Settings\Schema\field_label_html;
+use function DeepWebSolutions\Framework\Settings\Schema\meta_box_row_html;
 
 /**
  * Surface that mounts a field group onto the post edit screen as a meta box and stores its fields as post meta.
@@ -219,6 +219,8 @@ final class PostMetaFieldSurface {
 	 * @version 2.0.0
 	 *
 	 * @param   int $post_id Post whose meta to write.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of a group's fields share an id or storage key.
 	 */
 	public function save_boxes( int $post_id ): void {
 		$post_type = \get_post_type( $post_id );
@@ -280,9 +282,7 @@ final class PostMetaFieldSurface {
 	}
 
 	/**
-	 * The row closure wrapping each control in a meta-box row, its label bound to the control's DOM id.
-	 * A div, not a paragraph: a radio fieldset or the description paragraph inside a p would be reparsed
-	 * as invalid HTML.
+	 * The row closure wrapping each control in a meta-box row — {@see meta_box_row_html()}.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -290,8 +290,7 @@ final class PostMetaFieldSurface {
 	 * @return  \Closure
 	 */
 	protected function box_row(): \Closure {
-		return static fn ( SettingsField $field, string $control, string $control_id ): string =>
-			'<div class="dws-meta-box-field">' . field_label_html( $field, $control_id ) . '<br />' . $control . '</div>';
+		return static fn ( SettingsField $field, string $control, string $control_id ): string => meta_box_row_html( $field, $control, $control_id );
 	}
 
 	/**
@@ -306,6 +305,8 @@ final class PostMetaFieldSurface {
 	 * @param   FieldGroup       $group     Group to save.
 	 * @param   MetaBoxPlacement $placement Placement whose capability gates the save.
 	 * @param   int              $post_id   Post whose meta to write.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of the group's fields share an id or storage key.
 	 */
 	protected function save_box( FieldGroup $group, MetaBoxPlacement $placement, int $post_id ): void {
 		if ( ! \current_user_can( $placement->get_capability(), $post_id ) ) {

@@ -1,8 +1,9 @@
 <?php declare( strict_types=1 );
 
 /**
- * Schema helper functions. All are WP-free except field_label_html(), is_field_editable_by_current_user(),
- * and wordpress_field_type_sanitizers(), which call WordPress functions and need the WP runtime.
+ * Schema helper functions. All are WP-free except field_label_html(), meta_box_row_html(),
+ * is_field_editable_by_current_user(), and wordpress_field_type_sanitizers(), which call WordPress
+ * functions and need the WP runtime.
  *
  * @package DeepWebSolutions\Framework\Settings\Schema
  */
@@ -151,6 +152,28 @@ function stringify_for_output( mixed $value ): string {
 }
 
 /**
+ * Stringifies a resolved options map's labels; a non-scalar label becomes an empty string.
+ *
+ * Applies {@see stringify_for_output()} to each label: every rendering seam hands an option label to
+ * an escaping output function (esc_html()), which expects a string.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   array<array-key, mixed> $options Resolved value-to-label map.
+ *
+ * @return  array<array-key, string>
+ */
+function stringify_option_labels( array $options ): array {
+	$labels = array();
+	foreach ( $options as $value => $label ) {
+		$labels[ $value ] = namespace\stringify_for_output( $label );
+	}
+
+	return $labels;
+}
+
+/**
  * Renders a field's visible label for a surface's label cell as an escaped HTML string: a label
  * element bound to the control's DOM id where a single control carries the accessible name, or the
  * escaped label text alone where none does — a radio group (its fieldset legend names it), a custom
@@ -171,6 +194,24 @@ function field_label_html( SettingsField $field, string $control_id ): string {
 	}
 
 	return \sprintf( '<label for="%s">%s</label>', \esc_attr( $control_id ), \esc_html( $field->label ) );
+}
+
+/**
+ * Renders a field's meta-box row as an escaped HTML string: the control wrapped in the shared row
+ * markup, its label bound to the control's DOM id. A div, not a paragraph: a radio fieldset or the
+ * description paragraph inside a p would be reparsed as invalid HTML.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @param   SettingsField $field      Field the row hosts.
+ * @param   string        $control    Escaped HTML markup of the field's rendered control.
+ * @param   string        $control_id DOM id of the field's rendered control; '' renders no label association.
+ *
+ * @return  string
+ */
+function meta_box_row_html( SettingsField $field, string $control, string $control_id ): string {
+	return '<div class="dws-meta-box-field">' . namespace\field_label_html( $field, $control_id ) . '<br />' . $control . '</div>';
 }
 
 /**

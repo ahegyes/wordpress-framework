@@ -247,6 +247,8 @@ final class TermFieldSurface {
 	 * @version 2.0.0
 	 *
 	 * @param   int $term_id Term whose meta to write.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of a group's fields share an id or storage key.
 	 */
 	public function save_created_term( int $term_id ): void {
 		$this->save_term( $term_id, 0 );
@@ -260,6 +262,8 @@ final class TermFieldSurface {
 	 * @version 2.0.0
 	 *
 	 * @param   int $term_id Term whose meta to write.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of a group's fields share an id or storage key.
 	 */
 	public function save_edited_term( int $term_id ): void {
 		$this->save_term( $term_id );
@@ -277,6 +281,8 @@ final class TermFieldSurface {
 	 *
 	 * @param   int  $term_id         Term whose meta to write.
 	 * @param   ?int $nonce_object_id Object id the nonce is bound to; null uses $term_id.
+	 *
+	 * @throws  DuplicateSettingsFieldException If two of a group's fields share an id or storage key.
 	 */
 	protected function save_term( int $term_id, ?int $nonce_object_id = null ): void {
 		if ( ! \current_user_can( 'edit_term', $term_id ) ) {
