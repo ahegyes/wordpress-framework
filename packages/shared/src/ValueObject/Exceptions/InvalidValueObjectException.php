@@ -39,7 +39,7 @@ abstract class InvalidValueObjectException extends AbstractInvalidArgumentExcept
 	 * @param   \Throwable|null $previous Previous exception for chaining.
 	 */
 	public function __construct( string $reason, int $code = 0, ?\Throwable $previous = null ) {
-		$message = \sprintf( 'Value object of type `%s` is invalid for the following reason: %s', $this->value_object_type, $reason );
+		$message = \sprintf( "Value object of type '%s' is invalid for the following reason: %s", $this->value_object_type, $reason );
 		parent::__construct( $message, $code, $previous );
 	}
 }

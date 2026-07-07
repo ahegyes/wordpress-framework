@@ -65,7 +65,7 @@ function output_requirements_error( $plugin_basename, \WP_Error $error ) {
 			}
 
 			$message = $intro . '<ul class="ul-disc"><li>' . \implode( '</li><li>', $items ) . '</li></ul>';
-			if ( \function_exists( '\wp_admin_notice' ) ) {
+			if ( \function_exists( 'wp_admin_notice' ) ) {
 				\wp_admin_notice( $message, array( 'type' => 'error' ) );
 			} else {
 				echo \wp_kses_post( '<div class="notice notice-error"><p>' . $message . '</p></div>' );

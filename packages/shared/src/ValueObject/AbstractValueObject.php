@@ -15,7 +15,8 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	// region MAGIC METHODS
 
 	/**
-	 * Returns the value object's JSON form; falls back to the encoder's error message on failure.
+	 * Returns the value object's JSON form; a {@see \JsonException} from the encoder
+	 * yields the exception's message, and a false return yields an empty string.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
