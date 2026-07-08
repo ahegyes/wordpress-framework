@@ -82,7 +82,7 @@ final readonly class FieldGroup {
 	) {
 		if ( ! is_valid_identifier( $id ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidFieldGroupException( "Invalid field group id: '$id'" );
+			throw new InvalidFieldGroupException( "Invalid field group id: '$id'." );
 		}
 
 		$this->fields_provider = \Closure::fromCallable( $fields_provider );

@@ -6,9 +6,11 @@ use DeepWebSolutions\Framework\Settings\Backend\SettingsBackendInterface;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsFieldException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\DuplicateSettingsSectionException;
 use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsFieldException;
+use DeepWebSolutions\Framework\Settings\Schema\Exceptions\InvalidSettingsPageException;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsField;
 use DeepWebSolutions\Framework\Settings\Schema\ValueObjects\SettingsPage;
 use DeepWebSolutions\Framework\WooCommerce\Backend\Exceptions\UnsupportedSettingsPageCapabilityException;
+use Psr\Log\LoggerInterface;
 
 use function DeepWebSolutions\Framework\Settings\Schema\assert_unique_section_and_field_ids;
 use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_current_user;
@@ -22,7 +24,7 @@ use function DeepWebSolutions\Framework\Settings\Schema\is_field_editable_by_cur
  * checkbox is the string 'no'), never the boolean false WordPress cannot keep distinct from an absent
  * option. Each field's descriptor sanitizer, and its per-field capability gate, are bridged onto
  * WooCommerce's per-option sanitize filter. The tab is realized through a consumer-declared
- * DescriptorBackedWCSettingsPage subclass, bound here so WooCommerce can rebuild it by class name across
+ * DescriptorBackedWooCommerceSettingsPage subclass, bound here so WooCommerce can rebuild it by class name across
  * requests.
  *
  * @since   2.0.0
@@ -71,10 +73,12 @@ final class WooCommerceSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   class-string<DescriptorBackedWCSettingsPage> $page_class Consumer subclass that renders the page as a WooCommerce tab.
+	 * @param   class-string<DescriptorBackedWooCommerceSettingsPage> $page_class Consumer subclass that renders the page as a WooCommerce tab.
+	 * @param   ?LoggerInterface                                      $logger     Logger for late-registration diagnostics; null silences them.
 	 */
 	public function __construct(
 		protected string $page_class,
+		protected ?LoggerInterface $logger = null,
 	) {}
 
 	// endregion
@@ -87,6 +91,7 @@ final class WooCommerceSettingsBackend implements SettingsBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @throws  InvalidSettingsPageException If the page declares no sections.
 	 * @throws  DuplicateSettingsSectionException If two sections on the page share an id.
 	 * @throws  DuplicateSettingsFieldException If two fields on the page share an id.
 	 * @throws  UnsupportedSettingsPageCapabilityException If the page capability differs from WooCommerce's settings capability.
@@ -95,8 +100,22 @@ final class WooCommerceSettingsBackend implements SettingsBackendInterface {
 	public function register_page( SettingsPage $page ): void {
 		$this->assert_supported_page_capability( $page );
 
+		// The authoring-time seam: a registered page with zero sections is a permanently blank settings
+		// tab, while the render-time capability projection may legitimately empty a page per user.
+		if ( array() === $page->sections ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
+			throw new InvalidSettingsPageException( "Settings page '$page->slug' declares no sections; a registered page must carry at least one section to render." );
+		}
+
 		$this->page   = $page;
 		$this->fields = $this->map_fields( $page );
+
+		if ( \did_filter( 'woocommerce_get_settings_pages' ) > 0 ) {
+			$this->logger?->warning(
+				'Settings page registered after woocommerce_get_settings_pages fired; its tab will not appear.',
+				array( 'slug' => $page->slug ),
+			);
+		}
 
 		// Bind and instantiate inside the filter, not here: WooCommerce loads WC_Settings_Page (the page
 		// subclass's parent) only when it builds its settings pages, just before applying this filter.
@@ -104,7 +123,7 @@ final class WooCommerceSettingsBackend implements SettingsBackendInterface {
 		\add_filter(
 			'woocommerce_get_settings_pages',
 			function ( array $pages ) use ( $page ): array {
-				DescriptorBackedWCSettingsPage::bind( $this->page_class, $page );
+				DescriptorBackedWooCommerceSettingsPage::bind( $this->page_class, $page );
 				$pages[] = new $this->page_class();
 
 				return $pages;

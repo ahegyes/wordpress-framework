@@ -11,7 +11,7 @@ use function DeepWebSolutions\Framework\Utilities\AdminNotices\is_valid_notice_i
 /**
  * Value object for a single WordPress admin notice.
  *
- * The $is_persistent flag governs post-render retention in a persistent store: a non-persistent
+ * The $persistent flag governs post-render retention in a persistent store: a non-persistent
  * notice is consumed (removed) after it renders once, a persistent one recurs until dismissed or
  * removed. {@see self::to_array()} / {@see self::from_array()} persist a notice as a plain array so
  * a stored notice survives per-plugin php-scoping, where a serialized object would carry a scoped
@@ -29,12 +29,12 @@ final readonly class AdminNotice extends AbstractValueObject {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string     $id             Unique identifier (used for dismissal tracking, storage keying, and removal). Must be sanitize_key-stable (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips.
-	 * @param   string     $message        Notice message (inline HTML allowed; sanitized and paragraph-wrapped at render time).
-	 * @param   NoticeType $type           Severity level. Defaults to NoticeType::Info.
-	 * @param   bool       $is_dismissible Whether the notice shows a dismiss button. Defaults to true.
-	 * @param   bool       $is_persistent  Whether the notice recurs across renders (true) or is consumed after rendering once (false). Defaults to false.
-	 * @param   string     $capability     Capability required to see the notice. Defaults to 'manage_options'.
+	 * @param   string     $id          Unique identifier (used for dismissal tracking, storage keying, and removal). Must be sanitize_key-stable (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips.
+	 * @param   string     $message     Notice message (inline HTML allowed; sanitized and paragraph-wrapped at render time).
+	 * @param   NoticeType $type        Severity level. Defaults to NoticeType::Info.
+	 * @param   bool       $dismissible Whether the notice shows a dismiss button. Defaults to true.
+	 * @param   bool       $persistent  Whether the notice recurs across renders (true) or is consumed after rendering once (false). Defaults to false.
+	 * @param   string     $capability  Capability required to see the notice. Defaults to 'manage_options'.
 	 *
 	 * @throws  InvalidAdminNoticeException If $id is not sanitize_key-stable.
 	 */
@@ -42,8 +42,8 @@ final readonly class AdminNotice extends AbstractValueObject {
 		public string $id,
 		public string $message,
 		public NoticeType $type = NoticeType::Info,
-		public bool $is_dismissible = true,
-		public bool $is_persistent = false,
+		public bool $dismissible = true,
+		public bool $persistent = false,
 		public string $capability = 'manage_options',
 	) {
 		if ( ! is_valid_notice_id( $id ) ) {
@@ -66,12 +66,12 @@ final readonly class AdminNotice extends AbstractValueObject {
 	 */
 	public function to_array(): array {
 		return array(
-			'id'             => $this->id,
-			'message'        => $this->message,
-			'type'           => $this->type->value,
-			'is_dismissible' => $this->is_dismissible,
-			'is_persistent'  => $this->is_persistent,
-			'capability'     => $this->capability,
+			'id'          => $this->id,
+			'message'     => $this->message,
+			'type'        => $this->type->value,
+			'dismissible' => $this->dismissible,
+			'persistent'  => $this->persistent,
+			'capability'  => $this->capability,
 		);
 	}
 
@@ -103,8 +103,8 @@ final readonly class AdminNotice extends AbstractValueObject {
 			id: \is_string( $data['id'] ?? null ) ? $data['id'] : '',
 			message: \is_string( $data['message'] ?? null ) ? $data['message'] : '',
 			type: $type,
-			is_dismissible: \is_bool( $data['is_dismissible'] ?? null ) ? $data['is_dismissible'] : true,
-			is_persistent: \is_bool( $data['is_persistent'] ?? null ) ? $data['is_persistent'] : false,
+			dismissible: \is_bool( $data['dismissible'] ?? null ) ? $data['dismissible'] : true,
+			persistent: \is_bool( $data['persistent'] ?? null ) ? $data['persistent'] : false,
 			capability: \is_string( $data['capability'] ?? null ) ? $data['capability'] : 'manage_options',
 		);
 	}

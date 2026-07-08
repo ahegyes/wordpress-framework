@@ -14,7 +14,7 @@ final readonly class PHPExtensionLoadedConditional implements ConditionalInterfa
 	// region MAGIC METHODS
 
 	/**
-	 * Constructs the conditional with the extension name to probe.
+	 * Constructor.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

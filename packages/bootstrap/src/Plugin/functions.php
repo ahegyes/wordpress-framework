@@ -3,7 +3,9 @@
 namespace DeepWebSolutions\Framework\Bootstrap\Plugin;
 
 /**
- * Returns the consumer plugin's metadata.
+ * Returns the consumer plugin's metadata. When the main plugin file is not
+ * readable, returns an empty-valued metadata shape whose TextDomain is guessed
+ * from the plugin's directory name.
  *
  * Pass `$translate=true` ONLY from contexts that fire after `init` (e.g., an
  * `admin_notices` callback) to avoid WP 6.7+'s "doing it wrong" notice.
@@ -25,6 +27,9 @@ function get_plugin_metadata( $plugin_basename, $translate = false ) {
 		$plugin_file = WP_PLUGIN_DIR . '/' . $plugin_basename;
 
 		if ( ! \is_readable( $plugin_file ) ) {
+			// A plugin's directory name conventionally matches its text domain, and consumers
+			// derive the plugin slug from TextDomain — the guess keeps that derivation working
+			// when the main file cannot be read.
 			$text_domain = '';
 			$plugin_slug = \dirname( $plugin_basename );
 			if ( '.' !== $plugin_slug && false === \strpos( $plugin_slug, '/' ) ) {
@@ -49,7 +54,7 @@ function get_plugin_metadata( $plugin_basename, $translate = false ) {
 				'AuthorName'      => '',
 			);
 		} else {
-			if ( ! \function_exists( '\get_plugin_data' ) ) {
+			if ( ! \function_exists( 'get_plugin_data' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			}
 

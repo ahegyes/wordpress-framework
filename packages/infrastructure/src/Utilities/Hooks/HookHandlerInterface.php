@@ -97,4 +97,15 @@ interface HookHandlerInterface {
 	 * @version 2.0.0
 	 */
 	public function remove_all_filters(): void;
+
+	/**
+	 * Wires any one-time WordPress self-wiring the handler needs before use.
+	 *
+	 * A consumer calls this once during boot. A handler with nothing to wire implements
+	 * it empty; the scoped handler registers its start and end lifecycle hooks here.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function register_hooks(): void;
 }

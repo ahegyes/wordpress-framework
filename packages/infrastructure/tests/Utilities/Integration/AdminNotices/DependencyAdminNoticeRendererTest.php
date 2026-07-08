@@ -3,9 +3,11 @@
 namespace DeepWebSolutions\Framework\Utilities\Tests\Integration\AdminNotices;
 
 use DeepWebSolutions\Framework\Core\Conditional\ConditionalInterface;
+use DeepWebSolutions\Framework\Settings\Tests\Support\CreatesUsers;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticesService;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\DependencyAdminNoticeRenderer;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\DismissedNoticesTracker;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\UnknownNoticeStoreException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\DependencyRequirement;
@@ -25,11 +27,14 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass( AdminNotice::class )]
 #[UsesClass( DependencyRequirement::class )]
 #[UsesClass( NoticeType::class )]
+#[UsesClass( UnknownNoticeStoreException::class )]
 #[UsesClass( MemoryStore::class )]
 #[UsesClass( OptionsStore::class )]
 #[UsesClass( UserMetaStore::class )]
 #[UsesClass( WPPluginActiveConditional::class )]
 final class DependencyAdminNoticeRendererTest extends TestCase {
+	use CreatesUsers;
+
 	private const DISMISS_KEY    = 'dws_test_dep_dismissed';
 	private const DISMISS_ACTION = 'dws_test_dep_dismiss';
 	private const PERSIST_KEY    = 'dws_test_dep_persistent';
@@ -76,8 +81,8 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 
 		self::assertInstanceOf( AdminNotice::class, $notice );
 		self::assertSame( NoticeType::Error, $notice->type );
-		self::assertFalse( $notice->is_dismissible );
-		self::assertFalse( $notice->is_persistent );
+		self::assertFalse( $notice->dismissible );
+		self::assertFalse( $notice->persistent );
 		self::assertSame( 'activate_plugins', $notice->capability );
 		self::assertSame( 'Linked Orders requires WooCommerce to be active.', $notice->message );
 	}
@@ -94,8 +99,8 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 
 		self::assertInstanceOf( AdminNotice::class, $notice );
 		self::assertSame( NoticeType::Warning, $notice->type );
-		self::assertTrue( $notice->is_dismissible );
-		self::assertTrue( $notice->is_persistent );
+		self::assertTrue( $notice->dismissible );
+		self::assertTrue( $notice->persistent );
 		self::assertSame( 'Jetpack is recommended for Linked Orders.', $notice->message );
 	}
 
@@ -153,28 +158,14 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 		self::assertTrue( $service->stores['memory']->has( 'dep_flaky_dependency' ) );
 	}
 
-	public function test_an_unknown_store_triggers_doing_it_wrong(): void {
-		$fired = 0;
-		$spy   = static function () use ( &$fired ) {
-			++$fired;
-		};
-		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		\add_action( 'doing_it_wrong_run', $spy );
+	public function test_an_unknown_store_throws_at_construction(): void {
+		$this->expectException( UnknownNoticeStoreException::class );
 
-		try {
-			$service = new AdminNoticesService();
-			( new DependencyAdminNoticeRenderer(
-				$service,
-				array( new DependencyRequirement( $this->conditional( false ), 'WooCommerce' ) ),
-				store: 'nope',
-			) )->render();
-
-			self::assertGreaterThan( 0, $fired );
-			self::assertSame( array(), $service->stores['memory']->get_all() );
-		} finally {
-			\remove_action( 'doing_it_wrong_run', $spy );
-			\remove_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		}
+		new DependencyAdminNoticeRenderer(
+			new AdminNoticesService(),
+			array( new DependencyRequirement( $this->conditional( false ), 'WooCommerce' ) ),
+			store: 'nope',
+		);
 	}
 
 	public function test_renders_for_a_capable_user_and_hides_from_others(): void {
@@ -251,23 +242,6 @@ final class DependencyAdminNoticeRendererTest extends TestCase {
 		\ob_start();
 		$service->render_notices();
 		return (string) \ob_get_clean();
-	}
-
-	private function make_user( string $login, string $role ): int {
-		$existing = \get_user_by( 'login', $login );
-		if ( $existing instanceof \WP_User ) {
-			return $existing->ID;
-		}
-
-		$id = \wp_insert_user(
-			array(
-				'user_login' => $login,
-				'user_pass'  => 'password',
-				'role'       => $role,
-			),
-		);
-		self::assertIsInt( $id );
-		return $id;
 	}
 
 	private function delete_user( int $id ): void {

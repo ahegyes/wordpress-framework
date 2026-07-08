@@ -252,7 +252,7 @@ final readonly class TransientCache {
 	 * @return  string
 	 */
 	protected function suffix_key(): string {
-		return $this->key_prefix . '_cache_invalidation_suffix';
+		return $this->key_prefix . '_transient_cache_generation';
 	}
 
 	/**

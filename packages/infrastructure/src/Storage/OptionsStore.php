@@ -45,10 +45,9 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
-	public function set( string $key, mixed $value ): void {
-		$entries         = $this->load();
-		$entries[ $key ] = $value;
-		$this->save( $entries );
+	public function get( string $key, mixed $default_value = null ): mixed {
+		$entries = $this->load();
+		return \array_key_exists( $key, $entries ) ? $entries[ $key ] : $default_value;
 	}
 
 	/**
@@ -58,9 +57,10 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
-	public function get( string $key, mixed $default_value = null ): mixed {
-		$entries = $this->load();
-		return \array_key_exists( $key, $entries ) ? $entries[ $key ] : $default_value;
+	public function set( string $key, mixed $value ): void {
+		$entries         = $this->load();
+		$entries[ $key ] = $value;
+		$this->save( $entries );
 	}
 
 	/**
@@ -118,7 +118,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	// region HELPERS
 
 	/**
-	 * Load the entries array from wp_options. Returns an empty array if the option doesn't
+	 * Loads the entries array from wp_options. Returns an empty array if the option doesn't
 	 * exist or is corrupted (non-array value).
 	 *
 	 * @since   2.0.0
@@ -132,7 +132,7 @@ final readonly class OptionsStore implements KeyValueStoreInterface {
 	}
 
 	/**
-	 * Persist the entries array to wp_options.
+	 * Persists the entries array to wp_options.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

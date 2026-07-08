@@ -42,7 +42,7 @@ jobs:
 
   infection-integration:
     name: Run Infection (Integration)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@7c1ef45c6be4cffdea69b05e855ec0c03e51166c
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@4214abd176545fe11f90ce6a449f8fc3fd7a9315
     with:
       php-version: '8.5'
       composer-script: 'test:integration:mutation'

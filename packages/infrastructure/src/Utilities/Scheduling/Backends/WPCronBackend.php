@@ -18,7 +18,7 @@ use WP_Error;
  * each distinct interval gets a synthetic schedule 'dws_every_{N}s' injected through the
  * 'cron_schedules' filter. WordPress resolves that schedule again whenever it reschedules the
  * event — on a request that never touches this backend, wp-cron included — so the caller wires
- * the filter through {@see self::register_lifecycle()} on each load, independent of any schedule
+ * the filter through {@see self::register_hooks()} on each load, independent of any schedule
  * call, and its callback rebuilds the interval set from the cron array so an event scheduled on
  * an earlier request still resolves. WordPress cron has no grouping, so a non-empty group is
  * rejected on schedule writes and treated as absent by read and clear paths.
@@ -220,7 +220,7 @@ final class WPCronBackend implements SchedulerBackendInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
-	public function register_lifecycle(): void {
+	public function register_hooks(): void {
 		$this->ensure_filter_registered();
 	}
 

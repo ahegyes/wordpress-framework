@@ -39,7 +39,7 @@ final readonly class SettingsSection {
 	) {
 		if ( ! is_valid_identifier( $id ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidSettingsSectionException( "Invalid settings section id: '$id'" );
+			throw new InvalidSettingsSectionException( "Invalid settings section id: '$id'." );
 		}
 	}
 

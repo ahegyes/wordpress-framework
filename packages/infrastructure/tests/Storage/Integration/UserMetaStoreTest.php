@@ -2,12 +2,15 @@
 
 namespace DeepWebSolutions\Framework\Storage\Tests\Integration;
 
+use DeepWebSolutions\Framework\Settings\Tests\Support\CreatesUsers;
 use DeepWebSolutions\Framework\Storage\UserMetaStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( UserMetaStore::class )]
 final class UserMetaStoreTest extends TestCase {
+	use CreatesUsers;
+
 	private const META_KEY = 'dws_test_user_meta_store';
 
 	private int $user_a;
@@ -131,23 +134,6 @@ final class UserMetaStoreTest extends TestCase {
 		// update_user_meta() runs the value through wp_unslash(); without a compensating wp_slash()
 		// the backslashes would be stripped to 'C:Usersdevfile.txt'.
 		self::assertSame( 'C:\\Users\\dev\\file.txt', $store->get( 'path' ) );
-	}
-
-	private function make_user( string $login ): int {
-		$existing = \get_user_by( 'login', $login );
-		if ( $existing instanceof \WP_User ) {
-			return $existing->ID;
-		}
-
-		$id = \wp_insert_user(
-			array(
-				'user_login' => $login,
-				'user_pass'  => 'password',
-				'role'       => 'subscriber',
-			),
-		);
-		self::assertIsInt( $id );
-		return $id;
 	}
 
 	private function delete_user( int $id ): void {

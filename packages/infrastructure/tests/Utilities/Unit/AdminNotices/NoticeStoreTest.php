@@ -23,7 +23,7 @@ use PHPUnit\Framework\TestCase;
 final class NoticeStoreTest extends TestCase {
 	public function test_add_then_get_round_trips_the_notice(): void {
 		$store  = new NoticeStore( new MemoryStore() );
-		$notice = new AdminNotice( 'welcome', 'Hello', NoticeType::Success, is_persistent: true );
+		$notice = new AdminNotice( 'welcome', 'Hello', NoticeType::Success, persistent: true );
 
 		$store->add( $notice );
 

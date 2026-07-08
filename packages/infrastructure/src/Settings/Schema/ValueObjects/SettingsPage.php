@@ -30,8 +30,8 @@ final readonly class SettingsPage {
 	 * @param   string                $page_title Title rendered at the top of the page.
 	 * @param   string                $menu_title Label shown in the admin menu.
 	 * @param   string                $capability Capability required to view and save the page.
-	 * @param   ?string               $location Backend-interpreted placement (an admin parent-menu slug, or a settings-tab id); null uses the backend default.
 	 * @param   list<SettingsSection> $sections Sections composing the page, in display order.
+	 * @param   ?string               $location Backend-interpreted placement (an admin parent-menu slug, or a settings-tab id); null uses the backend default.
 	 *
 	 * @throws  InvalidSettingsPageException If $slug does not match the slug charset.
 	 */
@@ -40,12 +40,12 @@ final readonly class SettingsPage {
 		public string $page_title,
 		public string $menu_title,
 		public string $capability,
+		public array $sections,
 		public ?string $location = null,
-		public array $sections = array(),
 	) {
 		if ( ! is_valid_identifier( $slug ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidSettingsPageException( "Invalid settings page slug: '$slug'" );
+			throw new InvalidSettingsPageException( "Invalid settings page slug: '$slug'." );
 		}
 	}
 

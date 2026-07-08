@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Utilities\AdminNotices;
 
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidNoticeIdentifierException;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\UnknownNoticeStoreException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
@@ -57,14 +59,16 @@ final readonly class AdminNoticeLogger implements LoggerInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   AdminNoticesService $service        Service the notice is queued through.
-	 * @param   string              $notice_id      Stable ID every admitted record is queued under; must be sanitize_key-stable so AJAX dismissal round-trips.
-	 * @param   string              $store          Name of the service store to queue in; a persistent store surfaces the notice on a later request.
-	 * @param   string              $minimum_level  Lowest PSR-3 level that produces a notice; records below it are dropped.
-	 * @param   string              $capability     Capability required to see the notice.
-	 * @param   bool                $is_dismissible Whether the notice shows a dismiss button.
+	 * @param   AdminNoticesService $service       Service the notice is queued through.
+	 * @param   string              $notice_id     Stable ID every admitted record is queued under; must be sanitize_key-stable so AJAX dismissal round-trips.
+	 * @param   string              $store         Name of the service store to queue in; a persistent store surfaces the notice on a later request.
+	 * @param   string              $minimum_level Lowest PSR-3 level that produces a notice; records below it are dropped.
+	 * @param   string              $capability    Capability required to see the notice.
+	 * @param   bool                $dismissible   Whether the notice shows a dismiss button.
 	 *
-	 * @throws  InvalidArgumentException When $notice_id is not sanitize_key-stable, $minimum_level is not a PSR-3 level, or $store is not registered on the service.
+	 * @throws  InvalidNoticeIdentifierException When $notice_id is not sanitize_key-stable.
+	 * @throws  InvalidArgumentException         When $minimum_level is not a PSR-3 level.
+	 * @throws  UnknownNoticeStoreException      When $store is not registered on the service.
 	 */
 	public function __construct(
 		protected AdminNoticesService $service,
@@ -72,23 +76,25 @@ final readonly class AdminNoticeLogger implements LoggerInterface {
 		protected string $store = AdminNoticesService::DEFAULT_STORE,
 		protected string $minimum_level = LogLevel::ERROR,
 		protected string $capability = 'manage_options',
-		protected bool $is_dismissible = false,
+		protected bool $dismissible = false,
 	) {
 		if ( ! namespace\is_valid_notice_id( $this->notice_id ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidArgumentException( 'Invalid notice id: ' . $this->notice_id . '. Use a sanitize_key-stable id (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips.' );
+			throw new InvalidNoticeIdentifierException( "Invalid notice id: '$this->notice_id'. Use a sanitize_key-stable id (lowercase a-z, 0-9, _, -) so AJAX dismissal round-trips." );
 		}
 
+		// The minimum level is PSR-3 vocabulary, so its rejection stays the PSR-3 exception type,
+		// matching the level validation log() itself performs.
 		if ( ! isset( self::SEVERITIES[ $this->minimum_level ] ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidArgumentException( 'Unknown minimum log level: ' . $this->minimum_level );
+			throw new InvalidArgumentException( "Unknown minimum log level: '$this->minimum_level'." );
 		}
 
-		// Validate the target store up front: a misnamed store would otherwise route every record to a
-		// _doing_it_wrong() no-op in production, silently dropping the very failures this logger surfaces.
+		// Validate the target store up front: a misnamed store would otherwise surface only when the
+		// first record is queued — inside the fail-closed kernel boot this logger exists to report.
 		if ( ! isset( $this->service->stores[ $this->store ] ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidArgumentException( 'Unknown notice store: ' . $this->store );
+			throw new UnknownNoticeStoreException( "No notice store is registered under name '$this->store'." );
 		}
 	}
 
@@ -109,7 +115,7 @@ final readonly class AdminNoticeLogger implements LoggerInterface {
 		$level_key = \is_string( $level ) ? $level : '';
 		if ( ! isset( self::SEVERITIES[ $level_key ] ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidArgumentException( 'Unknown log level: ' . ( \is_scalar( $level ) ? (string) $level : \gettype( $level ) ) );
+			throw new InvalidArgumentException( \sprintf( "Unknown log level: '%s'.", \is_scalar( $level ) ? (string) $level : \gettype( $level ) ) );
 		}
 
 		if ( self::SEVERITIES[ $level_key ] < self::SEVERITIES[ $this->minimum_level ] ) {
@@ -121,8 +127,8 @@ final readonly class AdminNoticeLogger implements LoggerInterface {
 				id: $this->notice_id,
 				message: $this->interpolate( (string) $message, $context ),
 				type: $this->notice_type( $level_key ),
-				is_dismissible: $this->is_dismissible,
-				is_persistent: true,
+				dismissible: $this->dismissible,
+				persistent: true,
 				capability: $this->capability,
 			),
 			$this->store,

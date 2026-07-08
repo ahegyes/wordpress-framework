@@ -14,7 +14,7 @@ namespace DeepWebSolutions\Framework\Bootstrap\Environment;
  * @return  bool
  */
 function is_php_compatible( $min_php ) {
-	if ( \function_exists( '\is_php_version_compatible' ) ) {
+	if ( \function_exists( 'is_php_version_compatible' ) ) {
 		return \is_php_version_compatible( $min_php );
 	}
 
@@ -36,7 +36,7 @@ function is_php_compatible( $min_php ) {
  * @return  bool
  */
 function is_wp_compatible( $min_wp ) {
-	if ( \function_exists( '\is_wp_version_compatible' ) ) {
+	if ( \function_exists( 'is_wp_version_compatible' ) ) {
 		return \is_wp_version_compatible( $min_wp );
 	}
 

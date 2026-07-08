@@ -117,5 +117,5 @@ interface SchedulerBackendInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
-	public function register_lifecycle(): void;
+	public function register_hooks(): void;
 }

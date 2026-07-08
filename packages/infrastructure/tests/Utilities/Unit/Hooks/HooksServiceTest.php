@@ -2,10 +2,10 @@
 
 namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\Hooks;
 
+use DeepWebSolutions\Framework\Utilities\Hooks\Exceptions\UnknownHookHandlerException;
 use DeepWebSolutions\Framework\Utilities\Hooks\Handlers\DirectHookHandler;
 use DeepWebSolutions\Framework\Utilities\Hooks\HookHandlerInterface;
 use DeepWebSolutions\Framework\Utilities\Hooks\HooksService;
-use OutOfBoundsException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
@@ -16,7 +16,7 @@ final class HooksServiceTest extends TestCase {
 	public function test_constructs_with_default_direct_handler(): void {
 		$service = new HooksService();
 
-		self::assertInstanceOf( DirectHookHandler::class, $service->get_handler( 'direct' ) );
+		self::assertInstanceOf( DirectHookHandler::class, $service->handlers['direct'] ?? null );
 	}
 
 	public function test_empty_array_yields_zero_handlers(): void {
@@ -25,13 +25,12 @@ final class HooksServiceTest extends TestCase {
 		self::assertSame( array(), $service->handlers );
 	}
 
-	public function test_register_handler_indexes_by_id(): void {
-		$service = new HooksService( array() );
+	public function test_constructor_indexes_handlers_by_id(): void {
 		$handler = $this->recording_handler( 'buffered' );
 
-		$service->register_handler( $handler );
+		$service = new HooksService( array( $handler ) );
 
-		self::assertSame( $handler, $service->get_handler( 'buffered' ) );
+		self::assertSame( $handler, $service->handlers['buffered'] ?? null );
 	}
 
 	public function test_handlers_returns_all(): void {
@@ -49,10 +48,15 @@ final class HooksServiceTest extends TestCase {
 		);
 	}
 
-	public function test_get_handler_returns_null_when_not_found(): void {
-		$service = new HooksService( array( $this->recording_handler( 'direct' ) ) );
+	public function test_register_hooks_forwards_to_every_handler(): void {
+		$direct   = $this->recording_handler( 'direct' );
+		$buffered = $this->recording_handler( 'buffered' );
+		$service  = new HooksService( array( $direct, $buffered ) );
 
-		self::assertNull( $service->get_handler( 'missing' ) );
+		$service->register_hooks();
+
+		self::assertSame( array( array( 'register_hooks' ) ), $direct->calls );
+		self::assertSame( array( array( 'register_hooks' ) ), $buffered->calls );
 	}
 
 	public function test_add_action_routes_to_default_handler(): void {
@@ -136,7 +140,7 @@ final class HooksServiceTest extends TestCase {
 	public function test_unknown_handler_id_throws(): void {
 		$service = new HooksService( array( $this->recording_handler( 'direct' ) ) );
 
-		$this->expectException( OutOfBoundsException::class );
+		$this->expectException( UnknownHookHandlerException::class );
 		$service->add_action( 'init', static function (): void {}, 10, 1, 'nonexistent' );
 	}
 
@@ -217,6 +221,10 @@ final class HooksServiceTest extends TestCase {
 
 			public function remove_all_filters(): void {
 				$this->calls[] = array( 'remove_all_filters' );
+			}
+
+			public function register_hooks(): void {
+				$this->calls[] = array( 'register_hooks' );
 			}
 		};
 	}

@@ -324,12 +324,12 @@ final class SchedulerTest extends TestCase {
 		self::assertFalse( ( new Scheduler( array( $dormant_a, $dormant_b ) ) )->is_ready() );
 	}
 
-	public function test_register_lifecycle_wires_every_backend_ready_or_not(): void {
+	public function test_register_hooks_wires_every_backend_ready_or_not(): void {
 		$action_scheduler = $this->recording_backend( ready: false );
 		$wp_cron          = $this->recording_backend();
 		$scheduler        = new Scheduler( array( $action_scheduler, $wp_cron ) );
 
-		$scheduler->register_lifecycle();
+		$scheduler->register_hooks();
 
 		self::assertSame( 1, $action_scheduler->lifecycle_calls );
 		self::assertSame( 1, $wp_cron->lifecycle_calls );
@@ -438,7 +438,7 @@ final class SchedulerTestRecordingBackend implements SchedulerBackendInterface {
 		return $this->ready;
 	}
 
-	public function register_lifecycle(): void {
+	public function register_hooks(): void {
 		++$this->lifecycle_calls;
 	}
 }

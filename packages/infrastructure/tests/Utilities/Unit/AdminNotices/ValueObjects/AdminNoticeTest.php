@@ -28,8 +28,8 @@ final class AdminNoticeTest extends TestCase {
 		self::assertSame( 'my-notice', $notice->id );
 		self::assertSame( 'Hello world.', $notice->message );
 		self::assertSame( NoticeType::Info, $notice->type );
-		self::assertTrue( $notice->is_dismissible );
-		self::assertFalse( $notice->is_persistent );
+		self::assertTrue( $notice->dismissible );
+		self::assertFalse( $notice->persistent );
 		self::assertSame( 'manage_options', $notice->capability );
 	}
 
@@ -38,16 +38,16 @@ final class AdminNoticeTest extends TestCase {
 			id: 'critical',
 			message: '<strong>Bad.</strong>',
 			type: NoticeType::Error,
-			is_dismissible: false,
-			is_persistent: true,
+			dismissible: false,
+			persistent: true,
 			capability: 'activate_plugins',
 		);
 
 		self::assertSame( 'critical', $notice->id );
 		self::assertSame( '<strong>Bad.</strong>', $notice->message );
 		self::assertSame( NoticeType::Error, $notice->type );
-		self::assertFalse( $notice->is_dismissible );
-		self::assertTrue( $notice->is_persistent );
+		self::assertFalse( $notice->dismissible );
+		self::assertTrue( $notice->persistent );
 		self::assertSame( 'activate_plugins', $notice->capability );
 	}
 
@@ -55,8 +55,8 @@ final class AdminNoticeTest extends TestCase {
 		$notice = new AdminNotice( 'id', 'msg', NoticeType::Warning, false, true, 'edit_posts' );
 
 		self::assertSame( 'edit_posts', $notice->capability );
-		self::assertTrue( $notice->is_persistent );
-		self::assertFalse( $notice->is_dismissible );
+		self::assertTrue( $notice->persistent );
+		self::assertFalse( $notice->dismissible );
 	}
 
 	public function test_to_array_emits_all_fields_with_type_as_backing_string(): void {
@@ -64,19 +64,19 @@ final class AdminNoticeTest extends TestCase {
 			id: 'id1',
 			message: 'msg',
 			type: NoticeType::Warning,
-			is_dismissible: false,
-			is_persistent: true,
+			dismissible: false,
+			persistent: true,
 			capability: 'edit_posts',
 		);
 
 		self::assertSame(
 			array(
-				'id'             => 'id1',
-				'message'        => 'msg',
-				'type'           => 'warning',
-				'is_dismissible' => false,
-				'is_persistent'  => true,
-				'capability'     => 'edit_posts',
+				'id'          => 'id1',
+				'message'     => 'msg',
+				'type'        => 'warning',
+				'dismissible' => false,
+				'persistent'  => true,
+				'capability'  => 'edit_posts',
 			),
 			$notice->to_array(),
 		);
@@ -85,20 +85,20 @@ final class AdminNoticeTest extends TestCase {
 	public function test_from_array_reconstructs_notice(): void {
 		$notice = AdminNotice::from_array(
 			array(
-				'id'             => 'id1',
-				'message'        => 'msg',
-				'type'           => 'error',
-				'is_dismissible' => false,
-				'is_persistent'  => true,
-				'capability'     => 'manage_woocommerce',
+				'id'          => 'id1',
+				'message'     => 'msg',
+				'type'        => 'error',
+				'dismissible' => false,
+				'persistent'  => true,
+				'capability'  => 'manage_woocommerce',
 			),
 		);
 
 		self::assertSame( 'id1', $notice->id );
 		self::assertSame( 'msg', $notice->message );
 		self::assertSame( NoticeType::Error, $notice->type );
-		self::assertFalse( $notice->is_dismissible );
-		self::assertTrue( $notice->is_persistent );
+		self::assertFalse( $notice->dismissible );
+		self::assertTrue( $notice->persistent );
 		self::assertSame( 'manage_woocommerce', $notice->capability );
 	}
 
@@ -107,8 +107,8 @@ final class AdminNoticeTest extends TestCase {
 			id: 'x',
 			message: '',
 			type: NoticeType::Success,
-			is_dismissible: false,
-			is_persistent: true,
+			dismissible: false,
+			persistent: true,
 			capability: 'manage_woocommerce',
 		);
 
@@ -161,8 +161,8 @@ final class AdminNoticeTest extends TestCase {
 			)
 		);
 
-		self::assertTrue( $notice->is_dismissible );
-		self::assertFalse( $notice->is_persistent );
+		self::assertTrue( $notice->dismissible );
+		self::assertFalse( $notice->persistent );
 		self::assertSame( 'manage_options', $notice->capability );
 	}
 
@@ -171,15 +171,15 @@ final class AdminNoticeTest extends TestCase {
 		// (bool) cast would wrongly make the notice persistent. Non-bools fall back to the defaults.
 		$notice = AdminNotice::from_array(
 			array(
-				'id'             => 'x',
-				'message'        => 'm',
-				'is_dismissible' => 0,
-				'is_persistent'  => 'false',
+				'id'          => 'x',
+				'message'     => 'm',
+				'dismissible' => 0,
+				'persistent'  => 'false',
 			),
 		);
 
-		self::assertTrue( $notice->is_dismissible );
-		self::assertFalse( $notice->is_persistent );
+		self::assertTrue( $notice->dismissible );
+		self::assertFalse( $notice->persistent );
 	}
 
 	#[DataProvider( 'unstable_ids' )]
@@ -248,8 +248,8 @@ final class AdminNoticeTest extends TestCase {
 		self::assertFalse( $base->equals( new AdminNotice( 'y', 'msg' ) ) );
 		self::assertFalse( $base->equals( new AdminNotice( 'x', 'other' ) ) );
 		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', NoticeType::Error ) ) );
-		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', is_dismissible: false ) ) );
-		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', is_persistent: true ) ) );
+		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', dismissible: false ) ) );
+		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', persistent: true ) ) );
 		self::assertFalse( $base->equals( new AdminNotice( 'x', 'msg', capability: 'edit_posts' ) ) );
 	}
 
@@ -258,12 +258,12 @@ final class AdminNoticeTest extends TestCase {
 
 		self::assertSame(
 			array(
-				'id'             => 'id1',
-				'message'        => 'msg',
-				'type'           => 'warning',
-				'is_dismissible' => false,
-				'is_persistent'  => true,
-				'capability'     => 'edit_posts',
+				'id'          => 'id1',
+				'message'     => 'msg',
+				'type'        => 'warning',
+				'dismissible' => false,
+				'persistent'  => true,
+				'capability'  => 'edit_posts',
 			),
 			$notice->jsonSerialize(),
 		);

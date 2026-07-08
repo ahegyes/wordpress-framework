@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Shared\Tests\Unit\Reflection;
 
+use DeepWebSolutions\Framework\Shared\Reflection\Exceptions\CyclicObjectGraphException;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Shared\Reflection\convert_to_primitives;
@@ -131,6 +133,7 @@ final class FixtureRawSelfCycle implements \JsonSerializable {
 
 #[CoversFunction( 'DeepWebSolutions\Framework\Shared\Reflection\convert_to_primitives' )]
 #[CoversFunction( 'DeepWebSolutions\Framework\Shared\Reflection\get_public_property_names' )]
+#[UsesClass( CyclicObjectGraphException::class )]
 final class FunctionsTest extends TestCase {
 	public function test_get_public_property_names_returns_public_only(): void {
 		$names = get_public_property_names( new FixtureWithMixedVisibility() );
@@ -264,7 +267,7 @@ final class FunctionsTest extends TestCase {
 		$fixture       = new FixtureSelfReferential();
 		$fixture->self = $fixture;
 
-		$this->expectException( \RuntimeException::class );
+		$this->expectException( CyclicObjectGraphException::class );
 		$this->expectExceptionMessage( FixtureSelfReferential::class );
 
 		convert_to_primitives( $fixture );
@@ -273,7 +276,7 @@ final class FunctionsTest extends TestCase {
 	public function test_convert_to_primitives_throws_on_a_serializer_returning_itself(): void {
 		$obj = new FixtureWithArray( array( new FixtureRawSelfCycle() ) );
 
-		$this->expectException( \RuntimeException::class );
+		$this->expectException( CyclicObjectGraphException::class );
 		$this->expectExceptionMessage( FixtureRawSelfCycle::class );
 
 		convert_to_primitives( $obj );
@@ -306,8 +309,8 @@ final class FunctionsTest extends TestCase {
 
 		try {
 			convert_to_primitives( $fixture );
-			self::fail( 'Expected a cyclic-graph RuntimeException.' );
-		} catch ( \RuntimeException ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- the assertion is the follow-up call below.
+			self::fail( 'Expected a CyclicObjectGraphException.' );
+		} catch ( CyclicObjectGraphException ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- the assertion is the follow-up call below.
 			// The in-flight set must be unwound with the exception; a later call starts clean.
 		}
 

@@ -15,7 +15,7 @@ final readonly class WPPluginActiveConditional implements ConditionalInterface {
 	// region MAGIC METHODS
 
 	/**
-	 * Constructs the conditional with the plugin basename to probe.
+	 * Constructor.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

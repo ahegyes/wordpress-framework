@@ -41,17 +41,24 @@ final class OptionsStoreTest extends TestCase {
 		self::assertNull( $store->get( 'k', 'sentinel' ) );
 	}
 
-	public function test_has_and_delete(): void {
+	public function test_has_reports_a_stored_key_and_not_a_missing_one(): void {
 		$store = new OptionsStore( self::OPTION_KEY );
 		$store->set( 'k', 'v' );
 
 		self::assertTrue( $store->has( 'k' ) );
+		self::assertFalse( $store->has( 'missing' ) );
+	}
+
+	public function test_delete_removes_a_stored_key_and_reports_a_missing_one(): void {
+		$store = new OptionsStore( self::OPTION_KEY );
+		$store->set( 'k', 'v' );
+
 		self::assertTrue( $store->delete( 'k' ) );
 		self::assertFalse( $store->has( 'k' ) );
 		self::assertFalse( $store->delete( 'k' ) );
 	}
 
-	public function test_get_all_and_clear(): void {
+	public function test_get_all_returns_every_stored_entry(): void {
 		$store = new OptionsStore( self::OPTION_KEY );
 		$store->set( 'a', 1 );
 		$store->set( 'b', 2 );
@@ -63,8 +70,15 @@ final class OptionsStoreTest extends TestCase {
 			),
 			$store->get_all(),
 		);
+	}
+
+	public function test_clear_empties_the_store(): void {
+		$store = new OptionsStore( self::OPTION_KEY );
+		$store->set( 'a', 1 );
+		$store->set( 'b', 2 );
 
 		$store->clear();
+
 		self::assertSame( array(), $store->get_all() );
 	}
 

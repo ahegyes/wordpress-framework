@@ -4,6 +4,8 @@ namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\AdminNotices;
 
 use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticeLogger;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticesService;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\InvalidNoticeIdentifierException;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\UnknownNoticeStoreException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
@@ -33,8 +35,8 @@ final class AdminNoticeLoggerTest extends TestCase {
 		self::assertNotNull( $notice );
 		self::assertSame( 'Installation failed', $notice->message );
 		self::assertSame( NoticeType::Error, $notice->type );
-		self::assertTrue( $notice->is_persistent );
-		self::assertFalse( $notice->is_dismissible );
+		self::assertTrue( $notice->persistent );
+		self::assertFalse( $notice->dismissible );
 	}
 
 	public function test_records_below_the_threshold_are_dropped(): void {
@@ -169,13 +171,13 @@ final class AdminNoticeLoggerTest extends TestCase {
 	public function test_an_unknown_store_is_rejected_at_construction(): void {
 		$service = new AdminNoticesService( array( 'failures' => new NoticeStore( new MemoryStore() ) ) );
 
-		$this->expectException( InvalidArgumentException::class );
+		$this->expectException( UnknownNoticeStoreException::class );
 
 		new AdminNoticeLogger( $service, 'x', 'typo-store' );
 	}
 
 	public function test_an_unstable_notice_id_is_rejected_at_construction(): void {
-		$this->expectException( InvalidArgumentException::class );
+		$this->expectException( InvalidNoticeIdentifierException::class );
 
 		new AdminNoticeLogger( $this->service_with( new NoticeStore( new MemoryStore() ) ), 'Bad.Id', 'failures' );
 	}

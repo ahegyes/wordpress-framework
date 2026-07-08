@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Bootstrap\Tests\Integration;
 
 use DeepWebSolutions\Framework\Bootstrap\Tests\Support\WritesPluginFixtures;
 use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\UsesFunction;
 use PHPUnit\Framework\TestCase;
 
 use function DeepWebSolutions\Framework\Bootstrap\Environment\is_php_compatible;
@@ -14,6 +15,9 @@ use const DeepWebSolutions\Framework\Bootstrap\Requirements\FRAMEWORK_MIN_PHP;
 use const DeepWebSolutions\Framework\Bootstrap\Requirements\FRAMEWORK_MIN_WP;
 
 #[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\Requirements\check_requirements' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Bootstrap\Environment\is_php_compatible' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Bootstrap\Environment\is_wp_compatible' )]
+#[UsesFunction( 'DeepWebSolutions\Framework\Bootstrap\Plugin\get_plugin_metadata' )]
 final class CheckRequirementsTest extends TestCase {
 	use WritesPluginFixtures;
 

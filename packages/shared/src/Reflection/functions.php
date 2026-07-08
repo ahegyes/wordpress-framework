@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Shared\Reflection;
 
+use DeepWebSolutions\Framework\Shared\Reflection\Exceptions\CyclicObjectGraphException;
+
 /**
  * Returns the names of all public properties declared on the given object's class.
  *
@@ -35,12 +37,17 @@ function get_public_property_names( object $input_object ): array {
  * converted; {@see \BackedEnum} values are reduced to their `value`; {@see \DateTimeInterface}
  * values are formatted via {@see \DateTimeInterface::ATOM}.
  *
+ * The root object is expanded by walking its public properties; a nested
+ * {@see \JsonSerializable} is expanded through its own jsonSerialize(). An object whose
+ * jsonSerialize() diverges from its public-property shape therefore serializes
+ * differently at the root than nested.
+ *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @param   \JsonSerializable $input_object The object to convert.
  *
- * @throws  \RuntimeException If the object graph is cyclic: a nested object re-entered while its own expansion is still in flight.
+ * @throws  CyclicObjectGraphException If the object graph is cyclic: a nested object re-entered while its own expansion is still in flight.
  *
  * @return  array<string, mixed>
  */
@@ -68,7 +75,7 @@ function convert_to_primitives( \JsonSerializable $input_object ): array {
 			$object_id = \spl_object_id( $value );
 			if ( isset( $expanding[ $object_id ] ) ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-				throw new \RuntimeException( 'Cyclic object graph: ' . $value::class . ' is already being converted to primitives.' );
+				throw new CyclicObjectGraphException( 'Cyclic object graph: ' . $value::class . ' is already being converted to primitives.' );
 			}
 
 			$expanding[ $object_id ] = true;

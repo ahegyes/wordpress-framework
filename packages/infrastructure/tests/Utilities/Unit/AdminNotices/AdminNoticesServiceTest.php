@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Utilities\Tests\Unit\AdminNotices;
 
 use DeepWebSolutions\Framework\Utilities\AdminNotices\AdminNoticesService;
+use DeepWebSolutions\Framework\Utilities\AdminNotices\Exceptions\UnknownNoticeStoreException;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeStore;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\ValueObjects\AdminNotice;
 use DeepWebSolutions\Framework\Utilities\AdminNotices\NoticeType;
@@ -58,6 +59,22 @@ final class AdminNoticesServiceTest extends TestCase {
 		self::assertNull( $service->stores['memory']->get( 'x' ) );
 	}
 
+	public function test_add_notice_throws_on_an_unknown_store(): void {
+		$service = new AdminNoticesService();
+
+		$this->expectException( UnknownNoticeStoreException::class );
+
+		$service->add_notice( new AdminNotice( 'x', 'msg' ), 'typo-store' );
+	}
+
+	public function test_remove_notice_throws_on_an_unknown_named_store(): void {
+		$service = new AdminNoticesService();
+
+		$this->expectException( UnknownNoticeStoreException::class );
+
+		$service->remove_notice( 'x', 'typo-store' );
+	}
+
 	public function test_remove_notice_from_a_named_store(): void {
 		$service = new AdminNoticesService();
 		$service->add_notice( new AdminNotice( 'x', 'msg' ) );
@@ -94,9 +111,6 @@ final class AdminNoticesServiceTest extends TestCase {
 		);
 		$service->add_notice( new AdminNotice( 'x', 'msg' ), 'memory' );
 		$service->add_notice( new AdminNotice( 'x', 'msg' ), 'extra' );
-
-		// An unknown store name on removal is a benign false (no _doing_it_wrong, unlike add_notice).
-		self::assertFalse( $service->remove_notice( 'x', 'user-meta' ) );
 
 		self::assertTrue( $service->remove_notice( 'x', 'memory' ) );
 		self::assertFalse( $service->stores['memory']->has( 'x' ) );

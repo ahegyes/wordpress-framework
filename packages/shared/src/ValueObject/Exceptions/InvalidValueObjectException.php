@@ -34,12 +34,12 @@ abstract class InvalidValueObjectException extends AbstractInvalidArgumentExcept
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string          $reason   Why the value object is invalid.
+	 * @param   string          $reason   Why the value object is invalid; supplies its own terminal period — the message template appends no punctuation.
 	 * @param   int             $code     Exception code.
 	 * @param   \Throwable|null $previous Previous exception for chaining.
 	 */
 	public function __construct( string $reason, int $code = 0, ?\Throwable $previous = null ) {
-		$message = \sprintf( 'Value object of type `%s` is invalid for the following reason: %s', $this->value_object_type, $reason );
+		$message = \sprintf( "Value object of type '%s' is invalid for the following reason: %s", $this->value_object_type, $reason );
 		parent::__construct( $message, $code, $previous );
 	}
 }

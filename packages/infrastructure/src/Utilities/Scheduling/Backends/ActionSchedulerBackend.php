@@ -202,7 +202,7 @@ final readonly class ActionSchedulerBackend implements SchedulerBackendInterface
 	 * @version 2.0.0
 	 */
 	#[\Override]
-	public function register_lifecycle(): void {}
+	public function register_hooks(): void {}
 
 	// endregion
 

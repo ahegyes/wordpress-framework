@@ -58,7 +58,7 @@ final readonly class CustomFieldType {
 	) {
 		if ( ! is_valid_identifier( $type ) ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- framework-internal exception; never reaches an HTML output context unescaped.
-			throw new InvalidCustomFieldTypeException( "Invalid custom field type: '$type'" );
+			throw new InvalidCustomFieldTypeException( "Invalid custom field type: '$type'." );
 		}
 
 		if ( null !== FieldType::tryFrom( $type ) ) {

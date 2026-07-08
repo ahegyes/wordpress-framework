@@ -119,7 +119,7 @@ final class SchedulerTest extends TestCase {
 		self::assertSame( $wp_cron_timestamp, new Scheduler( array( new ActionSchedulerBackend(), new WPCronBackend() ) )->get_next_scheduled( self::HOOK ) );
 	}
 
-	public function test_register_lifecycle_through_the_facade_reconstructs_a_wp_cron_recurrence(): void {
+	public function test_register_hooks_through_the_facade_reconstructs_a_wp_cron_recurrence(): void {
 		// Schedule a recurring event straight on a WordPress cron backend, then drop that backend's own
 		// filter to model a later request where only the lifecycle is wired. The interval is unique to
 		// this test so no other registered 'cron_schedules' callback can resolve the synthetic schedule.
@@ -128,9 +128,9 @@ final class SchedulerTest extends TestCase {
 		\remove_filter( 'cron_schedules', array( $backend, 'register_synthetic_schedules' ) );
 		self::assertArrayNotHasKey( 'dws_every_271s', \wp_get_schedules() );
 
-		new Scheduler( array( new ActionSchedulerBackend(), new WPCronBackend() ) )->register_lifecycle();
+		new Scheduler( array( new ActionSchedulerBackend(), new WPCronBackend() ) )->register_hooks();
 
-		// The facade fans register_lifecycle out to its WordPress cron backend, which rebuilds the synthetic
+		// The facade fans register_hooks out to its WordPress cron backend, which rebuilds the synthetic
 		// schedule from the cron array so WordPress can reschedule the recurring event.
 		self::assertArrayHasKey( 'dws_every_271s', \wp_get_schedules() );
 	}
