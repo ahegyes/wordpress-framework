@@ -1,0 +1,7 @@
+# WordPress-free: only configs' base is included, and composer.json keeps the WordPress extensions from installing themselves.
+includes:
+    - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.base.dist.neon
+
+parameters:
+    paths:
+        - packages/shared

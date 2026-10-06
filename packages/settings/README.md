@@ -1,5 +1,5 @@
-# wp-framework-woocommerce
+# wp-framework-settings
 
-WooCommerce helpers: settings tabs and sections, product data tabs, a requirement check, a PSR-3 logger and order meta cleanup.
+Settings helpers for WordPress: options pages on the Settings API, form controls and value sanitization.
 
 This package is developed in the [wordpress-framework](https://github.com/ahegyes/wordpress-framework) monorepo, which holds its documentation, issues, pull requests and changelog.

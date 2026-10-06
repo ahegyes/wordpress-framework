@@ -1,29 +1,24 @@
 # Contributing
 
-## Changelog entries
+Each package keeps to the dependency edges that [AGENTS.md](AGENTS.md) maps, because a plugin ships only the closure of the packages it requires. A pull request that adds an edge explains why the package needs it.
 
-Each package maintains its own `CHANGELOG.md` in Keep-a-Changelog format. To avoid merge conflicts when multiple PRs touch the same package, entries are added as fragment files in `packages/<name>/changelog/` and aggregated into a release block by [`automattic/jetpack-changelogger`](https://packagist.org/packages/automattic/jetpack-changelogger).
+## Before opening a pull request
 
-For a PR touching a specific package, use the matching script:
+Install the dependencies on the PHP, Composer, Node and npm versions the README lists, then run the local equivalents of the CI checks:
 
-```bash
-composer packages:bootstrap:changelog:add        # wp-framework-bootstrap
-composer packages:core:changelog:add             # wp-framework-core
-composer packages:infrastructure:changelog:add   # wp-framework-infrastructure
-composer packages:shared:changelog:add           # wp-framework-shared
-composer packages:woocommerce:changelog:add      # wp-framework-woocommerce
+```sh
+composer packages-install
+npm install
+composer validate --strict
+composer quality-check
+composer audit --locked
+npm audit --omit=dev --audit-level=high
+actionlint
+zizmor .github/
 ```
 
-The interactive prompt asks for `Significance` (patch/minor/major) and `Type` (added/changed/deprecated/removed/fixed/security). Commit the fragment file with the rest of the PR. CI validates every fragment via `composer changelog:validate`.
+## Filing changes
 
-## Releases
-
-Per package:
-
-```bash
-composer packages:bootstrap:changelog:write   # swap "bootstrap" for core / infrastructure / shared / woocommerce
-```
-
-Aggregates `packages/<name>/changelog/*` → new version block in `packages/<name>/CHANGELOG.md`, computes the next semver from fragment significance levels, deletes the fragments. Commit the diff. The split-packages workflow propagates the package (with its updated CHANGELOG.md) into the per-package consumer-facing repo on `push` to `trunk`.
-
-The seed `## 2.0.0 - unreleased` block in each package's CHANGELOG.md is jetpack-changelogger's native unreleased-date placeholder. New release blocks get inserted above it.
+- Keep one concern per pull request.
+- Fill in the template's breaking-changes section.
+- Follow the code, documentation and commit conventions in [AGENTS.md](AGENTS.md).

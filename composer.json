@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wordpress-framework",
-  "description": "DWS WordPress Framework — monorepo development root. Aggregates bootstrap, shared, core, infrastructure, and woocommerce packages for local dev and cross-package testing.",
+  "description": "Development monorepo for the wp-framework-* WordPress plugin framework packages.",
   "type": "project",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -13,49 +13,24 @@
 
   "require": {
     "php": ">=8.5",
-    "ahegyes/wp-framework-bootstrap": "^2.0@dev",
-    "ahegyes/wp-framework-core": "^2.0@dev",
-    "ahegyes/wp-framework-infrastructure": "^2.0@dev",
-    "ahegyes/wp-framework-shared": "^2.0@dev",
-    "ahegyes/wp-framework-woocommerce": "^2.0@dev"
+    "ahegyes/wp-framework-bootstrap": "^2.0",
+    "ahegyes/wp-framework-core": "^2.0",
+    "ahegyes/wp-framework-settings": "^2.0",
+    "ahegyes/wp-framework-shared": "^2.0",
+    "ahegyes/wp-framework-woocommerce": "^2.0"
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
-    "automattic/jetpack-changelogger": "^6.0",
-    "deptrac/deptrac": "^4.6",
-    "infection/infection": "^0.32",
-    "johnpbloch/wordpress-core": "^7.0",
-    "maglnet/composer-require-checker": "^4.20",
-    "php-stubs/woocommerce-stubs": "^10.9",
-    "php-stubs/wordpress-stubs": "7.0.0 as 6.9999.0",
+    "johnpbloch/wordpress-core": "^7.1",
+    "nikic/php-parser": "^5",
     "phpunit/phpunit": "^13",
-    "wp-plugin/woocommerce": "^10.9"
+    "wp-plugin/woocommerce": "^11.1"
   },
 
   "repositories": [
     {
       "type": "path",
-      "url": "packages/bootstrap",
-      "options": { "symlink": true }
-    },
-    {
-      "type": "path",
-      "url": "packages/core",
-      "options": { "symlink": true }
-    },
-    {
-      "type": "path",
-      "url": "packages/infrastructure",
-      "options": { "symlink": true }
-    },
-    {
-      "type": "path",
-      "url": "packages/shared",
-      "options": { "symlink": true }
-    },
-    {
-      "type": "path",
-      "url": "packages/woocommerce",
+      "url": "packages/*",
       "options": { "symlink": true }
     },
     {
@@ -74,13 +49,7 @@
 
   "autoload-dev": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\Bootstrap\\Tests\\": "packages/bootstrap/tests/",
-      "DeepWebSolutions\\Framework\\Core\\Tests\\": "packages/core/tests/",
-      "DeepWebSolutions\\Framework\\Settings\\Tests\\": "packages/infrastructure/tests/Settings/",
-      "DeepWebSolutions\\Framework\\Shared\\Tests\\": "packages/shared/tests/",
-      "DeepWebSolutions\\Framework\\Storage\\Tests\\": "packages/infrastructure/tests/Storage/",
-      "DeepWebSolutions\\Framework\\Utilities\\Tests\\": "packages/infrastructure/tests/Utilities/",
-      "DeepWebSolutions\\Framework\\WooCommerce\\Tests\\": "packages/woocommerce/tests/"
+      "DeepWebSolutions\\Framework\\Tests\\": "tests/"
     }
   },
 
@@ -93,145 +62,25 @@
     ],
 
     "format:php": "phpcbf --standard=./phpcs.dist.xml --basepath=. ./ -v",
+    "format:php:tests": "phpcbf --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
     "lint:php": [
       "@lint:php:phpcs",
-      "@lint:php:phpstan",
-      "@lint:php:deptrac",
-      "@lint:php:composer-require-checker"
+      "@lint:php:phpcs:tests",
+      "@lint:php:phpstan"
     ],
     "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
-    "lint:php:phpstan": [
-      "phpstan analyse -c packages/bootstrap/phpstan.neon --memory-limit=1G",
-      "phpstan analyse -c packages/shared/phpstan.neon --memory-limit=1G",
-      "phpstan analyse -c packages/infrastructure/phpstan.storage.neon --memory-limit=1G",
-      "phpstan analyse -c packages/core/phpstan.neon --memory-limit=1G",
-      "phpstan analyse -c packages/infrastructure/phpstan.utilities.neon --memory-limit=1G",
-      "phpstan analyse -c packages/infrastructure/phpstan.settings.neon --memory-limit=1G",
-      "phpstan analyse -c packages/woocommerce/phpstan.neon --memory-limit=1G"
-    ],
-    "lint:php:deptrac": "deptrac analyse --no-interaction --cache-file=tests/.cache/deptrac",
-    "lint:php:composer-require-checker": "@php bin/composer-require-check.php",
+    "lint:php:phpcs:tests": "phpcs --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
+    "lint:php:phpstan": "phpstan analyse -c phpstan.shared.neon -v --memory-limit=1G",
 
-    "test:wp-env:ensure": "node_modules/.bin/wp-env --config .wp-env.tests.json run cli true >/dev/null 2>&1 || npm --prefix=. run wp-env:start",
     "test": [
-      "@test:unit",
-      "@test:integration"
+      "@test:unit"
     ],
     "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
-    "test:integration": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration"
-    ],
-    "test:unit:mutation": "@php vendor/bin/infection --threads=max --show-mutations=0",
-    "test:integration:mutation": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli php -r 'exit((extension_loaded(\"pcov\") || str_contains((string) ini_get(\"xdebug.mode\"), \"coverage\")) ? 0 : 1);' || { echo 'The wp-env cli container has no code coverage driver; start wp-env with --xdebug=coverage or install pcov in the container.'; exit 1; }",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework php -d memory_limit=-1 vendor/bin/infection --configuration=infection.integration.json --threads=max --show-mutations=0"
-    ],
-    "test:all": [
-      "@test:unit",
-      "@test:integration",
-      "@test:unit:mutation",
-      "@test:integration:mutation"
-    ],
 
     "quality-check": [
       "@lint:php",
       "@test"
-    ],
-    "quality-check:all": [
-      "@lint:php",
-      "@test:all"
-    ],
-
-    "packages:bootstrap:test": [
-      "@packages:bootstrap:test:unit",
-      "@packages:bootstrap:test:integration"
-    ],
-    "packages:bootstrap:test:unit": "@php vendor/bin/phpunit packages/bootstrap/tests/Unit",
-    "packages:bootstrap:test:integration": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/bootstrap/tests/Integration"
-    ],
-    "packages:bootstrap:changelog:add": "cd packages/bootstrap && ../../vendor/bin/changelogger add",
-    "packages:bootstrap:changelog:validate": "cd packages/bootstrap && ../../vendor/bin/changelogger validate",
-    "packages:bootstrap:changelog:write": "cd packages/bootstrap && ../../vendor/bin/changelogger write",
-
-    "packages:core:test": [
-      "@packages:core:test:unit",
-      "@packages:core:test:integration"
-    ],
-    "packages:core:test:unit": "@php vendor/bin/phpunit packages/core/tests/Unit",
-    "packages:core:test:integration": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/core/tests/Integration"
-    ],
-    "packages:core:changelog:add": "cd packages/core && ../../vendor/bin/changelogger add",
-    "packages:core:changelog:validate": "cd packages/core && ../../vendor/bin/changelogger validate",
-    "packages:core:changelog:write": "cd packages/core && ../../vendor/bin/changelogger write",
-
-    "packages:infrastructure:test": [
-      "@packages:infrastructure:test:unit",
-      "@packages:infrastructure:test:integration"
-    ],
-    "packages:infrastructure:test:unit": "@php vendor/bin/phpunit packages/infrastructure/tests/Storage/Unit packages/infrastructure/tests/Settings/Unit packages/infrastructure/tests/Utilities/Unit",
-    "packages:infrastructure:test:integration": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/infrastructure/tests/Storage/Integration packages/infrastructure/tests/Settings/Integration packages/infrastructure/tests/Utilities/Integration"
-    ],
-    "packages:infrastructure:changelog:add": "cd packages/infrastructure && ../../vendor/bin/changelogger add",
-    "packages:infrastructure:changelog:validate": "cd packages/infrastructure && ../../vendor/bin/changelogger validate",
-    "packages:infrastructure:changelog:write": "cd packages/infrastructure && ../../vendor/bin/changelogger write",
-
-    "packages:shared:test": [
-      "@packages:shared:test:unit",
-      "@packages:shared:test:integration"
-    ],
-    "packages:shared:test:unit": "@php vendor/bin/phpunit packages/shared/tests/Unit",
-    "packages:shared:test:integration": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/shared/tests/Integration"
-    ],
-    "packages:shared:changelog:add": "cd packages/shared && ../../vendor/bin/changelogger add",
-    "packages:shared:changelog:validate": "cd packages/shared && ../../vendor/bin/changelogger validate",
-    "packages:shared:changelog:write": "cd packages/shared && ../../vendor/bin/changelogger write",
-
-    "packages:woocommerce:test": [
-      "@packages:woocommerce:test:unit",
-      "@packages:woocommerce:test:integration"
-    ],
-    "packages:woocommerce:test:unit": "@php vendor/bin/phpunit packages/woocommerce/tests/Unit",
-    "packages:woocommerce:test:integration": [
-      "@putenv CI=1",
-      "@test:wp-env:ensure",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit packages/woocommerce/tests/Integration"
-    ],
-    "packages:woocommerce:changelog:add": "cd packages/woocommerce && ../../vendor/bin/changelogger add",
-    "packages:woocommerce:changelog:validate": "cd packages/woocommerce && ../../vendor/bin/changelogger validate",
-    "packages:woocommerce:changelog:write": "cd packages/woocommerce && ../../vendor/bin/changelogger write",
-
-    "packages:changelog:validate": [
-      "@packages:bootstrap:changelog:validate",
-      "@packages:core:changelog:validate",
-      "@packages:infrastructure:changelog:validate",
-      "@packages:shared:changelog:validate",
-      "@packages:woocommerce:changelog:validate"
-    ],
-    "packages:changelog:write": [
-      "@packages:bootstrap:changelog:write",
-      "@packages:core:changelog:write",
-      "@packages:infrastructure:changelog:write",
-      "@packages:shared:changelog:write",
-      "@packages:woocommerce:changelog:write"
-    ],
-
-    "changelog:validate": "@packages:changelog:validate"
+    ]
   },
 
   "extra": {
@@ -240,6 +89,13 @@
         "type:wordpress-plugin",
         "type:wordpress-theme"
       ]
+    },
+    "phpstan/extension-installer": {
+      "ignore": [
+        "johnbillion/wp-compat",
+        "swissspidy/phpstan-no-private",
+        "szepeviktor/phpstan-wordpress"
+      ]
     }
   },
 
@@ -247,7 +103,6 @@
     "allow-plugins": {
       "composer/*": true,
       "dealerdirect/phpcodesniffer-composer-installer": true,
-      "infection/extension-installer": true,
       "phpstan/extension-installer": true
     },
     "sort-packages": true

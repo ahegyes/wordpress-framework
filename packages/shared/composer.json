@@ -1,68 +1,24 @@
 {
   "name": "ahegyes/wp-framework-shared",
-  "description": "Substrate primitives for plugins built on the DWS framework: result and value-object patterns, plus error and exception scaffolding. Runtime-WP-aware; pulls in no WP-specific abstractions.",
+  "description": "WordPress-free PHP primitives: framework exceptions, results, value objects, versions and helper functions.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
-  "authors": [
-    {
-      "name": "Contributors",
-      "homepage": "https://github.com/ahegyes/wordpress-framework/graphs/contributors"
-    }
-  ],
-  "keywords": ["framework", "result", "value-object", "shared-kernel", "primitives"],
-  "support": {
-    "issues": "https://github.com/ahegyes/wordpress-framework/issues",
-    "source": "https://github.com/ahegyes/wordpress-framework"
-  },
-
   "require": {
-    "php": ">=8.5"
+    "php": ">=8.5",
+    "ext-filter": "*"
   },
-
   "autoload": {
     "psr-4": {
       "DeepWebSolutions\\Framework\\Shared\\": "src/"
     },
     "files": [
-      "functions.php"
+      "src/functions.php"
     ]
   },
-  "autoload-dev": {
-    "psr-4": {
-      "DeepWebSolutions\\Framework\\Shared\\Tests\\": "tests/"
-    }
-  },
-
   "extra": {
     "branch-alias": {
-      "dev-trunk": "2.0.x-dev"
-    },
-    "scoping-stubs": [
-      "php-stubs/wordpress-stubs"
-    ],
-    "changelogger": {
-      "versioning": "semver",
-      "changelog": "CHANGELOG.md",
-      "changes-dir": "changelog",
-      "default-type": "changed",
-      "types": {
-        "added": "Added",
-        "changed": "Changed",
-        "deprecated": "Deprecated",
-        "removed": "Removed",
-        "fixed": "Fixed",
-        "security": "Security"
-      }
+      "dev-trunk": "2.x-dev"
     }
-  },
-
-  "config": {
-    "allow-plugins": {
-      "composer/*": true,
-      "dealerdirect/phpcodesniffer-composer-installer": true,
-      "phpstan/extension-installer": true
-    },
-    "sort-packages": true
   }
 }
