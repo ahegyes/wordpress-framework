@@ -41,6 +41,14 @@ final readonly class Sealed extends AbstractValueObject {
 	) {}
 }
 
+abstract readonly class Money extends AbstractValueObject {
+	public function __construct(
+		private int $cents
+	) {}
+}
+
+final readonly class Euro extends Money {}
+
 #[CoversClass( AbstractValueObject::class )]
 final class AbstractValueObjectTest extends TestCase {
 	public static function pairs(): array {
@@ -62,6 +70,7 @@ final class AbstractValueObjectTest extends TestCase {
 			'equal-protected-and-private-values'  => array( new Sealed( 1, 2 ), new Sealed( 1, 2 ), true ),
 			'differing-protected-property'        => array( new Sealed( 1, 2 ), new Sealed( 9, 2 ), false ),
 			'differing-private-property'          => array( new Sealed( 1, 2 ), new Sealed( 1, 9 ), false ),
+			'differing-private-parent-property'   => array( new Euro( 1 ), new Euro( 2 ), false ),
 			'different-classes-with-equal-values' => array( new Weight( 5 ), new Length( 5 ), false ),
 		);
 	}
