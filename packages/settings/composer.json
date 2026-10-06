@@ -1,0 +1,17 @@
+{
+  "name": "ahegyes/wp-framework-settings",
+  "description": "Settings helpers for WordPress: options pages on the Settings API, form controls and value sanitization.",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/ahegyes/wordpress-framework",
+  "require": {
+    "php": ">=8.5",
+    "ahegyes/wp-framework-shared": "^2.0"
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-trunk": "2.x-dev"
+    },
+    "requires-wp": "7.1"
+  }
+}

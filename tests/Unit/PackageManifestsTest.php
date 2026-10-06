@@ -79,7 +79,7 @@ final class PackageManifestsTest extends TestCase {
 
 	protected static function owner_of( string $name ): ?string {
 		foreach ( self::OWNERS as $prefix => $owner ) {
-			if ( \str_starts_with( $name, $prefix ) ) {
+			if ( \str_starts_with( $name . '\\', $prefix ) ) {
 				return $owner;
 			}
 		}

@@ -13,4 +13,4 @@ jobs:
     name: Lint PHP
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
     with:
-      scripts: '["lint:php:phpcs", "lint:php:phpcs:tests"]'
+      scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'

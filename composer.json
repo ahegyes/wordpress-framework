@@ -12,7 +12,12 @@
   ],
 
   "require": {
-    "php": ">=8.5"
+    "php": ">=8.5",
+    "ahegyes/wp-framework-bootstrap": "^2.0",
+    "ahegyes/wp-framework-core": "^2.0",
+    "ahegyes/wp-framework-settings": "^2.0",
+    "ahegyes/wp-framework-shared": "^2.0",
+    "ahegyes/wp-framework-woocommerce": "^2.0"
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
@@ -22,6 +27,11 @@
   },
 
   "repositories": [
+    {
+      "type": "path",
+      "url": "packages/*",
+      "options": { "symlink": true }
+    },
     {
       "type": "vcs",
       "url": "https://github.com/ahegyes/wordpress-configs"
@@ -54,10 +64,12 @@
     "format:php:tests": "phpcbf --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
     "lint:php": [
       "@lint:php:phpcs",
-      "@lint:php:phpcs:tests"
+      "@lint:php:phpcs:tests",
+      "@lint:php:phpstan"
     ],
     "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
     "lint:php:phpcs:tests": "phpcs --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
+    "lint:php:phpstan": "phpstan analyse -c phpstan.shared.neon -v --memory-limit=1G",
 
     "test": [
       "@test:unit"
@@ -75,6 +87,13 @@
       "vendor/{$vendor}/{$name}/": [
         "type:wordpress-plugin",
         "type:wordpress-theme"
+      ]
+    },
+    "phpstan/extension-installer": {
+      "ignore": [
+        "johnbillion/wp-compat",
+        "swissspidy/phpstan-no-private",
+        "szepeviktor/phpstan-wordpress"
       ]
     }
   },

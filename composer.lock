@@ -4,8 +4,273 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2b9eb895f3ca594e4d65e2f78a04b878",
-    "packages": [],
+    "content-hash": "89c6e5ca239c1619e3ba8942ec629783",
+    "packages": [
+        {
+            "name": "ahegyes/wp-framework-bootstrap",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/bootstrap",
+                "reference": "3a6d473259310a68ed2e8c3169219fa36581e500"
+            },
+            "require": {
+                "php": ">=7.4"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.x-dev"
+                },
+                "requires-wp": "5.8"
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "Requirements gate, GitHub release updater and uninstall engine for WordPress plugins, loaded by path before any autoloader.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "ahegyes/wp-framework-core",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/core",
+                "reference": "5cc84c55535712ce03a7082462ab95c03ee33a35"
+            },
+            "require": {
+                "ahegyes/wp-framework-shared": "^2.0",
+                "php": ">=8.5",
+                "psr/container": "^2",
+                "psr/log": "^3"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.x-dev"
+                },
+                "requires-wp": "7.1"
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "Plugin kernel for WordPress: a gated component tree on a PSR-11 container, a boot error boundary, migrations and admin notices.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "ahegyes/wp-framework-settings",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/settings",
+                "reference": "2371e433f4238281dd6d4ee7c9dd0827d01d59a3"
+            },
+            "require": {
+                "ahegyes/wp-framework-shared": "^2.0",
+                "php": ">=8.5"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.x-dev"
+                },
+                "requires-wp": "7.1"
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "Settings helpers for WordPress: options pages on the Settings API, form controls and value sanitization.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "ahegyes/wp-framework-shared",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/shared",
+                "reference": "841dc92d2ba09ae0307df0df227c84c148d4447f"
+            },
+            "require": {
+                "ext-filter": "*",
+                "php": ">=8.5"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\Shared\\": "src/"
+                },
+                "files": [
+                    "src/functions.php"
+                ]
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects, versions and helper functions.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "ahegyes/wp-framework-woocommerce",
+            "version": "dev-trunk",
+            "dist": {
+                "type": "path",
+                "url": "packages/woocommerce",
+                "reference": "48de797dbe5d91c166ebb4bd81cab5fb3ac8b7fb"
+            },
+            "require": {
+                "ahegyes/wp-framework-settings": "^2.0",
+                "ahegyes/wp-framework-shared": "^2.0",
+                "php": ">=8.5",
+                "psr/log": "^3"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-trunk": "2.x-dev"
+                },
+                "scoping-stubs": [
+                    "php-stubs/woocommerce-stubs"
+                ],
+                "requires-wp": "7.1",
+                "requires-plugins": [
+                    "woocommerce"
+                ]
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "WooCommerce helpers: settings tabs and sections, product data tabs, a requirement check, a PSR-3 logger and order meta cleanup.",
+            "homepage": "https://github.com/ahegyes/wordpress-framework",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "psr/container",
+            "version": "2.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-fig/container.git",
+                "reference": "c71ecc56dfe541dbd90c5360474fbc405f8d5963"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-fig/container/zipball/c71ecc56dfe541dbd90c5360474fbc405f8d5963",
+                "reference": "c71ecc56dfe541dbd90c5360474fbc405f8d5963",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "2.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Psr\\Container\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PHP-FIG",
+                    "homepage": "https://www.php-fig.org/"
+                }
+            ],
+            "description": "Common Container Interface (PHP FIG PSR-11)",
+            "homepage": "https://github.com/php-fig/container",
+            "keywords": [
+                "PSR-11",
+                "container",
+                "container-interface",
+                "container-interop",
+                "psr"
+            ],
+            "support": {
+                "issues": "https://github.com/php-fig/container/issues",
+                "source": "https://github.com/php-fig/container/tree/2.0.2"
+            },
+            "time": "2021-11-05T16:47:00+00:00"
+        },
+        {
+            "name": "psr/log",
+            "version": "3.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-fig/log.git",
+                "reference": "f16e1d5863e37f8d8c2a01719f5b34baa2b714d3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-fig/log/zipball/f16e1d5863e37f8d8c2a01719f5b34baa2b714d3",
+                "reference": "f16e1d5863e37f8d8c2a01719f5b34baa2b714d3",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "3.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Psr\\Log\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PHP-FIG",
+                    "homepage": "https://www.php-fig.org/"
+                }
+            ],
+            "description": "Common interface for logging libraries",
+            "homepage": "https://github.com/php-fig/log",
+            "keywords": [
+                "log",
+                "psr",
+                "psr-3"
+            ],
+            "support": {
+                "source": "https://github.com/php-fig/log/tree/3.0.2"
+            },
+            "time": "2024-09-11T13:17:53+00:00"
+        }
+    ],
     "packages-dev": [
         {
             "name": "ahegyes/wordpress-configs",

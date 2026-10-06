@@ -1,0 +1,16 @@
+{
+  "name": "ahegyes/wp-framework-bootstrap",
+  "description": "Requirements gate, GitHub release updater and uninstall engine for WordPress plugins, loaded by path before any autoloader.",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/ahegyes/wordpress-framework",
+  "require": {
+    "php": ">=7.4"
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-trunk": "2.x-dev"
+    },
+    "requires-wp": "5.8"
+  }
+}

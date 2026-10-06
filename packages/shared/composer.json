@@ -1,0 +1,24 @@
+{
+  "name": "ahegyes/wp-framework-shared",
+  "description": "WordPress-free PHP primitives: framework exceptions, results, value objects, versions and helper functions.",
+  "type": "library",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://github.com/ahegyes/wordpress-framework",
+  "require": {
+    "php": ">=8.5",
+    "ext-filter": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "DeepWebSolutions\\Framework\\Shared\\": "src/"
+    },
+    "files": [
+      "src/functions.php"
+    ]
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-trunk": "2.x-dev"
+    }
+  }
+}
