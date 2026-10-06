@@ -19,9 +19,9 @@ jobs:
       matrix:
         package:
           - { dir: 'bootstrap',   repo: 'wp-framework-bootstrap' }
-          - { dir: 'core',        repo: 'wp-framework-core' }
-          - { dir: 'infrastructure', repo: 'wp-framework-infrastructure' }
           - { dir: 'shared',      repo: 'wp-framework-shared' }
+          - { dir: 'core',        repo: 'wp-framework-core' }
+          - { dir: 'settings',    repo: 'wp-framework-settings' }
           - { dir: 'woocommerce', repo: 'wp-framework-woocommerce' }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

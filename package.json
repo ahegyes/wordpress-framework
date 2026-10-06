@@ -1,7 +1,7 @@
 {
     "name": "@ahegyes/wordpress-framework",
     "private": true,
-    "description": "DWS WordPress Framework v2 — monorepo dev tooling.",
+    "description": "Development tooling for the wp-framework-* WordPress plugin framework monorepo.",
     "license": "GPL-2.0-or-later",
     "repository": {
         "type": "git",
@@ -38,7 +38,7 @@
         "check:engines": "npx --yes @wordpress/scripts@latest check-engines",
         "check:licenses": "npx --yes @wordpress/scripts@latest check-licenses",
 
-        "test:all": "composer test:all",
-        "quality-check:all": "composer quality-check:all"
+        "test:all": "composer test",
+        "quality-check:all": "composer quality-check"
     }
 }
