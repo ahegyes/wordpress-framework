@@ -21,15 +21,15 @@
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
-    "automattic/jetpack-changelogger": "^6.0",
-    "deptrac/deptrac": "^4.6",
-    "infection/infection": "^0.32",
-    "johnpbloch/wordpress-core": "^7.0",
+    "automattic/jetpack-changelogger": "^7.0",
+    "deptrac/deptrac": "^4.7",
+    "infection/infection": "^0.35",
+    "johnpbloch/wordpress-core": "^7.1",
     "maglnet/composer-require-checker": "^4.20",
-    "php-stubs/woocommerce-stubs": "^10.9",
-    "php-stubs/wordpress-stubs": "7.0.0 as 6.9999.0",
+    "php-stubs/woocommerce-stubs": "^11.1",
+    "php-stubs/wordpress-stubs": "^7.1",
     "phpunit/phpunit": "^13",
-    "wp-plugin/woocommerce": "^10.9"
+    "wp-plugin/woocommerce": "^11.1"
   },
 
   "repositories": [

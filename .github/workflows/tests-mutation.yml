@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -42,7 +42,7 @@ jobs:
 
   infection-integration:
     name: Run Infection (Integration)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@4214abd176545fe11f90ce6a449f8fc3fd7a9315
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
     with:
       php-version: '8.5'
       composer-script: 'test:integration:mutation'
