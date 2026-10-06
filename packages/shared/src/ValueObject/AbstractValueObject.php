@@ -28,9 +28,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	// region HELPERS
 
 	/**
-	 * Returns whether two property values are equal.
-	 *
-	 * Scalars, enums, null and plain objects compare with ===, nested value objects with equals(), dates by instant to the microsecond, and arrays by keys, order and values.
+	 * Returns whether two property values are equal, comparing nested value objects with equals(), dates by instant to the microsecond, arrays by keys, order and values, and anything else with ===.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

@@ -6,7 +6,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
 
 /**
- * A version the plugin controls, ordered by SemVer precedence.
+ * A version the plugin controls, ordered by precedence.
  *
  * @since   2.0.0
  * @version 2.0.0
