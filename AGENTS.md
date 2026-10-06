@@ -26,9 +26,9 @@ wordpress-framework/
 │       ├── WooCommerceRequirement, WooCommerceLogger
 │       ├── Settings/{SettingsTab, SettingsSection, functions.php (validate_option)}
 │       └── ProductData/ProductDataTab
-├── tests/{Unit, Integration, Fixtures/{consumer-a (WC), consumer-b (non-WC), personas/{bootstrap,shared,core,settings,woocommerce}}}
+├── tests/{Unit, PHPStan, Integration, Fixtures/{consumer-a (WC), consumer-b (non-WC), personas/{bootstrap,shared,core,settings,woocommerce}}}
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
-├── phpstan.shared.neon    PHPStan over packages/shared, with no WordPress symbol known
+├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 └── composer.json          one `packages/*` path repository
 ```
 
