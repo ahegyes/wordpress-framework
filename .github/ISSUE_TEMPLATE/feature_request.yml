@@ -10,7 +10,7 @@ body:
         - wp-framework-bootstrap
         - wp-framework-shared
         - wp-framework-core
-        - wp-framework-infrastructure
+        - wp-framework-settings
         - wp-framework-woocommerce
         - new package
         - cross-cutting / unsure
