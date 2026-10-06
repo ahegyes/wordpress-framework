@@ -18,9 +18,9 @@ The `bootstrap` package parses on older PHP versions, so a plugin on an incompat
 
 ## Requirements
 
-- **PHP**: 8.5+ (the bootstrap package itself parses on PHP 7.4)
-- **WordPress**: 7.1+
-- **Node.js**: 26+ with npm 11+ (for wp-env CLI)
+- **PHP**: 8.5 or later (the bootstrap package itself parses on PHP 7.4)
+- **WordPress**: 7.1 or later
+- **Node.js**: 26 or later with npm 11 or later (for wp-env CLI)
 
 ## Local development
 

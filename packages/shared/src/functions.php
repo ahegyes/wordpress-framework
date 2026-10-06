@@ -10,9 +10,7 @@
 namespace DeepWebSolutions\Framework\Shared;
 
 /**
- * Inserts entries after a key, or appends them when the key is missing.
- *
- * A list stays a list and is reindexed, while other arrays keep their keys.
+ * Inserts entries after a key, or appends them when the key is missing, reindexing a list and keeping the keys of any other array.
  *
  * @since   2.0.0
  * @version 2.0.0

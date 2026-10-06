@@ -16,7 +16,7 @@ final class PackageManifestsTest extends TestCase {
 		'woocommerce' => array( 'ahegyes/wp-framework-settings', 'ahegyes/wp-framework-shared', 'php', 'psr/log' ),
 	);
 
-	// Longest prefix first, because core owns the namespace root the other packages extend.
+	// Core's root prefix comes last, because every other package's prefix extends it.
 	protected const array OWNERS = array(
 		'DeepWebSolutions\\Framework\\Bootstrap\\'   => 'ahegyes/wp-framework-bootstrap',
 		'DeepWebSolutions\\Framework\\Shared\\'      => 'ahegyes/wp-framework-shared',

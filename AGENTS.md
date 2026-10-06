@@ -7,7 +7,7 @@ A WordPress plugin framework published as five Composer packages under `ahegyes/
 ```
 wordpress-framework/
 ├── packages/bootstrap/    ahegyes/wp-framework-bootstrap    php >=7.4 · no require · no autoload: loaded by path only
-│   ├── load.php             require_once's requirements.php + updater.php   (path = public API)
+│   ├── load.php             require_once's requirements.php and updater.php   (path = public API)
 │   ├── requirements.php     check_requirements( string $plugin_file ): bool
 │   ├── updater.php          register_github_updater( string $plugin_file ): void
 │   └── uninstall.php        uninstall( string $plugin_file, array $footprint, string $opt_in_option, string $opt_in_key = '', ?callable $cleanup = null ): void
@@ -62,7 +62,7 @@ zizmor .github/
 
 - Every PHP file opens with `<?php declare( strict_types=1 );`, and every file outside the shared package carries `\defined( 'ABSPATH' ) || exit;` after its `use` block (a Composer `files` entry returns instead of exiting). Code uses `array()`, `protected` rather than `private`, `final` classes by default and `#[\Override]` on every override.
 - Every element outside `tests/` has a docblock: one third-person sentence naming the role, such as "Returns …", plus a second paragraph only for a non-obvious why. Property and constant docblocks open with "The …", constructors read "Constructor.", and an override reads `{@inheritDoc}`. Tag values align at column 10, each `@param` stays on one line, `@throws` reads "Thrown when …", `@since` names the release that added the element, and `@version` the last release that changed its behavior or signature.
-- Class bodies outside `tests/` group members in `// region NAME` blocks named, in order, TRAITS, FIELDS AND CONSTANTS, MAGIC METHODS, GETTERS, SETTERS, INHERITED METHODS, METHODS, FACTORY METHODS, HOOKS and HELPERS.
+- Classes and traits outside `tests/` group members in `// region NAME` blocks named, in order, TRAITS, FIELDS AND CONSTANTS, MAGIC METHODS, GETTERS, SETTERS, INHERITED METHODS, METHODS, FACTORY METHODS, HOOKS and HELPERS; exception classes, interfaces and enums carry none.
 - Inline comments state a non-obvious why in one capitalized sentence, and every file describes the present, never the change. A `phpcs:ignore` trails its line, names the sniff and gives a one-clause reason; a `@phpstan-ignore` names its identifier.
 - Tests are `final` classes named after what they cover, with `test_snake_case` methods, `#[DataProvider]` keys in kebab-case, real instances and recording spies, and no docblocks.
 - Markdown keeps one line per paragraph, sentence-case headings and an impersonal, present-tense voice.
