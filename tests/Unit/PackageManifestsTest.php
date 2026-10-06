@@ -88,7 +88,7 @@ final class PackageManifestsTest extends TestCase {
 	}
 
 	protected static function referenced_names( string $file ): array {
-		// The resolver qualifies every name as PHP would; names built from strings at runtime are not seen.
+		// The resolver qualifies every name as PHP would; names built from strings at runtime and types named only in docblocks are not seen.
 		$nodes = ( new NodeTraverser( new NameResolver() ) )->traverse( ( new ParserFactory() )->createForHostVersion()->parse( \file_get_contents( $file ) ) );
 
 		return \array_map( static fn ( Name $name ): string => $name->toString(), ( new NodeFinder() )->findInstanceOf( $nodes, Name::class ) );

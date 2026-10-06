@@ -22,6 +22,6 @@ Older minor releases may receive critical fixes at the maintainer's discretion.
 
 ## Scope
 
-In scope: vulnerabilities in this framework's PHP code, its scoping pipeline, or its CI configuration.
+In scope: vulnerabilities in this framework's PHP code or its CI configuration.
 
-Out of scope: vulnerabilities in WordPress core, WooCommerce, or upstream Composer dependencies — report those to their respective maintainers. The transitive `roave/security-advisories` constraint will fail `composer install --dev` on any known CVE in the dep graph.
+Out of scope: vulnerabilities in WordPress core, WooCommerce, or upstream Composer dependencies — report those to their respective maintainers.
