@@ -45,7 +45,7 @@ final class ResultTest extends TestCase {
 	}
 
 	#[DataProvider( 'outcomes' )]
-	public function test_the_predicates_agree_with_the_outcome( AbstractResult $result, string $outcome ): void {
+	public function test_the_predicates_agree_with_the_outcome( AbstractResult $result, string $outcome, mixed $payload ): void {
 		self::assertSame( 'success' === $outcome, $result->is_success() );
 		self::assertSame( 'failure' === $outcome, $result->is_failure() );
 	}
