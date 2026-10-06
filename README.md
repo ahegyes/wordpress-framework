@@ -43,7 +43,3 @@ composer quality-check      # PHPCS, PHPStan and unit tests
 ## Testing strategy
 
 - **Unit tests** (`tests/Unit/`) run in plain PHP with no WordPress loaded, including tests that run PHPStan and read the package manifests.
-
-## Lineage
-
-Successor to the archived DWS v1 framework packages under the [`deep-web-solutions` GitHub org](https://github.com/orgs/deep-web-solutions/repositories?q=wordpress-framework).

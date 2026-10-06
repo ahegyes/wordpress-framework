@@ -4,7 +4,7 @@ Each package keeps to the dependency edges that [AGENTS.md](AGENTS.md) maps, bec
 
 ## Before opening a pull request
 
-Install the dependencies on the PHP, Composer, Node and npm versions the README lists, then run the local equivalents of the CI checks:
+Install the dependencies on the PHP, Node and npm versions the README lists, then run the local equivalents of the CI checks:
 
 ```sh
 composer packages-install
