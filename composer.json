@@ -22,6 +22,7 @@
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
     "johnpbloch/wordpress-core": "^7.1",
+    "nikic/php-parser": "^5",
     "phpunit/phpunit": "^13",
     "wp-plugin/woocommerce": "^11.1"
   },
