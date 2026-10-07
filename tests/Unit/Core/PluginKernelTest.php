@@ -202,13 +202,13 @@ final class PluginKernelTest extends TestCase {
 
 	public function test_an_entry_of_another_class_throws_before_any_component_registers(): void {
 		$journal = new Journal();
-		$kernel  = new PluginKernel( new FakeContainer( $journal, array( ComponentD::class => static fn (): \stdClass => new \stdClass() ) ) );
+		$kernel  = new PluginKernel( new FakeContainer( $journal, array( ComponentD::class => static fn ( Journal $journal ): UngatedL3 => new UngatedL3( $journal ) ) ) );
 
 		$thrown = self::boot_and_catch( $kernel, array( CompositeA::class, ComponentD::class ) );
 
 		self::assertInstanceOf( LogicException::class, $thrown );
-		self::assertStringContainsString( "'stdClass'", $thrown->getMessage() );
-		self::assertSame( array( 'construct CompositeA', 'construct ComponentB', 'construct ComponentC' ), $journal->entries );
+		self::assertStringContainsString( "'" . UngatedL3::class . "'", $thrown->getMessage() );
+		self::assertSame( array( 'construct CompositeA', 'construct ComponentB', 'construct ComponentC', 'construct UngatedL3' ), $journal->entries );
 	}
 
 	protected static function boot_and_catch( PluginKernel $kernel, array $roots ): \Throwable {
