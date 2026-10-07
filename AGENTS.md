@@ -29,6 +29,7 @@ wordpress-framework/
 ├── tests/{Unit, PHPStan, Integration, Fixtures/{consumer-a (WC), consumer-b (non-WC), personas/{bootstrap,shared,core,settings,woocommerce}}}
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
+├── phpstan.wordpress.neon PHPStan over packages/core and tests/PHPStan/Core, with the WordPress stubs and extensions
 └── composer.json          one `packages/*` path repository
 ```
 

@@ -1,0 +1,11 @@
+# composer.json keeps these WordPress extensions from installing themselves, so they are included here; configs' profile comes last, because wp-compat's neon resets WPCompat.requiresAtLeast to null.
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+    - vendor/johnbillion/wp-compat/extension.neon
+    - vendor/swissspidy/phpstan-no-private/rules.neon
+    - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
+
+parameters:
+    paths:
+        - packages/core
+        - tests/PHPStan/Core
