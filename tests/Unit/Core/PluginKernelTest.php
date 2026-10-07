@@ -7,6 +7,7 @@ use DeepWebSolutions\Framework\CompositeComponentInterface;
 use DeepWebSolutions\Framework\ConditionalComponentInterface;
 use DeepWebSolutions\Framework\PluginKernel;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
+use DeepWebSolutions\Framework\Tests\Fixtures\Core\GatedOutComposite;
 use DeepWebSolutions\Framework\Tests\Fixtures\Core\UnloadableComponent;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversFunction;
@@ -64,18 +65,6 @@ final class ComponentB extends RecordingComponent {}
 final class ComponentC extends RecordingComponent {}
 
 final class ComponentD extends RecordingComponent {}
-
-final class GatedOutComposite extends RecordingComponent implements CompositeComponentInterface, ConditionalComponentInterface {
-	#[\Override]
-	public static function should_load(): bool {
-		return false;
-	}
-
-	#[\Override]
-	public static function get_child_component_classes(): array {
-		return array( UnloadableComponent::class );
-	}
-}
 
 final class CompositeP extends RecordingComponent implements CompositeComponentInterface {
 	#[\Override]
@@ -161,13 +150,14 @@ final class PluginKernelTest extends TestCase {
 		self::assertSame( array( CompositeA::class, ComponentB::class, ComponentC::class, ComponentD::class ), $kernel->resolved );
 	}
 
-	public function test_a_gated_out_composite_is_skipped_and_its_children_are_never_autoloaded(): void {
-		$journal = new Journal();
-		$kernel  = new PluginKernel( new FakeContainer( $journal ) );
+	public function test_a_gated_out_composite_is_autoloaded_and_skipped_and_its_children_are_never_autoloaded(): void {
+		$kernel = new PluginKernel( new FakeContainer( new Journal() ) );
+		self::assertFalse( \class_exists( GatedOutComposite::class, false ) );
 
 		$kernel->boot( array( GatedOutComposite::class ) );
 
-		self::assertSame( array(), $journal->entries );
+		self::assertTrue( \class_exists( GatedOutComposite::class, false ) );
+		self::assertSame( array(), $kernel->resolved );
 		self::assertSame( array( GatedOutComposite::class ), $kernel->skipped );
 		self::assertFalse( \class_exists( UnloadableComponent::class, false ) );
 	}
