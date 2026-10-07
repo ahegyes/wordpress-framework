@@ -10,7 +10,6 @@ use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Fixtures\Core\GatedOutComposite;
 use DeepWebSolutions\Framework\Tests\Fixtures\Core\UnloadableComponent;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -119,7 +118,6 @@ final class ThrowingComponent extends RecordingComponent {
 }
 
 #[CoversClass( PluginKernel::class )]
-#[CoversFunction( 'DeepWebSolutions\Framework\container_get' )]
 final class PluginKernelTest extends TestCase {
 	public static function invalid_trees(): array {
 		return array(
