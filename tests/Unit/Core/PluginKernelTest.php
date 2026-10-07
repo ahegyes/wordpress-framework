@@ -207,6 +207,7 @@ final class PluginKernelTest extends TestCase {
 		$thrown = self::boot_and_catch( $kernel, array( CompositeA::class, ComponentD::class ) );
 
 		self::assertInstanceOf( LogicException::class, $thrown );
+		self::assertStringContainsString( "'stdClass'", $thrown->getMessage() );
 		self::assertSame( array( 'construct CompositeA', 'construct ComponentB', 'construct ComponentC' ), $journal->entries );
 	}
 

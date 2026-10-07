@@ -19,6 +19,7 @@ final class FunctionsTest extends TestCase {
 
 	public function test_container_get_throws_for_an_entry_of_another_class(): void {
 		$this->expectException( LogicException::class );
+		$this->expectExceptionMessage( "'stdClass'" );
 
 		container_get( self::container_holding( new \stdClass() ), \ArrayObject::class );
 	}
