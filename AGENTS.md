@@ -14,7 +14,7 @@ wordpress-framework/
 ├── packages/shared/       ahegyes/wp-framework-shared       php >=8.5, ext-filter · no package require · WordPress-free
 │   └── src/               psr-4 DeepWebSolutions\Framework\Shared\ ; files: functions.php · Exception/, Error/, Result/, ValueObject/, Version/
 ├── packages/core/         ahegyes/wp-framework-core         php >=8.5 · shared ^2.0, psr/container ^2, psr/log ^3
-│   └── src/               psr-4 DeepWebSolutions\Framework\ ; files: functions.php (container_get)
+│   └── src/               psr-4 DeepWebSolutions\Framework\
 │       ├── ComponentInterface, CompositeComponentInterface, ConditionalComponentInterface
 │       ├── PluginKernel, PluginBoot, MigrationRunner
 │       └── Utilities/{NoticeQueue, ErrorLogLogger}
@@ -29,7 +29,7 @@ wordpress-framework/
 ├── tests/{Unit, PHPStan, Integration, Fixtures/{consumer-a (WC), consumer-b (non-WC), personas/{bootstrap,shared,core,settings,woocommerce}}}
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
-├── phpstan.wordpress.neon PHPStan over packages/core and tests/PHPStan/Core, with the WordPress stubs and extensions
+├── phpstan.wordpress.neon PHPStan over packages/core, with the WordPress stubs and extensions
 └── composer.json          one `packages/*` path repository
 ```
 
