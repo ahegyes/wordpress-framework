@@ -14,7 +14,7 @@ wordpress-framework/
 ├── packages/shared/       ahegyes/wp-framework-shared       php >=8.5, ext-filter · no package require · WordPress-free
 │   └── src/               psr-4 DeepWebSolutions\Framework\Shared\ ; files: functions.php · Exception/, Error/, Result/, ValueObject/, Version/
 ├── packages/core/         ahegyes/wp-framework-core         php >=8.5 · shared ^2.0, psr/container ^2, psr/log ^3
-│   └── src/               psr-4 DeepWebSolutions\Framework\ ; files: functions.php (container_get)
+│   └── src/               psr-4 DeepWebSolutions\Framework\
 │       ├── ComponentInterface, CompositeComponentInterface, ConditionalComponentInterface
 │       ├── PluginKernel, PluginBoot, MigrationRunner
 │       └── Utilities/{NoticeQueue, ErrorLogLogger}
@@ -29,6 +29,7 @@ wordpress-framework/
 ├── tests/{Unit, PHPStan, Integration, Fixtures/{consumer-a (WC), consumer-b (non-WC), personas/{bootstrap,shared,core,settings,woocommerce}}}
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
+├── phpstan.wordpress.neon PHPStan over packages/core, with the WordPress stubs and extensions
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -48,7 +49,7 @@ zizmor .github/
 ## Conventions
 
 1. **Gates and toggles.** `should_load()` is static, pure and total: no hooks, writes, notices, translation, user reads or construction. Read options with an explicit default. Detect companions by include-time constants, classes or functions, aware of network activation. A feature's toggle and settings UI live outside its gate; a gate mixing an environment check with a setting exposes the environment half as a static method.
-2. **Nodes and the container.** Node classes never extend, implement or `use` optional or late-loaded types. Never constructor-inject a gated component; inject ungated services. Definitions are `static fn ( ContainerInterface $c )` closures or autowiring, never PHP-DI helpers. Hold the built container as `ContainerInterface`. A factory collecting contributors re-applies their `should_load()`. Framework classes take their logger injected; the composition root chooses the logger and whether `NoticeQueue` is a root.
+2. **Nodes and the container.** Node classes never extend, implement or `use` optional or late-loaded types. Never constructor-inject a gated component; inject ungated services. Definitions are `static fn ( ContainerInterface $c )` closures or autowiring, never PHP-DI helpers. Hold the built container as `ContainerInterface`. Container reads belong in the kernel and composition wiring: a class-entry read checks the entry's type before use, and a factory collecting contributors re-applies their `should_load()` before resolving them. Framework classes take their logger injected; the composition root chooses the logger and whether `NoticeQueue` is a root.
 3. **Constructors and `register_hooks()`.** Constructors take services only. `register_hooks()` adds `array( $this, 'method' )` hooks, or constructs an `OptionsPage` or `ProductDataTab` and calls its `register_hooks()`. It never fires actions. Registration-time hooks register unconditionally and authorize in the callback.
 4. **Packages and `Shared\`.** Package edges stay as in the file map: settings and WC helpers never implement or import a core type, and a new edge needs the owner. A shared primitive is added only when it fills a gap PHP and its bundled extensions leave, references no WordPress or WooCommerce symbol and has a framework or certain-port call site; WordPress never enters the shared package. Result serves only an internal operation with two or more expected failure reasons a caller branches on, declared as `AbstractResult<T, E>` under `#[\NoDiscard]`; WordPress and WooCommerce APIs, filters, REST and AJAX responses and v1 public functions use `X|WP_Error`. Carriers are `final readonly` and extend `AbstractValueObject` only when something compares them. `Version` parses only versions the plugin controls, never on the boot path. Framework code throws the `Shared\Exception` mirrors.
 5. **Safeguards.** Everything a safeguard calls lives in `includes/safeguards.php` or files it requires. Relaxation happens only through the safeguard's own filter, after `{prefix}_initialized`, on an explicit `false`.

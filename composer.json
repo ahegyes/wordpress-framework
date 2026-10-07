@@ -70,7 +70,10 @@
     ],
     "lint:php:phpcs": "phpcs --standard=./phpcs.dist.xml --basepath=. ./ -v",
     "lint:php:phpcs:tests": "phpcs --standard=./phpcs.tests.dist.xml --basepath=. ./tests -v",
-    "lint:php:phpstan": "phpstan analyse -c phpstan.shared.neon -v --memory-limit=1G",
+    "lint:php:phpstan": [
+      "phpstan analyse -c phpstan.shared.neon -v --memory-limit=1G",
+      "phpstan analyse -c phpstan.wordpress.neon -v --memory-limit=1G"
+    ],
 
     "test": [
       "@test:unit"
