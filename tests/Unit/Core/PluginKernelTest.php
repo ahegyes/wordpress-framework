@@ -151,13 +151,12 @@ final class PluginKernelTest extends TestCase {
 	}
 
 	public function test_a_gated_out_composite_is_autoloaded_and_skipped_and_its_children_are_never_autoloaded(): void {
-		$kernel = new PluginKernel( new FakeContainer( new Journal() ) );
+		$kernel = new PluginKernel( new FakeContainer( new Journal(), array( GatedOutComposite::class => static fn (): never => throw new \RuntimeException( 'GatedOutComposite was constructed.' ) ) ) );
 		self::assertFalse( \class_exists( GatedOutComposite::class, false ) );
 
 		$kernel->boot( array( GatedOutComposite::class ) );
 
 		self::assertTrue( \class_exists( GatedOutComposite::class, false ) );
-		self::assertSame( array(), $kernel->resolved );
 		self::assertSame( array( GatedOutComposite::class ), $kernel->skipped );
 		self::assertFalse( \class_exists( UnloadableComponent::class, false ) );
 	}
