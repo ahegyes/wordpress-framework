@@ -55,6 +55,16 @@ final class NoticeQueueTest extends TestCase {
 		self::assertStringContainsString( 'For the editor.', $this->render_admin_page() );
 	}
 
+	public function test_queued_notices_keep_their_backslashes(): void {
+		\wp_set_current_user( $this->editor );
+		( new NoticeQueue( self::KEY ) )->add( 'Could not load Acme\\Reports.' );
+		( new NoticeQueue( self::KEY ) )->add( 'Could not load Acme\\Exports.' );
+
+		$next_page = $this->render_admin_page();
+		self::assertStringContainsString( 'Could not load Acme\\Reports.', $next_page );
+		self::assertStringContainsString( 'Could not load Acme\\Exports.', $next_page );
+	}
+
 	public function test_rendering_removes_only_the_notices_it_showed(): void {
 		\wp_set_current_user( $this->editor );
 		( new NoticeQueue( self::KEY ) )->add( 'Shown first.' );
@@ -64,18 +74,18 @@ final class NoticeQueueTest extends TestCase {
 				static $queued = false;
 				if ( ! $queued ) {
 					$queued = true;
-					( new NoticeQueue( self::KEY ) )->add( 'Queued while rendering.' );
+					( new NoticeQueue( self::KEY ) )->add( 'Queued while rendering Acme\\Reports.' );
 				}
 			}
 		);
 
 		$first_page = $this->render_admin_page();
 		self::assertStringContainsString( 'Shown first.', $first_page );
-		self::assertStringNotContainsString( 'Queued while rendering.', $first_page );
+		self::assertStringNotContainsString( 'Queued while rendering', $first_page );
 
 		$second_page = $this->render_admin_page();
 		self::assertStringNotContainsString( 'Shown first.', $second_page );
-		self::assertStringContainsString( 'Queued while rendering.', $second_page );
+		self::assertStringContainsString( 'Queued while rendering Acme\\Reports.', $second_page );
 	}
 
 	#[Group( 'multisite' )]
