@@ -17,7 +17,7 @@ wordpress-framework/
 │   └── src/               psr-4 DeepWebSolutions\Framework\
 │       ├── ComponentInterface, CompositeComponentInterface, ConditionalComponentInterface
 │       ├── PluginKernel, PluginBoot, MigrationRunner
-│       └── Utilities/{NoticeQueue, ErrorLogLogger}
+│       └── Utilities/ErrorLogLogger
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · shared ^2.0
 │   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ ; files: functions.php (render_control, sanitize_value, verify_object_form, is_valid_key) · OptionsPage
 ├── packages/woocommerce/  ahegyes/wp-framework-woocommerce  php >=8.5 · settings ^2.0, shared ^2.0, psr/log ^3 (WC ^11.1 as host)
@@ -30,6 +30,8 @@ wordpress-framework/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core, with the WordPress stubs and extensions
+├── .wp-env.json           developer environment: single site with WooCommerce, as local, on port 8800
+├── .wp-env.tests.json     Integration environment: single site with WooCommerce, as production
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -37,9 +39,10 @@ wordpress-framework/
 
 ```sh
 composer packages-install
-composer quality-check          # PHPCS (both profiles), PHPStan, Unit tests
+composer quality-check          # validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
-composer validate --strict
+composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run
+composer test:integration:run   # Integration tests in the running .wp-env.tests.json; WP_ENVIRONMENT_TYPE=production
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint
@@ -49,7 +52,7 @@ zizmor .github/
 ## Conventions
 
 1. **Gates and toggles.** `should_load()` is static, pure and total: no hooks, writes, notices, translation, user reads or construction. Read options with an explicit default. Detect companions by include-time constants, classes or functions, aware of network activation. A feature's toggle and settings UI live outside its gate; a gate mixing an environment check with a setting exposes the environment half as a static method.
-2. **Nodes and the container.** Node classes never extend, implement or `use` optional or late-loaded types. Never constructor-inject a gated component; inject ungated services. Definitions are `static fn ( ContainerInterface $c )` closures or autowiring, never PHP-DI helpers. Hold the built container as `ContainerInterface`. Container reads belong in the kernel and composition wiring: a class-entry read checks the entry's type before use, and a factory collecting contributors re-applies their `should_load()` before resolving them. Framework classes take their logger injected; the composition root chooses the logger and whether `NoticeQueue` is a root.
+2. **Nodes and the container.** Node classes never extend, implement or `use` optional or late-loaded types. Never constructor-inject a gated component; inject ungated services. Definitions are `static fn ( ContainerInterface $c )` closures or autowiring, never PHP-DI helpers. Hold the built container as `ContainerInterface`. Container reads belong in the kernel and composition wiring: a class-entry read checks the entry's type before use, and a factory collecting contributors re-applies their `should_load()` before resolving them. Framework classes take their logger injected; the composition root chooses the logger.
 3. **Constructors and `register_hooks()`.** Constructors take services only. `register_hooks()` adds `array( $this, 'method' )` hooks, or constructs an `OptionsPage` or `ProductDataTab` and calls its `register_hooks()`. It never fires actions. Registration-time hooks register unconditionally and authorize in the callback.
 4. **Packages and `Shared\`.** Package edges stay as in the file map: settings and WC helpers never implement or import a core type, and a new edge needs the owner. A shared primitive is added only when it fills a gap PHP and its bundled extensions leave, references no WordPress or WooCommerce symbol and has a framework or certain-port call site; WordPress never enters the shared package. Result serves only an internal operation with two or more expected failure reasons a caller branches on, declared as `AbstractResult<T, E>` under `#[\NoDiscard]`; WordPress and WooCommerce APIs, filters, REST and AJAX responses and v1 public functions use `X|WP_Error`. Carriers are `final readonly` and extend `AbstractValueObject` only when something compares them. `Version` parses only versions the plugin controls, never on the boot path. Framework code throws the `Shared\Exception` mirrors.
 5. **Safeguards.** Everything a safeguard calls lives in `includes/safeguards.php` or files it requires. Relaxation happens only through the safeguard's own filter, after `{prefix}_initialized`, on an explicit `false`.
@@ -62,6 +65,7 @@ zizmor .github/
 ## Style
 
 - Every PHP file opens with `<?php declare( strict_types=1 );`, and every file outside the shared package carries `\defined( 'ABSPATH' ) || exit;` after its `use` block (a Composer `files` entry returns instead of exiting). Code uses `array()`, `protected` rather than `private`, `final` classes by default and `#[\Override]` on every override.
+- A name imported from `Psr\` takes a `Psr` alias, as in `use Psr\Log\LoggerInterface as PsrLoggerInterface;`, so every use shows that the type is a PSR interface or class.
 - Every element outside `tests/` has a docblock: one third-person sentence naming the role, such as "Returns …", plus a second paragraph only for a non-obvious why. Property and constant docblocks open with "The …", constructors read "Constructor.", and an override reads `{@inheritDoc}`. Tag values align at column 10, each `@param` stays on one line, `@throws` reads "Thrown when …", `@since` names the release that added the element, and `@version` the last release that changed its behavior or signature.
 - Classes and traits outside `tests/` group members in `// region NAME` blocks named, in order, TRAITS, FIELDS AND CONSTANTS, MAGIC METHODS, GETTERS, SETTERS, INHERITED METHODS, METHODS, FACTORY METHODS, HOOKS and HELPERS; exception classes, interfaces and enums carry none.
 - Inline comments state a non-obvious why in one capitalized sentence, and every file describes the present, never the change. A `phpcs:ignore` trails its line, names the sniff and gives a one-clause reason; a `@phpstan-ignore` names its identifier.
@@ -80,4 +84,3 @@ zizmor .github/
 7. WC-rendered controls carry WooCommerce's markup. The framework guarantees markup only for `render_control()`.
 8. Partial bootstrap package: if `load.php` exists but a sibling it requires is missing, the `Error` is thrown before the template's catch and the plugin fatals at include. A missing `vendor-prefixed/` also unregisters the updater and skips the floor gate, so safeguards then load on whatever PHP runs (two faults).
 9. Deactivation, recovery mode and below-floor runtimes unload safeguards, as for any plugin. Plugins whose data would leak (IC) hide it at the data level.
-10. Concurrent requests by one user can drop a queued flash notice.

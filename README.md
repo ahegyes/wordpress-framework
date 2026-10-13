@@ -21,13 +21,15 @@ The `bootstrap` package parses on older PHP versions, so a plugin on an incompat
 - **PHP**: 8.5 or later (the bootstrap package itself parses on PHP 7.4)
 - **WordPress**: 7.1 or later
 - **Node.js**: 26 or later with npm 11 or later (for wp-env CLI)
+- **Docker**: for the wp-env environments
 
 ## Local development
 
-```bash
+```sh
 composer packages-install   # PHP deps (wraps composer install, ignoring only the PHP upper bound)
 npm install                 # Node deps (wp-env)
-composer quality-check      # PHPCS, PHPStan and unit tests
+npm run wp-env:start        # developer environment at http://localhost:8800, as local, with WooCommerce
+composer quality-check      # Validation, PHPCS, PHPStan, Unit and Integration tests (starts the tests environment)
 ```
 
 ## Composer scripts
@@ -35,12 +37,15 @@ composer quality-check      # PHPCS, PHPStan and unit tests
 | Script | Runs |
 | --- | --- |
 | `test:unit` | Unit tests (no WordPress) |
-| `test` | Every test suite |
+| `test:integration` | Starts the tests environment, then runs `test:integration:run` |
+| `test:integration:run` | Integration tests in the running tests environment: single site with WooCommerce, as production |
+| `test` | Unit and Integration tests |
 | `lint:php` | PHPCS over production code and tests, and PHPStan |
 | `format:php`, `format:php:tests` | Auto-fix code style (PHPCBF) |
-| `quality-check` | Lint and every test suite |
+| `quality-check` | Manifest validation, lint, Unit and Integration tests |
 
 ## Testing strategy
 
 - **Unit tests** (`tests/Unit/`) run in plain PHP with no WordPress loaded, including tests that run PHPStan and read the package manifests.
+- **Integration tests** (`tests/Integration/`) run inside wp-env's `cli` container against real WordPress, hooks and users, on a single site with WooCommerce. `test:integration` starts the tests environment before every run, which also applies any change to its config; `test:integration:run` skips that start, as CI does after starting the environment itself.
 - **Type tests** (`tests/PHPStan/`) are files PHPStan analyzes during `lint:php`: `assertType()` calls pin inferred types, and each expected error carries a `@phpstan-ignore` naming its identifier, so the run fails when the error disappears.

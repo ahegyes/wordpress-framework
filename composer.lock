@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "736482fe6d482f43848ff5b27f24e2dfbe0adb34"
+                "reference": "9a6f30375522fcc3807bbf586f0002a186489487"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0",
@@ -53,7 +53,8 @@
                 "branch-alias": {
                     "dev-trunk": "2.x-dev"
                 },
-                "requires-wp": "7.1"
+                "requires-wp": "7.1",
+                "scoping-text-domain": "wp-framework"
             },
             "autoload": {
                 "psr-4": {
@@ -283,18 +284,18 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd"
+                "reference": "6302f1f9170ef7187027bf39f0c07b84896e930b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd",
-                "reference": "b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/6302f1f9170ef7187027bf39f0c07b84896e930b",
+                "reference": "6302f1f9170ef7187027bf39f0c07b84896e930b",
                 "shasum": ""
             },
             "require": {
                 "composer/class-map-generator": "^1",
                 "ext-json": "*",
-                "johnbillion/wp-compat": "^2",
+                "johnbillion/wp-compat": "^3",
                 "nikic/php-parser": "^5",
                 "php": ">=8.5",
                 "php-stubs/wordpress-stubs": "^7.1",
@@ -408,7 +409,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-10-06T12:37:25+00:00"
+            "time": "2026-10-13T11:24:36+00:00"
         },
         {
             "name": "composer/class-map-generator",
@@ -799,16 +800,16 @@
         },
         {
             "name": "johnbillion/wp-compat",
-            "version": "2.0.1",
+            "version": "3.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/johnbillion/wp-compat.git",
-                "reference": "b2e32bd91716a98bc6fc527c525b979652a4a567"
+                "reference": "3936fc9b292f501c6b014d33b904a3ed869ffafb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/johnbillion/wp-compat/zipball/b2e32bd91716a98bc6fc527c525b979652a4a567",
-                "reference": "b2e32bd91716a98bc6fc527c525b979652a4a567",
+                "url": "https://api.github.com/repos/johnbillion/wp-compat/zipball/3936fc9b292f501c6b014d33b904a3ed869ffafb",
+                "reference": "3936fc9b292f501c6b014d33b904a3ed869ffafb",
                 "shasum": ""
             },
             "require": {
@@ -870,7 +871,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-08-29T17:12:02+00:00"
+            "time": "2026-10-09T11:29:14+00:00"
         },
         {
             "name": "johnpbloch/wordpress-core",
@@ -1660,11 +1661,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.3.0",
+            "version": "2.3.1",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/b1f9890d9af53a25c58129e78f0aadd31f90d7f4",
-                "reference": "b1f9890d9af53a25c58129e78f0aadd31f90d7f4",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/6155239b488e95d26d1ebd95c6b4bb294d7f09db",
+                "reference": "6155239b488e95d26d1ebd95c6b4bb294d7f09db",
                 "shasum": ""
             },
             "require": {
@@ -1720,7 +1721,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-06T06:15:36+00:00"
+            "time": "2026-10-08T21:09:11+00:00"
         },
         {
             "name": "phpstan/phpstan-deprecation-rules",
@@ -2210,16 +2211,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "13.4.1",
+            "version": "13.4.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "ccde40327c501eebff192614b0dcf11806418901"
+                "reference": "7b9ba83328f01ce299ef82161720195bd827a4bb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/ccde40327c501eebff192614b0dcf11806418901",
-                "reference": "ccde40327c501eebff192614b0dcf11806418901",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/7b9ba83328f01ce299ef82161720195bd827a4bb",
+                "reference": "7b9ba83328f01ce299ef82161720195bd827a4bb",
                 "shasum": ""
             },
             "require": {
@@ -2290,7 +2291,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.1"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.2"
             },
             "funding": [
                 {
@@ -2298,7 +2299,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-10-05T05:51:21+00:00"
+            "time": "2026-10-12T15:29:04+00:00"
         },
         {
             "name": "roave/security-advisories",
@@ -2306,12 +2307,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "08ce189d89be521a44e20b191a2418b299a44b2b"
+                "reference": "96cf8b77ade13bb6638d1b26d48a72deec75b7d0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/08ce189d89be521a44e20b191a2418b299a44b2b",
-                "reference": "08ce189d89be521a44e20b191a2418b299a44b2b",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/96cf8b77ade13bb6638d1b26d48a72deec75b7d0",
+                "reference": "96cf8b77ade13bb6638d1b26d48a72deec75b7d0",
                 "shasum": ""
             },
             "conflict": {
@@ -2425,7 +2426,6 @@
                 "cardgate/magento2": "<2.0.33",
                 "cardgate/woocommerce": "<=3.1.15",
                 "cart2quote/module-quotation": ">=4.1.6,<4.4.6|>=5,<5.4.4",
-                "cart2quote/module-quotation-encoded": ">=4.1.6,<=4.4.5|>=5,<5.4.4",
                 "cartalyst/sentry": "<2.1.7",
                 "catfan/medoo": "<1.7.5",
                 "causal/oidc": "<4",
@@ -2567,7 +2567,7 @@
                 "encore/laravel-admin": "<=1.8.19",
                 "endroid/qr-code-bundle": "<3.4.2",
                 "enhavo/enhavo-app": "<=0.13.1",
-                "enshrined/svg-sanitize": "<0.22",
+                "enshrined/svg-sanitize": "<=0.22",
                 "erusev/parsedown": "<1.7.2",
                 "ether/logs": "<3.0.4",
                 "evolutioncms/evolution": "<=3.2.3",
@@ -2769,6 +2769,8 @@
                 "krayin/laravel-crm": "<=2.2",
                 "kreait/firebase-php": ">=3.2,<3.8.1",
                 "kumbiaphp/kumbiapp": "<=1.1.1",
+                "kunstmaan/bundles-cms": "<7.3.2",
+                "kunstmaan/media-bundle": "<7.3.2",
                 "la-haute-societe/tcpdf": "<6.2.22",
                 "laktak/hjson": "<2.3",
                 "laminas/laminas-diactoros": "<2.18.1|==2.19|==2.20|==2.21|==2.22|==2.23|>=2.24,<2.24.2|>=2.25,<2.25.2",
@@ -3289,6 +3291,7 @@
                 "typo3fluid/fluid": ">=2,<2.0.8|>=2.1,<2.1.7|>=2.2,<2.2.4|>=2.3,<2.3.7|>=2.4,<2.4.4|>=2.5,<2.5.11|>=2.6,<2.6.10",
                 "ua-parser/uap-php": "<3.8",
                 "uasoft-indonesia/badaso": "<=2.9.7",
+                "ueberdosis/tiptap-php": "<2.1.1",
                 "unisharp/laravel-filemanager": "<2.9.1",
                 "universal-omega/dynamic-page-list3": "<3.6.4",
                 "unopim/unopim": "<=0.3",
@@ -3448,7 +3451,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-05T23:50:51+00:00"
+            "time": "2026-10-08T22:58:27+00:00"
         },
         {
             "name": "sebastian/cli-parser",
@@ -5356,15 +5359,15 @@
         },
         {
             "name": "wp-plugin/woocommerce",
-            "version": "11.1.2",
+            "version": "11.2.1",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/woocommerce/",
-                "reference": "tags/11.1.2"
+                "reference": "tags/11.2.1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/woocommerce.11.1.2.zip"
+                "url": "https://downloads.wordpress.org/plugin/woocommerce.11.2.1.zip"
             },
             "require": {
                 "composer/installers": "~1.0|~2.0"
@@ -5383,7 +5386,7 @@
                 "issues": "https://wordpress.org/support/plugin/woocommerce",
                 "source": "https://plugins.svn.wordpress.org/woocommerce"
             },
-            "time": "2026-10-05T14:26:11+00:00"
+            "time": "2026-10-09T18:09:51+00:00"
         }
     ],
     "aliases": [],

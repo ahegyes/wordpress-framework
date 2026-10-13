@@ -9,7 +9,6 @@ Install the dependencies on the PHP, Node and npm versions the README lists, the
 ```sh
 composer packages-install
 npm install
-composer validate --strict
 composer quality-check
 composer audit --locked
 npm audit --omit=dev --audit-level=high

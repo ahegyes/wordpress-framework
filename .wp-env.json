@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/wp-env.schema.json",
+  "core": "WordPress/WordPress#tags/7.1.3",
+  "phpVersion": "8.5",
+  "port": 8800,
+  "testsEnvironment": false,
+  "mappings": {
+    "wp-content/mu-plugins/wp-framework": ".",
+    "wp-content/plugins/woocommerce": "./vendor/wp-plugin/woocommerce"
+  },
+  "config": {
+    "WP_DEBUG": true,
+    "SCRIPT_DEBUG": true,
+    "WP_ENVIRONMENT_TYPE": "local"
+  },
+  "lifecycleScripts": {
+    "afterStart": "node_modules/.bin/wp-env run cli wp plugin activate woocommerce && node_modules/.bin/wp-env run cli wp wc hpos enable"
+  }
+}

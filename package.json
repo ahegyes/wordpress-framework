@@ -27,11 +27,15 @@
         "format:all": "composer format:php",
         "lint:all": "composer lint:php",
 
-        "wp-env": "wp-env",
-        "wp-env:start": "wp-env --config .wp-env.tests.json start",
-        "wp-env:stop": "wp-env --config .wp-env.tests.json stop",
-        "wp-env:update": "wp-env --config .wp-env.tests.json start --update",
-        "wp-env:destroy": "wp-env --config .wp-env.tests.json destroy",
+        "wp-env:start": "wp-env start",
+        "wp-env:stop": "wp-env stop",
+        "wp-env:update": "wp-env start --update",
+        "wp-env:destroy": "wp-env destroy",
+
+        "wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
+        "wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
+        "wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
+        "wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
 
         "audit": "composer audit && npm audit",
         "audit:fix": "npm audit fix",

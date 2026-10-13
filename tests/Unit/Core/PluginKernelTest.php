@@ -12,13 +12,13 @@ use DeepWebSolutions\Framework\Tests\Fixtures\Core\UnloadableComponent;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
+use Psr\Container\ContainerInterface as PsrContainerInterface;
 
 final class Journal {
 	public array $entries = array();
 }
 
-final class FakeContainer implements ContainerInterface {
+final class FakeContainer implements PsrContainerInterface {
 	public function __construct(
 		protected Journal $journal,
 		protected array $definitions = array()
