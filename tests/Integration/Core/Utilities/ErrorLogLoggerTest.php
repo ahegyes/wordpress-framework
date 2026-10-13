@@ -69,6 +69,37 @@ final class ErrorLogLoggerTest extends TestCase {
 		self::assertSame( array( array( 'Cache {name} is cold.', array( 'name' => 'acme' ) ) ), $received );
 	}
 
+	public function test_an_exception_in_the_context_is_logged_with_its_class_location_and_trace(): void {
+		$exception = new \RuntimeException( 'Cache is cold.' );
+
+		( new ErrorLogLogger() )->error(
+			'Warm-up failed: {message}',
+			array(
+				'message'   => $exception->getMessage(),
+				'exception' => $exception,
+			)
+		);
+
+		$log = (string) \file_get_contents( $this->log_file );
+		self::assertStringContainsString( '[error] Warm-up failed: Cache is cold.', $log );
+		self::assertStringContainsString( 'RuntimeException: Cache is cold. in ' . __FILE__ . ':' . $exception->getLine(), $log );
+		self::assertStringContainsString( 'Stack trace:', $log );
+	}
+
+	public function test_a_previous_exception_is_logged_with_the_exception(): void {
+		$exception = new \RuntimeException( 'Warm-up failed.', 0, new \LogicException( 'Cache is cold.' ) );
+
+		( new ErrorLogLogger() )->error( 'Warm-up failed.', array( 'exception' => $exception ) );
+
+		self::assertStringContainsString( 'LogicException: Cache is cold. in ' . __FILE__, (string) \file_get_contents( $this->log_file ) );
+	}
+
+	public function test_an_exception_context_value_that_is_not_a_throwable_is_ignored(): void {
+		( new ErrorLogLogger() )->error( 'Warm-up failed.', array( 'exception' => 'Cache is cold.' ) );
+
+		self::assertStringNotContainsString( 'Cache is cold.', (string) \file_get_contents( $this->log_file ) );
+	}
+
 	public function test_a_level_psr_3_does_not_define_is_rejected(): void {
 		$this->expectException( PsrInvalidArgumentException::class );
 		$this->expectExceptionMessage( "Log level 'verbose' is not a PSR-3 level." );
