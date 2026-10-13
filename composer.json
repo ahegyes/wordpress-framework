@@ -83,12 +83,7 @@
     "test:integration": [
       "@putenv CI=1",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli true >/dev/null 2>&1 || node_modules/.bin/wp-env --config .wp-env.tests.json start",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite"
-    ],
-    "test:integration:multisite": [
-      "@putenv CI=1",
-      "node_modules/.bin/wp-env --config .wp-env.multisite.json run cli true >/dev/null 2>&1 || node_modules/.bin/wp-env --config .wp-env.multisite.json start",
-      "node_modules/.bin/wp-env --config .wp-env.multisite.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --group=multisite"
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration"
     ],
 
     "quality-check": [

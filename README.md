@@ -37,7 +37,6 @@ composer quality-check      # PHPCS, PHPStan, Unit and Integration tests (starts
 | --- | --- |
 | `test:unit` | Unit tests (no WordPress) |
 | `test:integration` | Integration tests in wp-env, single site with WooCommerce, as production |
-| `test:integration:multisite` | The `multisite` group on a network |
 | `test` | Unit and Integration tests |
 | `lint:php` | PHPCS over production code and tests, and PHPStan |
 | `format:php`, `format:php:tests` | Auto-fix code style (PHPCBF) |
@@ -46,5 +45,5 @@ composer quality-check      # PHPCS, PHPStan, Unit and Integration tests (starts
 ## Testing strategy
 
 - **Unit tests** (`tests/Unit/`) run in plain PHP with no WordPress loaded, including tests that run PHPStan and read the package manifests.
-- **Integration tests** (`tests/Integration/`) run inside wp-env's `cli` container against real WordPress, hooks and users, on a single site with WooCommerce and on a network. Each lane starts its environment when it is not running.
+- **Integration tests** (`tests/Integration/`) run inside wp-env's `cli` container against real WordPress, hooks and users, on a single site with WooCommerce. `test:integration` starts the environment when it is not running.
 - **Type tests** (`tests/PHPStan/`) are files PHPStan analyzes during `lint:php`: `assertType()` calls pin inferred types, and each expected error carries a `@phpstan-ignore` naming its identifier, so the run fails when the error disappears.

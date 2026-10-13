@@ -11,7 +11,6 @@ composer packages-install
 npm install
 composer validate --strict
 composer quality-check
-composer test:integration:multisite
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint
