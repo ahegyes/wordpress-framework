@@ -17,3 +17,35 @@ jobs:
       php-version: '8.5'
       composer-script: 'test:unit'
       needs-wp-env: false
+
+  integration:
+    name: Integration
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    with:
+      php-version: '8.5'
+      composer-script: 'test:integration'
+      wp-env-config-file: '.wp-env.tests.json'
+
+  integration-local:
+    name: Integration (local)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    with:
+      php-version: '8.5'
+      composer-script: 'test:integration:local'
+      wp-env-config-file: '.wp-env.tests.json'
+
+  integration-multisite:
+    name: Integration (multisite)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    with:
+      php-version: '8.5'
+      composer-script: 'test:integration:multisite'
+      wp-env-config-file: '.wp-env.multisite.json'
+
+  integration-no-wc:
+    name: Integration (without WooCommerce)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    with:
+      php-version: '8.5'
+      composer-script: 'test:integration:no-wc'
+      wp-env-config-file: '.wp-env.no-wc.json'

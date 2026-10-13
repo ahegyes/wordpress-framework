@@ -12,10 +12,17 @@
 		 failOnWarning="true"
 		 defaultTestSuite="Unit">
 	<testsuites>
-		<testsuite name="Unit">
+		<testsuite name="Unit" bootstrap="tests/Unit/bootstrap.php">
 			<directory>tests/Unit</directory>
 		</testsuite>
+		<testsuite name="Integration" bootstrap="tests/Integration/bootstrap.php">
+			<directory>tests/Integration</directory>
+		</testsuite>
 	</testsuites>
+
+	<php>
+		<env name="WP_ENVIRONMENT_TYPE" value="production"/>
+	</php>
 
 	<source>
 		<include>

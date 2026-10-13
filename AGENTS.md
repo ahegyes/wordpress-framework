@@ -30,6 +30,7 @@ wordpress-framework/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core, with the WordPress stubs and extensions
+├── .wp-env.{tests,multisite,no-wc}.json  Integration environments: single site with WooCommerce, a network, single site without WooCommerce
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -37,8 +38,12 @@ wordpress-framework/
 
 ```sh
 composer packages-install
-composer quality-check          # PHPCS (both profiles), PHPStan, Unit tests
+composer quality-check          # PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
+composer test:integration       # starts .wp-env.tests.json if needed; WP_ENVIRONMENT_TYPE=production
+composer test:integration:local # the rethrow group under WP_ENVIRONMENT_TYPE=local
+composer test:integration:multisite  # the multisite group on .wp-env.multisite.json
+composer test:integration:no-wc      # the production lane on .wp-env.no-wc.json
 composer validate --strict
 composer audit --locked
 npm audit --omit=dev --audit-level=high
