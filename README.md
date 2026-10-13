@@ -21,13 +21,14 @@ The `bootstrap` package parses on older PHP versions, so a plugin on an incompat
 - **PHP**: 8.5 or later (the bootstrap package itself parses on PHP 7.4)
 - **WordPress**: 7.1 or later
 - **Node.js**: 26 or later with npm 11 or later (for wp-env CLI)
-- **Docker**: for the wp-env Integration environments
+- **Docker**: for the wp-env environments
 
 ## Local development
 
 ```sh
 composer packages-install   # PHP deps (wraps composer install, ignoring only the PHP upper bound)
 npm install                 # Node deps (wp-env)
+npm run wp-env:start        # developer environment at http://localhost:8800, as local, with WooCommerce
 composer quality-check      # PHPCS, PHPStan, Unit and Integration tests (starts wp-env)
 ```
 

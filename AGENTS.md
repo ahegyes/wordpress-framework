@@ -30,7 +30,8 @@ wordpress-framework/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core, with the WordPress stubs and extensions
-├── .wp-env.tests.json     Integration environment: single site with WooCommerce
+├── .wp-env.json           developer environment: single site with WooCommerce, as local, on port 8800
+├── .wp-env.tests.json     Integration environment: single site with WooCommerce, as production
 └── composer.json          one `packages/*` path repository
 ```
 
