@@ -5,7 +5,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 
-trait IsolatesHooks {
+trait IsolatesHooksTrait {
 	protected array $saved_hook_globals = array();
 
 	#[Before]

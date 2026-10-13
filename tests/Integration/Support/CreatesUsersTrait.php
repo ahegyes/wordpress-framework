@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 
-trait CreatesUsers {
+trait CreatesUsersTrait {
 	protected function make_user( string $login, string $role ): int {
 		$existing = \get_user_by( 'login', $login );
 		if ( $existing instanceof \WP_User ) {

@@ -3,8 +3,8 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core;
 
 use DeepWebSolutions\Framework\PluginBoot;
-use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsers;
-use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooks;
+use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
@@ -21,8 +21,8 @@ final class RecordingLogger extends AbstractLogger {
 
 #[CoversClass( PluginBoot::class )]
 final class PluginBootTest extends TestCase {
-	use CreatesUsers;
-	use IsolatesHooks;
+	use CreatesUsersTrait;
+	use IsolatesHooksTrait;
 
 	protected const string PLUGIN_FILE = __DIR__ . '/../../Fixtures/Core/acme-boot.php';
 

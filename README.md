@@ -25,7 +25,7 @@ The `bootstrap` package parses on older PHP versions, so a plugin on an incompat
 
 ## Local development
 
-```bash
+```sh
 composer packages-install   # PHP deps (wraps composer install, ignoring only the PHP upper bound)
 npm install                 # Node deps (wp-env)
 composer quality-check      # PHPCS, PHPStan, Unit and Integration tests (starts wp-env)
@@ -48,5 +48,5 @@ composer quality-check      # PHPCS, PHPStan, Unit and Integration tests (starts
 ## Testing strategy
 
 - **Unit tests** (`tests/Unit/`) run in plain PHP with no WordPress loaded, including tests that run PHPStan and read the package manifests.
-- **Integration tests** (`tests/Integration/`) run inside wp-env's `cli` container against real WordPress, WooCommerce, hooks and users; each lane starts its environment when it is not running.
+- **Integration tests** (`tests/Integration/`) run inside wp-env's `cli` container against real WordPress, hooks and users, on a single site with WooCommerce, a network and a single site without WooCommerce. Each lane starts its environment when it is not running.
 - **Type tests** (`tests/PHPStan/`) are files PHPStan analyzes during `lint:php`: `assertType()` calls pin inferred types, and each expected error carries a `@phpstan-ignore` naming its identifier, so the run fails when the error disappears.
