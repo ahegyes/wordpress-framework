@@ -29,7 +29,7 @@ The `bootstrap` package parses on older PHP versions, so a plugin on an incompat
 composer packages-install   # PHP deps (wraps composer install, ignoring only the PHP upper bound)
 npm install                 # Node deps (wp-env)
 npm run wp-env:start        # developer environment at http://localhost:8800, as local, with WooCommerce
-composer quality-check      # PHPCS, PHPStan, Unit and Integration tests (starts wp-env)
+composer quality-check      # Validation, PHPCS, PHPStan, Unit and Integration tests (starts the tests environment)
 ```
 
 ## Composer scripts
@@ -37,14 +37,15 @@ composer quality-check      # PHPCS, PHPStan, Unit and Integration tests (starts
 | Script | Runs |
 | --- | --- |
 | `test:unit` | Unit tests (no WordPress) |
-| `test:integration` | Integration tests in wp-env, single site with WooCommerce, as production |
+| `test:integration` | Starts the tests environment, then runs `test:integration:run` |
+| `test:integration:run` | Integration tests in the running tests environment: single site with WooCommerce, as production |
 | `test` | Unit and Integration tests |
 | `lint:php` | PHPCS over production code and tests, and PHPStan |
 | `format:php`, `format:php:tests` | Auto-fix code style (PHPCBF) |
-| `quality-check` | Lint, Unit and Integration tests |
+| `quality-check` | Manifest validation, lint, Unit and Integration tests |
 
 ## Testing strategy
 
 - **Unit tests** (`tests/Unit/`) run in plain PHP with no WordPress loaded, including tests that run PHPStan and read the package manifests.
-- **Integration tests** (`tests/Integration/`) run inside wp-env's `cli` container against real WordPress, hooks and users, on a single site with WooCommerce. `test:integration` starts the environment when it is not running.
+- **Integration tests** (`tests/Integration/`) run inside wp-env's `cli` container against real WordPress, hooks and users, on a single site with WooCommerce. `test:integration` starts the tests environment before every run, which also applies any change to its config; `test:integration:run` skips that start, as CI does after starting the environment itself.
 - **Type tests** (`tests/PHPStan/`) are files PHPStan analyzes during `lint:php`: `assertType()` calls pin inferred types, and each expected error carries a `@phpstan-ignore` naming its identifier, so the run fails when the error disappears.

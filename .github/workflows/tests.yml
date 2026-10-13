@@ -23,5 +23,5 @@ jobs:
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
     with:
       php-version: '8.5'
-      composer-script: 'test:integration'
+      composer-script: 'test:integration:run'
       wp-env-config-file: '.wp-env.tests.json'

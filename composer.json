@@ -81,12 +81,19 @@
     ],
     "test:unit": "@php vendor/bin/phpunit --testsuite=Unit",
     "test:integration": [
+      "Composer\\Config::disableProcessTimeout",
       "@putenv CI=1",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli true >/dev/null 2>&1 || node_modules/.bin/wp-env --config .wp-env.tests.json start",
+      "npm --prefix=. run wp-env:tests:start",
+      "@test:integration:run"
+    ],
+    "test:integration:run": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration"
     ],
 
     "quality-check": [
+      "@composer validate --strict",
       "@lint:php",
       "@test"
     ]

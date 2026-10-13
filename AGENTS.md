@@ -39,10 +39,10 @@ wordpress-framework/
 
 ```sh
 composer packages-install
-composer quality-check          # PHPCS (both profiles), PHPStan, Unit and Integration tests
+composer quality-check          # validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
-composer test:integration       # starts .wp-env.tests.json if needed; WP_ENVIRONMENT_TYPE=production
-composer validate --strict
+composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run
+composer test:integration:run   # Integration tests in the running .wp-env.tests.json; WP_ENVIRONMENT_TYPE=production
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint
