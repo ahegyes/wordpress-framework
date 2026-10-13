@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "736482fe6d482f43848ff5b27f24e2dfbe0adb34"
+                "reference": "9a6f30375522fcc3807bbf586f0002a186489487"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0",
@@ -53,7 +53,8 @@
                 "branch-alias": {
                     "dev-trunk": "2.x-dev"
                 },
-                "requires-wp": "7.1"
+                "requires-wp": "7.1",
+                "scoping-text-domain": "wp-framework"
             },
             "autoload": {
                 "psr-4": {

@@ -69,6 +69,7 @@ final class ErrorLogLoggerTest extends TestCase {
 
 	public function test_a_level_psr_3_does_not_define_is_rejected(): void {
 		$this->expectException( InvalidArgumentException::class );
+		$this->expectExceptionMessage( "Log level 'verbose' is not a PSR-3 level." );
 
 		( new ErrorLogLogger() )->log( 'verbose', 'Cache is cold.' );
 	}
