@@ -7,8 +7,8 @@ use DeepWebSolutions\Framework\Utilities\ErrorLogLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\InvalidArgumentException;
-use Psr\Log\LogLevel;
+use Psr\Log\InvalidArgumentException as PsrInvalidArgumentException;
+use Psr\Log\LogLevel as PsrLogLevel;
 
 #[CoversClass( ErrorLogLogger::class )]
 final class ErrorLogLoggerTest extends TestCase {
@@ -32,14 +32,14 @@ final class ErrorLogLoggerTest extends TestCase {
 
 	public static function levels(): array {
 		return array(
-			'emergency' => array( LogLevel::EMERGENCY ),
-			'alert'     => array( LogLevel::ALERT ),
-			'critical'  => array( LogLevel::CRITICAL ),
-			'error'     => array( LogLevel::ERROR ),
-			'warning'   => array( LogLevel::WARNING ),
-			'notice'    => array( LogLevel::NOTICE ),
-			'info'      => array( LogLevel::INFO ),
-			'debug'     => array( LogLevel::DEBUG ),
+			'emergency' => array( PsrLogLevel::EMERGENCY ),
+			'alert'     => array( PsrLogLevel::ALERT ),
+			'critical'  => array( PsrLogLevel::CRITICAL ),
+			'error'     => array( PsrLogLevel::ERROR ),
+			'warning'   => array( PsrLogLevel::WARNING ),
+			'notice'    => array( PsrLogLevel::NOTICE ),
+			'info'      => array( PsrLogLevel::INFO ),
+			'debug'     => array( PsrLogLevel::DEBUG ),
 		);
 	}
 
@@ -70,7 +70,7 @@ final class ErrorLogLoggerTest extends TestCase {
 	}
 
 	public function test_a_level_psr_3_does_not_define_is_rejected(): void {
-		$this->expectException( InvalidArgumentException::class );
+		$this->expectException( PsrInvalidArgumentException::class );
 		$this->expectExceptionMessage( "Log level 'verbose' is not a PSR-3 level." );
 
 		( new ErrorLogLogger() )->log( 'verbose', 'Cache is cold.' );

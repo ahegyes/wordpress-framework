@@ -8,9 +8,9 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\AbstractLogger;
+use Psr\Log\AbstractLogger as PsrAbstractLogger;
 
-final class RecordingLogger extends AbstractLogger {
+final class RecordingLogger extends PsrAbstractLogger {
 	public array $records = array();
 
 	#[\Override]
