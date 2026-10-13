@@ -20,12 +20,14 @@ final class NoticeQueueTest extends TestCase {
 
 	protected int $other_user;
 
+	#[\Override]
 	protected function setUp(): void {
 		$this->editor     = $this->make_user( 'acme-notice-editor', 'editor' );
 		$this->other_user = $this->make_user( 'acme-notice-author', 'author' );
 		$this->forget_notices();
 	}
 
+	#[\Override]
 	protected function tearDown(): void {
 		$this->forget_notices();
 		\wp_set_current_user( 0 );

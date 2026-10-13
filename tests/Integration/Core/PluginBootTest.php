@@ -34,6 +34,7 @@ final class PluginBootTest extends TestCase {
 
 	protected array $failures = array();
 
+	#[\Override]
 	protected function setUp(): void {
 		$this->logger = new RecordingLogger();
 		\add_action(
@@ -53,6 +54,7 @@ final class PluginBootTest extends TestCase {
 		);
 	}
 
+	#[\Override]
 	protected function tearDown(): void {
 		foreach ( array( 'composition failed', 'first failure', 'second failure' ) as $message ) {
 			\delete_transient( 'acme_boot_failure_' . \md5( $message ) );

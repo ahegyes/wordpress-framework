@@ -18,11 +18,13 @@ final class ErrorLogLoggerTest extends TestCase {
 
 	protected string|false $previous_log_file;
 
+	#[\Override]
 	protected function setUp(): void {
 		$this->log_file          = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
 		$this->previous_log_file = \ini_set( 'error_log', $this->log_file );
 	}
 
+	#[\Override]
 	protected function tearDown(): void {
 		\ini_set( 'error_log', (string) $this->previous_log_file );
 		\wp_delete_file( $this->log_file );
