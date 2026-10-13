@@ -32,16 +32,25 @@ final class PluginBootTest extends TestCase {
 
 	protected array $fired = array();
 
+	protected array $failures = array();
+
 	protected function setUp(): void {
 		$this->logger = new RecordingLogger();
-		foreach ( array( 'acme_initialized', 'acme_initialization_failure' ) as $hook ) {
-			\add_action(
-				$hook,
-				function ( mixed ...$args ) use ( $hook ): void {
-					$this->fired[] = array( $hook, $args );
-				}
-			);
-		}
+		\add_action(
+			'acme_initialized',
+			function (): void {
+				$this->fired[] = 'acme_initialized';
+			},
+			10,
+			0
+		);
+		\add_action(
+			'acme_initialization_failure',
+			function ( ?\Throwable $failure ): void {
+				$this->fired[]    = 'acme_initialization_failure';
+				$this->failures[] = $failure;
+			}
+		);
 	}
 
 	protected function tearDown(): void {
@@ -57,7 +66,7 @@ final class PluginBootTest extends TestCase {
 		$boot->run( static fn (): bool => true );
 
 		self::assertSame( 'booted', $boot->status );
-		self::assertSame( array( array( 'acme_initialized', array() ) ), $this->fired );
+		self::assertSame( array( 'acme_initialized' ), $this->fired );
 	}
 
 	public function test_a_composition_that_reports_an_unmet_requirement_is_blocked(): void {
@@ -66,7 +75,8 @@ final class PluginBootTest extends TestCase {
 		$boot->run( static fn (): bool => false );
 
 		self::assertSame( 'blocked', $boot->status );
-		self::assertSame( array( array( 'acme_initialization_failure', array( null ) ) ), $this->fired );
+		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
+		self::assertSame( array( null ), $this->failures );
 	}
 
 	public function test_a_failing_composition_fails_and_tells_only_plugin_activators(): void {
@@ -76,7 +86,8 @@ final class PluginBootTest extends TestCase {
 		$boot->run( static fn (): bool => throw $failure );
 
 		self::assertSame( 'failed', $boot->status );
-		self::assertSame( array( array( 'acme_initialization_failure', array( $failure ) ) ), $this->fired );
+		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
+		self::assertSame( array( $failure ), $this->failures );
 
 		\wp_set_current_user( $this->make_user( 'acme-boot-admin', 'administrator' ) );
 		self::assertStringContainsString( self::NOTICE, $this->render_admin_notices() );
@@ -117,7 +128,8 @@ final class PluginBootTest extends TestCase {
 		}
 
 		self::assertSame( 'failed', $boot->status );
-		self::assertSame( array( array( 'acme_initialization_failure', array( $failure ) ) ), $this->fired );
+		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
+		self::assertSame( array( $failure ), $this->failures );
 	}
 
 	protected function make_boot(): PluginBoot {
