@@ -37,7 +37,6 @@ composer quality-check      # PHPCS, PHPStan, Unit and Integration tests (starts
 | --- | --- |
 | `test:unit` | Unit tests (no WordPress) |
 | `test:integration` | Integration tests in wp-env, single site with WooCommerce, as production |
-| `test:integration:local` | The `rethrow` group as a local environment |
 | `test:integration:multisite` | The `multisite` group on a network |
 | `test:integration:no-wc` | Integration tests on a single site without WooCommerce |
 | `test` | Unit and Integration tests |

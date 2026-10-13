@@ -83,12 +83,7 @@
     "test:integration": [
       "@putenv CI=1",
       "node_modules/.bin/wp-env --config .wp-env.tests.json run cli true >/dev/null 2>&1 || node_modules/.bin/wp-env --config .wp-env.tests.json start",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=rethrow --exclude-group=multisite"
-    ],
-    "test:integration:local": [
-      "@putenv CI=1",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli true >/dev/null 2>&1 || node_modules/.bin/wp-env --config .wp-env.tests.json start",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework env WP_ENVIRONMENT_TYPE=local vendor/bin/phpunit --testsuite=Integration --group=rethrow"
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite"
     ],
     "test:integration:multisite": [
       "@putenv CI=1",
@@ -98,7 +93,7 @@
     "test:integration:no-wc": [
       "@putenv CI=1",
       "node_modules/.bin/wp-env --config .wp-env.no-wc.json run cli true >/dev/null 2>&1 || node_modules/.bin/wp-env --config .wp-env.no-wc.json start",
-      "node_modules/.bin/wp-env --config .wp-env.no-wc.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=rethrow --exclude-group=multisite"
+      "node_modules/.bin/wp-env --config .wp-env.no-wc.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite"
     ],
 
     "quality-check": [

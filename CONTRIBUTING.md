@@ -11,7 +11,6 @@ composer packages-install
 npm install
 composer validate --strict
 composer quality-check
-composer test:integration:local
 composer test:integration:multisite
 composer test:integration:no-wc
 composer audit --locked

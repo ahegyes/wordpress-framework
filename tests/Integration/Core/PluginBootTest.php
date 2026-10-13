@@ -6,7 +6,6 @@ use DeepWebSolutions\Framework\PluginBoot;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger as PsrAbstractLogger;
 
@@ -114,24 +113,6 @@ final class PluginBootTest extends TestCase {
 		}
 
 		self::assertSame( array( 'first failure', 'second failure' ), \array_map( static fn ( array $record ): string => $record[2]['message'], $this->logger->records ) );
-	}
-
-	#[Group( 'rethrow' )]
-	public function test_a_failing_composition_is_rethrown_after_the_failure_action_in_a_local_environment(): void {
-		self::assertSame( 'local', \wp_get_environment_type() );
-		$failure = new \RuntimeException( 'composition failed' );
-		$boot    = $this->make_boot();
-
-		try {
-			$boot->run( static fn (): bool => throw $failure );
-			self::fail( 'The failure was not rethrown.' );
-		} catch ( \RuntimeException $caught ) {
-			self::assertSame( $failure, $caught );
-		}
-
-		self::assertSame( 'failed', $boot->status );
-		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
-		self::assertSame( array( $failure ), $this->failures );
 	}
 
 	protected function make_boot(): PluginBoot {

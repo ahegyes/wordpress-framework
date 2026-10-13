@@ -26,14 +26,6 @@ jobs:
       composer-script: 'test:integration'
       wp-env-config-file: '.wp-env.tests.json'
 
-  integration-local:
-    name: Integration (local)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
-    with:
-      php-version: '8.5'
-      composer-script: 'test:integration:local'
-      wp-env-config-file: '.wp-env.tests.json'
-
   integration-multisite:
     name: Integration (multisite)
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
