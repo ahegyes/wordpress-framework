@@ -12,7 +12,7 @@ permissions:
 jobs:
   unit:
     name: Unit
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
     with:
       php-version: '8.5'
       composer-script: 'test:unit'
@@ -20,7 +20,7 @@ jobs:
 
   integration:
     name: Integration
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
     with:
       php-version: '8.5'
       composer-script: 'test:integration'
@@ -28,7 +28,7 @@ jobs:
 
   integration-local:
     name: Integration (local)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
     with:
       php-version: '8.5'
       composer-script: 'test:integration:local'
@@ -36,7 +36,7 @@ jobs:
 
   integration-multisite:
     name: Integration (multisite)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
     with:
       php-version: '8.5'
       composer-script: 'test:integration:multisite'
@@ -44,7 +44,7 @@ jobs:
 
   integration-no-wc:
     name: Integration (without WooCommerce)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
     with:
       php-version: '8.5'
       composer-script: 'test:integration:no-wc'

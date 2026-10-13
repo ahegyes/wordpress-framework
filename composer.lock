@@ -284,18 +284,18 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd"
+                "reference": "6302f1f9170ef7187027bf39f0c07b84896e930b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd",
-                "reference": "b63ea7bcb9bb0d64b9499bce9ad4bb396f63b5bd",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/6302f1f9170ef7187027bf39f0c07b84896e930b",
+                "reference": "6302f1f9170ef7187027bf39f0c07b84896e930b",
                 "shasum": ""
             },
             "require": {
                 "composer/class-map-generator": "^1",
                 "ext-json": "*",
-                "johnbillion/wp-compat": "^2",
+                "johnbillion/wp-compat": "^3",
                 "nikic/php-parser": "^5",
                 "php": ">=8.5",
                 "php-stubs/wordpress-stubs": "^7.1",
@@ -409,7 +409,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-10-06T12:37:25+00:00"
+            "time": "2026-10-13T11:24:36+00:00"
         },
         {
             "name": "composer/class-map-generator",
@@ -800,16 +800,16 @@
         },
         {
             "name": "johnbillion/wp-compat",
-            "version": "2.0.1",
+            "version": "3.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/johnbillion/wp-compat.git",
-                "reference": "b2e32bd91716a98bc6fc527c525b979652a4a567"
+                "reference": "3936fc9b292f501c6b014d33b904a3ed869ffafb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/johnbillion/wp-compat/zipball/b2e32bd91716a98bc6fc527c525b979652a4a567",
-                "reference": "b2e32bd91716a98bc6fc527c525b979652a4a567",
+                "url": "https://api.github.com/repos/johnbillion/wp-compat/zipball/3936fc9b292f501c6b014d33b904a3ed869ffafb",
+                "reference": "3936fc9b292f501c6b014d33b904a3ed869ffafb",
                 "shasum": ""
             },
             "require": {
@@ -871,7 +871,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-08-29T17:12:02+00:00"
+            "time": "2026-10-09T11:29:14+00:00"
         },
         {
             "name": "johnpbloch/wordpress-core",
