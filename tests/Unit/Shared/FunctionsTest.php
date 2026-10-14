@@ -70,9 +70,19 @@ final class FunctionsTest extends TestCase {
 	}
 
 	public static function log_messages(): array {
-		$stringable = new class() implements \Stringable {
+		$stringable  = new class() implements \Stringable {
 			public function __toString(): string {
 				return 'stringable';
+			}
+		};
+		$unprintable = new class() implements \Stringable {
+			public function __toString(): string {
+				throw new \LogicException( 'Not printable.' );
+			}
+		};
+		$erroring    = new class() implements \Stringable {
+			public function __toString(): string {
+				throw new \TypeError( 'Not a string.' );
 			}
 		};
 
@@ -86,12 +96,37 @@ final class FunctionsTest extends TestCase {
 			'array'        => array( 'data {data}', array( 'data' => array( 1 ) ), 'data {data}' ),
 			'plain-object' => array( 'data {data}', array( 'data' => new \stdClass() ), 'data {data}' ),
 			'missing-key'  => array( 'Hello {name}.', array(), 'Hello {name}.' ),
+			'unprintable'  => array( 'from {object}', array( 'object' => $unprintable ), 'from {object}' ),
+			'type-error'   => array( 'from {object}', array( 'object' => $erroring ), 'from {object}' ),
 		);
 	}
 
 	#[DataProvider( 'log_messages' )]
 	public function test_interpolate_log_message_replaces_only_printable_values( string $message, array $context, string $expected ): void {
 		self::assertSame( $expected, interpolate_log_message( $message, $context ) );
+	}
+
+	public function test_interpolate_log_message_casts_only_the_values_the_message_uses(): void {
+		$unused = new class() implements \Stringable {
+			public int $casts = 0;
+
+			public function __toString(): string {
+				++$this->casts;
+
+				return 'unused';
+			}
+		};
+
+		$message = interpolate_log_message(
+			'Hello {name}.',
+			array(
+				'name'   => 'world',
+				'unused' => $unused,
+			)
+		);
+
+		self::assertSame( 'Hello world.', $message );
+		self::assertSame( 0, $unused->casts );
 	}
 
 	public static function integers(): array {

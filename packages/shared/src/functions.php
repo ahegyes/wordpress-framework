@@ -39,6 +39,8 @@ function insert_after( array $items, int|string $key, array $insert ): array {
 /**
  * Replaces each {key} placeholder in a log message with its scalar, null or Stringable context value.
  *
+ * Only the values the message uses are cast, and a placeholder whose value throws while casting stays as it is, because PSR-3 forbids a context value from making logging fail.
+ *
  * @since   2.0.0
  * @version 2.0.0
  *
@@ -50,8 +52,15 @@ function insert_after( array $items, int|string $key, array $insert ): array {
 function interpolate_log_message( string $message, array $context ): string {
 	$replacements = array();
 	foreach ( $context as $key => $value ) {
-		if ( \is_null( $value ) || \is_scalar( $value ) || $value instanceof \Stringable ) {
-			$replacements[ '{' . $key . '}' ] = (string) $value;
+		$placeholder = '{' . $key . '}';
+		if ( ! \str_contains( $message, $placeholder ) || ! ( \is_null( $value ) || \is_scalar( $value ) || $value instanceof \Stringable ) ) {
+			continue;
+		}
+
+		try {
+			$replacements[ $placeholder ] = (string) $value;
+		} catch ( \Throwable ) {
+			continue;
 		}
 	}
 

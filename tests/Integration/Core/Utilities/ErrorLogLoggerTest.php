@@ -47,9 +47,9 @@ final class ErrorLogLoggerTest extends TestCase {
 	public function test_every_level_reaches_the_error_log_under_wp_debug( string $level ): void {
 		self::assertTrue( WP_DEBUG );
 
-		( new ErrorLogLogger() )->log( $level, 'Cache {name} is cold.', array( 'name' => 'acme' ) );
+		( new ErrorLogLogger( 'acme' ) )->log( $level, 'Cache {name} is cold.', array( 'name' => 'acme' ) );
 
-		self::assertStringContainsString( "[$level] Cache acme is cold.", (string) \file_get_contents( $this->log_file ) );
+		self::assertStringContainsString( "[acme.$level] Cache acme is cold.", (string) \file_get_contents( $this->log_file ) );
 	}
 
 	#[DataProvider( 'levels' )]
@@ -64,7 +64,7 @@ final class ErrorLogLoggerTest extends TestCase {
 			2
 		);
 
-		( new ErrorLogLogger() )->log( $level, 'Cache {name} is cold.', array( 'name' => 'acme' ) );
+		( new ErrorLogLogger( 'acme' ) )->log( $level, 'Cache {name} is cold.', array( 'name' => 'acme' ) );
 
 		self::assertSame( array( array( 'Cache {name} is cold.', array( 'name' => 'acme' ) ) ), $received );
 	}
@@ -72,7 +72,7 @@ final class ErrorLogLoggerTest extends TestCase {
 	public function test_an_exception_in_the_context_is_logged_with_its_class_location_and_trace(): void {
 		$exception = new \RuntimeException( 'Cache is cold.' );
 
-		( new ErrorLogLogger() )->error(
+		( new ErrorLogLogger( 'acme' ) )->error(
 			'Warm-up failed: {message}',
 			array(
 				'message'   => $exception->getMessage(),
@@ -81,7 +81,7 @@ final class ErrorLogLoggerTest extends TestCase {
 		);
 
 		$log = (string) \file_get_contents( $this->log_file );
-		self::assertStringContainsString( '[error] Warm-up failed: Cache is cold.', $log );
+		self::assertStringContainsString( '[acme.error] Warm-up failed: Cache is cold.', $log );
 		self::assertStringContainsString( 'RuntimeException: Cache is cold. in ' . __FILE__ . ':' . $exception->getLine(), $log );
 		self::assertStringContainsString( 'Stack trace:', $log );
 	}
@@ -89,13 +89,13 @@ final class ErrorLogLoggerTest extends TestCase {
 	public function test_a_previous_exception_is_logged_with_the_exception(): void {
 		$exception = new \RuntimeException( 'Warm-up failed.', 0, new \LogicException( 'Cache is cold.' ) );
 
-		( new ErrorLogLogger() )->error( 'Warm-up failed.', array( 'exception' => $exception ) );
+		( new ErrorLogLogger( 'acme' ) )->error( 'Warm-up failed.', array( 'exception' => $exception ) );
 
 		self::assertStringContainsString( 'LogicException: Cache is cold. in ' . __FILE__, (string) \file_get_contents( $this->log_file ) );
 	}
 
 	public function test_an_exception_context_value_that_is_not_a_throwable_is_ignored(): void {
-		( new ErrorLogLogger() )->error( 'Warm-up failed.', array( 'exception' => 'Cache is cold.' ) );
+		( new ErrorLogLogger( 'acme' ) )->error( 'Warm-up failed.', array( 'exception' => 'Cache is cold.' ) );
 
 		self::assertStringNotContainsString( 'Cache is cold.', (string) \file_get_contents( $this->log_file ) );
 	}
@@ -104,6 +104,6 @@ final class ErrorLogLoggerTest extends TestCase {
 		$this->expectException( PsrInvalidArgumentException::class );
 		$this->expectExceptionMessage( "Log level 'verbose' is not a PSR-3 level." );
 
-		( new ErrorLogLogger() )->log( 'verbose', 'Cache is cold.' );
+		( new ErrorLogLogger( 'acme' ) )->log( 'verbose', 'Cache is cold.' );
 	}
 }

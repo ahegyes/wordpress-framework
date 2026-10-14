@@ -68,6 +68,15 @@ final class PluginBoot {
 			$this->status = 'failed';
 			$this->log_failure( $exception );
 			\add_action( 'all_admin_notices', array( $this, 'render_failure_notice' ) );
+
+			/**
+			 * Fires when the plugin's composition throws, before the throwable is rethrown in local and development environments.
+			 *
+			 * @since   2.0.0
+			 * @version 2.0.0
+			 *
+			 * @param   \Throwable $exception The failure that stopped the composition.
+			 */
 			\do_action( "{$this->hook_prefix}_initialization_failure", $exception );
 			if ( \in_array( \wp_get_environment_type(), array( 'local', 'development' ), true ) ) {
 				throw $exception;
@@ -78,11 +87,25 @@ final class PluginBoot {
 
 		if ( ! $composed ) {
 			$this->status = 'blocked';
-			\do_action( "{$this->hook_prefix}_initialization_failure", null );
+
+			/**
+			 * Fires when the plugin's composition stops at an unmet requirement.
+			 *
+			 * @since   2.0.0
+			 * @version 2.0.0
+			 */
+			\do_action( "{$this->hook_prefix}_initialization_blocked" );
 			return;
 		}
 
 		$this->status = 'booted';
+
+		/**
+		 * Fires when the plugin's composition completed.
+		 *
+		 * @since   2.0.0
+		 * @version 2.0.0
+		 */
 		\do_action( "{$this->hook_prefix}_initialized" );
 	}
 
@@ -91,7 +114,7 @@ final class PluginBoot {
 	// region HOOKS
 
 	/**
-	 * Tells users who can activate plugins that the plugin could not start.
+	 * Tells users who can activate plugins that the plugin could not finish starting.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -104,7 +127,7 @@ final class PluginBoot {
 		\wp_admin_notice(
 			\sprintf(
 				/* translators: %s: The plugin's name. */
-				\esc_html__( '%s could not start, so its features are off. The error has been logged.', 'wp-framework' ),
+				\esc_html__( '%s could not finish starting, so its features may be unavailable. The error has been logged.', 'wp-framework' ),
 				\esc_html( \get_plugin_data( $this->plugin_file, false )['Name'] )
 			),
 			array( 'type' => 'error' )
@@ -116,7 +139,7 @@ final class PluginBoot {
 	// region HELPERS
 
 	/**
-	 * Logs each distinct failure message at most once an hour.
+	 * Logs each distinct failure message at most once an hour, through the PHP error log when the logger throws.
 	 *
 	 * A deterministic failure repeats on every request, so logging each one would flood the log.
 	 *
@@ -132,13 +155,18 @@ final class PluginBoot {
 		}
 
 		\set_transient( $key, 1, HOUR_IN_SECONDS );
-		$this->logger->error(
-			'Boot failed; the plugin is off: {message}',
-			array(
-				'message'   => $exception->getMessage(),
-				'exception' => $exception,
-			)
-		);
+		try {
+			$this->logger->error(
+				'Boot failed; the plugin did not finish starting: {message}',
+				array(
+					'message'   => $exception->getMessage(),
+					'exception' => $exception,
+				)
+			);
+		} catch ( \Throwable $logging_failure ) {
+			// A broken logger must neither hide the failure nor stop the notice and the failure action.
+			\error_log( "[$this->hook_prefix.error] Boot failed; the plugin did not finish starting: {$exception->getMessage()}\n$exception\nThe logger failed: $logging_failure" ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The injected logger failed.
+		}
 	}
 
 	// endregion
