@@ -85,12 +85,23 @@ final class PluginBootTest extends TestCase {
 	}
 
 	public function test_a_composition_that_reports_an_unmet_requirement_is_blocked(): void {
+		// The all hook receives an action's own arguments, before do_action() pads an argumentless call with an empty string.
+		$arguments = array();
+		\add_action(
+			'all',
+			static function ( string $hook_name, mixed ...$args ) use ( &$arguments ): void {
+				if ( 'acme_initialization_blocked' === $hook_name ) {
+					$arguments[] = $args;
+				}
+			}
+		);
 		$boot = $this->make_boot();
 
 		$boot->run( static fn (): bool => false );
 
 		self::assertSame( 'blocked', $boot->status );
 		self::assertSame( array( 'acme_initialization_blocked' ), $this->fired );
+		self::assertSame( array( array() ), $arguments );
 	}
 
 	public function test_a_failing_composition_fails_and_tells_only_plugin_activators(): void {
