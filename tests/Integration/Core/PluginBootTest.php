@@ -42,6 +42,7 @@ final class PluginBootTest extends TestCase {
 
 	#[\Override]
 	protected function setUp(): void {
+		$this->delete_failure_transients();
 		$this->logger = new RecordingLogger();
 		\add_action(
 			'acme_initialized',
@@ -70,9 +71,7 @@ final class PluginBootTest extends TestCase {
 
 	#[\Override]
 	protected function tearDown(): void {
-		foreach ( array( 'composition failed', 'first failure', 'second failure' ) as $message ) {
-			\delete_transient( 'acme_boot_failure_' . \md5( $message ) );
-		}
+		$this->delete_failure_transients();
 		\wp_set_current_user( 0 );
 	}
 
@@ -153,6 +152,13 @@ final class PluginBootTest extends TestCase {
 
 		\wp_set_current_user( $this->make_user( 'acme-boot-admin', 'administrator' ) );
 		self::assertStringContainsString( self::NOTICE, $this->render_admin_notices() );
+	}
+
+	// An interrupted run leaves its throttle transients behind, which silence the next run's logging for up to an hour.
+	protected function delete_failure_transients(): void {
+		foreach ( array( 'composition failed', 'first failure', 'second failure' ) as $message ) {
+			\delete_transient( 'acme_boot_failure_' . \md5( $message ) );
+		}
 	}
 
 	protected function make_boot(): PluginBoot {
