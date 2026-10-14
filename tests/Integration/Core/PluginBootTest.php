@@ -18,6 +18,13 @@ final class RecordingLogger extends PsrAbstractLogger {
 	}
 }
 
+final class ThrowingLogger extends PsrAbstractLogger {
+	#[\Override]
+	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
+		throw new \UnexpectedValueException( 'The log is not writable.' );
+	}
+}
+
 #[CoversClass( PluginBoot::class )]
 final class PluginBootTest extends TestCase {
 	use CreatesUsersTrait;
@@ -121,6 +128,31 @@ final class PluginBootTest extends TestCase {
 		}
 
 		self::assertSame( array( 'first failure', 'second failure' ), \array_map( static fn ( array $record ): string => $record[2]['message'], $this->logger->records ) );
+	}
+
+	public function test_a_failure_whose_logger_throws_still_reaches_the_error_log_and_is_announced(): void {
+		$failure  = new \RuntimeException( 'composition failed' );
+		$boot     = new PluginBoot( self::PLUGIN_FILE, 'acme', new ThrowingLogger() );
+		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
+		$previous = \ini_set( 'error_log', $log_file );
+
+		try {
+			$boot->run( static fn (): bool => throw $failure );
+			$log = (string) \file_get_contents( $log_file );
+		} finally {
+			\ini_set( 'error_log', (string) $previous );
+			\wp_delete_file( $log_file );
+		}
+
+		self::assertSame( 'failed', $boot->status );
+		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
+		self::assertSame( array( $failure ), $this->failures );
+		self::assertStringContainsString( '[acme.error] Boot failed; the plugin did not finish starting: composition failed', $log );
+		self::assertStringContainsString( 'RuntimeException: composition failed in ' . __FILE__ . ':' . $failure->getLine(), $log );
+		self::assertStringContainsString( 'UnexpectedValueException: The log is not writable.', $log );
+
+		\wp_set_current_user( $this->make_user( 'acme-boot-admin', 'administrator' ) );
+		self::assertStringContainsString( self::NOTICE, $this->render_admin_notices() );
 	}
 
 	protected function make_boot(): PluginBoot {
