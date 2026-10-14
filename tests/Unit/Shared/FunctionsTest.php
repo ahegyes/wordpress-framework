@@ -80,6 +80,11 @@ final class FunctionsTest extends TestCase {
 				throw new \LogicException( 'Not printable.' );
 			}
 		};
+		$erroring    = new class() implements \Stringable {
+			public function __toString(): string {
+				throw new \TypeError( 'Not a string.' );
+			}
+		};
 
 		return array(
 			'string'       => array( 'Hello {name}.', array( 'name' => 'world' ), 'Hello world.' ),
@@ -92,6 +97,7 @@ final class FunctionsTest extends TestCase {
 			'plain-object' => array( 'data {data}', array( 'data' => new \stdClass() ), 'data {data}' ),
 			'missing-key'  => array( 'Hello {name}.', array(), 'Hello {name}.' ),
 			'unprintable'  => array( 'from {object}', array( 'object' => $unprintable ), 'from {object}' ),
+			'type-error'   => array( 'from {object}', array( 'object' => $erroring ), 'from {object}' ),
 		);
 	}
 

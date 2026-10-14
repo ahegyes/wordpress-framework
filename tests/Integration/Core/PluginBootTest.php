@@ -6,6 +6,7 @@ use DeepWebSolutions\Framework\PluginBoot;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger as PsrAbstractLogger;
 
@@ -19,9 +20,13 @@ final class RecordingLogger extends PsrAbstractLogger {
 }
 
 final class ThrowingLogger extends PsrAbstractLogger {
+	public function __construct(
+		protected \Throwable $failure
+	) {}
+
 	#[\Override]
 	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
-		throw new \UnexpectedValueException( 'The log is not writable.' );
+		throw $this->failure;
 	}
 }
 
@@ -140,9 +145,17 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( array( 'first failure', 'second failure' ), \array_map( static fn ( array $record ): string => $record[2]['message'], $this->logger->records ) );
 	}
 
-	public function test_a_failure_whose_logger_throws_still_reaches_the_error_log_and_is_announced(): void {
+	public static function logging_failures(): array {
+		return array(
+			'exception' => array( new \UnexpectedValueException( 'The log is not writable.' ) ),
+			'error'     => array( new \TypeError( 'The log handler is misconfigured.' ) ),
+		);
+	}
+
+	#[DataProvider( 'logging_failures' )]
+	public function test_a_failure_whose_logger_throws_still_reaches_the_error_log_and_is_announced( \Throwable $logging_failure ): void {
 		$failure  = new \RuntimeException( 'composition failed' );
-		$boot     = new PluginBoot( self::PLUGIN_FILE, 'acme', new ThrowingLogger() );
+		$boot     = new PluginBoot( self::PLUGIN_FILE, 'acme', new ThrowingLogger( $logging_failure ) );
 		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
 		$previous = \ini_set( 'error_log', $log_file );
 
@@ -159,7 +172,7 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( array( $failure ), $this->failures );
 		self::assertStringContainsString( '[acme.error] Boot failed; the plugin did not finish starting: composition failed', $log );
 		self::assertStringContainsString( 'RuntimeException: composition failed in ' . __FILE__ . ':' . $failure->getLine(), $log );
-		self::assertStringContainsString( 'UnexpectedValueException: The log is not writable.', $log );
+		self::assertStringContainsString( $logging_failure::class . ': ' . $logging_failure->getMessage(), $log );
 
 		\wp_set_current_user( $this->make_user( 'acme-boot-admin', 'administrator' ) );
 		self::assertStringContainsString( self::NOTICE, $this->render_admin_notices() );
