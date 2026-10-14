@@ -58,13 +58,14 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 		$failure = new \RuntimeException( 'composition failed' );
 		$boot    = new PluginBoot( __DIR__ . '/../../Fixtures/Core/acme-boot.php', 'acme', new PsrNullLogger() );
 
+		$caught = null;
 		try {
 			$boot->run( static fn (): bool => throw $failure );
-			self::fail( 'The failure was not rethrown.' );
-		} catch ( \RuntimeException $caught ) {
-			self::assertSame( $failure, $caught );
+		} catch ( \RuntimeException $exception ) {
+			$caught = $exception;
 		}
 
+		self::assertSame( $failure, $caught, 'The failure was not rethrown.' );
 		self::assertSame( 'failed', $boot->status );
 		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
 		self::assertSame( array( $failure ), $this->failures );
