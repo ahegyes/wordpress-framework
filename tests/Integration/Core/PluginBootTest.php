@@ -25,7 +25,7 @@ final class PluginBootTest extends TestCase {
 
 	protected const string PLUGIN_FILE = __DIR__ . '/../../Fixtures/Core/acme-boot.php';
 
-	protected const string NOTICE = 'Acme Boot could not start, so its features are off. The error has been logged.';
+	protected const string NOTICE = 'Acme Boot could not finish starting, so its features may be unavailable. The error has been logged.';
 
 	protected RecordingLogger $logger;
 
@@ -111,6 +111,7 @@ final class PluginBootTest extends TestCase {
 
 		self::assertCount( 1, $this->logger->records );
 		self::assertSame( 'error', $this->logger->records[0][0] );
+		self::assertSame( 'Boot failed; the plugin did not finish starting: {message}', $this->logger->records[0][1] );
 		self::assertSame( 'first failure', $this->logger->records[0][2]['message'] );
 	}
 
