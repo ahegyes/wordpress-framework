@@ -41,7 +41,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 		);
 		\add_action(
 			'acme_initialization_failure',
-			function ( ?\Throwable $failure ): void {
+			function ( \Throwable $failure ): void {
 				$this->fired[]    = 'acme_initialization_failure';
 				$this->failures[] = $failure;
 			}

@@ -45,8 +45,16 @@ final class PluginBootTest extends TestCase {
 			0
 		);
 		\add_action(
+			'acme_initialization_blocked',
+			function (): void {
+				$this->fired[] = 'acme_initialization_blocked';
+			},
+			10,
+			0
+		);
+		\add_action(
 			'acme_initialization_failure',
-			function ( ?\Throwable $failure ): void {
+			function ( \Throwable $failure ): void {
 				$this->fired[]    = 'acme_initialization_failure';
 				$this->failures[] = $failure;
 			}
@@ -76,8 +84,7 @@ final class PluginBootTest extends TestCase {
 		$boot->run( static fn (): bool => false );
 
 		self::assertSame( 'blocked', $boot->status );
-		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
-		self::assertSame( array( null ), $this->failures );
+		self::assertSame( array( 'acme_initialization_blocked' ), $this->fired );
 	}
 
 	public function test_a_failing_composition_fails_and_tells_only_plugin_activators(): void {
