@@ -134,6 +134,17 @@ final class SchedulerTest extends TestCase {
 		$hook      = new ScheduledHook( $this->hook );
 		$scheduler->enqueue( $hook );
 		$running = $this->pending_action_ids();
+		$unique  = array();
+		\add_filter(
+			'pre_as_schedule_single_action',
+			static function ( mixed $pre, int $timestamp, string $name, array $args, string $group, int $priority, bool $is_unique ) use ( &$unique ): mixed {
+				$unique[] = $is_unique;
+
+				return $pre;
+			},
+			10,
+			7
+		);
 		\add_action(
 			$this->hook,
 			function () use ( $scheduler, $hook ): void {
@@ -144,6 +155,7 @@ final class SchedulerTest extends TestCase {
 		self::assertSame( 1, $this->run_due_actions() );
 
 		self::assertSame( array( true ), $this->calls );
+		self::assertSame( array( false ), $unique, 'Action Scheduler data stores differ on whether a running action refuses a unique insert.' );
 		$pending = $this->pending_action_ids();
 		self::assertCount( 1, $pending );
 		self::assertNotSame( $running, $pending );
