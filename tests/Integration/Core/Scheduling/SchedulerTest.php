@@ -44,6 +44,12 @@ final class SchedulerTest extends TestCase {
 				$this->writes[] = "stored $action_id";
 			}
 		);
+		\add_action(
+			'action_scheduler_canceled_action',
+			function ( int $action_id ): void {
+				$this->writes[] = "canceled $action_id";
+			}
+		);
 		\add_filter(
 			'pre_update_option_cron',
 			function ( mixed $value, mixed $old_value ): mixed {
@@ -260,7 +266,10 @@ final class SchedulerTest extends TestCase {
 		$scheduler->schedule_at( $hook, \time() + 7200 );
 
 		self::assertTrue( $scheduler->ensure_recurring( $hook, Recurrence::every( 3600 ) ) );
+		$this->writes = array();
+		self::assertTrue( $scheduler->ensure_recurring( $hook, Recurrence::every( 3600 ) ) );
 
+		self::assertSame( array(), $this->writes );
 		if ( 'production' === $kind ) {
 			$recurring = \array_filter( $this->pending_action_ids(), static fn ( int $action_id ): bool => \ActionScheduler::store()->fetch_action( $action_id )->get_schedule()->is_recurring() );
 			self::assertCount( 2, $this->pending_action_ids() );
@@ -292,6 +301,13 @@ final class SchedulerTest extends TestCase {
 		self::assertTrue( $scheduler->ensure_recurring( $hook, Recurrence::every( 7200 ) ) );
 
 		self::assertSame( array(), $this->writes );
+		if ( 'production' === $kind ) {
+			$pending = $this->pending_action_ids();
+			self::assertCount( 1, $pending );
+			self::assertSame( 3600, \ActionScheduler::store()->fetch_action( $pending[0] )->get_schedule()->get_recurrence() );
+		} else {
+			self::assertSame( array( 3600 ), \array_map( static fn ( array $event ): int => $event[1]['interval'], $this->cron_events() ) );
+		}
 	}
 
 	public function test_ensuring_with_a_chain_on_each_scheduler_leaves_one_on_action_scheduler(): void {
@@ -396,6 +412,19 @@ final class SchedulerTest extends TestCase {
 		$result = $this->make_scheduler( 'production' )->ensure_recurring( $hook, Recurrence::every( 3600 ) );
 
 		self::assert_wp_error( $result, 'acme_clear_failed' );
+		self::assertSame( array(), \array_filter( $this->writes, static fn ( string $write ): bool => \str_starts_with( $write, 'stored' ) ) );
+	}
+
+	public function test_a_clear_that_leaves_a_chain_stops_collapsing_duplicate_chains(): void {
+		$hook = new ScheduledHook( $this->hook );
+		$this->make_scheduler( 'wp-cron' )->ensure_recurring( $hook, Recurrence::every( 3600 ) );
+		\as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
+		\add_filter( 'pre_clear_scheduled_hook', '__return_zero' );
+		$this->writes = array();
+
+		$result = $this->make_scheduler( 'production' )->ensure_recurring( $hook, Recurrence::every( 3600 ) );
+
+		self::assert_wp_error( $result, 'scheduler_failed' );
 		self::assertSame( array(), \array_filter( $this->writes, static fn ( string $write ): bool => \str_starts_with( $write, 'stored' ) ) );
 	}
 
