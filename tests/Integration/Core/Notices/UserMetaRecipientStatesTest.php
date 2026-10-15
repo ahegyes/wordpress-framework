@@ -121,6 +121,35 @@ final class UserMetaRecipientStatesTest extends TestCase {
 		self::assertSame( RecipientState::Dismissed, ( new UserMetaRecipientStates( $this->prefix ) )->get( $identity, $this->user_id ) );
 	}
 
+	public function test_a_record_racing_another_keeps_its_row_when_it_equals_a_row_the_other_deletes(): void {
+		$identity = $this->identity( NoticeScope::Site, 'one', 1 );
+		$key      = $GLOBALS['wpdb']->get_blog_prefix() . "{$this->prefix}_notice_states";
+		\add_user_meta(
+			$this->user_id,
+			$key,
+			array(
+				'v'     => 1,
+				'key'   => $identity->to_key(),
+				'state' => 'dismissed',
+				'at'    => \time(),
+			)
+		);
+		$racing = false;
+		\add_action(
+			'added_user_meta',
+			function () use ( $identity, &$racing ): void {
+				if ( ! $racing ) {
+					$racing = true;
+					( new UserMetaRecipientStates( $this->prefix ) )->record( $identity, $this->user_id, RecipientState::Dismissed );
+				}
+			}
+		);
+
+		( new UserMetaRecipientStates( $this->prefix ) )->record( $identity, $this->user_id, RecipientState::Delivered );
+
+		self::assertSame( RecipientState::Dismissed, ( new UserMetaRecipientStates( $this->prefix ) )->get( $identity, $this->user_id ) );
+	}
+
 	public function test_of_two_rows_for_one_identity_the_later_is_read(): void {
 		$identity = $this->identity( NoticeScope::Site, 'one', 1 );
 		foreach ( array( 'dismissed', 'delivered' ) as $state ) {

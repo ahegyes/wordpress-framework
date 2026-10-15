@@ -12,6 +12,7 @@ use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -23,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 final class UserNoticeStoreTest extends TestCase {
 	use CreatesSitesTrait;
 	use CreatesUsersTrait;
+	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 
@@ -74,6 +76,20 @@ final class UserNoticeStoreTest extends TestCase {
 			self::fail( 'The failed insert did not throw.' );
 		} catch ( RuntimeException ) {
 			self::assertEquals( $previous, ( new UserNoticeStore( $this->prefix ) )->find( 'one', $this->context ) );
+		}
+	}
+
+	public function test_a_failed_delete_throws_and_keeps_the_notice(): void {
+		$store    = new UserNoticeStore( $this->prefix );
+		$observed = $store->save( new Notice( 'one', 'One.' ), $this->context );
+		$this->fail_queries( 'DELETE FROM' );
+
+		try {
+			$store->consume( $observed );
+			self::fail( 'The failed delete did not throw.' );
+		} catch ( RuntimeException ) {
+			\remove_all_filters( 'query' );
+			self::assertEquals( $observed, $store->find( 'one', $this->context ) );
 		}
 	}
 
