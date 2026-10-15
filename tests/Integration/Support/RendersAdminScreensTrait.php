@@ -5,7 +5,6 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 use PHPUnit\Framework\Attributes\After;
 
 trait RendersAdminScreensTrait {
-	// Sets the viewer and the admin screen, which admin.php does before any notice renders.
 	protected function view_as( int $user_id, string $screen_id = 'dashboard', bool $block_editor = false ): void {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
@@ -15,7 +14,6 @@ trait RendersAdminScreensTrait {
 		\get_current_screen()?->is_block_editor( $block_editor );
 	}
 
-	// Returns the attributes of each admin notice in the markup, in order, keyed by the notice's DOM id.
 	protected static function notices_in( string $html ): array {
 		$notices = array();
 		$tags    = new \WP_HTML_Tag_Processor( $html );

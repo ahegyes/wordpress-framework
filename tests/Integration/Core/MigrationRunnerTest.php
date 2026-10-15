@@ -94,7 +94,7 @@ final class MigrationRunnerTest extends TestCase {
 		$this->option = 'acme_db_' . \bin2hex( \random_bytes( 4 ) );
 		$this->logger = new MigrationLogger();
 
-		// The runner pauses once memory passes 90% of the limit, so rows that count steps must not depend on how much the test process already holds.
+		// The runner pauses past 90% of memory_limit, so step counts must not depend on what the test process already holds.
 		$this->memory_limit = (string) \ini_get( 'memory_limit' );
 		\ini_set( 'memory_limit', '-1' );
 	}

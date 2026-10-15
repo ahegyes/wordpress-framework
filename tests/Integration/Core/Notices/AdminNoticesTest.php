@@ -431,7 +431,7 @@ final class AdminNoticesTest extends TestCase {
 		return new AdminNotices( $this->prefix, $this->logger );
 	}
 
-	// Renders what one admin request shows the user, through a fresh instance unless the request's own is given.
+	// A fresh instance stands for the next request.
 	protected function render( int $user_id, ?AdminNotices $notices = null, string $screen = 'dashboard', bool $block_editor = false ): string {
 		$this->view_as( $user_id, $screen, $block_editor );
 		\ob_start();

@@ -61,7 +61,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 		$this->saved_request = array( $_SERVER, $_POST, $_COOKIE ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Saves the request globals the HTTP-path test replaces.
 
-		// A server built with only this component's hooks holds just its route, not every core and WooCommerce controller.
+		// A server holding only this route keeps every core and WooCommerce controller out of the run's memory.
 		\remove_all_actions( 'rest_api_init' );
 		$this->notices->register_hooks();
 		$GLOBALS['wp_rest_server'] = null;
@@ -314,7 +314,6 @@ final class AdminNoticesDismissalTest extends TestCase {
 		return new Notice( $id, "Notice $id.", ...$arguments );
 	}
 
-	// Renders the notices as the user and returns the ticket of the given one, as the dismiss script would read it.
 	protected function ticket( int $user_id, string $scope, string $id ): string {
 		return $this->render( $user_id )[ $this->dom_id( $scope, $id ) ]['data-notice-ticket'];
 	}
@@ -334,7 +333,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		return \rest_do_request( $request );
 	}
 
-	// Serves the request as WordPress serves an HTTP request: the user comes from the logged-in cookie, and the REST nonce from the header.
+	// The REST nonce is checked only when the login cookie, not the test, sets the user.
 	protected function serve( array $params, ?string $nonce ): array {
 		$GLOBALS['current_screen']      = null;
 		$GLOBALS['current_user']        = null;
