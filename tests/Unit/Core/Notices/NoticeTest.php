@@ -27,7 +27,6 @@ final class NoticeTest extends TestCase {
 				'capability'  => null,
 				'screens'     => array(),
 				'expires_at'  => null,
-				'revision'    => 1,
 			),
 			$notice->to_array()
 		);
@@ -35,7 +34,7 @@ final class NoticeTest extends TestCase {
 
 	public static function valid_notices(): array {
 		return array(
-			'every-field-set'      => array( new Notice( 'acme-sync_failed', "Can't \\ \"sync\"", NoticeType::Warning, NoticeScope::Network, true, false, 'manage_network_options', array( 'plugins', 'dashboard-network' ), 1_900_000_000, 7 ) ),
+			'every-field-set'      => array( new Notice( 'acme-sync_failed', "Can't \\ \"sync\"", NoticeType::Warning, NoticeScope::Network, true, false, 'manage_network_options', array( 'plugins', 'dashboard-network' ), 1_900_000_000 ) ),
 			'request-scope'        => array( new Notice( 'a', 'Hi', NoticeType::Info, NoticeScope::Request ) ),
 			'site-scope'           => array( new Notice( 'a', 'Hi', NoticeType::Success, NoticeScope::Site, capability: 'manage_options' ) ),
 			'user-with-capability' => array( new Notice( 'a', 'Hi', capability: 'edit_posts' ) ),
@@ -68,7 +67,6 @@ final class NoticeTest extends TestCase {
 			'empty-screen'               => array( static fn (): Notice => new Notice( 'a', 'Hi', screens: array( '' ) ) ),
 			'expiry-zero'                => array( static fn (): Notice => new Notice( 'a', 'Hi', expires_at: 0 ) ),
 			'expiry-negative'            => array( static fn (): Notice => new Notice( 'a', 'Hi', expires_at: -1 ) ),
-			'revision-zero'              => array( static fn (): Notice => new Notice( 'a', 'Hi', revision: 0 ) ),
 		);
 	}
 
@@ -120,9 +118,6 @@ final class NoticeTest extends TestCase {
 			'expiry-zero'                 => array( array( 'expires_at' => 0 ) + $row ),
 			'expiry-as-a-string'          => array( array( 'expires_at' => '1900000000' ) + $row ),
 			'expiry-as-a-float'           => array( array( 'expires_at' => 1.9e9 ) + $row ),
-			'revision-zero'               => array( array( 'revision' => 0 ) + $row ),
-			'revision-as-a-string'        => array( array( 'revision' => '2' ) + $row ),
-			'revision-null'               => array( array( 'revision' => null ) + $row ),
 			'persistence-null'            => array( array( 'persistent' => null ) + $row ),
 			'dismissibility-as-an-object' => array( array( 'dismissible' => new \stdClass() ) + $row ),
 		);

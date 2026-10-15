@@ -265,8 +265,8 @@ final class AdminNoticesTest extends TestCase {
 		$calls = array();
 		\add_filter(
 			"{$this->prefix}_notice_visible",
-			static function ( mixed $visible, string $id, string $scope, int $revision ) use ( &$calls ): mixed {
-				$calls[] = array( $visible, $id, $scope, $revision );
+			static function ( mixed $visible, string $id, string $scope ) use ( &$calls ): mixed {
+				$calls[] = array( $visible, $id, $scope );
 				return match ( $id ) {
 					'hidden' => false,
 					'truthy' => 1,
@@ -274,15 +274,15 @@ final class AdminNoticesTest extends TestCase {
 				};
 			},
 			10,
-			4
+			3
 		);
 		$notices = $this->notices();
 		foreach ( array( 'hidden', 'truthy', 'shown' ) as $id ) {
-			$notices->add( $this->notice( $id, revision: 3 ), $this->admin );
+			$notices->add( $this->notice( $id ), $this->admin );
 		}
 
 		self::assertSame( array( $this->dom_id( 'user', 'shown' ) ), \array_keys( self::notices_in( $this->render( $this->admin, $notices ) ) ) );
-		self::assertSame( array( true, 'hidden', 'user', 3 ), $calls[0] );
+		self::assertSame( array( true, 'hidden', 'user' ), $calls[0] );
 		self::assertSame( array( 'hidden', 'truthy' ), self::ids( $notices->get_notices( NoticeScope::User, $this->admin ) ) );
 	}
 
@@ -290,15 +290,15 @@ final class AdminNoticesTest extends TestCase {
 		$calls = array();
 		\add_filter(
 			"{$this->prefix}_notice_message",
-			static function ( string $message, string $id, string $scope, int $revision ) use ( &$calls ): ?string {
-				$calls[] = array( $message, $id, $scope, $revision );
+			static function ( string $message, string $id, string $scope ) use ( &$calls ): ?string {
+				$calls[] = array( $message, $id, $scope );
 				return 'kept' === $id ? null : 'Translated.';
 			},
 			10,
-			4
+			3
 		);
 		$notices = $this->notices();
-		$notices->add( $this->notice( 'changed', NoticeScope::Request, message: 'Original.', revision: 2 ) );
+		$notices->add( $this->notice( 'changed', NoticeScope::Request, message: 'Original.' ) );
 		$notices->add( $this->notice( 'kept', NoticeScope::Request, message: 'Kept.' ) );
 
 		$html = $this->render( $this->admin, $notices );
@@ -306,13 +306,13 @@ final class AdminNoticesTest extends TestCase {
 		self::assertStringContainsString( '<p>Translated.</p>', $html );
 		self::assertStringNotContainsString( 'Original.', $html );
 		self::assertStringContainsString( '<p>Kept.</p>', $html );
-		self::assertSame( array( 'Original.', 'changed', 'request', 2 ), $calls[0] );
+		self::assertSame( array( 'Original.', 'changed', 'request' ), $calls[0] );
 	}
 
 	public function test_the_markup_names_each_scopes_notice_apart_and_tickets_only_persistent_dismissible_notices(): void {
 		\wp_set_current_user( $this->admin );
 		$notices = $this->notices();
-		$notices->add( $this->notice( 'x', NoticeScope::Request, type: NoticeType::Warning, persistent: true, revision: 4 ) );
+		$notices->add( $this->notice( 'x', NoticeScope::Request, type: NoticeType::Warning, persistent: true ) );
 		$notices->add( $this->notice( 'x', NoticeScope::Site, persistent: true, dismissible: false ) );
 		$notices->add( $this->notice( 'once' ) );
 
@@ -321,8 +321,8 @@ final class AdminNoticesTest extends TestCase {
 		self::assertSame( array( $this->dom_id( 'site', 'x' ), $this->dom_id( 'user', 'once' ), $this->dom_id( 'request', 'x' ) ), \array_keys( $shown ) );
 		$request = $shown[ $this->dom_id( 'request', 'x' ) ];
 		self::assertSame( 'notice notice-warning is-dismissible', $request['class'] );
-		self::assertSame( array( $this->prefix, 'request', 'x', '4' ), array( $request['data-notices'], $request['data-notice-scope'], $request['data-notice-id'], $request['data-notice-revision'] ) );
-		self::assertSame( 1, \wp_verify_nonce( $request['data-notice-ticket'], "{$this->prefix}_dismiss|request:0:x@4" ) );
+		self::assertSame( array( $this->prefix, 'request', 'x' ), array( $request['data-notices'], $request['data-notice-scope'], $request['data-notice-id'] ) );
+		self::assertSame( 1, \wp_verify_nonce( $request['data-notice-ticket'], "{$this->prefix}_dismiss|request:0:x" ) );
 		self::assertSame( 'notice notice-error', $shown[ $this->dom_id( 'site', 'x' ) ]['class'] );
 		self::assertArrayNotHasKey( 'data-notice-ticket', $shown[ $this->dom_id( 'site', 'x' ) ] );
 		self::assertSame( 'notice notice-error is-dismissible', $shown[ $this->dom_id( 'user', 'once' ) ]['class'] );
@@ -459,7 +459,7 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	protected static function identity( StoredNotice $record ): NoticeIdentity {
-		return new NoticeIdentity( $record->context, $record->notice->id, $record->notice->revision );
+		return new NoticeIdentity( $record->context, $record->notice->id );
 	}
 
 	protected static function ids( array $records ): array {
