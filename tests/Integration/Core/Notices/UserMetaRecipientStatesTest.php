@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Notices;
 
-use DeepWebSolutions\Framework\Notices\Internal\UserMetaRecipientStates;
+use DeepWebSolutions\Framework\Notices\Stores\UserMetaRecipientStates;
 use DeepWebSolutions\Framework\Notices\NoticeContext;
 use DeepWebSolutions\Framework\Notices\NoticeIdentity;
 use DeepWebSolutions\Framework\Notices\NoticeScope;

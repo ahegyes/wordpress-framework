@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Notices;
 
-use DeepWebSolutions\Framework\Notices\Internal\NoticeRecords;
-use DeepWebSolutions\Framework\Notices\Internal\OptionNoticeStore;
+use DeepWebSolutions\Framework\Notices\Stores\NoticeRecords;
+use DeepWebSolutions\Framework\Notices\Stores\OptionNoticeStore;
 use DeepWebSolutions\Framework\Notices\Notice;
 use DeepWebSolutions\Framework\Notices\NoticeContext;
 use DeepWebSolutions\Framework\Notices\NoticeScope;
