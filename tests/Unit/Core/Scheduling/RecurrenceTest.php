@@ -9,13 +9,13 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( Recurrence::class )]
 final class RecurrenceTest extends TestCase {
-	public function test_every_keeps_an_interval_of_a_minute_or_more(): void {
-		self::assertSame( 60, Recurrence::every( 60 )->seconds );
+	public function test_from_interval_keeps_an_interval_of_a_minute_or_more(): void {
+		self::assertSame( 60, Recurrence::from_interval( 60 )->interval );
 	}
 
-	public function test_every_rejects_an_interval_under_a_minute(): void {
+	public function test_from_interval_rejects_an_interval_under_a_minute(): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		Recurrence::every( 59 );
+		Recurrence::from_interval( 59 );
 	}
 }

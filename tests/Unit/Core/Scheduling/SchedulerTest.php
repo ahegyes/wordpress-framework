@@ -48,8 +48,8 @@ final class SchedulerTest extends TestCase {
 	public static function out_of_range_priorities(): array {
 		$writes = array(
 			'enqueue'          => static fn ( Scheduler $scheduler, ScheduledHook $hook, int $priority ): mixed => $scheduler->enqueue( $hook, $priority ),
-			'schedule-at'      => static fn ( Scheduler $scheduler, ScheduledHook $hook, int $priority ): mixed => $scheduler->schedule_at( $hook, 1, $priority ),
-			'ensure-recurring' => static fn ( Scheduler $scheduler, ScheduledHook $hook, int $priority ): mixed => $scheduler->ensure_recurring( $hook, Recurrence::every( 60 ), $priority ),
+			'schedule-single'  => static fn ( Scheduler $scheduler, ScheduledHook $hook, int $priority ): mixed => $scheduler->schedule_single( $hook, 1, $priority ),
+			'ensure-recurring' => static fn ( Scheduler $scheduler, ScheduledHook $hook, int $priority ): mixed => $scheduler->ensure_recurring( $hook, Recurrence::from_interval( 60 ), $priority ),
 		);
 
 		$cases = array();
@@ -71,12 +71,12 @@ final class SchedulerTest extends TestCase {
 	public function test_a_timestamp_below_1_is_rejected(): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		( new Scheduler( 'acme' ) )->schedule_at( new ScheduledHook( 'acme_sweep' ), 0 );
+		( new Scheduler( 'acme' ) )->schedule_single( new ScheduledHook( 'acme_sweep' ), 0 );
 	}
 
-	public function test_unscheduling_all_rejects_an_empty_hook_name(): void {
+	public function test_unscheduling_a_hook_rejects_an_empty_hook_name(): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		( new Scheduler( 'acme' ) )->unschedule_all( '' );
+		( new Scheduler( 'acme' ) )->unschedule_hook( '' );
 	}
 }
