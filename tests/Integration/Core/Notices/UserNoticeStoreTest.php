@@ -98,6 +98,20 @@ final class UserNoticeStoreTest extends TestCase {
 		self::assertSame( array( NoticeRecords::encode( $newer ) ), $this->rows( $key ) );
 	}
 
+	#[DataProvider( 'row_orders' )]
+	public function test_when_the_newer_of_two_rows_has_expired_neither_shows_and_both_are_deleted( bool $newer_first ): void {
+		global $wpdb;
+		$key   = $wpdb->get_blog_prefix() . "{$this->prefix}_notices";
+		$older = new StoredNotice( new Notice( 'one', 'Older.' ), $this->context, 1_000, 'gen-older' );
+		$newer = new StoredNotice( new Notice( 'one', 'Newer.', expires_at: \time() - 1 ), $this->context, 2_000, 'gen-newer' );
+		foreach ( $newer_first ? array( $newer, $older ) : array( $older, $newer ) as $record ) {
+			\add_user_meta( $this->user_id, $key, NoticeRecords::encode( $record ) );
+		}
+
+		self::assertSame( array(), ( new UserNoticeStore( $this->prefix ) )->all( $this->context ) );
+		self::assertSame( array(), $this->rows( $key ) );
+	}
+
 	public function test_rows_that_are_not_valid_user_notices_are_skipped_and_kept(): void {
 		global $wpdb;
 		$key   = $wpdb->get_blog_prefix() . "{$this->prefix}_notices";
