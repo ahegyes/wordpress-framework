@@ -290,6 +290,7 @@ final class MigrationRunnerTest extends TestCase {
 		return array(
 			'letters'  => array( 'abc' ),
 			'negative' => array( '-1' ),
+			'empty'    => array( '' ),
 		);
 	}
 
@@ -478,6 +479,16 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
 	}
 
+	public function test_a_revision_above_the_code_is_left_alone_while_another_run_holds_the_lock(): void {
+		\update_option( $this->option, 3 );
+		$this->insert_lock( \time() - 5 );
+
+		$this->make_runner( array( $this->step( 1 ), $this->step( 2 ) ) )->run();
+
+		self::assertSame( 3, MigrationRunner::get_revision( $this->option ) );
+		self::assertSame( array(), $this->logger->records );
+	}
+
 	public function test_the_high_water_mark_records_the_highest_revision_reached(): void {
 		$this->make_runner( array( $this->step( 1 ), $this->step( 2 ) ) )->run();
 		self::assertSame( 2, \get_option( "{$this->option}_high_water" ) );
@@ -557,6 +568,33 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertStringContainsString( 'Data migration failed: Step failed with a broken logger.', $log );
 		self::assertStringContainsString( 'The log is not writable.', $log );
 		self::assertIsArray( \get_option( "{$this->option}_error" ) );
+	}
+
+	public function test_a_warning_whose_logger_throws_reaches_the_error_log_without_breaking_the_request(): void {
+		global $wpdb;
+
+		\add_filter(
+			'query',
+			function ( string $query ): string {
+				return \str_starts_with( \trim( $query ), 'INSERT IGNORE' ) && \str_contains( $query, "{$this->option}_lock" ) ? 'INSERT IGNORE INTO acme_missing_table (option_name) VALUES (1)' : $query;
+			}
+		);
+		$suppressed = $wpdb->suppress_errors();
+		$log_file   = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
+		$previous   = \ini_set( 'error_log', $log_file );
+
+		try {
+			$this->make_runner( array( $this->step( 1 ) ), null, null, new FailingMigrationLogger() )->run();
+			$log = (string) \file_get_contents( $log_file );
+		} finally {
+			\ini_set( 'error_log', (string) $previous );
+			\wp_delete_file( $log_file );
+			$wpdb->suppress_errors( $suppressed );
+		}
+
+		self::assertStringContainsString( "[{$this->option}.warning] Could not take the data migration lock: ", $log );
+		self::assertStringContainsString( 'The log is not writable.', $log );
+		self::assertSame( array(), $this->ran );
 	}
 
 	public function test_a_missing_database_handle_fails_at_construction(): void {
@@ -676,22 +714,46 @@ final class MigrationRunnerTest extends TestCase {
 
 		self::assertSame( 1, $batches->processed );
 		self::assertSame( (string) $later->now->getTimestamp(), $this->get_lock() );
+		self::assertSame( 'The takeover keeps its lock.', \get_option( "{$this->option}_error" )['message'] );
 	}
 
-	public function test_the_runtime_cache_is_flushed_between_batches(): void {
-		$cached  = array();
-		$batches = new RecordedBatches(
-			2,
-			static function ( int $processed ) use ( &$cached ): void {
-				$cached[] = \wp_cache_get( 'acme_batch', 'acme' );
-				\wp_cache_set( 'acme_batch', $processed, 'acme' );
-			}
+	public function test_a_run_that_fails_after_its_lock_was_taken_over_leaves_the_new_error(): void {
+		$later    = new SettableClock( new \DateTimeImmutable( '@' . ( \time() + 700 ) ) );
+		$takeover = $this->make_runner(
+			array(
+				static function (): void {
+					throw new \RuntimeException( 'The takeover failed.' );
+				},
+			),
+			null,
+			$later
 		);
-		$this->make_runner( array( $batches ) )->register_hooks();
+		$runner   = $this->make_runner(
+			array(
+				static function () use ( $takeover ): void {
+					$takeover->run();
+					throw new \RuntimeException( 'The first run failed late.' );
+				},
+			)
+		);
+
+		$runner->run();
+
+		self::assertSame( 'The takeover failed.', \get_option( "{$this->option}_error" )['message'] );
+		self::assertContains( 'The first run failed late.', \array_column( \array_column( $this->logger->records, 2 ), 'message' ) );
+	}
+
+	public function test_the_runtime_cache_is_flushed_after_every_batch(): void {
+		$cached = array();
+		$batch  = static function ( int $processed ) use ( &$cached ): void {
+			$cached[] = \wp_cache_get( 'acme_batch', 'acme' );
+			\wp_cache_set( 'acme_batch', $processed, 'acme' );
+		};
+		$this->make_runner( array( new RecordedBatches( 2, $batch ), new RecordedBatches( 1, $batch ) ) )->register_hooks();
 
 		\do_action( "{$this->option}_run" );
 
-		self::assertSame( array( false, false ), $cached );
+		self::assertSame( array( false, false, false ), $cached );
 	}
 
 	public function test_a_failed_continuation_is_logged_as_a_warning(): void {
@@ -928,14 +990,22 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertStringNotContainsString( self::PROGRESS_NOTICE, $notices );
 	}
 
-	public function test_run_now_runs_the_runner_hook_and_returns_to_the_referring_page(): void {
+	public static function referers(): array {
+		return array(
+			'admin-page' => array( 'plugins.php', 'plugins.php' ),
+			'other-host' => array( 'https://example.org/wp-admin/', '' ),
+		);
+	}
+
+	#[DataProvider( 'referers' )]
+	public function test_run_now_runs_the_runner_hook_and_returns_to_a_local_referring_page( string $referer, string $destination ): void {
 		$batches = new RecordedBatches( 3 );
 		$this->make_runner( array( $batches ) )->register_hooks();
 		\wp_set_current_user( $this->make_user( 'acme-migrations-admin', 'administrator' ) );
 		$_REQUEST['_wpnonce']    = \wp_create_nonce( "{$this->option}_run_now" );
-		$_SERVER['HTTP_REFERER'] = \admin_url( 'plugins.php' );
+		$_SERVER['HTTP_REFERER'] = \str_starts_with( $referer, 'https://' ) ? $referer : \admin_url( $referer );
 
-		self::assertSame( \admin_url( 'plugins.php' ), $this->post_run_now() );
+		self::assertSame( \admin_url( $destination ), $this->post_run_now() );
 		self::assertSame( 3, $batches->processed );
 		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
 	}
