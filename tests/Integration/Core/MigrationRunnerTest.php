@@ -8,6 +8,7 @@ use DeepWebSolutions\Framework\Scheduling\Backends\ActionSchedulerBackend;
 use DeepWebSolutions\Framework\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Scheduling\SchedulerInterface;
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
@@ -624,6 +625,26 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertStringContainsString( "[{$this->option}.warning] Could not take the data migration lock: ", $log );
 		self::assertStringContainsString( 'The log is not writable.', $log );
 		self::assertSame( array(), $this->ran );
+	}
+
+	public static function batch_time_limits(): array {
+		return array(
+			'zero'          => array( 0, false ),
+			'one-second'    => array( 1, true ),
+			'five-minutes'  => array( 300, true ),
+			'over-five-min' => array( 301, false ),
+		);
+	}
+
+	#[DataProvider( 'batch_time_limits' )]
+	public function test_the_batch_time_limit_stays_between_1_and_300_seconds( int $limit, bool $valid ): void {
+		if ( ! $valid ) {
+			$this->expectException( InvalidArgumentException::class );
+		}
+
+		$runner = new MigrationRunner( self::PLUGIN_FILE, $this->option, array(), $this->logger, new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), $limit );
+
+		self::assertInstanceOf( MigrationRunner::class, $runner );
 	}
 
 	public function test_a_missing_database_handle_fails_at_construction(): void {
