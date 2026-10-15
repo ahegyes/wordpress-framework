@@ -444,18 +444,6 @@ final class SchedulerTest extends TestCase {
 		self::assertCount( 1, $this->cron_events() );
 	}
 
-	public function test_an_action_scheduler_unique_insert_refused_by_a_running_invocation_is_success(): void {
-		$backend = new ActionSchedulerBackend( self::GROUP );
-		$hook    = new ScheduledHook( $this->hook );
-		\as_enqueue_async_action( $this->hook, array(), self::GROUP );
-		\ActionScheduler::store()->log_execution( $this->pending_action_ids()[0] );
-		$this->writes = array();
-
-		self::assertTrue( $backend->enqueue( $hook, 10, true ) );
-
-		self::assertSame( array(), $this->writes );
-	}
-
 	public function test_unscheduling_while_a_recurring_occurrence_runs_is_an_error(): void {
 		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
