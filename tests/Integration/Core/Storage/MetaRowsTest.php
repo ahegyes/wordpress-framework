@@ -66,6 +66,16 @@ final class MetaRowsTest extends TestCase {
 		self::assertSame( array(), $rows->list( $this->user_id, "{$this->prefix}_key" ) );
 	}
 
+	public function test_a_key_of_255_characters_is_kept_whole_in_multibyte_text(): void {
+		$rows = new MetaRows( 'user' );
+		$key  = \str_pad( "{$this->prefix}_", 245, 'a' ) . \str_repeat( 'é', 10 );
+
+		$row = $rows->add( $this->user_id, $key, 'Whole.' );
+
+		self::assertSame( 255, \mb_strlen( $key ) );
+		self::assertEquals( array( $row ), $rows->list( $this->user_id, $key ) );
+	}
+
 	public function test_deleting_one_of_two_identical_rows_keeps_the_other(): void {
 		$rows   = new MetaRows( 'user' );
 		$first  = $rows->add( $this->user_id, "{$this->prefix}_key", 'Same.' );
@@ -147,6 +157,7 @@ final class MetaRowsTest extends TestCase {
 	public static function invalid_calls(): array {
 		return array(
 			'unknown-type'        => array( static fn (): mixed => new MetaRows( 'acme' ) ),
+			'key-over-255'        => array( static fn (): mixed => ( new MetaRows( 'user' ) )->add( 1, \str_repeat( 'a', 256 ), 'One.' ) ),
 			'object'              => array( static fn (): mixed => ( new MetaRows( 'user' ) )->add( 1, 'acme_key', new \stdClass() ) ),
 			'nested-object'       => array( static fn (): mixed => ( new MetaRows( 'user' ) )->add( 1, 'acme_key', array( 'a' => array( new \stdClass() ) ) ) ),
 			'row-of-another-type' => array( static fn (): mixed => ( new MetaRows( 'post' ) )->delete( new MetaRow( $GLOBALS['wpdb']->usermeta, 1, 1, 'acme_key', 'One.' ) ) ),

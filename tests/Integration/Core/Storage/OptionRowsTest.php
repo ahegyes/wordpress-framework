@@ -179,6 +179,16 @@ final class OptionRowsTest extends TestCase {
 		self::assertSame( $expected, \get_option( $name ) );
 	}
 
+	public function test_a_name_of_191_characters_is_kept_whole_in_multibyte_text(): void {
+		$rows = new OptionRows();
+		$name = \str_pad( "{$this->prefix}_", 181, 'a' ) . \str_repeat( 'é', 10 );
+
+		$written = $rows->upsert( $name, 'Whole.' );
+
+		self::assertSame( 191, \mb_strlen( $name ) );
+		self::assertEquals( $written, $rows->get( $name ) );
+	}
+
 	public static function failing_operations(): array {
 		return array(
 			'get'     => array( 'SELECT option_value FROM', static fn ( OptionRows $rows, OptionRow $row ): mixed => $rows->get( $row->name ) ),
@@ -207,6 +217,7 @@ final class OptionRowsTest extends TestCase {
 			'empty-name'       => array( static fn ( OptionRows $rows ): mixed => $rows->get( '' ) ),
 			'leading-space'    => array( static fn ( OptionRows $rows ): mixed => $rows->upsert( ' acme_name', 'One.' ) ),
 			'trailing-newline' => array( static fn ( OptionRows $rows ): mixed => $rows->remove( "acme_name\n" ) ),
+			'name-over-191'    => array( static fn ( OptionRows $rows ): mixed => $rows->upsert( \str_repeat( 'a', 192 ), 'One.' ) ),
 			'empty-prefix'     => array( static fn ( OptionRows $rows ): mixed => $rows->list( '' ) ),
 			'object'           => array( static fn ( OptionRows $rows ): mixed => $rows->upsert( 'acme_name', new \stdClass() ) ),
 			'nested-object'    => array( static fn ( OptionRows $rows ): mixed => $rows->insert( 'acme_name', array( 'a' => array( new \stdClass() ) ) ) ),
