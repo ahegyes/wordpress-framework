@@ -50,7 +50,6 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$this->other_admin = $this->make_user( 'acme_notices_other_admin', 'administrator' );
 		$this->logger      = new DismissalLogger();
 		$this->notices     = new AdminNotices( $this->prefix, $this->logger );
-		$this->notices->register_hooks();
 		\add_action(
 			"{$this->prefix}_notice_dismissed",
 			function ( mixed ...$arguments ): void {
@@ -60,7 +59,11 @@ final class AdminNoticesDismissalTest extends TestCase {
 			5
 		);
 
-		$this->saved_request       = array( $_SERVER, $_POST, $_COOKIE ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Saves the request globals the HTTP-path test replaces.
+		$this->saved_request = array( $_SERVER, $_POST, $_COOKIE ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Saves the request globals the HTTP-path test replaces.
+
+		// A server built with only this component's hooks holds just its route, not every core and WooCommerce controller.
+		\remove_all_actions( 'rest_api_init' );
+		$this->notices->register_hooks();
 		$GLOBALS['wp_rest_server'] = null;
 		\rest_get_server();
 	}
