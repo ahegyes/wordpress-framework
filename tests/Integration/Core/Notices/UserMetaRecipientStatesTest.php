@@ -229,12 +229,12 @@ final class UserMetaRecipientStatesTest extends TestCase {
 	}
 
 	#[DataProvider( 'keys' )]
-	public function test_network_states_live_under_an_unprefixed_key_and_the_others_under_the_sites_key( NoticeScope $scope, bool $site_prefixed ): void {
+	public function test_network_states_live_under_an_unprefixed_network_key_and_the_others_under_the_sites_key( NoticeScope $scope, bool $site_prefixed ): void {
 		global $wpdb;
 
 		( new UserMetaRecipientStates( $this->prefix ) )->record( $this->identity( $scope, 'one', 1 ), $this->user_id, RecipientState::Dismissed );
 
-		$key = ( $site_prefixed ? $wpdb->get_blog_prefix() : '' ) . "{$this->prefix}_notice_states";
+		$key = $site_prefixed ? $wpdb->get_blog_prefix() . "{$this->prefix}_notice_states" : "{$this->prefix}_network_notice_states";
 		self::assertCount( 1, \get_user_meta( $this->user_id, $key, false ) );
 	}
 
@@ -280,8 +280,8 @@ final class UserMetaRecipientStatesTest extends TestCase {
 	protected function rows( NoticeIdentity $identity ): array {
 		global $wpdb;
 
-		$prefix = NoticeScope::Network === $identity->context->scope ? '' : $wpdb->get_blog_prefix();
+		$key = NoticeScope::Network === $identity->context->scope ? "{$this->prefix}_network_notice_states" : $wpdb->get_blog_prefix() . "{$this->prefix}_notice_states";
 
-		return \get_user_meta( $this->user_id, $prefix . "{$this->prefix}_notice_states", false );
+		return \get_user_meta( $this->user_id, $key, false );
 	}
 }
