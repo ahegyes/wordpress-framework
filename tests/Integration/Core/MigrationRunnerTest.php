@@ -87,16 +87,23 @@ final class MigrationRunnerTest extends TestCase {
 
 	protected array $writes = array();
 
+	protected string $memory_limit;
+
 	#[\Override]
 	protected function setUp(): void {
 		$this->option = 'acme_db_' . \bin2hex( \random_bytes( 4 ) );
 		$this->logger = new MigrationLogger();
+
+		// The runner pauses once memory passes 90% of the limit, so rows that count steps must not depend on how much the test process already holds.
+		$this->memory_limit = (string) \ini_get( 'memory_limit' );
+		\ini_set( 'memory_limit', '-1' );
 	}
 
 	#[\Override]
 	protected function tearDown(): void {
 		global $wpdb;
 
+		\ini_set( 'memory_limit', $this->memory_limit );
 		foreach ( array( '', '_error', '_high_water', '_first_run', '_lock' ) as $suffix ) {
 			\delete_option( $this->option . $suffix );
 		}
