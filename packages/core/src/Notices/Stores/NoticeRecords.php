@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Notices\Internal;
+namespace DeepWebSolutions\Framework\Notices\Stores;
 
 use DeepWebSolutions\Framework\Notices\Notice;
 use DeepWebSolutions\Framework\Notices\NoticeContext;
@@ -20,7 +20,7 @@ final class NoticeRecords {
 	// region METHODS
 
 	/**
-	 * Returns the record as a row: the notice's row plus the record's generation and creation time.
+	 * Returns the record as a row.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

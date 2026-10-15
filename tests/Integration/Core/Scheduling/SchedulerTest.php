@@ -790,7 +790,7 @@ final class SchedulerTest extends TestCase {
 		return $events;
 	}
 
-	// Action Scheduler's queue runner claims the due actions and processes each one, as a batch does.
+	// Mirrors one Action Scheduler queue-runner batch.
 	protected function run_due_actions(): int {
 		$store = \ActionScheduler::store();
 		$claim = $store->stake_claim( 10, null, array( $this->hook ) );
@@ -802,7 +802,7 @@ final class SchedulerTest extends TestCase {
 		return \count( $claim->get_actions() );
 	}
 
-	// As wp-cron.php does, each due event is rescheduled if it recurs, then unscheduled, then run.
+	// Mirrors one wp-cron.php run.
 	protected function run_due_cron_events(): array {
 		$rescheduled = array();
 		foreach ( \_get_cron_array() as $timestamp => $hooks ) {

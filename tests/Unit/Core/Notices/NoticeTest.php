@@ -27,7 +27,7 @@ final class NoticeTest extends TestCase {
 				'capability'  => null,
 				'screens'     => array(),
 				'expires_at'  => null,
-				'revision'    => 1,
+				'per_viewer'  => false,
 			),
 			$notice->to_array()
 		);
@@ -35,7 +35,7 @@ final class NoticeTest extends TestCase {
 
 	public static function valid_notices(): array {
 		return array(
-			'every-field-set'      => array( new Notice( 'acme-sync_failed', "Can't \\ \"sync\"", NoticeType::Warning, NoticeScope::Network, true, false, 'manage_network_options', array( 'plugins', 'dashboard-network' ), 1_900_000_000, 7 ) ),
+			'every-field-set'      => array( new Notice( 'acme-sync_failed', "Can't \\ \"sync\"", NoticeType::Warning, NoticeScope::Network, true, false, 'manage_network_options', array( 'plugins', 'dashboard-network' ), 1_900_000_000, true ) ),
 			'request-scope'        => array( new Notice( 'a', 'Hi', NoticeType::Info, NoticeScope::Request ) ),
 			'site-scope'           => array( new Notice( 'a', 'Hi', NoticeType::Success, NoticeScope::Site, capability: 'manage_options' ) ),
 			'user-with-capability' => array( new Notice( 'a', 'Hi', capability: 'edit_posts' ) ),
@@ -68,7 +68,6 @@ final class NoticeTest extends TestCase {
 			'empty-screen'               => array( static fn (): Notice => new Notice( 'a', 'Hi', screens: array( '' ) ) ),
 			'expiry-zero'                => array( static fn (): Notice => new Notice( 'a', 'Hi', expires_at: 0 ) ),
 			'expiry-negative'            => array( static fn (): Notice => new Notice( 'a', 'Hi', expires_at: -1 ) ),
-			'revision-zero'              => array( static fn (): Notice => new Notice( 'a', 'Hi', revision: 0 ) ),
 		);
 	}
 
@@ -120,16 +119,32 @@ final class NoticeTest extends TestCase {
 			'expiry-zero'                 => array( array( 'expires_at' => 0 ) + $row ),
 			'expiry-as-a-string'          => array( array( 'expires_at' => '1900000000' ) + $row ),
 			'expiry-as-a-float'           => array( array( 'expires_at' => 1.9e9 ) + $row ),
-			'revision-zero'               => array( array( 'revision' => 0 ) + $row ),
-			'revision-as-a-string'        => array( array( 'revision' => '2' ) + $row ),
-			'revision-null'               => array( array( 'revision' => null ) + $row ),
 			'persistence-null'            => array( array( 'persistent' => null ) + $row ),
 			'dismissibility-as-an-object' => array( array( 'dismissible' => new \stdClass() ) + $row ),
+			'per-viewer-as-an-integer'    => array( array( 'per_viewer' => 1 ) + $row ),
+			'per-viewer-null'             => array( array( 'per_viewer' => null ) + $row ),
 		);
 	}
 
 	#[DataProvider( 'rejected_rows' )]
 	public function test_a_row_with_another_version_or_an_invalid_field_is_rejected( array $row ): void {
 		self::assertNull( Notice::from_array( $row ) );
+	}
+
+	public static function sharing(): array {
+		return array(
+			'site'               => array( new Notice( 'a', 'Hi', scope: NoticeScope::Site, capability: 'manage_options' ), true ),
+			'network'            => array( new Notice( 'a', 'Hi', scope: NoticeScope::Network, capability: 'manage_network' ), true ),
+			'site-per-viewer'    => array( new Notice( 'a', 'Hi', scope: NoticeScope::Site, capability: 'manage_options', per_viewer: true ), false ),
+			'network-per-viewer' => array( new Notice( 'a', 'Hi', scope: NoticeScope::Network, capability: 'manage_network', per_viewer: true ), false ),
+			'user'               => array( new Notice( 'a', 'Hi' ), false ),
+			'request'            => array( new Notice( 'a', 'Hi', scope: NoticeScope::Request ), false ),
+			'request-per-viewer' => array( new Notice( 'a', 'Hi', scope: NoticeScope::Request, per_viewer: true ), false ),
+		);
+	}
+
+	#[DataProvider( 'sharing' )]
+	public function test_only_site_and_network_notices_that_are_not_per_viewer_are_shared( Notice $notice, bool $shared ): void {
+		self::assertSame( $shared, $notice->is_shared() );
 	}
 }

@@ -101,7 +101,7 @@ final readonly class Version extends AbstractValueObject implements \Stringable 
 	// region HELPERS
 
 	/**
-	 * Returns the parts in precedence order, with the labels dev, alpha, beta and rc ranked below a release.
+	 * Returns the parts in precedence order, with pre-releases ranked below their release.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

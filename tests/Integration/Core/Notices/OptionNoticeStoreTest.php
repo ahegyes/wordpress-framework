@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Notices;
 
-use DeepWebSolutions\Framework\Notices\Internal\NoticeRecords;
-use DeepWebSolutions\Framework\Notices\Internal\OptionNoticeStore;
+use DeepWebSolutions\Framework\Notices\Stores\NoticeRecords;
+use DeepWebSolutions\Framework\Notices\Stores\OptionNoticeStore;
 use DeepWebSolutions\Framework\Notices\Notice;
 use DeepWebSolutions\Framework\Notices\NoticeContext;
 use DeepWebSolutions\Framework\Notices\NoticeScope;
@@ -194,7 +194,6 @@ final class OptionNoticeStoreTest extends TestCase {
 		return new Notice( $id, $message, scope: $scope, capability: 'manage_options', expires_at: $expires_at );
 	}
 
-	// Reads the table directly, keyed and ordered by option name, with each value unserialized and its autoload flag.
 	protected function rows( string $table ): array {
 		global $wpdb;
 

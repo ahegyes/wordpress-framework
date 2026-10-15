@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Notices\Internal;
+namespace DeepWebSolutions\Framework\Notices\Stores;
 
 use DeepWebSolutions\Framework\Notices\Notice;
 use DeepWebSolutions\Framework\Notices\NoticeContext;
@@ -169,7 +169,7 @@ final class OptionNoticeStore implements NoticeStoreInterface {
 	}
 
 	/**
-	 * Returns the blog id whose options table keeps the context's notices, which is the network's main site for a network notice.
+	 * Returns the blog id whose options table keeps the context's notices.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

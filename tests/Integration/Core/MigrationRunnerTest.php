@@ -87,16 +87,23 @@ final class MigrationRunnerTest extends TestCase {
 
 	protected array $writes = array();
 
+	protected string $memory_limit;
+
 	#[\Override]
 	protected function setUp(): void {
 		$this->option = 'acme_db_' . \bin2hex( \random_bytes( 4 ) );
 		$this->logger = new MigrationLogger();
+
+		// The runner pauses near memory_limit, so step counts must not depend on what the test process already holds.
+		$this->memory_limit = (string) \ini_get( 'memory_limit' );
+		\ini_set( 'memory_limit', '-1' );
 	}
 
 	#[\Override]
 	protected function tearDown(): void {
 		global $wpdb;
 
+		\ini_set( 'memory_limit', $this->memory_limit );
 		foreach ( array( '', '_error', '_high_water', '_first_run', '_lock' ) as $suffix ) {
 			\delete_option( $this->option . $suffix );
 		}
@@ -1222,7 +1229,7 @@ final class MigrationRunnerTest extends TestCase {
 		return $cron + \count( \as_get_scheduled_actions( $query, 'ids' ) );
 	}
 
-	// Action Scheduler's queue runner claims the due actions and processes each one, as a batch does.
+	// Mirrors one Action Scheduler queue-runner batch.
 	protected function run_due_actions(): void {
 		$store = \ActionScheduler::store();
 		$claim = $store->stake_claim( 10, null, array( "{$this->option}_run" ) );
@@ -1232,7 +1239,7 @@ final class MigrationRunnerTest extends TestCase {
 		$store->release_claim( $claim );
 	}
 
-	// As wp-cron.php does, each due event is unscheduled, then run.
+	// Mirrors one wp-cron.php run.
 	protected function run_due_cron_events(): void {
 		foreach ( \_get_cron_array() as $timestamp => $hooks ) {
 			if ( $timestamp > \time() ) {

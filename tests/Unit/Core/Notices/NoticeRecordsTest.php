@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit\Core\Notices;
 
-use DeepWebSolutions\Framework\Notices\Internal\NoticeRecords;
+use DeepWebSolutions\Framework\Notices\Stores\NoticeRecords;
 use DeepWebSolutions\Framework\Notices\Notice;
 use DeepWebSolutions\Framework\Notices\NoticeContext;
 use DeepWebSolutions\Framework\Notices\NoticeScope;
@@ -38,7 +38,7 @@ final class NoticeRecordsTest extends TestCase {
 			'generation-not-string'  => array( array( 'gen' => 7 ) + $row ),
 			'no-creation-time'       => array( \array_diff_key( $row, array( 'created_at' => true ) ) ),
 			'creation-time-a-string' => array( array( 'created_at' => '5' ) + $row ),
-			'invalid-notice'         => array( array( 'revision' => 0 ) + $row ),
+			'invalid-notice'         => array( array( 'expires_at' => 0 ) + $row ),
 			'notice-of-other-scope'  => array( array( 'scope' => 'request' ) + $row ),
 		);
 	}

@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Notices\Internal;
+namespace DeepWebSolutions\Framework\Notices\Stores;
 
 use DeepWebSolutions\Framework\Notices\NoticeIdentity;
 use DeepWebSolutions\Framework\Notices\NoticeScope;
@@ -15,7 +15,7 @@ use DeepWebSolutions\Framework\Storage\MetaRows;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Keeps recipient states as user meta rows, one per notice a user has interacted with: under a key prefixed for the notice's site, or for a request notice the current site, and under an unprefixed key for network notices.
+ * Keeps recipient states as user meta rows, one per notice a user has interacted with, under a per-site key or, for network notices, a network-wide key.
  *
  * Recording adds the new row before it deletes the rows it read for the same notice, so two concurrent records never delete each other's row; the newest row wins on read.
  *
@@ -85,12 +85,9 @@ final class UserMetaRecipientStates implements RecipientStateStoreInterface {
 	 */
 	#[\Override]
 	public function get( NoticeIdentity $identity, int $user_id ): ?RecipientState {
-		$key   = $identity->to_key();
 		$state = null;
 		foreach ( $this->get_rows( $identity, $user_id ) as $row ) {
-			if ( $key === $row['key'] ) {
-				$state = RecipientState::tryFrom( $row['state'] );
-			}
+			$state = RecipientState::tryFrom( $row['state'] );
 		}
 
 		return $state;
@@ -106,16 +103,11 @@ final class UserMetaRecipientStates implements RecipientStateStoreInterface {
 	 */
 	#[\Override]
 	public function record( NoticeIdentity $identity, int $user_id, RecipientState $state ): bool {
-		$key      = $identity->to_key();
-		$notice   = \strstr( $key, '@', true );
 		$replaced = array();
 		$current  = null;
 		foreach ( $this->get_rows( $identity, $user_id ) as $row ) {
-			$at = \strrpos( $row['key'], '@' );
-			if ( false !== $at && \substr( $row['key'], 0, $at ) === $notice && (int) \substr( $row['key'], $at + 1 ) <= $identity->revision ) {
-				$replaced[] = $row['row'];
-				$current    = $key === $row['key'] ? $row['state'] : $current;
-			}
+			$replaced[] = $row['row'];
+			$current    = $row['state'];
 		}
 
 		if ( $state->value === $current ) {
@@ -126,10 +118,10 @@ final class UserMetaRecipientStates implements RecipientStateStoreInterface {
 			$user_id,
 			$this->get_meta_key( $identity ),
 			array(
-				'v'     => 1,
-				'key'   => $key,
-				'state' => $state->value,
-				'at'    => \time(),
+				'v'      => 1,
+				'notice' => $identity->to_key(),
+				'state'  => $state->value,
+				'at'     => \time(),
 			)
 		);
 
@@ -165,11 +157,11 @@ final class UserMetaRecipientStates implements RecipientStateStoreInterface {
 			NoticeScope::Network => null,
 		};
 
-		return ( null === $site_id ? '' : $wpdb->get_blog_prefix( $site_id ) ) . "{$this->prefix}_notice_states";
+		return null === $site_id ? "{$this->prefix}_network_notice_states" : $wpdb->get_blog_prefix( $site_id ) . "{$this->prefix}_notice_states";
 	}
 
 	/**
-	 * Returns the user's valid version 1 rows under the identity's key with their notice keys and states, in the order they were written.
+	 * Returns the user's valid rows for the identity, oldest first.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -179,20 +171,20 @@ final class UserMetaRecipientStates implements RecipientStateStoreInterface {
 	 *
 	 * @throws  InvalidArgumentException Thrown when the user id is below 1.
 	 *
-	 * @return  list<array{row: MetaRow, key: string, state: string}>
+	 * @return  list<array{row: MetaRow, state: string}>
 	 */
 	protected function get_rows( NoticeIdentity $identity, int $user_id ): array {
 		if ( $user_id < 1 ) {
 			throw new InvalidArgumentException( "User id $user_id is below 1." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
-		$rows = array();
+		$notice = $identity->to_key();
+		$rows   = array();
 		foreach ( $this->rows->list( $user_id, $this->get_meta_key( $identity ) ) as $row ) {
 			$value = $row->value;
-			if ( \is_array( $value ) && 1 === ( $value['v'] ?? null ) && \is_string( $value['key'] ?? null ) && \is_string( $value['state'] ?? null ) && \is_int( $value['at'] ?? null ) ) {
+			if ( \is_array( $value ) && 1 === ( $value['v'] ?? null ) && ( $value['notice'] ?? null ) === $notice && \is_string( $value['state'] ?? null ) && \is_int( $value['at'] ?? null ) ) {
 				$rows[] = array(
 					'row'   => $row,
-					'key'   => $value['key'],
 					'state' => $value['state'],
 				);
 			}
