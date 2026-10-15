@@ -347,6 +347,7 @@ final class AdminNoticesTest extends TestCase {
 		self::assertSame( 1, \wp_verify_nonce( $settings['nonce'], 'wp_rest' ) );
 		self::assertStringContainsString( '\/', $matches[1] );
 		self::assertStringContainsString( "getAttribute( 'data-notices' ) !== settings.prefix", $script );
+		self::assertStringContainsString( "credentials: 'include'", $script );
 	}
 
 	public function test_registered_hooks_print_the_notices_and_the_script(): void {
