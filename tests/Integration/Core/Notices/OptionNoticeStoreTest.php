@@ -77,7 +77,7 @@ final class OptionNoticeStoreTest extends TestCase {
 			'all-read'       => array( "LIKE '", static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->all( $record->context ) ),
 			'find-read'      => array( "LIKE '", static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->find( 'one', $record->context ) ),
 			'consume-read'   => array( 'SELECT option_value FROM', static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->consume( $record ) ),
-			'consume-delete' => array( "AND option_value = '", static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->consume( $record ) ),
+			'consume-delete' => array( 'CAST( option_value AS BINARY )', static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->consume( $record ) ),
 			'remove'         => array( 'DELETE FROM', static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->remove( 'one', $record->context ) ),
 		);
 	}
@@ -97,7 +97,7 @@ final class OptionNoticeStoreTest extends TestCase {
 		$store   = new OptionNoticeStore( $this->prefix );
 		$context = NoticeContext::current( NoticeScope::Site );
 		$store->save( $this->notice( NoticeScope::Site, 'one', expires_at: \time() - 1 ), $context );
-		$this->fail_queries( "AND option_value = '" );
+		$this->fail_queries( 'CAST( option_value AS BINARY )' );
 
 		$this->expectException( RuntimeException::class );
 
@@ -176,6 +176,18 @@ final class OptionNoticeStoreTest extends TestCase {
 		self::assertEquals( array( $record ), ( new OptionNoticeStore( $this->prefix ) )->all( NoticeContext::current( NoticeScope::Network ) ) );
 		self::assertSame( array( "{$this->prefix}_network_notice_one" ), \array_keys( $this->rows( $wpdb->get_blog_prefix( \get_main_site_id() ) . 'options' ) ) );
 		self::assertSame( array(), $this->rows( $wpdb->get_blog_prefix( $site_id ) . 'options' ) );
+	}
+
+	#[Group( 'multisite' )]
+	public function test_a_network_notice_lives_in_the_options_of_the_networks_main_site_whichever_it_is(): void {
+		global $wpdb;
+		$site_id = $this->make_site( 'acme-notices' );
+		\add_filter( 'pre_get_main_site_id', static fn (): int => $site_id );
+
+		( new OptionNoticeStore( $this->prefix ) )->save( $this->notice( NoticeScope::Network, 'one' ), NoticeContext::current( NoticeScope::Network ) );
+
+		self::assertSame( array( "{$this->prefix}_network_notice_one" ), \array_keys( $this->rows( $wpdb->get_blog_prefix( $site_id ) . 'options' ) ) );
+		self::assertSame( array(), $this->rows( $wpdb->options ) );
 	}
 
 	protected function notice( NoticeScope $scope, string $id, string $message = 'Hi.', ?int $expires_at = null ): Notice {

@@ -139,7 +139,7 @@ final class NoticeStoresTest extends TestCase {
 		$context = $this->context( $kind );
 		$store->save( $this->notice( $kind, 'renewed', expires_at: \time() - 1 ), $context );
 		$this->before_query(
-			'user' === $kind ? "meta_value = '" : "option_value = '",
+			'user' === $kind ? "meta_value = '" : 'CAST( option_value AS BINARY )',
 			fn (): StoredNotice => $this->make_store( $kind )->save( $this->notice( $kind, 'renewed', message: 'Renewed.', expires_at: \time() + 3600 ), $context )
 		);
 
@@ -155,7 +155,7 @@ final class NoticeStoresTest extends TestCase {
 		$context  = $this->context( $kind );
 		$observed = $store->save( $this->notice( $kind, 'once' ), $context );
 		$this->before_query(
-			'user' === $kind ? "meta_value = '" : "option_value = '",
+			'user' === $kind ? "meta_value = '" : 'CAST( option_value AS BINARY )',
 			fn (): StoredNotice => $this->make_store( $kind )->save( $this->notice( $kind, 'once', message: 'Again.' ), $context )
 		);
 
