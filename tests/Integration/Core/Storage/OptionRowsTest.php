@@ -179,6 +179,20 @@ final class OptionRowsTest extends TestCase {
 		self::assertSame( $expected, \get_option( $name ) );
 	}
 
+	public function test_a_write_drops_the_cached_option_lists_that_name_the_option(): void {
+		$name = "{$this->prefix}_listed";
+		\add_option( "{$this->prefix}_autoloaded", 'Old.', '', true );
+		\get_option( $name );
+		\wp_load_alloptions();
+
+		( new OptionRows() )->upsert( $name, 'New.' );
+		$notoptions = \wp_cache_get( 'notoptions', 'options' );
+		( new OptionRows() )->upsert( "{$this->prefix}_autoloaded", 'New.' );
+
+		self::assertFalse( $notoptions );
+		self::assertFalse( \wp_cache_get( 'alloptions', 'options' ) );
+	}
+
 	public function test_a_name_of_191_characters_is_kept_whole_in_multibyte_text(): void {
 		$rows = new OptionRows();
 		$name = \str_pad( "{$this->prefix}_", 181, 'a' ) . \str_repeat( 'é', 10 );
