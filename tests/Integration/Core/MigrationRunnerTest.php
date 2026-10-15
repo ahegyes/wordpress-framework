@@ -674,6 +674,22 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertNull( $this->get_lock() );
 	}
 
+	public function test_a_request_outside_the_runner_hook_adds_nothing_while_the_hook_runs_elsewhere(): void {
+		\as_enqueue_async_action( "{$this->option}_run", array(), 'acme' );
+		$running = \as_get_scheduled_actions(
+			array(
+				'hook'   => "{$this->option}_run",
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			),
+			'ids'
+		);
+		\ActionScheduler::store()->log_execution( (int) $running[0] );
+
+		$this->load_wordpress( $this->make_runner( array( new RecordedBatches( 3 ) ), null, null, null, new Scheduler( 'acme' ) ) );
+
+		self::assertSame( 0, $this->count_pending_runs() );
+	}
+
 	public function test_the_runner_hook_runs_batches_until_the_step_finishes(): void {
 		$batches = new RecordedBatches( 3 );
 		$this->make_runner( array( $batches, $this->step( 2 ) ) )->register_hooks();
