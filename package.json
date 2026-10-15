@@ -37,6 +37,11 @@
         "wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
         "wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
 
+        "wp-env:multisite:start": "wp-env --config .wp-env.multisite.json start",
+        "wp-env:multisite:stop": "wp-env --config .wp-env.multisite.json stop",
+        "wp-env:multisite:update": "wp-env --config .wp-env.multisite.json start --update",
+        "wp-env:multisite:destroy": "wp-env --config .wp-env.multisite.json destroy",
+
         "audit": "composer audit && npm audit",
         "audit:fix": "npm audit fix",
         "check:engines": "npx --yes @wordpress/scripts@latest check-engines",

@@ -10,6 +10,7 @@ Install the dependencies on the PHP, Node and npm versions the README lists, the
 composer packages-install
 npm install
 composer quality-check
+composer test:integration:multisite
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint
