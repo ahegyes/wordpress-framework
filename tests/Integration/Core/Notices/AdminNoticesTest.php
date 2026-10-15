@@ -309,7 +309,7 @@ final class AdminNoticesTest extends TestCase {
 		self::assertSame( array( 'Original.', 'changed', 'request' ), $calls[0] );
 	}
 
-	public function test_the_markup_names_each_scopes_notice_apart_and_tickets_only_persistent_dismissible_notices(): void {
+	public function test_the_markup_names_each_scopes_notice_apart_and_gives_only_persistent_dismissible_notices_a_nonce(): void {
 		\wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'x', NoticeScope::Request, type: NoticeType::Warning, persistent: true ) );
@@ -322,14 +322,14 @@ final class AdminNoticesTest extends TestCase {
 		$request = $shown[ $this->dom_id( 'request', 'x' ) ];
 		self::assertSame( 'notice notice-warning is-dismissible', $request['class'] );
 		self::assertSame( array( $this->prefix, 'request', 'x' ), array( $request['data-notices'], $request['data-notice-scope'], $request['data-notice-id'] ) );
-		self::assertSame( 1, \wp_verify_nonce( $request['data-notice-ticket'], "{$this->prefix}_dismiss|request:0:x" ) );
+		self::assertSame( 1, \wp_verify_nonce( $request['data-notice-nonce'], "{$this->prefix}_dismiss|request:0:x" ) );
 		self::assertSame( 'notice notice-error', $shown[ $this->dom_id( 'site', 'x' ) ]['class'] );
-		self::assertArrayNotHasKey( 'data-notice-ticket', $shown[ $this->dom_id( 'site', 'x' ) ] );
+		self::assertArrayNotHasKey( 'data-notice-nonce', $shown[ $this->dom_id( 'site', 'x' ) ] );
 		self::assertSame( 'notice notice-error is-dismissible', $shown[ $this->dom_id( 'user', 'once' ) ]['class'] );
-		self::assertArrayNotHasKey( 'data-notice-ticket', $shown[ $this->dom_id( 'user', 'once' ) ] );
+		self::assertArrayNotHasKey( 'data-notice-nonce', $shown[ $this->dom_id( 'user', 'once' ) ] );
 	}
 
-	public function test_the_dismiss_script_prints_only_after_a_ticketed_notice_and_targets_this_plugins_notices(): void {
+	public function test_the_dismiss_script_prints_only_after_a_persistent_dismissible_notice_and_targets_this_plugins_notices(): void {
 		\wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'once', NoticeScope::Request ) );
@@ -344,7 +344,7 @@ final class AdminNoticesTest extends TestCase {
 		$settings = \json_decode( $matches[1], true );
 		self::assertSame( $this->prefix, $settings['prefix'] );
 		self::assertSame( \rest_url( \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' ), $settings['url'] );
-		self::assertSame( 1, \wp_verify_nonce( $settings['nonce'], 'wp_rest' ) );
+		self::assertSame( 1, \wp_verify_nonce( $settings['restNonce'], 'wp_rest' ) );
 		self::assertStringContainsString( '\/', $matches[1] );
 		self::assertStringContainsString( "getAttribute( 'data-notices' ) !== settings.prefix", $script );
 		self::assertStringContainsString( "credentials: 'include'", $script );
