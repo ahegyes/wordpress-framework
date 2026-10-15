@@ -4,7 +4,6 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core;
 
 use DeepWebSolutions\Framework\BatchedMigrationStepInterface;
 use DeepWebSolutions\Framework\MigrationRunner;
-use DeepWebSolutions\Framework\Scheduling\Backends\ActionSchedulerBackend;
 use DeepWebSolutions\Framework\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Scheduling\SchedulerInterface;
@@ -824,12 +823,12 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	public function test_a_failed_continuation_is_logged_as_a_warning(): void {
-		$scheduler = new Scheduler( 'acme', array( new ActionSchedulerBackend( 'acme', '99.0.0' ) ) );
+		\add_filter( 'pre_schedule_event', '__return_false' );
 
-		$this->load_wordpress( $this->make_runner( array( new RecordedBatches( 3 ) ), null, null, null, $scheduler ) );
+		$this->load_wordpress( $this->make_runner( array( new RecordedBatches( 3 ) ) ) );
 
 		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
-		self::assertSame( 'No scheduler takes writes.', $this->logger->records[0][2]['error'] );
+		self::assertSame( 'A plugin prevented the event from being scheduled.', $this->logger->records[0][2]['error'] );
 		self::assertNull( $this->get_lock() );
 	}
 
