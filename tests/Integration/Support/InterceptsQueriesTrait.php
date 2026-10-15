@@ -7,7 +7,7 @@ use PHPUnit\Framework\Attributes\After;
 trait InterceptsQueriesTrait {
 	protected ?bool $suppressed_errors = null;
 
-	// Runs the callback once, just before the first query that contains the needle, as another request would.
+	// Simulates a concurrent request at the first query that contains the needle.
 	protected function before_query( string $needle, \Closure $callback ): void {
 		$done = false;
 		\add_filter(

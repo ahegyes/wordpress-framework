@@ -194,7 +194,6 @@ final class OptionNoticeStoreTest extends TestCase {
 		return new Notice( $id, $message, scope: $scope, capability: 'manage_options', expires_at: $expires_at );
 	}
 
-	// Reads the table directly, keyed and ordered by option name, with each value unserialized and its autoload flag.
 	protected function rows( string $table ): array {
 		global $wpdb;
 

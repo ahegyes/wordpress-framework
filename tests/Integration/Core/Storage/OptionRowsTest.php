@@ -295,7 +295,6 @@ final class OptionRowsTest extends TestCase {
 		self::assertSame( \get_main_site_id(), \get_current_blog_id() );
 	}
 
-	// Reads the current site's table directly, keyed by option name, with each raw value and its autoload flag.
 	protected function stored(): array {
 		global $wpdb;
 
