@@ -14,22 +14,21 @@ use PHPUnit\Framework\TestCase;
 final class NoticeIdentityTest extends TestCase {
 	public static function keys(): array {
 		return array(
-			'request' => array( new NoticeIdentity( new NoticeContext( NoticeScope::Request, 0 ), 'saved', 1 ), 'request:0:saved', 'request:0:saved@1' ),
-			'user'    => array( new NoticeIdentity( new NoticeContext( NoticeScope::User, 7, 2 ), 'saved', 3 ), 'user:2:7:saved', 'user:2:7:saved@3' ),
-			'site'    => array( new NoticeIdentity( new NoticeContext( NoticeScope::Site, 2 ), 'saved', 1 ), 'site:2:saved', 'site:2:saved@1' ),
-			'network' => array( new NoticeIdentity( new NoticeContext( NoticeScope::Network, 3 ), 'saved', 12 ), 'network:3:saved', 'network:3:saved@12' ),
+			'request' => array( new NoticeIdentity( new NoticeContext( NoticeScope::Request, 0 ), 'saved', 1 ), 'request:0:saved' ),
+			'user'    => array( new NoticeIdentity( new NoticeContext( NoticeScope::User, 7, 2 ), 'saved', 3 ), 'user:2:7:saved' ),
+			'site'    => array( new NoticeIdentity( new NoticeContext( NoticeScope::Site, 2 ), 'saved', 1 ), 'site:2:saved' ),
+			'network' => array( new NoticeIdentity( new NoticeContext( NoticeScope::Network, 3 ), 'saved', 12 ), 'network:3:saved' ),
 		);
 	}
 
 	#[DataProvider( 'keys' )]
-	public function test_the_keys_name_the_scope_owner_id_and_then_the_revision( NoticeIdentity $identity, string $notice_key, string $key ): void {
+	public function test_the_notice_key_names_the_scope_owner_and_id( NoticeIdentity $identity, string $notice_key ): void {
 		self::assertSame( $notice_key, $identity->to_notice_key() );
-		self::assertSame( $key, $identity->to_key() );
 	}
 
-	public function test_identities_that_differ_in_any_part_have_different_keys(): void {
+	public function test_notices_of_other_scopes_owners_sites_or_ids_have_other_keys_and_revisions_share_one(): void {
 		$keys = \array_map(
-			static fn ( NoticeIdentity $identity ): string => $identity->to_key(),
+			static fn ( NoticeIdentity $identity ): string => $identity->to_notice_key(),
 			array(
 				new NoticeIdentity( new NoticeContext( NoticeScope::Request, 0 ), 'x', 1 ),
 				new NoticeIdentity( new NoticeContext( NoticeScope::Site, 1 ), 'x', 1 ),
@@ -40,11 +39,11 @@ final class NoticeIdentityTest extends TestCase {
 				new NoticeIdentity( new NoticeContext( NoticeScope::User, 1, 2 ), 'x', 1 ),
 				new NoticeIdentity( new NoticeContext( NoticeScope::User, 2, 1 ), 'x', 1 ),
 				new NoticeIdentity( new NoticeContext( NoticeScope::Site, 1 ), 'y', 1 ),
-				new NoticeIdentity( new NoticeContext( NoticeScope::Site, 1 ), 'x', 2 ),
 			)
 		);
 
 		self::assertSame( $keys, \array_unique( $keys ) );
+		self::assertSame( $keys[1], ( new NoticeIdentity( new NoticeContext( NoticeScope::Site, 1 ), 'x', 2 ) )->to_notice_key() );
 	}
 
 	public static function invalid_identities(): array {

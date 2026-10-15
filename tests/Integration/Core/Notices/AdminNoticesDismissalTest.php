@@ -169,6 +169,14 @@ final class AdminNoticesDismissalTest extends TestCase {
 					return array( $ticket, 404 );
 				},
 			),
+			'stale-ticket'         => array(
+				static function ( self $test ): array {
+					$test->notices->add( $test->notice( 'x', NoticeScope::Site, revision: 2 ) );
+					$ticket = $test->ticket( $test->admin, 'site', 'x' );
+					$test->notices->add( $test->notice( 'x', NoticeScope::Site, revision: 3 ) );
+					return array( $ticket, 403, 3 );
+				},
+			),
 			'lacking-capability'   => array(
 				static function ( self $test ): array {
 					$ticket = $test->ticket( $test->admin, 'site', 'x' );
@@ -197,11 +205,11 @@ final class AdminNoticesDismissalTest extends TestCase {
 	public function test_a_dismissal_without_a_matching_ticket_audience_or_record_stores_nothing( \Closure $arrange ): void {
 		$this->notices->add( $this->notice( 'x', NoticeScope::Site ) );
 		\wp_set_current_user( $this->admin );
-		list( $ticket, $status ) = $arrange( $this );
+		list( $ticket, $status, $revision ) = $arrange( $this ) + array( 2 => 1 );
 
-		self::assertSame( $status, $this->dismiss( 'site', 'x', 1, $ticket )->get_status() );
+		self::assertSame( $status, $this->dismiss( 'site', 'x', $revision, $ticket )->get_status() );
 
-		self::assertNull( ( new UserMetaRecipientStates( $this->prefix ) )->get( new NoticeIdentity( NoticeContext::current( NoticeScope::Site ), 'x', 1 ), $this->admin ) );
+		self::assertNull( ( new UserMetaRecipientStates( $this->prefix ) )->get( new NoticeIdentity( NoticeContext::current( NoticeScope::Site ), 'x', $revision ), $this->admin ) );
 		self::assertSame( array(), $this->dismissed );
 	}
 
