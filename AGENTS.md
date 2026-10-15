@@ -18,6 +18,7 @@ wordpress-framework/
 │       ├── ComponentInterface, CompositeComponentInterface, ConditionalComponentInterface, BatchedMigrationStepInterface
 │       ├── PluginKernel, PluginBoot, MigrationRunner
 │       ├── Scheduling/{SchedulerInterface, Scheduler, ScheduledHook, Recurrence, Backends/ (@internal)}
+│       ├── Storage/{OptionRows, OptionRow, MetaRows, MetaRow}
 │       └── Utilities/{ErrorLogLogger, SystemClock}
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · shared ^2.0
 │   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ ; files: functions.php (render_control, sanitize_value, verify_object_form, is_valid_key) · OptionsPage
@@ -33,6 +34,7 @@ wordpress-framework/
 ├── phpstan.wordpress.neon PHPStan over packages/core, with the WordPress stubs and extensions
 ├── .wp-env.json           developer environment: single site with WooCommerce, as local, on port 8800
 ├── .wp-env.tests.json     Integration environment: single site with WooCommerce, as production
+├── .wp-env.multisite.json Integration environment for the `multisite` group: a network without WooCommerce, as production
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -43,7 +45,9 @@ composer packages-install
 composer quality-check          # validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
 composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run
-composer test:integration:run   # Integration tests in the running .wp-env.tests.json; WP_ENVIRONMENT_TYPE=production
+composer test:integration:run   # Integration tests in the running .wp-env.tests.json, without the multisite group; WP_ENVIRONMENT_TYPE=production
+composer test:integration:multisite      # starts .wp-env.multisite.json, then runs test:integration:multisite:run
+composer test:integration:multisite:run  # the multisite group in the running .wp-env.multisite.json
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint
