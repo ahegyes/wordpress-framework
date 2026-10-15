@@ -14,15 +14,16 @@ use PHPUnit\Framework\TestCase;
 final class NoticeIdentityTest extends TestCase {
 	public static function keys(): array {
 		return array(
-			'request' => array( new NoticeIdentity( new NoticeContext( NoticeScope::Request, 0 ), 'saved', 1 ), 'request:0:saved@1' ),
-			'user'    => array( new NoticeIdentity( new NoticeContext( NoticeScope::User, 7, 2 ), 'saved', 3 ), 'user:2:7:saved@3' ),
-			'site'    => array( new NoticeIdentity( new NoticeContext( NoticeScope::Site, 2 ), 'saved', 1 ), 'site:2:saved@1' ),
-			'network' => array( new NoticeIdentity( new NoticeContext( NoticeScope::Network, 3 ), 'saved', 12 ), 'network:3:saved@12' ),
+			'request' => array( new NoticeIdentity( new NoticeContext( NoticeScope::Request, 0 ), 'saved', 1 ), 'request:0:saved', 'request:0:saved@1' ),
+			'user'    => array( new NoticeIdentity( new NoticeContext( NoticeScope::User, 7, 2 ), 'saved', 3 ), 'user:2:7:saved', 'user:2:7:saved@3' ),
+			'site'    => array( new NoticeIdentity( new NoticeContext( NoticeScope::Site, 2 ), 'saved', 1 ), 'site:2:saved', 'site:2:saved@1' ),
+			'network' => array( new NoticeIdentity( new NoticeContext( NoticeScope::Network, 3 ), 'saved', 12 ), 'network:3:saved', 'network:3:saved@12' ),
 		);
 	}
 
 	#[DataProvider( 'keys' )]
-	public function test_the_key_names_the_scope_owner_id_and_revision( NoticeIdentity $identity, string $key ): void {
+	public function test_the_keys_name_the_scope_owner_id_and_then_the_revision( NoticeIdentity $identity, string $notice_key, string $key ): void {
+		self::assertSame( $notice_key, $identity->to_notice_key() );
 		self::assertSame( $key, $identity->to_key() );
 	}
 

@@ -51,8 +51,8 @@ final class UserMetaRecipientStatesTest extends TestCase {
 
 		self::assertSame( RecipientState::Delivered, ( new UserMetaRecipientStates( $this->prefix ) )->get( $identity, $this->user_id ) );
 		self::assertSame( $rows, $this->rows( $identity ) );
-		self::assertSame( array( 'v', 'key', 'state', 'at' ), \array_keys( $rows[0] ) );
-		self::assertSame( array( 1, 'site:1:one@1', 'delivered' ), array( $rows[0]['v'], $rows[0]['key'], $rows[0]['state'] ) );
+		self::assertSame( array( 'v', 'notice', 'revision', 'state', 'at' ), \array_keys( $rows[0] ) );
+		self::assertSame( array( 1, 'site:1:one', 1, 'delivered' ), array( $rows[0]['v'], $rows[0]['notice'], $rows[0]['revision'], $rows[0]['state'] ) );
 	}
 
 	public function test_another_state_replaces_the_recorded_one(): void {
@@ -77,7 +77,7 @@ final class UserMetaRecipientStatesTest extends TestCase {
 
 		self::assertNull( $states->get( $first, $this->user_id ) );
 		self::assertSame( RecipientState::Dismissed, $states->get( $second, $this->user_id ) );
-		self::assertSame( array( 'site:1:one@2' ), \array_column( $this->rows( $second ), 'key' ) );
+		self::assertSame( array( 2 ), \array_column( $this->rows( $second ), 'revision' ) );
 	}
 
 	public function test_recording_an_earlier_revision_keeps_the_later_ones_state(): void {
@@ -128,10 +128,11 @@ final class UserMetaRecipientStatesTest extends TestCase {
 			$this->user_id,
 			$key,
 			array(
-				'v'     => 1,
-				'key'   => $identity->to_key(),
-				'state' => 'dismissed',
-				'at'    => \time(),
+				'v'        => 1,
+				'notice'   => $identity->to_notice_key(),
+				'revision' => $identity->revision,
+				'state'    => 'dismissed',
+				'at'       => \time(),
 			)
 		);
 		$racing = false;
@@ -157,10 +158,11 @@ final class UserMetaRecipientStatesTest extends TestCase {
 				$this->user_id,
 				$GLOBALS['wpdb']->get_blog_prefix() . "{$this->prefix}_notice_states",
 				array(
-					'v'     => 1,
-					'key'   => $identity->to_key(),
-					'state' => $state,
-					'at'    => 1,
+					'v'        => 1,
+					'notice'   => $identity->to_notice_key(),
+					'revision' => $identity->revision,
+					'state'    => $state,
+					'at'       => 1,
 				)
 			);
 		}
@@ -187,19 +189,20 @@ final class UserMetaRecipientStatesTest extends TestCase {
 		$identity = $this->identity( NoticeScope::Site, 'one', 1 );
 		$key      = $GLOBALS['wpdb']->get_blog_prefix() . "{$this->prefix}_notice_states";
 		$valid    = array(
-			'v'     => 1,
-			'key'   => 'site:1:one@1',
-			'state' => 'dismissed',
-			'at'    => 1,
+			'v'        => 1,
+			'notice'   => 'site:1:one',
+			'revision' => 1,
+			'state'    => 'dismissed',
+			'at'       => 1,
 		);
-		$rows     = array( 'garbage', array( 'v' => 2 ) + $valid, array( 'state' => 'snoozed' ) + $valid, array( 'at' => '1' ) + $valid );
+		$rows     = array( 'garbage', array( 'v' => 2 ) + $valid, array( 'revision' => '1' ) + $valid, array( 'state' => 'snoozed' ) + $valid, array( 'at' => '1' ) + $valid );
 		foreach ( $rows as $row ) {
 			\add_user_meta( $this->user_id, $key, $row );
 		}
 
 		self::assertNull( $states->get( $identity, $this->user_id ) );
 		$states->record( $identity, $this->user_id, RecipientState::Delivered );
-		self::assertSame( array( 'garbage', array( 'v' => 2 ) + $valid, array( 'at' => '1' ) + $valid ), \array_slice( \get_user_meta( $this->user_id, $key, false ), 0, 3 ) );
+		self::assertSame( array( 'garbage', array( 'v' => 2 ) + $valid, array( 'revision' => '1' ) + $valid, array( 'at' => '1' ) + $valid ), \array_slice( \get_user_meta( $this->user_id, $key, false ), 0, 4 ) );
 	}
 
 	public static function invalid_users(): array {
