@@ -20,7 +20,7 @@ wordpress-framework/
 │       └── Utilities/ErrorLogLogger
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · shared ^2.0
 │   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ ; files: functions.php (render_control, sanitize_value, verify_object_form, is_valid_key) · OptionsPage
-├── packages/woocommerce/  ahegyes/wp-framework-woocommerce  php >=8.5 · settings ^2.0, shared ^2.0, psr/log ^3 (WC ^11.1 as host)
+├── packages/woocommerce/  ahegyes/wp-framework-woocommerce  php >=8.5 · settings ^2.0, shared ^2.0, psr/log ^3 (WC ^11.2 as host)
 │   ├── bootstrap/uninstall.php  PHP 7.4-parseable, by path: delete_order_meta( array $meta_keys ): void
 │   └── src/               psr-4 DeepWebSolutions\Framework\WooCommerce\ ; files: Settings/functions.php
 │       ├── WooCommerceRequirement, WooCommerceLogger
