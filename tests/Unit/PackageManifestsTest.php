@@ -16,7 +16,7 @@ final class PackageManifestsTest extends TestCase {
 	protected const array REQUIRES = array(
 		'bootstrap'   => array( 'php' ),
 		'shared'      => array( 'ext-filter', 'php' ),
-		'core'        => array( 'ahegyes/wp-framework-shared', 'php', 'psr/container', 'psr/log' ),
+		'core'        => array( 'ahegyes/wp-framework-shared', 'php', 'psr/clock', 'psr/container', 'psr/log' ),
 		'settings'    => array( 'ahegyes/wp-framework-shared', 'php' ),
 		'woocommerce' => array( 'ahegyes/wp-framework-settings', 'ahegyes/wp-framework-shared', 'php', 'psr/log' ),
 	);
@@ -28,6 +28,7 @@ final class PackageManifestsTest extends TestCase {
 		'DeepWebSolutions\\Framework\\Settings\\'    => 'ahegyes/wp-framework-settings',
 		'DeepWebSolutions\\Framework\\WooCommerce\\' => 'ahegyes/wp-framework-woocommerce',
 		'DeepWebSolutions\\Framework\\'              => 'ahegyes/wp-framework-core',
+		'Psr\\Clock\\'                               => 'psr/clock',
 		'Psr\\Container\\'                           => 'psr/container',
 		'Psr\\Log\\'                                 => 'psr/log',
 	);

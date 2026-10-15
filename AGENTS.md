@@ -13,12 +13,12 @@ wordpress-framework/
 │   └── uninstall.php        uninstall( string $plugin_file, array $footprint, string $opt_in_option, string $opt_in_key = '', ?callable $cleanup = null ): void
 ├── packages/shared/       ahegyes/wp-framework-shared       php >=8.5, ext-filter · no package require · WordPress-free
 │   └── src/               psr-4 DeepWebSolutions\Framework\Shared\ ; files: functions.php · Exception/, Error/, Result/, ValueObject/, Version/
-├── packages/core/         ahegyes/wp-framework-core         php >=8.5 · shared ^2.0, psr/container ^2, psr/log ^3
+├── packages/core/         ahegyes/wp-framework-core         php >=8.5 · shared ^2.0, psr/clock ^1, psr/container ^2, psr/log ^3
 │   └── src/               psr-4 DeepWebSolutions\Framework\
 │       ├── ComponentInterface, CompositeComponentInterface, ConditionalComponentInterface
 │       ├── PluginKernel, PluginBoot, MigrationRunner
 │       ├── Scheduling/{SchedulerInterface, Scheduler, ScheduledHook, Recurrence, Backends/ (@internal)}
-│       └── Utilities/ErrorLogLogger
+│       └── Utilities/{ErrorLogLogger, SystemClock}
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · shared ^2.0
 │   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ ; files: functions.php (render_control, sanitize_value, verify_object_form, is_valid_key) · OptionsPage
 ├── packages/woocommerce/  ahegyes/wp-framework-woocommerce  php >=8.5 · settings ^2.0, shared ^2.0, psr/log ^3 (WC ^11.2 as host)
