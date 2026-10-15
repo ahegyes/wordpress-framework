@@ -28,6 +28,8 @@ final class SchedulerTest extends TestCase {
 
 	protected array $calls = array();
 
+	protected ?array $registered_versions = null;
+
 	#[\Override]
 	protected function setUp(): void {
 		$this->hook = 'acme_scheduling_' . \bin2hex( \random_bytes( 4 ) );
@@ -68,6 +70,9 @@ final class SchedulerTest extends TestCase {
 	protected function tearDown(): void {
 		global $wpdb;
 
+		if ( ! \is_null( $this->registered_versions ) ) {
+			( new \ReflectionProperty( \ActionScheduler_Versions::class, 'versions' ) )->setValue( \ActionScheduler_Versions::instance(), $this->registered_versions );
+		}
 		\wp_unschedule_hook( $this->hook );
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE hook LIKE %s', $wpdb->actionscheduler_actions, $wpdb->esc_like( $this->hook ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the rows the test created.
 	}
@@ -647,8 +652,19 @@ final class SchedulerTest extends TestCase {
 		self::assertCount( 2, $this->cron_events() );
 	}
 
-	public function test_action_scheduler_below_the_floor_takes_no_writes(): void {
-		self::assertTrue( $this->make_scheduler( 'outdated' )->enqueue( new ScheduledHook( $this->hook ) ) );
+	public static function versions_below_the_floor(): array {
+		return array(
+			'previous-release'         => array( array( '4.0.0' ) ),
+			'pre-release-of-the-floor' => array( array( '4.1.0-rc.1' ) ),
+			'none-registered'          => array( array() ),
+		);
+	}
+
+	#[DataProvider( 'versions_below_the_floor' )]
+	public function test_action_scheduler_below_the_floor_takes_no_writes( array $versions ): void {
+		$this->report_action_scheduler_versions( $versions );
+
+		self::assertTrue( $this->make_scheduler( 'production' )->enqueue( new ScheduledHook( $this->hook ) ) );
 
 		self::assertSame( array(), $this->pending_action_ids() );
 		self::assertCount( 1, $this->cron_events() );
@@ -657,16 +673,18 @@ final class SchedulerTest extends TestCase {
 	public function test_enqueueing_counts_a_running_invocation_on_action_scheduler_below_the_floor(): void {
 		\as_enqueue_async_action( $this->hook, array(), self::GROUP );
 		\ActionScheduler::store()->log_execution( $this->pending_action_ids()[0] );
+		$this->report_action_scheduler_versions( array( '4.0.0' ) );
 
-		self::assertTrue( $this->make_scheduler( 'outdated' )->enqueue( new ScheduledHook( $this->hook ) ) );
+		self::assertTrue( $this->make_scheduler( 'production' )->enqueue( new ScheduledHook( $this->hook ) ) );
 
 		self::assertSame( array(), $this->cron_events() );
 	}
 
 	public function test_action_scheduler_below_the_floor_is_still_read_and_cleared(): void {
-		$scheduler = $this->make_scheduler( 'outdated' );
+		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
 		\as_schedule_single_action( \time() + 3600, $this->hook, array(), self::GROUP );
+		$this->report_action_scheduler_versions( array( '4.0.0' ) );
 
 		self::assertTrue( $scheduler->is_scheduled( $hook ) );
 		self::assertTrue( $scheduler->clear_scheduled_hook( $hook ) );
@@ -720,7 +738,8 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_a_scheduler_without_a_writable_backend_is_an_error(): void {
-		$scheduler = new Scheduler( self::GROUP, array( new ActionSchedulerBackend( self::GROUP, '99.0.0' ) ) );
+		$scheduler = new Scheduler( self::GROUP, array( new ActionSchedulerBackend( self::GROUP ) ) );
+		$this->report_action_scheduler_versions( array( '4.0.0' ) );
 
 		self::assert_wp_error( $scheduler->enqueue( new ScheduledHook( $this->hook ) ), 'scheduler_unavailable' );
 	}
@@ -734,11 +753,17 @@ final class SchedulerTest extends TestCase {
 		$scheduler = match ( $kind ) {
 			'production' => new Scheduler( self::GROUP ),
 			'wp-cron'    => new Scheduler( self::GROUP, array( new WpCronBackend( self::GROUP ) ) ),
-			'outdated'   => new Scheduler( self::GROUP, array( new ActionSchedulerBackend( self::GROUP, '99.0.0' ), new WpCronBackend( self::GROUP ) ) ),
 		};
 		$scheduler->register_hooks();
 
 		return $scheduler;
+	}
+
+	// The loaded Action Scheduler is at the floor, so the tests below it change only the versions it reports, and tearDown() restores them.
+	protected function report_action_scheduler_versions( array $versions ): void {
+		$property                    = new \ReflectionProperty( \ActionScheduler_Versions::class, 'versions' );
+		$this->registered_versions ??= $property->getValue( \ActionScheduler_Versions::instance() );
+		$property->setValue( \ActionScheduler_Versions::instance(), \array_fill_keys( $versions, '__return_null' ) );
 	}
 
 	protected function pending_action_ids( ?array $args = null ): array {
