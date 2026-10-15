@@ -212,6 +212,50 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( (string) ( 1800000000 - 600 ), $this->get_lock() );
 	}
 
+	public function test_a_lock_row_without_a_timestamp_is_taken_over(): void {
+		\add_option( "{$this->option}_lock", 'acme', '', false );
+
+		$this->make_runner( array( $this->step( 1 ) ) )->run();
+
+		self::assertSame( array( array( 1, 0 ) ), $this->ran );
+		self::assertNull( $this->get_lock() );
+	}
+
+	public function test_a_failed_lock_read_stops_the_run_with_a_warning_and_nothing_escapes(): void {
+		global $wpdb;
+
+		\add_filter( 'query', fn ( string $query ): string => \str_starts_with( \trim( $query ), 'SELECT option_value' ) && \str_contains( $query, "'{$this->option}_lock'" ) ? 'SELECT option_value FROM acme_missing_table' : $query );
+		$suppressed = $wpdb->suppress_errors();
+
+		try {
+			$this->make_runner( array( $this->step( 1 ) ) )->run();
+		} finally {
+			\remove_all_filters( 'query' );
+			$wpdb->suppress_errors( $suppressed );
+		}
+
+		self::assertSame( array(), $this->ran );
+		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
+	}
+
+	public function test_a_failed_unlock_logs_a_warning_and_leaves_the_lock_to_expire(): void {
+		global $wpdb;
+
+		\add_filter( 'query', fn ( string $query ): string => \str_starts_with( \trim( $query ), 'DELETE' ) && \str_contains( $query, "'{$this->option}_lock'" ) ? 'DELETE FROM acme_missing_table' : $query );
+		$suppressed = $wpdb->suppress_errors();
+
+		try {
+			$this->make_runner( array( $this->step( 1 ) ) )->run();
+		} finally {
+			\remove_all_filters( 'query' );
+			$wpdb->suppress_errors( $suppressed );
+		}
+
+		self::assertSame( array( array( 1, 0 ) ), $this->ran );
+		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
+		self::assertNotNull( $this->get_lock() );
+	}
+
 	public function test_a_failed_revision_read_stops_the_run_with_an_error(): void {
 		global $wpdb;
 
