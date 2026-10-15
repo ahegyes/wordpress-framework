@@ -155,7 +155,7 @@ final class AdminNoticesTest extends TestCase {
 		$states   = new UserMetaRecipientStates( "{$this->prefix}_custom" );
 		$notices  = new AdminNotices( $this->prefix, $this->logger, array( 'request' => $requests ), $states );
 		$notices->add( $this->notice( 'saved', NoticeScope::Request, persistent: true ) );
-		$site = $notices->add( $this->notice( 'shared', NoticeScope::Site ) );
+		$site = $notices->add( $this->notice( 'news', NoticeScope::Site, per_viewer: true ) );
 
 		$this->render( $this->admin, $notices );
 
@@ -175,13 +175,23 @@ final class AdminNoticesTest extends TestCase {
 		self::assertSame( array(), $this->notices()->get_notices( NoticeScope::User, $this->admin ) );
 	}
 
-	public function test_a_site_one_shot_shows_once_to_each_capable_user_and_records_each_delivery(): void {
-		$record = $this->notices()->add( $this->notice( 'shared', NoticeScope::Site ) );
+	public function test_a_shared_site_one_shot_shows_once_to_the_first_capable_user_and_is_consumed(): void {
+		$record = $this->notices()->add( $this->notice( 'migrated', NoticeScope::Site ) );
+
+		self::assertSame( array(), self::notices_in( $this->render( $this->editor ) ) );
+		self::assertSame( array( $this->dom_id( 'site', 'migrated' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
+		self::assertSame( array(), self::notices_in( $this->render( $this->other_admin ) ) );
+		self::assertSame( array(), $this->notices()->get_notices( NoticeScope::Site ) );
+		self::assertNull( ( new UserMetaRecipientStates( $this->prefix ) )->get( self::identity( $record ), $this->admin ) );
+	}
+
+	public function test_a_per_viewer_site_one_shot_shows_once_to_each_capable_user_and_records_each_delivery(): void {
+		$record = $this->notices()->add( $this->notice( 'news', NoticeScope::Site, per_viewer: true ) );
 		$states = new UserMetaRecipientStates( $this->prefix );
 
 		self::assertSame( array(), self::notices_in( $this->render( $this->editor ) ) );
 		foreach ( array( $this->admin, $this->other_admin ) as $user_id ) {
-			self::assertSame( array( $this->dom_id( 'site', 'shared' ) ), \array_keys( self::notices_in( $this->render( $user_id ) ) ) );
+			self::assertSame( array( $this->dom_id( 'site', 'news' ) ), \array_keys( self::notices_in( $this->render( $user_id ) ) ) );
 			self::assertSame( array(), self::notices_in( $this->render( $user_id ) ) );
 			self::assertSame( RecipientState::Delivered, $states->get( self::identity( $record ), $user_id ) );
 		}
@@ -189,10 +199,17 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	public function test_a_delivered_state_hides_only_one_shots(): void {
-		$record = $this->notices()->add( $this->notice( 'shared', NoticeScope::Site, persistent: true ) );
+		$record = $this->notices()->add( $this->notice( 'news', NoticeScope::Site, persistent: true, per_viewer: true ) );
 		( new UserMetaRecipientStates( $this->prefix ) )->record( self::identity( $record ), $this->admin, RecipientState::Delivered );
 
-		self::assertSame( array( $this->dom_id( 'site', 'shared' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
+		self::assertSame( array( $this->dom_id( 'site', 'news' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
+	}
+
+	public function test_a_viewers_state_never_hides_a_shared_notice(): void {
+		$record = $this->notices()->add( $this->notice( 'setup', NoticeScope::Site, persistent: true ) );
+		( new UserMetaRecipientStates( $this->prefix ) )->record( self::identity( $record ), $this->admin, RecipientState::Dismissed );
+
+		self::assertSame( array( $this->dom_id( 'site', 'setup' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
 	}
 
 	public static function surfaces(): array {
@@ -315,14 +332,17 @@ final class AdminNoticesTest extends TestCase {
 		$notices->add( $this->notice( 'x', NoticeScope::Request, type: NoticeType::Warning, persistent: true ) );
 		$notices->add( $this->notice( 'x', NoticeScope::Site, persistent: true, dismissible: false ) );
 		$notices->add( $this->notice( 'once' ) );
+		$kept = $notices->add( $this->notice( 'kept', persistent: true ) );
 
 		$shown = self::notices_in( $this->render( $this->admin, $notices ) );
 
-		self::assertSame( array( $this->dom_id( 'site', 'x' ), $this->dom_id( 'user', 'once' ), $this->dom_id( 'request', 'x' ) ), \array_keys( $shown ) );
+		self::assertSame( array( $this->dom_id( 'site', 'x' ), $this->dom_id( 'user', 'once' ), $this->dom_id( 'user', 'kept' ), $this->dom_id( 'request', 'x' ) ), \array_keys( $shown ) );
 		$request = $shown[ $this->dom_id( 'request', 'x' ) ];
 		self::assertSame( 'notice notice-warning is-dismissible', $request['class'] );
 		self::assertSame( array( $this->prefix, 'request', 'x' ), array( $request['data-notices'], $request['data-notice-scope'], $request['data-notice-id'] ) );
 		self::assertSame( 1, \wp_verify_nonce( $request['data-notice-nonce'], "{$this->prefix}_dismiss|request:0:x" ) );
+		self::assertArrayNotHasKey( 'data-notice-generation', $request );
+		self::assertSame( $kept->generation, $shown[ $this->dom_id( 'user', 'kept' ) ]['data-notice-generation'] );
 		self::assertSame( 'notice notice-error', $shown[ $this->dom_id( 'site', 'x' ) ]['class'] );
 		self::assertArrayNotHasKey( 'data-notice-nonce', $shown[ $this->dom_id( 'site', 'x' ) ] );
 		self::assertSame( 'notice notice-error is-dismissible', $shown[ $this->dom_id( 'user', 'once' ) ]['class'] );
@@ -348,6 +368,7 @@ final class AdminNoticesTest extends TestCase {
 		self::assertStringContainsString( '\/', $matches[1] );
 		self::assertStringContainsString( "getAttribute( 'data-notices' ) !== settings.prefix", $script );
 		self::assertStringContainsString( "credentials: 'include'", $script );
+		self::assertStringContainsString( "generation: notice.getAttribute( 'data-notice-generation' ) || undefined", $script );
 	}
 
 	public function test_registered_hooks_print_the_notices_and_the_script(): void {
@@ -371,7 +392,7 @@ final class AdminNoticesTest extends TestCase {
 			self::markTestSkipped( 'A single-site row.' );
 		}
 
-		$this->notices()->add( $this->notice( 'x', NoticeScope::Network ) );
+		$this->notices()->add( $this->notice( 'x', NoticeScope::Network, persistent: true ) );
 
 		self::assertSame( array( $this->dom_id( 'network', 'x' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
 		self::assertIsArray( \get_option( "{$this->prefix}_network_notice_x" ) );
