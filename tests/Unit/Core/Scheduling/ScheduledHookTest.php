@@ -30,6 +30,7 @@ final class ScheduledHookTest extends TestCase {
 	public static function invalid_identities(): array {
 		return array(
 			'empty-hook'          => array( '', array() ),
+			'zero-hook'           => array( '0', array() ),
 			'192-byte-hook'       => array( \str_repeat( 'a', 192 ), array() ),
 			'hook-with-a-space'   => array( 'acme sweep', array() ),
 			'hook-with-a-newline' => array( "acme_sweep\n", array() ),
