@@ -479,6 +479,35 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
 	}
 
+	public function test_a_cached_revision_above_the_code_is_checked_against_the_database_under_the_lock(): void {
+		global $wpdb;
+
+		\update_option( $this->option, 3 );
+		$wpdb->update( $wpdb->options, array( 'option_value' => '0' ), array( 'option_name' => $this->option ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Stands in for another request's write that this request's cache predates.
+
+		$this->make_runner( array( $this->step( 1 ), $this->step( 2 ) ) )->run();
+
+		self::assertSame( array( 1, 2 ), \array_column( $this->ran, 0 ) );
+		self::assertSame( 2, MigrationRunner::get_revision( $this->option ) );
+	}
+
+	public function test_a_lock_taken_over_during_a_checkpoint_stops_the_run_before_its_next_step(): void {
+		\add_action(
+			"update_option_{$this->option}",
+			function (): void {
+				global $wpdb;
+
+				$wpdb->update( $wpdb->options, array( 'option_value' => '1' ), array( 'option_name' => "{$this->option}_lock" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Stands in for another run taking the lock over.
+			}
+		);
+		\update_option( $this->option, 0 );
+
+		$this->make_runner( array( $this->step( 1 ), $this->step( 2 ) ) )->run();
+
+		self::assertSame( array( 1 ), \array_column( $this->ran, 0 ) );
+		self::assertSame( '1', $this->get_lock() );
+	}
+
 	public function test_a_revision_above_the_code_is_left_alone_while_another_run_holds_the_lock(): void {
 		\update_option( $this->option, 3 );
 		$this->insert_lock( \time() - 5 );
@@ -754,6 +783,7 @@ final class MigrationRunnerTest extends TestCase {
 		\do_action( "{$this->option}_run" );
 
 		self::assertSame( array( false, false, false ), $cached );
+		self::assertFalse( \wp_cache_get( 'acme_batch', 'acme' ) );
 	}
 
 	public function test_a_failed_continuation_is_logged_as_a_warning(): void {
