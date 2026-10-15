@@ -15,7 +15,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
-use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesNoticeStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +28,7 @@ final class NoticeStoresTest extends TestCase {
 	use CreatesUsersTrait;
 	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
-	use IsolatesNoticeStorageTrait;
+	use IsolatesStorageTrait;
 
 	protected int $user_id;
 

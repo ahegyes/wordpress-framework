@@ -5,7 +5,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 
-trait IsolatesNoticeStorageTrait {
+trait IsolatesStorageTrait {
 	protected string $prefix;
 
 	#[Before]
@@ -14,7 +14,7 @@ trait IsolatesNoticeStorageTrait {
 	}
 
 	#[After]
-	protected function delete_notice_rows(): void {
+	protected function delete_stored_rows(): void {
 		global $wpdb;
 
 		foreach ( \is_multisite() ? \get_sites( array( 'fields' => 'ids' ) ) : array( 1 ) as $site_id ) {

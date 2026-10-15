@@ -18,6 +18,7 @@ wordpress-framework/
 │       ├── ComponentInterface, CompositeComponentInterface, ConditionalComponentInterface, BatchedMigrationStepInterface
 │       ├── PluginKernel, PluginBoot, MigrationRunner
 │       ├── Scheduling/{SchedulerInterface, Scheduler, ScheduledHook, Recurrence, Backends/ (@internal)}
+│       ├── Storage/{OptionRows, OptionRow, MetaRows, MetaRow}
 │       └── Utilities/{ErrorLogLogger, SystemClock}
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · shared ^2.0
 │   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ ; files: functions.php (render_control, sanitize_value, verify_object_form, is_valid_key) · OptionsPage

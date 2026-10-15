@@ -13,7 +13,7 @@ use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
-use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesNoticeStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -24,7 +24,7 @@ final class OptionNoticeStoreTest extends TestCase {
 	use CreatesSitesTrait;
 	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
-	use IsolatesNoticeStorageTrait;
+	use IsolatesStorageTrait;
 
 	#[\Override]
 	protected function tearDown(): void {
