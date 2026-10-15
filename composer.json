@@ -23,8 +23,9 @@
     "ahegyes/wordpress-configs": "dev-trunk",
     "johnpbloch/wordpress-core": "^7.1",
     "nikic/php-parser": "^5",
+    "php-stubs/woocommerce-stubs": "^11.2",
     "phpunit/phpunit": "^13",
-    "wp-plugin/woocommerce": "^11.1"
+    "wp-plugin/woocommerce": "^11.2"
   },
 
   "repositories": [
