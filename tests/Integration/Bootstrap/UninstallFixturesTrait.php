@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
 
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\Before;
 
 trait UninstallFixturesTrait {
 	use IsolatesStorageTrait;
@@ -13,6 +14,13 @@ trait UninstallFixturesTrait {
 	protected array $calls = array();
 
 	protected array $ids = array();
+
+	// WordPress runs a plugin's uninstall.php before it deletes the plugin's files, so the entry file is there to read.
+	#[Before]
+	protected function write_plugin_file(): void {
+		\wp_mkdir_p( \dirname( self::PLUGIN_FILE ) );
+		\file_put_contents( self::PLUGIN_FILE, "<?php\n/**\n * Plugin Name: Acme Uninstall\n * Text Domain: acme-uninstall\n */\n" );
+	}
 
 	protected function footprint(): array {
 		$p = $this->prefix;
@@ -353,5 +361,8 @@ trait UninstallFixturesTrait {
 		}
 		$this->ids   = array();
 		$this->calls = array();
+
+		\wp_delete_file( self::PLUGIN_FILE );
+		\rmdir( \dirname( self::PLUGIN_FILE ) );
 	}
 }
