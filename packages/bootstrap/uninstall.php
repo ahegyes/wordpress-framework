@@ -15,7 +15,7 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 /**
  * Removes the plugin's footprint from the current site, or with the network flag from every site of a network that is not large, wherever the site consents, and unschedules its jobs on every site it visits.
  *
- * Every operation runs even after another fails. A failed delete keeps that site's consent row, and every failure is thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries.
+ * Every operation runs even after another fails. A failed delete keeps that site's consent row, and the failed deletes and callables are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -85,19 +85,24 @@ function uninstall( string $plugin_file, array $footprint, array $args = array()
  * @param   list<string>                                            $failures    The failures so far, to which this pass adds its own.
  */
 function uninstall_site( string $plugin_file, array $footprint, array $consent, array $handlers, ?callable $cleanup, array &$failures ): void {
+	$unscheduling = array();
 	foreach ( get_strings( $footprint, 'cron_hooks' ) as $hook ) {
 		// WordPress below 5.7 ignores the extra argument.
-		attempt( "cron hook $hook", static fn () => \wp_unschedule_hook( $hook, true ), $failures ); // @phpstan-ignore WPCompat.parameterNotAvailable.wpunschedulehook.wperror
+		attempt( "cron hook $hook", static fn () => \wp_unschedule_hook( $hook, true ), $unscheduling ); // @phpstan-ignore WPCompat.parameterNotAvailable.wpunschedulehook.wperror
 	}
 
 	// Action Scheduler is loaded only while a plugin that bundles it is active.
 	if ( \function_exists( 'as_unschedule_all_actions' ) ) {
 		foreach ( get_strings( $footprint, 'as_hooks' ) as $hook ) {
-			attempt( "Action Scheduler hook $hook", static fn () => \as_unschedule_all_actions( $hook ), $failures );
+			attempt( "Action Scheduler hook $hook", static fn () => \as_unschedule_all_actions( $hook ), $unscheduling );
 		}
 		foreach ( get_strings( $footprint, 'as_groups' ) as $group ) {
-			attempt( "Action Scheduler group $group", static fn () => \as_unschedule_all_actions( '', array(), $group ), $failures );
+			attempt( "Action Scheduler group $group", static fn () => \as_unschedule_all_actions( '', array(), $group ), $unscheduling );
 		}
+	}
+
+	if ( array() !== $unscheduling ) {
+		\error_log( '[' . \plugin_basename( $plugin_file ) . '] Uninstall could not unschedule: ' . \implode( '; ', $unscheduling ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
 	}
 
 	if ( ! has_constant_consent( $consent ) && ! has_stored_consent( $consent ) ) {

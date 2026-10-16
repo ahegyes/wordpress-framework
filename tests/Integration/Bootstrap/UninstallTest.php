@@ -165,6 +165,29 @@ final class UninstallTest extends TestCase {
 		self::assertSame( 'x', \get_transient( "{$this->prefix}_transient" ) );
 	}
 
+	public function test_a_job_wordpress_refuses_to_unschedule_is_logged_without_holding_the_uninstall_back(): void {
+		$this->seed_footprint();
+		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
+		\add_filter( 'pre_unschedule_hook', '__return_false' );
+		try {
+			$log = $this->capture_error_log(
+				fn () => uninstall(
+					self::PLUGIN_FILE,
+					array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ) + $this->footprint(),
+					array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
+				)
+			);
+		} finally {
+			\remove_filter( 'pre_unschedule_hook', '__return_false' ); // The fixtures' own unscheduling must not be refused.
+		}
+
+		self::assertCount( 1, $log );
+		self::assertStringContainsString( "] Uninstall could not unschedule: cron hook {$this->prefix}_cron: ", $log[0] );
+		$this->assert_footprint_deleted();
+		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
+	}
+
 	public function test_a_page_option_holding_no_page_deletes_no_post(): void {
 		$this->seed_footprint();
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
@@ -257,14 +280,13 @@ final class UninstallTest extends TestCase {
 
 	public static function refused_deletes(): array {
 		return array(
-			'a-post'      => array( 'pre_delete_post', '_type', true, true ),
-			'a-meta-row'  => array( 'delete_post_metadata_by_mid', '_flag', true, false ),
-			'a-cron-hook' => array( 'pre_unschedule_hook', '_cron', false, false ),
+			'a-post'     => array( 'pre_delete_post', '_type', true ),
+			'a-meta-row' => array( 'delete_post_metadata_by_mid', '_flag', false ),
 		);
 	}
 
 	#[DataProvider( 'refused_deletes' )]
-	public function test_a_delete_wordpress_refuses_is_thrown_after_the_rest_and_a_retry_completes( string $filter, string $subject, bool $consent_kept, bool $page_option_kept ): void {
+	public function test_a_delete_wordpress_refuses_is_thrown_after_the_rest_and_a_retry_completes( string $filter, string $subject, bool $page_option_kept ): void {
 		$this->seed_footprint();
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
@@ -286,10 +308,9 @@ final class UninstallTest extends TestCase {
 		self::assertInstanceOf( \RuntimeException::class, $failure );
 		self::assertStringContainsString( $this->prefix . $subject, $failure->getMessage() );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
-		self::assertSame( $consent_kept, $this->option_exists( "{$this->prefix}_remove_data" ) );
+		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
 		self::assertSame( $page_option_kept, $this->option_exists( "{$this->prefix}_page_id" ) );
 
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		uninstall(
 			self::PLUGIN_FILE,
 			array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ) + $this->footprint(),
