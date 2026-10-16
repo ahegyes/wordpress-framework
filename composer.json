@@ -91,7 +91,7 @@
     "test:integration:run": [
       "Composer\\Config::disableProcessTimeout",
       "@putenv CI=1",
-      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite"
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite --exclude-group=without-woocommerce"
     ],
     "test:integration:multisite": [
       "Composer\\Config::disableProcessTimeout",
@@ -102,7 +102,7 @@
     "test:integration:multisite:run": [
       "Composer\\Config::disableProcessTimeout",
       "@putenv CI=1",
-      "node_modules/.bin/wp-env --config .wp-env.multisite.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --group=multisite"
+      "node_modules/.bin/wp-env --config .wp-env.multisite.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --group=multisite --group=without-woocommerce"
     ],
 
     "quality-check": [

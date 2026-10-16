@@ -36,7 +36,7 @@ wordpress-framework/
 ├── phpstan.bootstrap.neon PHPStan over the by-path files at PHP 7.4 and WordPress 5.2, the oldest they run on
 ├── .wp-env.json           developer environment: single site with WooCommerce, as local, on port 8800
 ├── .wp-env.tests.json     Integration environment: single site with WooCommerce, as production
-├── .wp-env.multisite.json Integration environment for the `multisite` group: a network without WooCommerce, as production
+├── .wp-env.multisite.json Integration environment for the `multisite` and `without-woocommerce` groups: a network without WooCommerce, as production
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -47,9 +47,9 @@ composer packages-install
 composer quality-check          # validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
 composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run
-composer test:integration:run   # Integration tests in the running .wp-env.tests.json, without the multisite group; WP_ENVIRONMENT_TYPE=production
+composer test:integration:run   # Integration tests in the running .wp-env.tests.json, without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
 composer test:integration:multisite      # starts .wp-env.multisite.json, then runs test:integration:multisite:run
-composer test:integration:multisite:run  # the multisite group in the running .wp-env.multisite.json
+composer test:integration:multisite:run  # the multisite and without-woocommerce groups in the running .wp-env.multisite.json
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint
