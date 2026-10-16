@@ -13,3 +13,4 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 \defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/requirements.php';
+require_once __DIR__ . '/updater.php';

@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the uninstall engine, which removes a plugin's stored data where a site consents and its scheduled jobs in every case.
+ * Defines the uninstall engine, which removes a plugin's stored data where a site consents, and its scheduled jobs and cached releases in every case.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -13,16 +13,16 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Removes the plugin's footprint from the current site, or with the network flag from every site of a network that is not large, wherever the site consents, and unschedules its jobs on every site it visits.
+ * Removes the plugin's footprint from the current site, or with the network flag from every site of a network that is not large, wherever the site consents, and unschedules its jobs and deletes its updater's cached releases on every site it visits.
  *
- * Every operation runs even after another fails. A failed delete keeps that site's consent row, and the failed deletes and callables are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback.
+ * Every operation runs even after another fails. A failed delete of the footprint keeps that site's consent row, and the failed deletes and callables are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback, and a cached release that cannot be deleted is left to expire.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @param   string               $plugin_file The path to the plugin's entry file.
  * @param   array<string, mixed> $footprint   The plugin's stored data by kind, under the engine's keys and the handlers' keys.
- * @param   array<string, mixed> $args        Optional. The consent (an option, its key in a grouped row, or a constant), the handlers by footprint key, the cleanup and the network flag. Default none, which keeps every row.
+ * @param   array<string, mixed> $args        Optional. The consent (an option, its key in a grouped row, or a constant), the handlers by footprint key, the cleanup and the network flag. Default none, which keeps the footprint.
  * @phpstan-param array{consent?: array{option?: string, key?: string, constant?: string}, handlers?: array<string, callable(mixed, array{scope: string, site_id: int, plugin_file: string}): void>, cleanup?: callable(array{scope: string, site_id: int, plugin_file: string}): void, network?: bool} $args
  *
  * @throws  \RuntimeException Thrown when a delete, a handler or the cleanup failed, after everything else ran.
@@ -103,6 +103,12 @@ function uninstall_site( string $plugin_file, array $footprint, array $consent, 
 
 	if ( array() !== $unscheduling ) {
 		\error_log( '[' . \plugin_basename( $plugin_file ) . '] Uninstall could not unschedule: ' . \implode( '; ', $unscheduling ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
+	}
+
+	// Release caches hold no site data and expire on their own, so they go whatever the consent, and one that cannot be deleted is left to expire.
+	$slug = \get_file_data( $plugin_file, array( 'slug' => 'Text Domain' ) )['slug'];
+	foreach ( array( 'stable', 'prerelease' ) as $channel ) {
+		\delete_transient( "{$slug}_github_release_$channel" );
 	}
 
 	if ( ! has_constant_consent( $consent ) && ! has_stored_consent( $consent ) ) {

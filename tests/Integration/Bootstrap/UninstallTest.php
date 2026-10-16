@@ -218,6 +218,45 @@ final class UninstallTest extends TestCase {
 	}
 
 	#[DataProvider( 'retaining_and_consenting' )]
+	public function test_the_updaters_cached_releases_are_deleted_whatever_the_consent( bool $consenting ): void {
+		\update_option( "{$this->prefix}_remove_data", $consenting ? 'yes' : 'no' );
+		\set_transient( 'acme-uninstall_github_release_stable', array( 'version' => '2.0.0' ), \HOUR_IN_SECONDS );
+		\set_transient( 'acme-uninstall_github_release_prerelease', array(), \MINUTE_IN_SECONDS );
+		\set_transient( 'acme-foreign_github_release_stable', array( 'version' => '3.0.0' ), \HOUR_IN_SECONDS );
+
+		try {
+			uninstall( self::PLUGIN_FILE, array(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+
+			self::assertFalse( $this->option_exists( '_transient_acme-uninstall_github_release_stable' ) );
+			self::assertFalse( $this->option_exists( '_transient_acme-uninstall_github_release_prerelease' ) );
+			self::assertTrue( $this->option_exists( '_transient_acme-foreign_github_release_stable' ) );
+		} finally {
+			\delete_transient( 'acme-uninstall_github_release_stable' );
+			\delete_transient( 'acme-uninstall_github_release_prerelease' );
+			\delete_transient( 'acme-foreign_github_release_stable' );
+		}
+	}
+
+	public function test_a_failed_delete_of_a_cached_release_neither_throws_nor_holds_back_the_rest(): void {
+		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		\update_option( "{$this->prefix}_settings", 'x' );
+		\set_transient( 'acme-uninstall_github_release_stable', array(), \HOUR_IN_SECONDS );
+		$this->fail_queries( "DELETE FROM `{$GLOBALS['wpdb']->options}` WHERE `option_name` = '_transient_acme-uninstall_github_release_stable'" );
+
+		try {
+			uninstall( self::PLUGIN_FILE, array( 'options' => array( "{$this->prefix}_settings" ) ), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+
+			self::assertTrue( $this->option_exists( '_transient_acme-uninstall_github_release_stable' ) );
+			self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
+			self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
+		} finally {
+			\remove_all_filters( 'query' );
+			$this->restore_query_errors();
+			\delete_transient( 'acme-uninstall_github_release_stable' );
+		}
+	}
+
+	#[DataProvider( 'retaining_and_consenting' )]
 	public function test_action_scheduler_actions_are_unscheduled_by_hook_and_by_group_whatever_the_consent( bool $consenting ): void {
 		\update_option( "{$this->prefix}_remove_data", $consenting ? 'yes' : 'no' );
 		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_as", array( 1 ) );
