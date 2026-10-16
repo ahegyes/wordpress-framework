@@ -14,3 +14,10 @@ jobs:
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
     with:
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
+
+  php-syntax:
+    name: PHP syntax
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@6302f1f9170ef7187027bf39f0c07b84896e930b
+    with:
+      php-versions: '["7.4"]'
+      paths: '["packages/bootstrap"]'

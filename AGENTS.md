@@ -10,7 +10,7 @@ wordpress-framework/
 │   ├── load.php             require_once's requirements.php and updater.php   (path = public API)
 │   ├── requirements.php     check_requirements( string $plugin_file ): bool
 │   ├── updater.php          register_github_updater( string $plugin_file ): void
-│   └── uninstall.php        uninstall( string $plugin_file, array $footprint, string $opt_in_option, string $opt_in_key = '', ?callable $cleanup = null ): void
+│   └── uninstall.php        uninstall( string $plugin_file, array $footprint, array $args = array() ): void
 ├── packages/shared/       ahegyes/wp-framework-shared       php >=8.5, ext-filter · no package require · WordPress-free
 │   └── src/               psr-4 DeepWebSolutions\Framework\Shared\ ; files: functions.php · Exception/, Error/, Result/, ValueObject/, Version/
 ├── packages/core/         ahegyes/wp-framework-core         php >=8.5 · shared ^2.0, psr/clock ^1, psr/container ^2, psr/log ^3
@@ -33,9 +33,10 @@ wordpress-framework/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core, with the WordPress stubs and extensions
+├── phpstan.bootstrap.neon PHPStan over the by-path files at PHP 7.4 and WordPress 5.2, the oldest they run on
 ├── .wp-env.json           developer environment: single site with WooCommerce, as local, on port 8800
 ├── .wp-env.tests.json     Integration environment: single site with WooCommerce, as production
-├── .wp-env.multisite.json Integration environment for the `multisite` group: a network without WooCommerce, as production
+├── .wp-env.multisite.json Integration environment for the `multisite` and `without-woocommerce` groups: a network without WooCommerce, as production
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -46,9 +47,9 @@ composer packages-install
 composer quality-check          # validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
 composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run
-composer test:integration:run   # Integration tests in the running .wp-env.tests.json, without the multisite group; WP_ENVIRONMENT_TYPE=production
+composer test:integration:run   # Integration tests in the running .wp-env.tests.json, without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
 composer test:integration:multisite      # starts .wp-env.multisite.json, then runs test:integration:multisite:run
-composer test:integration:multisite:run  # the multisite group in the running .wp-env.multisite.json
+composer test:integration:multisite:run  # the multisite and without-woocommerce groups in the running .wp-env.multisite.json
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint
@@ -64,7 +65,7 @@ zizmor .github/
 5. **Safeguards.** Everything a safeguard calls lives in `includes/safeguards.php` or files it requires. Relaxation happens only through the safeguard's own filter, after `{prefix}_initialized`, on an explicit `false`.
 6. **Shared logic.** Logic that global functions or templates need lives in plain functions or static methods. Per-request state lives in a static holder or `WC()->session`. No service locator.
 7. **Migration steps.** Append-only; a retired step keeps its code or throws. Converge from any partial state; verify writes and throw on failure, including a missing role and a scheduler write that returns `WP_Error`. Create resources resumably (lookup marker, explicit `post_author`). Use WC CRUD for orders and products. A plain step finishes well under 10 minutes; bulk work is a `BatchedMigrationStepInterface` step, run only from the runner's scheduled hook, at about 1–2 s per batch. Steps run on `wp_loaded`, so every `init` registration exists. One linear list serves every build variant.
-8. **Settings.** Full keys are `Options` constants; WC ids are flat. Boot-time defaults are constants; translated defaults come from `Options::text()` after `init`. Validate on write, guard on read. Direct meta writes go through `wp_slash()`. WooCommerce multiselect option keys are truthy, because WooCommerce's save drops `'0'` and `''`.
+8. **Settings.** Full keys are `Options` constants; WC ids are flat. Boot-time defaults are constants; translated defaults come from `Options::text()` after `init`. Validate on write, guard on read. Direct meta writes go through `wp_slash()`. Framework components store data only under the consumer's `{prefix}_`, so the plugin's footprint covers it. WooCommerce multiselect option keys are truthy, because WooCommerce's save drops `'0'` and `''`.
 9. **Object forms** render through `render_control()` and call `verify_object_form()`; every framework saver leaves absent (unrendered or disabled) fields untouched.
 10. **Translation, by-path files, Plugin Check.** Never translate at include or registration time. Framework strings use only the `'wp-framework'` domain, at most five, owned by core, settings and woocommerce; bootstrap and shared ship none. The by-path files (the bootstrap package, the WC package's `bootstrap/`) stay 7.4-parseable, loaded by path, outside every `autoload` key; their paths are public API. Code is Plugin-Check-clean, using inline `phpcs:ignore` with a reason; local PHPCS runs the full `WordPress` standard, which covers the WordPress sniffs Plugin Check runs (its own `PluginCheck` sniffs and file checks run only at release).
 
@@ -86,7 +87,7 @@ zizmor .github/
 2. Gates evaluate once, at `plugins_loaded`. Schema-gated components switch on one request after the migrating request.
 3. A request killed mid-migration holds the lock for 10 minutes, then the step re-runs and the error row names the step that did not finish. One primary database is assumed. While a failure persists, each request issues one `INSERT IGNORE` plus one conditional `UPDATE`.
 4. After a rollback, older code runs on newer data until the plugin is upgraded again; the written-back revision then re-runs the newer steps, and `{option}_high_water` keeps the highest revision reached. Mixed-version rolling deploys may re-run steps, which converge.
-5. Uninstall cleans only the current site. Other sites and network-global user meta keep their data. AS actions stay queued if AS is not loaded at uninstall.
+5. Uninstall cleans the current site; with `network` it cleans every site that consents, except on a large network, where it logs that it cleaned the current site only. Network-global user meta goes only on a single site or, outside a large network, on the consent constant. Action Scheduler actions stay queued when it is not loaded at uninstall, and fail once it runs them, since no callback is registered; a job that cannot be unscheduled is logged and left.
 6. Over WC REST, `validate` receives WooCommerce's normalized value: unknown multiselect choices are already dropped and text already sanitized. A rejected value is not stored, but the response echoes it. Grouped `option[key]` ids would bypass the bridge, hence flat ids.
 7. WC-rendered controls carry WooCommerce's markup. The framework guarantees markup only for `render_control()`.
 8. Partial bootstrap package: if `load.php` exists but a sibling it requires is missing, the `Error` is thrown before the template's catch and the plugin fatals at include. A missing `vendor-prefixed/` also unregisters the updater and skips the floor gate, so safeguards then load on whatever PHP runs (two faults).

@@ -1,0 +1,13 @@
+# The by-path files run before any floor is checked, so they are analyzed at the oldest PHP and WordPress they support; the WordPress extensions are listed because composer.json keeps them from installing themselves.
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+    - vendor/johnbillion/wp-compat/extension.neon
+    - vendor/swissspidy/phpstan-no-private/rules.neon
+    - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
+
+parameters:
+    paths:
+        - packages/bootstrap
+    phpVersion: 70400
+    WPCompat:
+        requiresAtLeast: '5.2'
