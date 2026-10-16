@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the uninstall engine, which removes a plugin's stored data where a site consents and its scheduled jobs in every case.
+ * Defines the uninstall engine, which removes a plugin's stored data where a site consents, and its scheduled jobs and cached releases in every case.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -13,9 +13,9 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Removes the plugin's footprint from the current site, or with the network flag from every site of a network that is not large, wherever the site consents, and unschedules its jobs on every site it visits.
+ * Removes the plugin's footprint from the current site, or with the network flag from every site of a network that is not large, wherever the site consents, and unschedules its jobs and deletes its updater's cached releases on every site it visits.
  *
- * Every operation runs even after another fails. A failed delete keeps that site's consent row, and the failed deletes and callables are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback.
+ * Every operation runs even after another fails. A failed delete of the footprint keeps that site's consent row, and the failed deletes and callables are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -103,6 +103,12 @@ function uninstall_site( string $plugin_file, array $footprint, array $consent, 
 
 	if ( array() !== $unscheduling ) {
 		\error_log( '[' . \plugin_basename( $plugin_file ) . '] Uninstall could not unschedule: ' . \implode( '; ', $unscheduling ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
+	}
+
+	// The updater caches each channel's release under the plugin's text domain.
+	$slug = \get_file_data( $plugin_file, array( 'slug' => 'Text Domain' ) )['slug'];
+	foreach ( array( 'stable', 'prerelease' ) as $channel ) {
+		attempt( "transient {$slug}_github_release_$channel", static fn () => \delete_transient( "{$slug}_github_release_$channel" ), $failures );
 	}
 
 	if ( ! has_constant_consent( $consent ) && ! has_stored_consent( $consent ) ) {
