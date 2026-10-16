@@ -15,7 +15,7 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 /**
  * Offers the plugin's GitHub releases as updates, and answers its "View details" request, when its Update URI points at github.com.
  *
- * A release that needs a newer WordPress is not offered, because WordPress's automatic updates check only the PHP requirement. WordPress asks for Update URI offers from version 5.8, so below it the updater stays inert.
+ * A release that needs a newer WordPress is not offered, because WordPress's automatic updates check only the PHP requirement. WordPress asks for Update URI offers from version 5.8, so below it no update is offered.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -23,8 +23,9 @@ namespace DeepWebSolutions\Framework\Bootstrap;
  * @param   string $plugin_file The path to the plugin's entry file.
  */
 function register_github_updater( string $plugin_file ): void {
+	// WordPress names the update hook after the host of the sanitized Update URI, which gains a scheme when it has none.
 	$headers = \get_file_data( $plugin_file, array( 'uri' => 'Update URI' ) );
-	if ( 'github.com' !== \wp_parse_url( $headers['uri'], \PHP_URL_HOST ) ) {
+	if ( 'github.com' !== \wp_parse_url( \esc_url_raw( $headers['uri'] ), \PHP_URL_HOST ) ) {
 		return;
 	}
 
@@ -69,9 +70,10 @@ function register_github_updater( string $plugin_file ): void {
 
 			// Without a release the answer stays local, since WordPress would describe whichever plugin holds the slug on wordpress.org.
 			$information = array(
-				'name'    => $config['name'],
-				'slug'    => $config['slug'],
-				'version' => $config['version'],
+				'name'     => $config['name'],
+				'slug'     => $config['slug'],
+				'version'  => $config['version'],
+				'sections' => array(), // WordPress's details screen reads the sections without a guard.
 			);
 
 			$release = get_release( $config );
@@ -122,15 +124,13 @@ function get_updater_config( string $plugin_file ): ?array {
 
 	$defaults = array(
 		'enabled'    => true,
-		'repository' => \trim( (string) \wp_parse_url( $headers['uri'], \PHP_URL_PATH ), '/' ),
+		'repository' => \trim( (string) \wp_parse_url( \esc_url_raw( $headers['uri'] ), \PHP_URL_PATH ), '/' ),
 		'asset'      => "$slug.zip",
 		'channel'    => false === \strpos( $headers['version'], '-' ) ? 'stable' : 'prerelease',
 	);
 
 	/**
-	 * Filters the GitHub updater's configuration for the plugin whose text domain ends the hook name.
-	 *
-	 * A key the filter leaves out keeps its default.
+	 * Filters the GitHub updater's configuration for the plugin whose text domain ends the hook name; a key the filter leaves out keeps its default.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -221,6 +221,11 @@ function fetch_release( array $config ): ?array {
 		}
 
 		$candidate_version = \ltrim( $candidate['tag_name'], 'v' );
+		// PHP's version_compare() ranks some words, such as 'preview', above every number.
+		if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-[0-9A-Za-z.]+)?$/', $candidate_version ) ) {
+			continue;
+		}
+
 		if ( '' === $version || \version_compare( $candidate_version, $version, '>' ) ) {
 			$newest  = $candidate;
 			$tag     = $candidate['tag_name'];
@@ -241,7 +246,7 @@ function fetch_release( array $config ): ?array {
 		return null;
 	}
 
-	// The pattern get_file_data() applies to an installed plugin, which it reads only from a path.
+	// WordPress's get_file_data() reads only paths, so the fetched entry file is parsed with the same pattern.
 	$entry_file   = \str_replace( "\r", "\n", \substr( $entry_file, 0, 8 * \KB_IN_BYTES ) );
 	$headers      = array(
 		'requires'     => 'Requires at least',
@@ -250,6 +255,10 @@ function fetch_release( array $config ): ?array {
 	$requirements = array();
 	foreach ( $headers as $field => $header ) {
 		$requirements[ $field ] = 1 === \preg_match( '/^(?:[ \t]*<\?(?:php)?)?[ \t\/*#@]*' . \preg_quote( $header, '/' ) . ':(.*)$/mi', $entry_file, $match ) ? \trim( (string) \preg_replace( '/\s*(?:\*\/|\?>).*/', '', $match[1] ) ) : '';
+		// WordPress prints the PHP requirement unescaped on its details screen, so anything but a version makes the release unusable.
+		if ( '' !== $requirements[ $field ] && 1 !== \preg_match( '/^\d+(?:\.\d+)*$/', $requirements[ $field ] ) ) {
+			return null;
+		}
 	}
 
 	return read_release(

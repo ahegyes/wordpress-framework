@@ -22,7 +22,7 @@ namespace DeepWebSolutions\Framework\Bootstrap;
  *
  * @param   string               $plugin_file The path to the plugin's entry file.
  * @param   array<string, mixed> $footprint   The plugin's stored data by kind, under the engine's keys and the handlers' keys.
- * @param   array<string, mixed> $args        Optional. The consent (an option, its key in a grouped row, or a constant), the handlers by footprint key, the cleanup and the network flag. Default none, which keeps every row.
+ * @param   array<string, mixed> $args        Optional. The consent (an option, its key in a grouped row, or a constant), the handlers by footprint key, the cleanup and the network flag. Default none, which keeps the footprint.
  * @phpstan-param array{consent?: array{option?: string, key?: string, constant?: string}, handlers?: array<string, callable(mixed, array{scope: string, site_id: int, plugin_file: string}): void>, cleanup?: callable(array{scope: string, site_id: int, plugin_file: string}): void, network?: bool} $args
  *
  * @throws  \RuntimeException Thrown when a delete, a handler or the cleanup failed, after everything else ran.

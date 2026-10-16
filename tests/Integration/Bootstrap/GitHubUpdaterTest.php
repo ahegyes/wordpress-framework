@@ -64,6 +64,8 @@ final class GitHubUpdaterTest extends TestCase {
 					$test->stage( $test->raw_url( 'v2.0.0' ), 404, '404: Not Found' );
 				},
 			),
+			'tag-not-a-version'       => array( static fn ( self $test ) => $test->stage_latest( $test->release( 'preview' ) ) ),
+			'requirement-not-version' => array( static fn ( self $test ) => $test->stage_latest( $test->release( 'v2.0.0' ), '', array( 'Requires PHP' => '8.1<img src=x onerror=alert(1)>' ) ) ),
 		);
 	}
 
@@ -71,6 +73,14 @@ final class GitHubUpdaterTest extends TestCase {
 		return array(
 			'newer-prerelease-listed-second' => array( '1.2.0-beta.1', array( 'v1.2.0-beta.1', 'v1.2.0-beta.2' ), '1.2.0-beta.2' ),
 			'stable-successor'               => array( '1.2.0-beta.2', array( 'v1.2.0', 'v1.2.0-beta.2' ), '1.2.0' ),
+			'word-tag-listed'                => array( '1.1.0-beta.1', array( 'preview', 'v1.2.0-beta.1' ), '1.2.0-beta.1' ),
+		);
+	}
+
+	public static function github_update_uris(): array {
+		return array(
+			'with-scheme'    => array( 'https://github.com/acme/' ),
+			'without-scheme' => array( 'github.com/acme/' ),
 		);
 	}
 
@@ -108,8 +118,9 @@ final class GitHubUpdaterTest extends TestCase {
 		);
 	}
 
-	public function test_a_stable_install_is_offered_the_latest_release_packaged_as_the_asset_named_after_its_text_domain(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+	#[DataProvider( 'github_update_uris' )]
+	public function test_a_stable_install_is_offered_the_latest_release_packaged_as_the_asset_named_after_its_text_domain( string $update_uri ): void {
+		register_github_updater( $this->write_plugin( $this->slug, array( 'Update URI' => $update_uri . $this->slug ) ) );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
 		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
@@ -283,7 +294,7 @@ final class GitHubUpdaterTest extends TestCase {
 		self::assertSame( '1.0.0', $details->version );
 		self::assertTrue( $details->external );
 		self::assertObjectNotHasProperty( 'download_link', $details );
-		self::assertObjectNotHasProperty( 'sections', $details );
+		self::assertSame( array(), $details->sections );
 	}
 
 	#[DataProvider( 'foreign_details_requests' )]
