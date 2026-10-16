@@ -15,7 +15,7 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 /**
  * Removes the plugin's footprint from the current site, or with the network flag from every site of a network that is not large, wherever the site consents, and unschedules its jobs and deletes its updater's cached releases on every site it visits.
  *
- * Every operation runs even after another fails. A failed delete of the footprint keeps that site's consent row, and the failed deletes and callables are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback.
+ * Every operation runs even after another fails. A failed delete of the footprint keeps that site's consent row, and the failed deletes and callables are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback, and a cached release that cannot be deleted is left to expire.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -105,10 +105,10 @@ function uninstall_site( string $plugin_file, array $footprint, array $consent, 
 		\error_log( '[' . \plugin_basename( $plugin_file ) . '] Uninstall could not unschedule: ' . \implode( '; ', $unscheduling ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
 	}
 
-	// The updater caches each channel's release under the plugin's text domain.
+	// Release caches hold no site data and expire on their own, so they go whatever the consent, and one that cannot be deleted is left to expire.
 	$slug = \get_file_data( $plugin_file, array( 'slug' => 'Text Domain' ) )['slug'];
 	foreach ( array( 'stable', 'prerelease' ) as $channel ) {
-		attempt( "transient {$slug}_github_release_$channel", static fn () => \delete_transient( "{$slug}_github_release_$channel" ), $failures );
+		\delete_transient( "{$slug}_github_release_$channel" );
 	}
 
 	if ( ! has_constant_consent( $consent ) && ! has_stored_consent( $consent ) ) {
