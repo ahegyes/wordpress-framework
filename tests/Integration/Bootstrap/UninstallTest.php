@@ -152,6 +152,7 @@ final class UninstallTest extends TestCase {
 					'order_meta' => array( "_{$this->prefix}_order" ),
 					'transients' => "{$this->prefix}_transient",
 					'meta'       => array( 'user' => array( "{$this->prefix}_flag" ) ),
+					'tables'     => array( '' ),
 					'options'    => array( "{$this->prefix}_settings" ),
 				),
 				array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
@@ -159,9 +160,24 @@ final class UninstallTest extends TestCase {
 		);
 
 		self::assertCount( 1, $lines );
-		self::assertStringEndsWith( '] Uninstall skipped the footprint keys it cannot read: optoins, order_meta, transients, meta', $lines[0] );
+		self::assertStringEndsWith( '] Uninstall skipped the footprint keys it cannot read: optoins, order_meta, transients, meta, tables', $lines[0] );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertSame( 'x', \get_transient( "{$this->prefix}_transient" ) );
+	}
+
+	public function test_a_page_option_holding_no_page_deletes_no_post(): void {
+		$this->seed_footprint();
+		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		\update_option( "{$this->prefix}_page_id", '0' );
+		$GLOBALS['post'] = \get_post( $this->ids['foreign_page'] ); // WordPress reads the global post for an id of 0.
+		try {
+			uninstall( self::PLUGIN_FILE, $this->footprint(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+		} finally {
+			unset( $GLOBALS['post'] );
+		}
+
+		self::assertTrue( $this->post_exists( $this->ids['foreign_page'] ) );
+		self::assertFalse( $this->option_exists( "{$this->prefix}_page_id" ) );
 	}
 
 	#[DataProvider( 'retaining_and_consenting' )]
@@ -183,14 +199,14 @@ final class UninstallTest extends TestCase {
 		\update_option( "{$this->prefix}_remove_data", $consenting ? 'yes' : 'no' );
 		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_as", array( 1 ) );
 		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_as", array( 2 ) );
-		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_grouped", array(), "{$this->prefix}-group" );
+		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_grouped", array(), "$this->prefix-group" );
 		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_foreign_as" );
 
 		uninstall(
 			self::PLUGIN_FILE,
 			array(
 				'as_hooks'  => array( "{$this->prefix}_as" ),
-				'as_groups' => array( "{$this->prefix}-group" ),
+				'as_groups' => array( "$this->prefix-group" ),
 			),
 			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
 		);
@@ -203,8 +219,8 @@ final class UninstallTest extends TestCase {
 	public static function failing_statements(): array {
 		return array(
 			'an-option-delete' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings' ),
-			'a-prefix-read'    => array( static fn ( \wpdb $wpdb, string $prefix ): string => 'SELECT DISTINCT `option_name`', '_cache_', 'option_exists', '_cache_a' ),
-			'a-post-type-read' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "AS type FROM `$wpdb->posts`", '_type', 'post_type_has_posts', '_type' ),
+			'a-prefix-read'    => array( static fn ( \wpdb $wpdb, string $prefix ): string => 'SELECT DISTINCT CAST( `option_name`', '_cache_', 'option_exists', '_cache_a' ),
+			'a-post-type-read' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "AS value FROM `$wpdb->posts`", '_type', 'post_type_has_posts', '_type' ),
 		);
 	}
 
@@ -241,13 +257,14 @@ final class UninstallTest extends TestCase {
 
 	public static function refused_deletes(): array {
 		return array(
-			'a-post'      => array( 'pre_delete_post', '_type', true ),
-			'a-cron-hook' => array( 'pre_unschedule_hook', '_cron', false ),
+			'a-post'      => array( 'pre_delete_post', '_type', true, true ),
+			'a-meta-row'  => array( 'delete_post_metadata_by_mid', '_flag', true, false ),
+			'a-cron-hook' => array( 'pre_unschedule_hook', '_cron', false, false ),
 		);
 	}
 
 	#[DataProvider( 'refused_deletes' )]
-	public function test_a_delete_wordpress_refuses_is_thrown_after_the_rest( string $filter, string $subject, bool $consent_kept ): void {
+	public function test_a_delete_wordpress_refuses_is_thrown_after_the_rest_and_a_retry_completes( string $filter, string $subject, bool $consent_kept, bool $page_option_kept ): void {
 		$this->seed_footprint();
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
@@ -270,6 +287,17 @@ final class UninstallTest extends TestCase {
 		self::assertStringContainsString( $this->prefix . $subject, $failure->getMessage() );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertSame( $consent_kept, $this->option_exists( "{$this->prefix}_remove_data" ) );
+		self::assertSame( $page_option_kept, $this->option_exists( "{$this->prefix}_page_id" ) );
+
+		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		uninstall(
+			self::PLUGIN_FILE,
+			array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ) + $this->footprint(),
+			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
+		);
+
+		$this->assert_footprint_deleted();
+		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron" ) );
 	}
 
 	public static function throwing_callables(): array {

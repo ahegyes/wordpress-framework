@@ -31,7 +31,7 @@ final class UninstallWithoutActionSchedulerTest extends TestCase {
 			array(
 				'cron_hooks' => array( "{$this->prefix}_cron" ),
 				'as_hooks'   => array( "{$this->prefix}_as" ),
-				'as_groups'  => array( "{$this->prefix}-group" ),
+				'as_groups'  => array( "$this->prefix-group" ),
 				'options'    => array( "{$this->prefix}_settings" ),
 			),
 			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_callables()

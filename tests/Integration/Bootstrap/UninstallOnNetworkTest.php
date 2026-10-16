@@ -103,13 +103,15 @@ final class UninstallOnNetworkTest extends TestCase {
 		self::assertSame( ! $constant, $this->user_meta_exists( "{$this->prefix}_global_state" ) );
 	}
 
-	public function test_a_large_network_cleans_only_the_current_site(): void {
+	public function test_a_large_network_cleans_only_the_current_site_and_logs_it(): void {
 		\add_filter( 'wp_is_large_network', '__return_true' );
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		uninstall( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( true ) );
+		$log = $this->capture_error_log( fn () => uninstall( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( true ) ) );
 
+		self::assertCount( 1, $log );
+		self::assertStringEndsWith( '] Uninstall cleaned only the current site, because the network is large.', $log[0] );
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( true, true, true, true ), $this->site_state( $this->other_site ) );
 		self::assertTrue( $this->user_meta_exists( "{$this->prefix}_global_state" ) );

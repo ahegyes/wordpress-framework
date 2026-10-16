@@ -38,7 +38,7 @@ trait UninstallFixturesTrait {
 			'user_meta_site_prefixes'   => array( "{$p}_site_" ),
 			'user_meta_global'          => array( "{$p}_global_state" ),
 			'user_meta_global_prefixes' => array( "{$p}_global_" ),
-			'capabilities'              => array( "manage_{$p}" ),
+			'capabilities'              => array( "manage_$p" ),
 			'tables'                    => array( "{$p}_log" ),
 		);
 	}
@@ -64,7 +64,7 @@ trait UninstallFixturesTrait {
 		\update_option( "{$p}_page_id", $this->ids['page'] );
 		\update_option( "{$p}_post_id", $this->ids['foreign_post'] );
 
-		$term = \wp_insert_term( "{$p}-term", 'category' );
+		$term = \wp_insert_term( "$p-term", 'category' );
 		self::assertIsArray( $term );
 		$this->ids['term'] = (int) $term['term_id'];
 
@@ -82,19 +82,19 @@ trait UninstallFixturesTrait {
 			'comment' => $this->ids['comment'],
 		);
 		foreach ( $meta_objects as $type => $object_id ) {
-			foreach ( array( "{$p}_flag", "{$p}_{$type}_a", "{$p}_kept", "{$p}_{$type}Za" ) as $key ) {
+			foreach ( array( \strtoupper( "{$p}_flag" ), \strtoupper( "{$p}_{$type}_a" ), "{$p}_flag", "{$p}_{$type}_a", "{$p}_kept", "{$p}_{$type}Za" ) as $key ) {
 				\add_metadata( $type, $object_id, $key, 'x' );
 			}
 		}
 
 		$this->ids['user'] = $this->make_user( 'acme_uninstall_user', 'subscriber' );
-		foreach ( array( "$blog_prefix{$p}_site_state", "$blog_prefix{$p}_site_a", "{$p}_global_state", "{$p}_global_a", "{$p}_site_state", "{$p}_kept", "$blog_prefix{$p}_kept" ) as $key ) {
+		foreach ( array( \strtoupper( "{$p}_global_state" ), \strtoupper( "$blog_prefix{$p}_site_a" ), "$blog_prefix{$p}_site_state", "$blog_prefix{$p}_site_a", "{$p}_global_state", "{$p}_global_a", "{$p}_site_state", "{$p}_kept", "$blog_prefix{$p}_kept" ) as $key ) {
 			\add_user_meta( $this->ids['user'], $key, 'x' );
 		}
 
-		\get_role( 'administrator' )->add_cap( "manage_{$p}" );
-		\get_role( 'editor' )->add_cap( "manage_{$p}" );
-		\get_role( 'editor' )->add_cap( "edit_{$p}" );
+		\get_role( 'administrator' )->add_cap( "manage_$p" );
+		\get_role( 'editor' )->add_cap( "manage_$p" );
+		\get_role( 'editor' )->add_cap( "edit_$p" );
 
 		foreach ( array( "{$p}_log", "{$p}_kept" ) as $table ) {
 			$wpdb->query( "CREATE TABLE `$wpdb->prefix$table` ( id INT )" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Creates the test's own tables.
@@ -122,7 +122,7 @@ trait UninstallFixturesTrait {
 			),
 			'comment'      => $this->comment_exists( $this->ids['note'] ),
 			'user_meta'    => \array_map( $this->user_meta_exists( ... ), array( "$blog_prefix{$p}_site_state", "$blog_prefix{$p}_site_a", "{$p}_global_state", "{$p}_global_a" ) ),
-			'capabilities' => array( $this->role_has( 'administrator', "manage_{$p}" ), $this->role_has( 'editor', "manage_{$p}" ) ),
+			'capabilities' => array( $this->role_has( 'administrator', "manage_$p" ), $this->role_has( 'editor', "manage_$p" ) ),
 			'table'        => $this->table_exists( "{$p}_log" ),
 		);
 	}
@@ -172,9 +172,9 @@ trait UninstallFixturesTrait {
 				'options'      => array( true, true, true ),
 				'transient'    => true,
 				'posts'        => array( true, true, true ),
-				'meta'         => array( true, true, true, true, true, true ),
+				'meta'         => array( true, true, true, true, true, true, true, true, true, true, true, true ),
 				'comment'      => array( true, true ),
-				'user_meta'    => array( true, true, true ),
+				'user_meta'    => array( true, true, true, true, true ),
 				'capabilities' => array( true, true ),
 				'table'        => true,
 			),
@@ -189,10 +189,16 @@ trait UninstallFixturesTrait {
 					$this->meta_exists( 'term', "{$p}_termZa" ),
 					$this->meta_exists( 'comment', "{$p}_kept" ),
 					$this->meta_exists( 'comment', "{$p}_commentZa" ),
+					$this->meta_exists( 'post', \strtoupper( "{$p}_flag" ) ),
+					$this->meta_exists( 'post', \strtoupper( "{$p}_post_a" ) ),
+					$this->meta_exists( 'term', \strtoupper( "{$p}_flag" ) ),
+					$this->meta_exists( 'term', \strtoupper( "{$p}_term_a" ) ),
+					$this->meta_exists( 'comment', \strtoupper( "{$p}_flag" ) ),
+					$this->meta_exists( 'comment', \strtoupper( "{$p}_comment_a" ) ),
 				),
 				'comment'      => array( $this->comment_exists( $this->ids['comment'] ), $this->comment_exists( $this->ids['upper_comment'] ) ),
-				'user_meta'    => \array_map( $this->user_meta_exists( ... ), array( "{$p}_site_state", "{$p}_kept", "$blog_prefix{$p}_kept" ) ),
-				'capabilities' => array( $this->role_has( 'administrator', 'manage_options' ), $this->role_has( 'editor', "edit_{$p}" ) ),
+				'user_meta'    => \array_map( $this->user_meta_exists( ... ), array( "{$p}_site_state", "{$p}_kept", "$blog_prefix{$p}_kept", \strtoupper( "{$p}_global_state" ), \strtoupper( "$blog_prefix{$p}_site_a" ) ) ),
+				'capabilities' => array( $this->role_has( 'administrator', 'manage_options' ), $this->role_has( 'editor', "edit_$p" ) ),
 				'table'        => $this->table_exists( "{$p}_kept" ),
 			)
 		);
@@ -329,8 +335,8 @@ trait UninstallFixturesTrait {
 			\wp_delete_term( $this->ids['term'], 'category' );
 		}
 		foreach ( array( 'administrator', 'editor' ) as $role ) {
-			\get_role( $role )->remove_cap( "manage_{$p}" );
-			\get_role( $role )->remove_cap( "edit_{$p}" );
+			\get_role( $role )->remove_cap( "manage_$p" );
+			\get_role( $role )->remove_cap( "edit_$p" );
 		}
 		foreach ( array( "{$p}_log", "{$p}_kept" ) as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS `$wpdb->prefix$table`" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Drops the test's own tables.

@@ -13,9 +13,9 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Removes the plugin's footprint from the current site, or with the network flag from every site, wherever the site consents, and unschedules its jobs on every site it visits.
+ * Removes the plugin's footprint from the current site, or with the network flag from every site of a network that is not large, wherever the site consents, and unschedules its jobs on every site it visits.
  *
- * Every delete runs even after another fails. A failure keeps that site's consent row and is thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries.
+ * Every operation runs even after another fails. A failed delete keeps that site's consent row, and every failure is thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -34,7 +34,13 @@ function uninstall( string $plugin_file, array $footprint, array $args = array()
 	report_unreadable_keys( $plugin_file, $footprint, $handlers );
 
 	$failures = array();
-	if ( true === ( $args['network'] ?? false ) && \is_multisite() && ! \wp_is_large_network() ) {
+	$network  = true === ( $args['network'] ?? false ) && \is_multisite();
+	if ( $network && \wp_is_large_network() ) {
+		$network = false;
+		\error_log( '[' . \plugin_basename( $plugin_file ) . '] Uninstall cleaned only the current site, because the network is large.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
+	}
+
+	if ( $network ) {
 		$site_ids = \get_sites(
 			array(
 				'fields' => 'ids',
@@ -64,7 +70,7 @@ function uninstall( string $plugin_file, array $footprint, array $args = array()
 }
 
 /**
- * Unschedules the plugin's jobs on the current site, then removes its footprint there if the site consents, the consent row last.
+ * Runs the uninstall pass on the current site, which deletes the footprint only where the site consents.
  *
  * @internal
  *
@@ -113,7 +119,7 @@ function uninstall_site( string $plugin_file, array $footprint, array $consent, 
 }
 
 /**
- * Deletes the footprint's per-site rows on the current site, except the consent row.
+ * Deletes the footprint's per-site rows on the current site, except the consent row and the options of pages that stay.
  *
  * @internal
  *
@@ -127,11 +133,17 @@ function uninstall_site( string $plugin_file, array $footprint, array $consent, 
 function delete_site_data( array $footprint, string $consent_option, array &$failures ): void {
 	$wpdb = get_wpdb();
 
-	// A page option is read before any option is deleted, since the deletes may include it.
+	// A page option is read before any option is deleted, and a page that stays keeps its option, so the retry still finds the page.
+	$kept = array( $consent_option );
 	foreach ( get_strings( $footprint, 'page_options' ) as $option ) {
 		$page_id = \get_option( $option );
-		if ( \is_numeric( $page_id ) && 'page' === \get_post_type( (int) $page_id ) ) {
+		// An id of 0 would make WordPress read the global post.
+		if ( \is_numeric( $page_id ) && 0 < (int) $page_id && 'page' === \get_post_type( (int) $page_id ) ) {
+			$failed = \count( $failures );
 			attempt( "page $page_id of option $option", static fn () => confirm_deleted( \wp_delete_post( (int) $page_id, true ) ), $failures );
+			if ( \count( $failures ) > $failed ) {
+				$kept[] = $option;
+			}
 		}
 	}
 
@@ -139,7 +151,7 @@ function delete_site_data( array $footprint, string $consent_option, array &$fai
 	foreach ( get_strings( $footprint, 'option_prefixes' ) as $prefix ) {
 		$options = \array_merge( $options, get_names_by_prefix( $wpdb->options, 'option_name', $prefix, $failures ) );
 	}
-	foreach ( \array_diff( \array_unique( $options ), array( $consent_option ) ) as $option ) {
+	foreach ( \array_diff( \array_unique( $options ), $kept ) as $option ) {
 		attempt( "option $option", static fn () => \delete_option( $option ), $failures );
 	}
 
@@ -148,13 +160,13 @@ function delete_site_data( array $footprint, string $consent_option, array &$fai
 	}
 
 	foreach ( get_strings( $footprint, 'post_types' ) as $post_type ) {
-		foreach ( get_ids_by_type( $wpdb->posts, 'ID', 'post_type', $post_type, $failures ) as $post_id ) {
+		foreach ( get_matching_ids( $wpdb->posts, 'ID', 'post_type', $post_type, $failures ) as $post_id ) {
 			attempt( "post $post_id of type $post_type", static fn () => confirm_deleted( \wp_delete_post( $post_id, true ) ), $failures );
 		}
 	}
 
 	foreach ( get_strings( $footprint, 'comment_types' ) as $comment_type ) {
-		foreach ( get_ids_by_type( $wpdb->comments, 'comment_ID', 'comment_type', $comment_type, $failures ) as $comment_id ) {
+		foreach ( get_matching_ids( $wpdb->comments, 'comment_ID', 'comment_type', $comment_type, $failures ) as $comment_id ) {
 			attempt( "comment $comment_id of type $comment_type", static fn () => confirm_deleted( \wp_delete_comment( $comment_id, true ) ), $failures );
 		}
 	}
@@ -208,7 +220,9 @@ function delete_global_user_meta( array $footprint, array &$failures ): void {
 }
 
 /**
- * Deletes every row of each meta key, whatever object it belongs to.
+ * Deletes every row of each meta key, whatever object it belongs to, row by row.
+ *
+ * WordPress's delete_metadata() matches keys under the column's collation, which would also delete another plugin's key that differs only in letter case.
  *
  * @internal
  *
@@ -220,14 +234,17 @@ function delete_global_user_meta( array $footprint, array &$failures ): void {
  * @param   list<string> $failures  The failures so far, to which the deletes add their own.
  */
 function delete_meta_keys( string $meta_type, array $keys, array &$failures ): void {
+	$table     = (string) \_get_meta_table( $meta_type );
+	$id_column = 'user' === $meta_type ? 'umeta_id' : 'meta_id';
 	foreach ( $keys as $key ) {
-		// The meta API unslashes keys.
-		attempt( "$meta_type meta $key", static fn () => \delete_metadata( $meta_type, 0, \wp_slash( $key ), '', true ), $failures );
+		foreach ( get_matching_ids( $table, $id_column, 'meta_key', $key, $failures ) as $meta_id ) {
+			attempt( "$meta_type meta $meta_id of key $key", static fn () => confirm_deleted( \delete_metadata_by_mid( $meta_type, $meta_id ) ), $failures );
+		}
 	}
 }
 
 /**
- * Runs each handler whose key the footprint holds, then the cleanup, for one pass.
+ * Runs the plugin's handlers and cleanup for one pass.
  *
  * @internal
  *
@@ -254,7 +271,7 @@ function run_callables( array $footprint, array $handlers, ?callable $cleanup, a
 }
 
 /**
- * Runs one operation and records its failure: a throwable, a returned WP_Error, or a database error.
+ * Runs one operation and records its failure instead of stopping the pass.
  *
  * WordPress's delete functions return false both for a missing row and for a failed query, so only the database error tells a failure apart.
  *
@@ -440,7 +457,7 @@ function get_meta_map( array $footprint, string $key ): array {
 }
 
 /**
- * Returns the value as a list of strings, or null when it is not an array of strings.
+ * Returns the value as a list of non-empty strings, or null when it is anything else, since an empty prefix would match every row.
  *
  * @internal
  *
@@ -458,7 +475,7 @@ function read_strings( $value ): ?array {
 
 	$strings = array();
 	foreach ( $value as $item ) {
-		if ( ! \is_string( $item ) ) {
+		if ( ! \is_string( $item ) || '' === $item ) {
 			return null;
 		}
 
@@ -519,48 +536,48 @@ function get_names_by_prefix( string $table, string $column, string $prefix, arr
 	$wpdb->flush();
 	// Identifier placeholders need WordPress 6.2, and WordPress 5.3 only formalized the variadic arguments that older versions already took.
 	// @phpstan-ignore argument.type, WPCompat.parameterNotAvailable.wpdbprepare.args
-	$names = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT `$column` FROM `$table` WHERE `$column` LIKE %s", $wpdb->esc_like( $prefix ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WordPress lists no option or meta key by prefix.
+	$names = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT CAST( `$column` AS BINARY ) FROM `$table` WHERE `$column` LIKE %s", $wpdb->esc_like( $prefix ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WordPress lists no option or meta key by prefix.
 	if ( '' !== $wpdb->last_error ) {
 		$failures[] = "the names under $prefix in $table: $wpdb->last_error";
 		return array();
 	}
 
-	// The column's collation also matches names that differ from the prefix in letter case or accents.
+	// The collation also matches names that differ from the prefix in letter case or accents, and would fold such twins into one distinct name, hence the bytes.
 	return \array_values( \array_filter( $names, static fn ( $name ): bool => \is_string( $name ) && 0 === \strpos( $name, $prefix ) ) );
 }
 
 /**
- * Returns the ids of the rows whose type column holds exactly the type, and records a failed read.
+ * Returns the ids of the rows whose column holds exactly the value, and records a failed read.
  *
  * @internal
  *
  * @since   2.0.0
  * @version 2.0.0
  *
- * @param   string       $table       The table.
- * @param   string       $id_column   The id column.
- * @param   string       $type_column The type column.
- * @param   string       $type        The type, matched byte for byte.
- * @param   list<string> $failures    The failures so far, to which a failed read is added.
+ * @param   string       $table     The table.
+ * @param   string       $id_column The id column.
+ * @param   string       $column    The column to match.
+ * @param   string       $value     The value, matched byte for byte.
+ * @param   list<string> $failures  The failures so far, to which a failed read is added.
  *
  * @return  list<int>
  */
-function get_ids_by_type( string $table, string $id_column, string $type_column, string $type, array &$failures ): array {
+function get_matching_ids( string $table, string $id_column, string $column, string $value, array &$failures ): array {
 	$wpdb = get_wpdb();
 
 	$wpdb->flush();
 	// Identifier placeholders need WordPress 6.2, and WordPress 5.3 only formalized the variadic arguments that older versions already took.
 	// @phpstan-ignore argument.type, WPCompat.parameterNotAvailable.wpdbprepare.args
-	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT `$id_column` AS id, `$type_column` AS type FROM `$table` WHERE `$type_column` = %s", $type ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads every status, trash and auto-draft included.
+	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT `$id_column` AS id, `$column` AS value FROM `$table` WHERE `$column` = %s", $value ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads every row, trashed posts and auto-drafts included.
 	if ( '' !== $wpdb->last_error ) {
-		$failures[] = "the $type rows of $table: $wpdb->last_error";
+		$failures[] = "the $value rows of $table: $wpdb->last_error";
 		return array();
 	}
 
 	$ids = array();
 	foreach ( (array) $rows as $row ) {
-		// The column's collation also matches types that differ in letter case or accents.
-		if ( \is_array( $row ) && ( $row['type'] ?? null ) === $type && \is_numeric( $row['id'] ?? null ) ) {
+		// The column's collation also matches values that differ in letter case or accents.
+		if ( \is_array( $row ) && ( $row['value'] ?? null ) === $value && \is_numeric( $row['id'] ?? null ) ) {
 			$ids[] = (int) $row['id'];
 		}
 	}
