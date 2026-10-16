@@ -237,6 +237,27 @@ final class UninstallTest extends TestCase {
 		}
 	}
 
+	public function test_a_failed_delete_of_a_cached_release_is_thrown_and_a_retry_completes(): void {
+		\set_transient( 'acme-uninstall_github_release_stable', array(), \HOUR_IN_SECONDS );
+		$this->fail_queries( "DELETE FROM `{$GLOBALS['wpdb']->options}` WHERE `option_name` = '_transient_acme-uninstall_github_release_stable'" );
+
+		$failure = null;
+		try {
+			uninstall( self::PLUGIN_FILE, array() );
+		} catch ( \RuntimeException $exception ) {
+			$failure = $exception;
+		}
+
+		self::assertStringContainsString( 'transient acme-uninstall_github_release_stable: ', $failure?->getMessage() ?? '' );
+		self::assertTrue( $this->option_exists( '_transient_acme-uninstall_github_release_stable' ) );
+
+		\remove_all_filters( 'query' );
+		$this->restore_query_errors();
+		uninstall( self::PLUGIN_FILE, array() );
+
+		self::assertFalse( $this->option_exists( '_transient_acme-uninstall_github_release_stable' ) );
+	}
+
 	#[DataProvider( 'retaining_and_consenting' )]
 	public function test_action_scheduler_actions_are_unscheduled_by_hook_and_by_group_whatever_the_consent( bool $consenting ): void {
 		\update_option( "{$this->prefix}_remove_data", $consenting ? 'yes' : 'no' );

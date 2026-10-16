@@ -89,10 +89,11 @@ final class GitHubUpdaterTest extends TestCase {
 		);
 	}
 
-	public static function update_uris_elsewhere(): array {
+	public static function plugins_without_updates(): array {
 		return array(
-			'no-update-uri' => array( '' ),
-			'another-host'  => array( 'https://gitlab.com/acme/updater' ),
+			'no-update-uri'  => array( array( 'Update URI' => '' ) ),
+			'another-host'   => array( array( 'Update URI' => 'https://gitlab.com/acme/updater' ) ),
+			'no-text-domain' => array( array( 'Text Domain' => '' ) ),
 		);
 	}
 
@@ -101,6 +102,7 @@ final class GitHubUpdaterTest extends TestCase {
 			'disabled'                 => array( static fn ( array $config ): array => array( 'enabled' => false ) + $config ),
 			'not-an-array'             => array( static fn ( array $config ): mixed => null ),
 			'repository-without-owner' => array( static fn ( array $config ): array => array( 'repository' => 'updater' ) + $config ),
+			'repository-with-newline'  => array( static fn ( array $config ): array => array( 'repository' => "{$config['repository']}\n" ) + $config ),
 			'empty-asset'              => array( static fn ( array $config ): array => array( 'asset' => '' ) + $config ),
 			'unknown-channel'          => array( static fn ( array $config ): array => array( 'channel' => 'nightly' ) + $config ),
 		);
@@ -176,6 +178,17 @@ final class GitHubUpdaterTest extends TestCase {
 		\update_option( "_transient_timeout_{$this->slug}_github_release_stable", \time() - 1 );
 		$this->check_for_updates();
 		self::assertSame( \array_merge( $requests, $requests ), $this->requests );
+	}
+
+	public function test_a_cached_record_without_a_package_is_fetched_again(): void {
+		register_github_updater( $this->write_plugin( $this->slug ) );
+		\set_transient( "{$this->slug}_github_release_stable", array( 'version' => '9.0.0' ), \HOUR_IN_SECONDS );
+		$this->stage_latest( $this->release( 'v2.0.0' ) );
+
+		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
+
+		self::assertSame( '2.0.0', $offer->new_version ?? null );
+		self::assertSame( $this->asset_url( 'v2.0.0' ), \get_transient( "{$this->slug}_github_release_stable" )['package'] ?? null );
 	}
 
 	public function test_another_plugins_check_passes_through_without_a_request(): void {
@@ -283,9 +296,9 @@ final class GitHubUpdaterTest extends TestCase {
 		self::assertSame( array(), $this->requests );
 	}
 
-	#[DataProvider( 'update_uris_elsewhere' )]
-	public function test_a_plugin_whose_update_uri_is_not_on_github_gets_no_updater( string $update_uri ): void {
-		$plugin_file = $this->write_plugin( $this->slug, array( 'Update URI' => $update_uri ) );
+	#[DataProvider( 'plugins_without_updates' )]
+	public function test_a_plugin_without_a_github_update_uri_or_a_text_domain_gets_no_updates( array $headers ): void {
+		$plugin_file = $this->write_plugin( $this->slug, $headers );
 
 		register_github_updater( $plugin_file );
 
@@ -365,11 +378,11 @@ final class GitHubUpdaterTest extends TestCase {
 		register_github_updater( $this->write_plugin( $this->slug ) );
 		\add_filter(
 			"dws_github_updater_config_$this->slug",
-			static fn ( array $config ): array => array(
+			static fn (): array => array(
 				'repository' => 'acme/elsewhere',
 				'asset'      => 'bundle.zip',
 				'channel'    => 'prerelease',
-			) + $config
+			)
 		);
 		$release           = $this->release( 'v2.0.0-beta.1' );
 		$release['assets'] = array(
@@ -464,7 +477,7 @@ final class GitHubUpdaterTest extends TestCase {
 		foreach ( $requirements as $name => $value ) {
 			$lines[] = "$name: $value";
 		}
-		$this->stage( $this->raw_url( $tag, $slug ), 200, "<?php\n/**\n * " . \implode( "\n * ", $lines ) . "\n */\n" );
+		$this->stage( $this->raw_url( $tag, $slug ), 200, "<?php\n/**\n * " . \implode( "\n * ", $lines ) . " */\n" );
 	}
 
 	protected function asset_url( string $tag, string $slug = '' ): string {
