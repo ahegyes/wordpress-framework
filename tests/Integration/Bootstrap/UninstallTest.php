@@ -141,7 +141,7 @@ final class UninstallTest extends TestCase {
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		\update_option( "{$this->prefix}_settings", 'x' );
 		\set_transient( "{$this->prefix}_transient", 'x' );
-		$log_file = \wp_tempnam( 'acme-uninstall' );
+		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-uninstall-' );
 		$previous = \ini_set( 'error_log', $log_file );
 		try {
 			uninstall(
@@ -158,7 +158,7 @@ final class UninstallTest extends TestCase {
 			$lines = \file( $log_file, \FILE_IGNORE_NEW_LINES );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
-			\unlink( $log_file );
+			\wp_delete_file( $log_file );
 		}
 
 		self::assertCount( 1, $lines );

@@ -85,9 +85,21 @@ final class UninstallOnNetworkTest extends TestCase {
 
 		uninstall( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( $constant ) );
 
-		$site_calls    = array( "handler:site:$this->main_site", "cleanup:site:$this->main_site", "handler:site:$this->other_site", "cleanup:site:$this->other_site" );
-		$network_calls = array( "handler:network:$this->main_site", "cleanup:network:$this->main_site" );
-		self::assertSame( $constant ? \array_merge( $site_calls, $network_calls ) : $site_calls, $this->summarize_calls() );
+		// The constant consents for every site of the network, which may hold more sites than the test created.
+		$consenting = $constant ? \get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		) : array( $this->main_site, $this->other_site );
+		$expected   = array();
+		foreach ( $consenting as $site_id ) {
+			\array_push( $expected, "handler:site:$site_id", "cleanup:site:$site_id" );
+		}
+		if ( $constant ) {
+			\array_push( $expected, "handler:network:$this->main_site", "cleanup:network:$this->main_site" );
+		}
+		self::assertSame( $expected, $this->summarize_calls() );
 		self::assertSame( ! $constant, $this->user_meta_exists( "{$this->prefix}_global_state" ) );
 	}
 
