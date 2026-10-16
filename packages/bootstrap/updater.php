@@ -273,7 +273,7 @@ function fetch_release( array $config ): ?array {
 }
 
 /**
- * Returns the value as a release record, with an empty string for each missing field, or null when it has no package or a field that is not a string.
+ * Returns the value as a release record, with an empty string for each missing or null field, or null when it has no package or a field of another type.
  *
  * @internal
  *
