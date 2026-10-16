@@ -114,15 +114,18 @@ final class UninstallTest extends TestCase {
 		$args            = $this->recording_callables( array( 'order_meta', 'order_item_meta' ) );
 		$args['consent'] = array( 'option' => "{$this->prefix}_remove_data" );
 
-		uninstall(
-			self::PLUGIN_FILE,
-			array(
-				'options'    => array( "{$this->prefix}_settings" ),
-				'order_meta' => array( "_{$this->prefix}_order" ),
-			),
-			$args
+		$log = $this->capture_error_log(
+			fn () => uninstall(
+				self::PLUGIN_FILE,
+				array(
+					'options'    => array( "{$this->prefix}_settings" ),
+					'order_meta' => array( "_{$this->prefix}_order" ),
+				),
+				$args
+			)
 		);
 
+		self::assertSame( array(), $log );
 		$context = array(
 			'scope'       => 'site',
 			'site_id'     => \get_current_blog_id(),
@@ -141,10 +144,8 @@ final class UninstallTest extends TestCase {
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		\update_option( "{$this->prefix}_settings", 'x' );
 		\set_transient( "{$this->prefix}_transient", 'x' );
-		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-uninstall-' );
-		$previous = \ini_set( 'error_log', $log_file );
-		try {
-			uninstall(
+		$lines = $this->capture_error_log(
+			fn () => uninstall(
 				self::PLUGIN_FILE,
 				array(
 					'optoins'    => array( "{$this->prefix}_settings" ),
@@ -154,17 +155,11 @@ final class UninstallTest extends TestCase {
 					'options'    => array( "{$this->prefix}_settings" ),
 				),
 				array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
-			);
-			$lines = \file( $log_file, \FILE_IGNORE_NEW_LINES );
-		} finally {
-			\ini_set( 'error_log', (string) $previous );
-			\wp_delete_file( $log_file );
-		}
+			)
+		);
 
 		self::assertCount( 1, $lines );
-		foreach ( array( 'optoins', 'order_meta', 'transients', 'meta' ) as $key ) {
-			self::assertStringContainsString( $key, $lines[0] );
-		}
+		self::assertStringEndsWith( '] Uninstall skipped the footprint keys it cannot read: optoins, order_meta, transients, meta', $lines[0] );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertSame( 'x', \get_transient( "{$this->prefix}_transient" ) );
 	}
@@ -205,13 +200,22 @@ final class UninstallTest extends TestCase {
 		self::assertTrue( \as_has_scheduled_action( "{$this->prefix}_foreign_as" ) );
 	}
 
-	public function test_a_failed_delete_keeps_the_consent_row_and_throws_after_the_rest_so_a_retry_completes(): void {
+	public static function failing_statements(): array {
+		return array(
+			'an-option-delete' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings' ),
+			'a-prefix-read'    => array( static fn ( \wpdb $wpdb, string $prefix ): string => 'SELECT DISTINCT `option_name`', '_cache_', 'option_exists', '_cache_a' ),
+			'a-post-type-read' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "AS type FROM `$wpdb->posts`", '_type', 'post_type_has_posts', '_type' ),
+		);
+	}
+
+	#[DataProvider( 'failing_statements' )]
+	public function test_a_failed_statement_keeps_the_consent_row_and_throws_after_the_rest_so_a_retry_completes( \Closure $needle, string $subject, string $kept, string $row ): void {
 		global $wpdb;
 
 		$this->seed_footprint();
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		$args = array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_callables( array( 'order_meta' ) );
-		$this->fail_queries( "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$this->prefix}_settings'" );
+		$this->fail_queries( $needle( $wpdb, $this->prefix ) );
 
 		$failure = null;
 		try {
@@ -221,9 +225,9 @@ final class UninstallTest extends TestCase {
 		}
 
 		self::assertInstanceOf( \RuntimeException::class, $failure );
-		self::assertStringContainsString( "{$this->prefix}_settings", $failure->getMessage() );
-		self::assertTrue( $this->option_exists( "{$this->prefix}_settings" ) );
-		self::assertSame( array(), $this->get_posts_of_type( "{$this->prefix}_type" ) );
+		self::assertStringContainsString( $this->prefix . $subject, $failure->getMessage() );
+		self::assertTrue( $this->$kept( $this->prefix . $row ) );
+		self::assertFalse( $this->table_exists( "{$this->prefix}_log" ) );
 		self::assertSame( array( 'handler', 'cleanup' ), \array_column( $this->calls, 0 ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
 
@@ -231,8 +235,41 @@ final class UninstallTest extends TestCase {
 		$this->restore_query_errors();
 		uninstall( self::PLUGIN_FILE, $this->footprint(), $args );
 
-		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
+		self::assertFalse( $this->$kept( $this->prefix . $row ) );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
+	}
+
+	public static function refused_deletes(): array {
+		return array(
+			'a-post'      => array( 'pre_delete_post', '_type', true ),
+			'a-cron-hook' => array( 'pre_unschedule_hook', '_cron', false ),
+		);
+	}
+
+	#[DataProvider( 'refused_deletes' )]
+	public function test_a_delete_wordpress_refuses_is_thrown_after_the_rest( string $filter, string $subject, bool $consent_kept ): void {
+		$this->seed_footprint();
+		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
+		\add_filter( $filter, '__return_false' );
+
+		$failure = null;
+		try {
+			uninstall(
+				self::PLUGIN_FILE,
+				array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ) + $this->footprint(),
+				array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
+			);
+		} catch ( \RuntimeException $exception ) {
+			$failure = $exception;
+		} finally {
+			\remove_filter( $filter, '__return_false' ); // The fixtures' own deletes must not be refused.
+		}
+
+		self::assertInstanceOf( \RuntimeException::class, $failure );
+		self::assertStringContainsString( $this->prefix . $subject, $failure->getMessage() );
+		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
+		self::assertSame( $consent_kept, $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 
 	public static function throwing_callables(): array {

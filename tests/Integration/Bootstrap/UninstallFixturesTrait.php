@@ -71,6 +71,11 @@ trait UninstallFixturesTrait {
 		$this->ids['comment'] = $this->make_comment( 'comment' );
 		$this->ids['note']    = $this->make_comment( "{$p}_note" );
 
+		// WordPress lowercases a post type on insert, so the post type's letter-case twin is written directly.
+		$this->ids['upper_post']    = $this->make_post( "{$p}_other", 'publish' );
+		$this->ids['upper_comment'] = $this->make_comment( \strtoupper( "{$p}_note" ) );
+		$wpdb->update( $wpdb->posts, array( 'post_type' => \strtoupper( "{$p}_type" ) ), array( 'ID' => $this->ids['upper_post'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Writes a row the API would not.
+
 		$meta_objects = array(
 			'post'    => $this->ids['foreign_post'],
 			'term'    => $this->ids['term'],
@@ -166,9 +171,9 @@ trait UninstallFixturesTrait {
 			array(
 				'options'      => array( true, true, true ),
 				'transient'    => true,
-				'posts'        => array( true, true ),
+				'posts'        => array( true, true, true ),
 				'meta'         => array( true, true, true, true, true, true ),
-				'comment'      => true,
+				'comment'      => array( true, true ),
 				'user_meta'    => array( true, true, true ),
 				'capabilities' => array( true, true ),
 				'table'        => true,
@@ -176,7 +181,7 @@ trait UninstallFixturesTrait {
 			array(
 				'options'      => \array_map( $this->option_exists( ... ), array( "{$p}_kept", "{$p}_cacheZz", \strtoupper( "{$p}_cache_x" ) ) ),
 				'transient'    => false !== \get_transient( "{$p}_kept_transient" ),
-				'posts'        => array( $this->post_exists( $this->ids['foreign_post'] ), $this->post_exists( $this->ids['foreign_page'] ) ),
+				'posts'        => array( $this->post_exists( $this->ids['foreign_post'] ), $this->post_exists( $this->ids['foreign_page'] ), $this->post_exists( $this->ids['upper_post'] ) ),
 				'meta'         => array(
 					$this->meta_exists( 'post', "{$p}_kept" ),
 					$this->meta_exists( 'post', "{$p}_postZa" ),
@@ -185,7 +190,7 @@ trait UninstallFixturesTrait {
 					$this->meta_exists( 'comment', "{$p}_kept" ),
 					$this->meta_exists( 'comment', "{$p}_commentZa" ),
 				),
-				'comment'      => $this->comment_exists( $this->ids['comment'] ),
+				'comment'      => array( $this->comment_exists( $this->ids['comment'] ), $this->comment_exists( $this->ids['upper_comment'] ) ),
 				'user_meta'    => \array_map( $this->user_meta_exists( ... ), array( "{$p}_site_state", "{$p}_kept", "$blog_prefix{$p}_kept" ) ),
 				'capabilities' => array( $this->role_has( 'administrator', 'manage_options' ), $this->role_has( 'editor', "edit_{$p}" ) ),
 				'table'        => $this->table_exists( "{$p}_kept" ),
@@ -213,6 +218,20 @@ trait UninstallFixturesTrait {
 				}
 			},
 		);
+	}
+
+	protected function capture_error_log( \Closure $run ): array {
+		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-uninstall-' );
+		$previous = \ini_set( 'error_log', $log_file );
+		try {
+			$run();
+			$lines = \file( $log_file, \FILE_IGNORE_NEW_LINES );
+		} finally {
+			\ini_set( 'error_log', (string) $previous );
+			\wp_delete_file( $log_file );
+		}
+
+		return (array) $lines;
 	}
 
 	protected function option_exists( string $name ): bool {
@@ -248,7 +267,11 @@ trait UninstallFixturesTrait {
 	protected function get_posts_of_type( string $type ): array {
 		global $wpdb;
 
-		return $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i WHERE post_type = %s', $wpdb->posts, $type ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Counts every status, trash and auto-draft included.
+		return $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i WHERE BINARY post_type = %s', $wpdb->posts, $type ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Counts every status, trash and auto-draft included.
+	}
+
+	protected function post_type_has_posts( string $type ): bool {
+		return array() !== $this->get_posts_of_type( $type );
 	}
 
 	protected function table_exists( string $name ): bool {
@@ -297,7 +320,7 @@ trait UninstallFixturesTrait {
 		global $wpdb;
 
 		$p = $this->prefix;
-		foreach ( \array_merge( $this->ids['type'] ?? array(), array( $this->ids['foreign_post'] ?? 0, $this->ids['page'] ?? 0, $this->ids['foreign_page'] ?? 0 ) ) as $id ) {
+		foreach ( \array_merge( $this->ids['type'] ?? array(), array( $this->ids['foreign_post'] ?? 0, $this->ids['page'] ?? 0, $this->ids['foreign_page'] ?? 0, $this->ids['upper_post'] ?? 0 ) ) as $id ) {
 			if ( 0 < $id ) {
 				\wp_delete_post( $id, true );
 			}
