@@ -625,8 +625,11 @@ final class OptionsPageTest extends TestCase {
 
 	// Serializes the tab's form as a browser submits it once the user has set the named visible controls: enabled controls in document order, checked boxes and selected options only.
 	protected static function form_data( string $html, array $changes = array() ): array {
+		$document = self::document( $html );
+		self::assertNotNull( $document->querySelector( 'form[action="options.php"]' ), 'The page printed no settings form.' );
+
 		$pairs = array();
-		foreach ( self::document( $html )->querySelectorAll( 'form[action="options.php"] [name]' ) as $control ) {
+		foreach ( $document->querySelectorAll( 'form[action="options.php"] [name]' ) as $control ) {
 			$name    = (string) $control->getAttribute( 'name' );
 			$type    = (string) $control->getAttribute( 'type' );
 			$base    = \str_ends_with( $name, '[]' ) ? \substr( $name, 0, -2 ) : $name;
