@@ -2,8 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 
+use PHPUnit\Framework\Attributes\After;
+
 trait RunsAdminRequestsTrait {
 	protected array $session_cookies = array();
+	protected array $session_tokens  = array();
 
 	// Each request runs in its own PHP process, which loads WordPress and then the fixture with the spec in $spec.
 	protected function admin_request( string $method, string $path, int $user_id, string $fixture, mixed $spec, array $post = array() ): array {
@@ -51,6 +54,7 @@ trait RunsAdminRequestsTrait {
 		if ( ! isset( $this->session_cookies[ $user_id ] ) ) {
 			$expiration                        = \time() + \DAY_IN_SECONDS;
 			$token                             = \WP_Session_Tokens::get_instance( $user_id )->create( $expiration );
+			$this->session_tokens[ $user_id ]  = $token;
 			$this->session_cookies[ $user_id ] = array(
 				\AUTH_COOKIE      => \wp_generate_auth_cookie( $user_id, $expiration, 'auth', $token ),
 				\LOGGED_IN_COOKIE => \wp_generate_auth_cookie( $user_id, $expiration, 'logged_in', $token ),
@@ -58,5 +62,12 @@ trait RunsAdminRequestsTrait {
 		}
 
 		return $this->session_cookies[ $user_id ];
+	}
+
+	#[After]
+	protected function destroy_session_tokens(): void {
+		foreach ( $this->session_tokens as $user_id => $token ) {
+			\WP_Session_Tokens::get_instance( $user_id )->destroy( $token );
+		}
 	}
 }
