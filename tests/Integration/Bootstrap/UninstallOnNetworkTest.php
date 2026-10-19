@@ -2,17 +2,16 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
 
+use DeepWebSolutions\Framework\Bootstrap\Uninstaller;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
-use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
-use function DeepWebSolutions\Framework\Bootstrap\uninstall;
-
-#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\uninstall' )]
+#[CoversClass( Uninstaller::class )]
 #[Group( 'multisite' )]
 final class UninstallOnNetworkTest extends TestCase {
 	use CreatesSitesTrait;
@@ -51,7 +50,7 @@ final class UninstallOnNetworkTest extends TestCase {
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		uninstall( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
 
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( true, true, true, true ), $this->site_state( $this->other_site ) );
@@ -63,7 +62,7 @@ final class UninstallOnNetworkTest extends TestCase {
 		$this->seed_site( $this->main_site, 'no' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		uninstall( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args() );
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args() );
 
 		self::assertSame( array( true, true, false, true ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->other_site ) );
@@ -83,7 +82,7 @@ final class UninstallOnNetworkTest extends TestCase {
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		uninstall( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( $constant ) );
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( $constant ) );
 
 		// The constant consents for every site of the network, which may hold more sites than the test created.
 		$consenting = $constant ? \get_sites(
@@ -108,7 +107,7 @@ final class UninstallOnNetworkTest extends TestCase {
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		$log = $this->capture_error_log( fn () => uninstall( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( true ) ) );
+		$log = $this->capture_error_log( fn () => Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( true ) ) );
 
 		self::assertCount( 1, $log );
 		self::assertStringEndsWith( '] Uninstall cleaned only the current site, because the network is large.', $log[0] );

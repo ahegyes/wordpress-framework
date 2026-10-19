@@ -15,8 +15,8 @@ use PHPUnit\Framework\TestCase;
 final class PackageManifestsTest extends TestCase {
 	protected const array REQUIRES = array(
 		'bootstrap'   => array( 'php' ),
-		'shared'      => array( 'ext-filter', 'php' ),
-		'core'        => array( 'ahegyes/wp-framework-shared', 'php', 'psr/clock', 'psr/container', 'psr/log' ),
+		'shared'      => array( 'php' ),
+		'core'        => array( 'ahegyes/wp-framework-shared', 'ext-filter', 'php', 'psr/clock', 'psr/container', 'psr/log' ),
 		'settings'    => array( 'ahegyes/wp-framework-shared', 'php' ),
 		'woocommerce' => array( 'ahegyes/wp-framework-settings', 'ahegyes/wp-framework-shared', 'php', 'psr/log' ),
 	);
@@ -69,6 +69,21 @@ final class PackageManifestsTest extends TestCase {
 		}
 
 		self::assertSame( array(), $violations );
+	}
+
+	public function test_the_bootstrap_package_is_never_autoloaded(): void {
+		self::assertArrayNotHasKey( 'autoload', self::read_manifest( 'bootstrap' ) );
+	}
+
+	public function test_every_package_directory_carries_an_index_stub(): void {
+		$missing = array();
+		foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory(), \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::SELF_FIRST ) as $file ) {
+			if ( $file->isDir() && ! \is_file( $file->getPathname() . '/index.php' ) ) {
+				$missing[] = $file->getPathname();
+			}
+		}
+
+		self::assertSame( array(), $missing );
 	}
 
 	public function test_a_namespace_relative_name_resolves_against_its_namespace(): void {

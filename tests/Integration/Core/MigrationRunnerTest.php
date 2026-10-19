@@ -359,6 +359,16 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertNull( $error['revision'] );
 	}
 
+	public function test_an_array_stored_as_the_revision_reads_as_0_and_stops_the_run_with_an_error(): void {
+		\update_option( $this->option, array( 3 ) );
+
+		self::assertSame( 0, MigrationRunner::get_revision( $this->option ) );
+		$this->make_runner( array( $this->step( 1 ) ) )->run();
+
+		self::assertSame( array(), $this->ran );
+		self::assertIsArray( \get_option( "{$this->option}_error" ) );
+	}
+
 	public function test_an_unconfirmed_checkpoint_stops_the_run_with_an_error(): void {
 		\add_filter( "pre_update_option_{$this->option}", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
 
@@ -645,8 +655,8 @@ final class MigrationRunnerTest extends TestCase {
 			\wp_delete_file( $log_file );
 		}
 
-		self::assertStringContainsString( 'Data migration failed: Step failed with a broken logger.', $log );
-		self::assertStringContainsString( 'The log is not writable.', $log );
+		self::assertStringContainsString( "[{$this->option}.error] Data migration failed: {message} {\"message\":\"Step failed with a broken logger.\"}\nRuntimeException: Step failed with a broken logger. in ", $log );
+		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 		self::assertIsArray( \get_option( "{$this->option}_error" ) );
 	}
 
@@ -672,8 +682,8 @@ final class MigrationRunnerTest extends TestCase {
 			$wpdb->suppress_errors( $suppressed );
 		}
 
-		self::assertStringContainsString( "[{$this->option}.warning] Could not take the data migration lock: ", $log );
-		self::assertStringContainsString( 'The log is not writable.', $log );
+		self::assertStringContainsString( "[{$this->option}.warning] Could not take the data migration lock: {error} {\"error\":\"", $log );
+		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 		self::assertSame( array(), $this->ran );
 	}
 

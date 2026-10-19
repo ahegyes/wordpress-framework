@@ -38,7 +38,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	 *
 	 * @return  bool
 	 */
-	protected static function are_equal( mixed $value, mixed $other ): bool {
+	private static function are_equal( mixed $value, mixed $other ): bool {
 		return match ( true ) {
 			$value instanceof ValueObjectInterface => $other instanceof ValueObjectInterface && $value->equals( $other ),
 			$value instanceof \DateTimeInterface   => $other instanceof \DateTimeInterface && $value->format( 'U.u' ) === $other->format( 'U.u' ),

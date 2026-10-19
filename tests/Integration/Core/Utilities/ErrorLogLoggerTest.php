@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Utilities;
 
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesLogMessagesTrait;
 use DeepWebSolutions\Framework\Utilities\ErrorLogLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,6 +14,7 @@ use Psr\Log\LogLevel as PsrLogLevel;
 #[CoversClass( ErrorLogLogger::class )]
 final class ErrorLogLoggerTest extends TestCase {
 	use IsolatesHooksTrait;
+	use ProvidesLogMessagesTrait;
 
 	protected string $log_file;
 
@@ -67,6 +69,36 @@ final class ErrorLogLoggerTest extends TestCase {
 		( new ErrorLogLogger( 'acme' ) )->log( $level, 'Cache {name} is cold.', array( 'name' => 'acme' ) );
 
 		self::assertSame( array( array( 'Cache {name} is cold.', array( 'name' => 'acme' ) ) ), $received );
+	}
+
+	#[DataProvider( 'log_messages' )]
+	public function test_a_record_interpolates_only_printable_context_values( string $message, array $context, string $expected ): void {
+		( new ErrorLogLogger( 'acme' ) )->error( $message, $context );
+
+		self::assertStringContainsString( "[acme.error] $expected" . \PHP_EOL, (string) \file_get_contents( $this->log_file ) );
+	}
+
+	public function test_a_record_casts_only_the_context_values_its_message_uses(): void {
+		$unused = new class() implements \Stringable {
+			public int $casts = 0;
+
+			public function __toString(): string {
+				++$this->casts;
+
+				return 'unused';
+			}
+		};
+
+		( new ErrorLogLogger( 'acme' ) )->error(
+			'Hello {name}.',
+			array(
+				'name'   => 'world',
+				'unused' => $unused,
+			)
+		);
+
+		self::assertStringContainsString( '[acme.error] Hello world.', (string) \file_get_contents( $this->log_file ) );
+		self::assertSame( 0, $unused->casts );
 	}
 
 	public function test_an_exception_in_the_context_is_logged_with_its_class_location_and_trace(): void {

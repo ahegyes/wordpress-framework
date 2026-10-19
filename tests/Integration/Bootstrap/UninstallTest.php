@@ -2,16 +2,15 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
 
+use DeepWebSolutions\Framework\Bootstrap\Uninstaller;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
-use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-use function DeepWebSolutions\Framework\Bootstrap\uninstall;
-
-#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\uninstall' )]
+#[CoversClass( Uninstaller::class )]
 final class UninstallTest extends TestCase {
 	use CreatesUsersTrait;
 	use InterceptsQueriesTrait;
@@ -65,7 +64,7 @@ final class UninstallTest extends TestCase {
 		$args           = $consent( $this->prefix ) + $this->recording_callables();
 		$consent_stored = $this->option_exists( "{$this->prefix}_remove_data" );
 
-		uninstall( self::PLUGIN_FILE, $this->footprint(), $args );
+		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $args );
 
 		$this->assert_footprint_kept();
 		self::assertSame( array(), $this->calls );
@@ -77,7 +76,7 @@ final class UninstallTest extends TestCase {
 		\wp_set_current_user( 0 ); // WP-CLI uninstalls a plugin with no current user.
 		$this->seed_footprint();
 
-		uninstall( self::PLUGIN_FILE, $this->footprint(), $consent( $this->prefix ) );
+		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $consent( $this->prefix ) );
 
 		$this->assert_footprint_deleted();
 		$this->assert_foreign_rows_kept();
@@ -90,7 +89,7 @@ final class UninstallTest extends TestCase {
 		\update_option( "{$this->prefix}_cache_a", 'a' );
 		$seen = array();
 
-		uninstall(
+		Uninstaller::run(
 			self::PLUGIN_FILE,
 			array(
 				'options'         => array( $consent_option ),
@@ -115,7 +114,7 @@ final class UninstallTest extends TestCase {
 		$args['consent'] = array( 'option' => "{$this->prefix}_remove_data" );
 
 		$log = $this->capture_error_log(
-			fn () => uninstall(
+			fn () => Uninstaller::run(
 				self::PLUGIN_FILE,
 				array(
 					'options'    => array( "{$this->prefix}_settings" ),
@@ -145,7 +144,7 @@ final class UninstallTest extends TestCase {
 		\update_option( "{$this->prefix}_settings", 'x' );
 		\set_transient( "{$this->prefix}_transient", 'x' );
 		$lines = $this->capture_error_log(
-			fn () => uninstall(
+			fn () => Uninstaller::run(
 				self::PLUGIN_FILE,
 				array(
 					'optoins'    => array( "{$this->prefix}_settings" ),
@@ -172,7 +171,7 @@ final class UninstallTest extends TestCase {
 		\add_filter( 'pre_unschedule_hook', '__return_false' );
 		try {
 			$log = $this->capture_error_log(
-				fn () => uninstall(
+				fn () => Uninstaller::run(
 					self::PLUGIN_FILE,
 					array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ) + $this->footprint(),
 					array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
@@ -194,7 +193,7 @@ final class UninstallTest extends TestCase {
 		\update_option( "{$this->prefix}_page_id", '0' );
 		$GLOBALS['post'] = \get_post( $this->ids['foreign_page'] ); // WordPress reads the global post for an id of 0.
 		try {
-			uninstall( self::PLUGIN_FILE, $this->footprint(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+			Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
 		} finally {
 			unset( $GLOBALS['post'] );
 		}
@@ -210,7 +209,7 @@ final class UninstallTest extends TestCase {
 		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron", array( 2 ) );
 		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_foreign_cron" );
 
-		uninstall( self::PLUGIN_FILE, array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+		Uninstaller::run( self::PLUGIN_FILE, array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
 
 		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron", array( 1 ) ) );
 		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron", array( 2 ) ) );
@@ -225,7 +224,7 @@ final class UninstallTest extends TestCase {
 		\set_transient( 'acme-foreign_github_release_stable', array( 'version' => '3.0.0' ), \HOUR_IN_SECONDS );
 
 		try {
-			uninstall( self::PLUGIN_FILE, array(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+			Uninstaller::run( self::PLUGIN_FILE, array(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
 
 			self::assertFalse( $this->option_exists( '_transient_acme-uninstall_github_release_stable' ) );
 			self::assertFalse( $this->option_exists( '_transient_acme-uninstall_github_release_prerelease' ) );
@@ -244,7 +243,7 @@ final class UninstallTest extends TestCase {
 		$this->fail_queries( "DELETE FROM `{$GLOBALS['wpdb']->options}` WHERE `option_name` = '_transient_acme-uninstall_github_release_stable'" );
 
 		try {
-			uninstall( self::PLUGIN_FILE, array( 'options' => array( "{$this->prefix}_settings" ) ), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+			Uninstaller::run( self::PLUGIN_FILE, array( 'options' => array( "{$this->prefix}_settings" ) ), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
 
 			self::assertTrue( $this->option_exists( '_transient_acme-uninstall_github_release_stable' ) );
 			self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
@@ -264,7 +263,7 @@ final class UninstallTest extends TestCase {
 		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_grouped", array(), "$this->prefix-group" );
 		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_foreign_as" );
 
-		uninstall(
+		Uninstaller::run(
 			self::PLUGIN_FILE,
 			array(
 				'as_hooks'  => array( "{$this->prefix}_as" ),
@@ -297,7 +296,7 @@ final class UninstallTest extends TestCase {
 
 		$failure = null;
 		try {
-			uninstall( self::PLUGIN_FILE, array( 'order_meta' => array() ) + $this->footprint(), $args );
+			Uninstaller::run( self::PLUGIN_FILE, array( 'order_meta' => array() ) + $this->footprint(), $args );
 		} catch ( \RuntimeException $exception ) {
 			$failure = $exception;
 		}
@@ -311,7 +310,7 @@ final class UninstallTest extends TestCase {
 
 		\remove_all_filters( 'query' );
 		$this->restore_query_errors();
-		uninstall( self::PLUGIN_FILE, $this->footprint(), $args );
+		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $args );
 
 		self::assertFalse( $this->$kept( $this->prefix . $row ) );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
@@ -333,7 +332,7 @@ final class UninstallTest extends TestCase {
 
 		$failure = null;
 		try {
-			uninstall(
+			Uninstaller::run(
 				self::PLUGIN_FILE,
 				array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ) + $this->footprint(),
 				array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
@@ -350,7 +349,7 @@ final class UninstallTest extends TestCase {
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
 		self::assertSame( $page_option_kept, $this->option_exists( "{$this->prefix}_page_id" ) );
 
-		uninstall(
+		Uninstaller::run(
 			self::PLUGIN_FILE,
 			array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ) + $this->footprint(),
 			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
@@ -376,7 +375,7 @@ final class UninstallTest extends TestCase {
 
 		$failure = null;
 		try {
-			uninstall(
+			Uninstaller::run(
 				self::PLUGIN_FILE,
 				array(
 					'options'    => array( "{$this->prefix}_settings" ),
