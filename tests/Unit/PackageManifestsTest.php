@@ -71,6 +71,17 @@ final class PackageManifestsTest extends TestCase {
 		self::assertSame( array(), $violations );
 	}
 
+	public function test_every_package_directory_carries_an_index_stub(): void {
+		$missing = array();
+		foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory(), \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::SELF_FIRST ) as $file ) {
+			if ( $file->isDir() && ! \is_file( $file->getPathname() . '/index.php' ) ) {
+				$missing[] = $file->getPathname();
+			}
+		}
+
+		self::assertSame( array(), $missing );
+	}
+
 	public function test_a_namespace_relative_name_resolves_against_its_namespace(): void {
 		$file = \dirname( __DIR__ ) . '/Fixtures/package-manifests/relative-name.php';
 
