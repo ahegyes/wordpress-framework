@@ -655,8 +655,8 @@ final class MigrationRunnerTest extends TestCase {
 			\wp_delete_file( $log_file );
 		}
 
-		self::assertStringContainsString( 'Data migration failed: Step failed with a broken logger.', $log );
-		self::assertStringContainsString( 'The log is not writable.', $log );
+		self::assertStringContainsString( "[{$this->option}.error] Data migration failed: {message} {\"message\":\"Step failed with a broken logger.\"}\nRuntimeException: Step failed with a broken logger. in ", $log );
+		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 		self::assertIsArray( \get_option( "{$this->option}_error" ) );
 	}
 
@@ -682,8 +682,8 @@ final class MigrationRunnerTest extends TestCase {
 			$wpdb->suppress_errors( $suppressed );
 		}
 
-		self::assertStringContainsString( "[{$this->option}.warning] Could not take the data migration lock: ", $log );
-		self::assertStringContainsString( 'The log is not writable.', $log );
+		self::assertStringContainsString( "[{$this->option}.warning] Could not take the data migration lock: {error} {\"error\":\"", $log );
+		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 		self::assertSame( array(), $this->ran );
 	}
 
