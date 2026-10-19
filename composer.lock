@@ -79,7 +79,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/settings",
-                "reference": "2371e433f4238281dd6d4ee7c9dd0827d01d59a3"
+                "reference": "9ee38427dc6d83d2a33b4aee2c1192e8827db4ef"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0",
@@ -91,6 +91,11 @@
                     "dev-trunk": "2.x-dev"
                 },
                 "requires-wp": "7.1"
+            },
+            "autoload": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\Settings\\": "src/"
+                }
             },
             "license": [
                 "GPL-2.0-or-later"

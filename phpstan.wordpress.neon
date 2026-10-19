@@ -8,6 +8,7 @@ includes:
 parameters:
     paths:
         - packages/core
+        - packages/settings
     # Core's scheduler calls Action Scheduler, which ships with WooCommerce.
     scanFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php

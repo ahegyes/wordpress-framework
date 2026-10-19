@@ -24,7 +24,7 @@ wordpress-framework/
 │       ├── Storage/{OptionRows, OptionRow, MetaRows, MetaRow}
 │       └── Utilities/{ErrorLogLogger, SystemClock}
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · shared ^2.0
-│   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ · a final class with render_control, sanitize_value, verify_object_form · OptionsPage
+│   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ · Forms (render_control, sanitize_value, sanitize_fields, verify_object_form, is_disabled) · OptionsPage
 ├── packages/woocommerce/  ahegyes/wp-framework-woocommerce  php >=8.5 · settings ^2.0, shared ^2.0, psr/log ^3 (WC ^11.2 as host)
 │   ├── bootstrap/uninstall.php  PHP 7.4-parseable, by path: WooCommerceUninstaller::get_handlers(): array
 │   └── src/               psr-4 DeepWebSolutions\Framework\WooCommerce\
@@ -34,7 +34,7 @@ wordpress-framework/
 ├── tests/{Unit, PHPStan, Integration, Fixtures/{consumer-a (WC), consumer-b (non-WC), personas/{bootstrap,shared,core,settings,woocommerce}}}
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
-├── phpstan.wordpress.neon PHPStan over packages/core, with the WordPress stubs and extensions
+├── phpstan.wordpress.neon PHPStan over packages/core and packages/settings, with the WordPress stubs and extensions
 ├── phpstan.bootstrap.neon PHPStan over the by-path files at PHP 7.4 and WordPress 5.2, the oldest they run on
 ├── .wp-env.json           developer environment: single site with WooCommerce, as local, on port 8800
 ├── .wp-env.tests.json     Integration environment: single site with WooCommerce, as production
@@ -68,7 +68,7 @@ zizmor .github/
 6. **Shared logic.** Logic that global functions or templates need lives in static methods of final classes. Per-request state lives in a static holder or `WC()->session`. No service locator.
 7. **Migration steps.** Append-only; a retired step keeps its code or throws. Converge from any partial state; verify writes and throw on failure, including a missing role and a scheduler write that returns `WP_Error`. Create resources resumably (lookup marker, explicit `post_author`). Use WC CRUD for orders and products. A plain step finishes well under 10 minutes; bulk work is a `BatchedMigrationStepInterface` step, run only from the runner's scheduled hook, at about 1–2 s per batch. Steps run on `wp_loaded`, so every `init` registration exists. One linear list serves every build variant.
 8. **Settings.** Full keys are `Options` constants; WC ids are flat. Boot-time defaults are constants; translated defaults come from `Options::text()` after `init`. Validate on write, guard on read. Direct meta writes go through `wp_slash()`. Framework components store data only under the consumer's `{prefix}_`, so the plugin's footprint covers it. The bootstrap updater's release caches carry the text domain instead, and the uninstall engine deletes them itself. WooCommerce multiselect option keys are truthy, because WooCommerce's save drops `'0'` and `''`.
-9. **Object forms** render through `render_control()` and call `verify_object_form()`; every framework saver leaves absent (unrendered or disabled) fields untouched.
+9. **Object forms** render through `Forms::render_control()`, print their nonce bound to the object and call `Forms::verify_object_form()`; every framework saver goes through `Forms::sanitize_fields()` and leaves absent (unrendered or disabled) fields untouched.
 10. **Translation, by-path files, Plugin Check.** Never translate at include or registration time. Framework strings use only the `'wp-framework'` domain, at most five, owned by core, settings and woocommerce; bootstrap and shared ship none. The by-path files (the bootstrap package, the WC package's `bootstrap/`) stay 7.4-parseable, loaded by path, outside every `autoload` key, and define code only as final classes with public static entry points; consumers require only the loader files, whose paths are public API. Code is Plugin-Check-clean, using inline `phpcs:ignore` with a reason; local PHPCS runs the full `WordPress` standard, which covers the WordPress sniffs Plugin Check runs (its own `PluginCheck` sniffs and file checks run only at release).
 
 ## Contract
@@ -100,7 +100,7 @@ Releases follow SemVer on this contract from the first tag: a break of it ships 
 4. After a rollback, older code runs on newer data until the plugin is upgraded again; the written-back revision then re-runs the newer steps, and `{option}_high_water` keeps the highest revision reached. Mixed-version rolling deploys may re-run steps, which converge.
 5. Uninstall cleans the current site; with `network` it cleans every site that consents, except on a large network, where it logs that it cleaned the current site only. Network-global user meta goes only on a single site or, outside a large network, on the consent constant. Action Scheduler actions stay queued when it is not loaded at uninstall, and fail once it runs them, since no callback is registered; a job that cannot be unscheduled is logged and left.
 6. Over WC REST, `validate` receives WooCommerce's normalized value: unknown multiselect choices are already dropped and text already sanitized. A rejected value is not stored, but the response echoes it. Grouped `option[key]` ids would bypass the bridge, hence flat ids.
-7. WC-rendered controls carry WooCommerce's markup. The framework guarantees markup only for `render_control()`.
+7. WC-rendered controls carry WooCommerce's markup. The framework guarantees markup only for `Forms::render_control()`.
 8. Partial bootstrap package: if `load.php` exists but a file it requires is missing, the `Error` is thrown before the template's catch and the plugin fatals at include. A missing `vendor-prefixed/` also unregisters the updater and skips the floor gate, so safeguards then load on whatever PHP runs (two faults).
 9. Deactivation, recovery mode and below-floor runtimes unload safeguards, as for any plugin. Plugins whose data would leak (IC) hide it at the data level.
 10. Scheduling and one-shot notices are best effort. Either scheduler can run an invocation twice or not at all, and work advances only with site traffic, Action Scheduler's admin dispatch, or a system cron or WP-CLI runner. On hosts that replace WP-Cron's store, the WP-Cron backend still reads only the `cron` option, so it may not see the host's events. Action Scheduler compares hook names and arguments under the database collation, so identities that differ only in letter case are one there. Two concurrent renders can both show a one-shot notice, and a request that dies after output shows it again; notices wait out block-editor screens, which hide them.
