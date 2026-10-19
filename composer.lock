@@ -40,10 +40,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "7096a5bd272f22e5d6eb22889b8b164a930cfcfe"
+                "reference": "7845971cbe1e8c3ed5d8c5862794f25f708ff989"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0",
+                "ext-filter": "*",
                 "php": ">=8.5",
                 "psr/clock": "^1",
                 "psr/container": "^2",

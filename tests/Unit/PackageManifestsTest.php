@@ -16,7 +16,7 @@ final class PackageManifestsTest extends TestCase {
 	protected const array REQUIRES = array(
 		'bootstrap'   => array( 'php' ),
 		'shared'      => array( 'ext-filter', 'php' ),
-		'core'        => array( 'ahegyes/wp-framework-shared', 'php', 'psr/clock', 'psr/container', 'psr/log' ),
+		'core'        => array( 'ahegyes/wp-framework-shared', 'ext-filter', 'php', 'psr/clock', 'psr/container', 'psr/log' ),
 		'settings'    => array( 'ahegyes/wp-framework-shared', 'php' ),
 		'woocommerce' => array( 'ahegyes/wp-framework-settings', 'ahegyes/wp-framework-shared', 'php', 'psr/log' ),
 	);
