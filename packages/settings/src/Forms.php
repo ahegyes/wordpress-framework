@@ -82,7 +82,7 @@ final class Forms {
 	/**
 	 * Returns the value to store for the field's submission, or a WP_Error under which the host keeps the stored value.
 	 *
-	 * A field with validate hands the submission, alone, to the callable, which returns the value to store or a WP_Error and owns the field's allowed values, so no type sanitizer runs before or after it. Without validate, the field's type sanitizes the submission and checks its choices, and a rejection carries a code and an empty message for the host to replace. Every WP_Error message is plain text, which the host escapes.
+	 * A field with validate hands the submission, alone, to the callable, which returns the value to store or a WP_Error and owns the field's allowed values, so no type sanitizer runs before or after it. Without validate, the field's type sanitizes the submission and checks its choices, and a rejection carries a code and a message that tells the user what to enter, which a host may replace by the code. Every WP_Error message is plain text, which the host escapes.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -102,19 +102,19 @@ final class Forms {
 			return $field['validate']( $raw );
 		}
 		if ( isset( $field['render'] ) ) {
-			return new \WP_Error( 'missing_validate' );
+			return self::reject( 'missing_validate' );
 		}
 
 		return match ( $field['type'] ) {
-			'text'                      => self::is_text( $raw ) ? \sanitize_text_field( (string) $raw ) : new \WP_Error( 'invalid_value' ),
-			'textarea'                  => self::is_text( $raw ) ? \sanitize_textarea_field( (string) $raw ) : new \WP_Error( 'invalid_value' ),
+			'text'                      => self::is_text( $raw ) ? \sanitize_text_field( (string) $raw ) : self::reject( 'invalid_value' ),
+			'textarea'                  => self::is_text( $raw ) ? \sanitize_textarea_field( (string) $raw ) : self::reject( 'invalid_value' ),
 			'email'                     => self::sanitize_email( $raw ),
 			'url'                       => self::sanitize_url( $raw ),
 			'number'                    => self::sanitize_number( $raw ),
 			'checkbox'                  => self::sanitize_checkbox( $raw ),
 			'select', 'radio'           => self::sanitize_choice( $field, $raw ),
 			'multiselect', 'checkboxes' => self::sanitize_choices( $field, $raw ),
-			default                     => new \WP_Error( 'unknown_type' ),
+			default                     => self::reject( 'unknown_type' ),
 		};
 	}
 
@@ -549,12 +549,12 @@ final class Forms {
 	 */
 	protected static function sanitize_email( mixed $raw ): string|\WP_Error {
 		if ( ! self::is_text( $raw ) ) {
-			return new \WP_Error( 'invalid_value' );
+			return self::reject( 'invalid_value' );
 		}
 
 		$email = \trim( (string) $raw );
 
-		return '' === $email || ( \sanitize_email( $email ) === $email && false !== \is_email( $email ) ) ? $email : new \WP_Error( 'invalid_email' );
+		return '' === $email || ( \sanitize_email( $email ) === $email && false !== \is_email( $email ) ) ? $email : self::reject( 'invalid_email' );
 	}
 
 	/**
@@ -569,7 +569,7 @@ final class Forms {
 	 */
 	protected static function sanitize_url( mixed $raw ): string|\WP_Error {
 		if ( ! self::is_text( $raw ) ) {
-			return new \WP_Error( 'invalid_value' );
+			return self::reject( 'invalid_value' );
 		}
 
 		$url = \trim( (string) $raw );
@@ -579,7 +579,7 @@ final class Forms {
 
 		$safe = \esc_url_raw( $url );
 
-		return '' === $safe ? new \WP_Error( 'invalid_url' ) : $safe;
+		return '' === $safe ? self::reject( 'invalid_url' ) : $safe;
 	}
 
 	/**
@@ -596,10 +596,10 @@ final class Forms {
 	 */
 	protected static function sanitize_number( mixed $raw ): string|\WP_Error {
 		if ( \is_float( $raw ) && ! \is_finite( $raw ) ) {
-			return new \WP_Error( 'invalid_number' );
+			return self::reject( 'invalid_number' );
 		}
 		if ( ! self::is_text( $raw ) ) {
-			return new \WP_Error( 'invalid_value' );
+			return self::reject( 'invalid_value' );
 		}
 
 		$number = \trim( (string) $raw );
@@ -607,7 +607,7 @@ final class Forms {
 			return '';
 		}
 
-		return 1 === \preg_match( '/\A-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?\z/', $number ) && \is_finite( (float) $number ) ? $number : new \WP_Error( 'invalid_number' );
+		return 1 === \preg_match( '/\A-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?\z/', $number ) && \is_finite( (float) $number ) ? $number : self::reject( 'invalid_number' );
 	}
 
 	/**
@@ -624,7 +624,7 @@ final class Forms {
 		return match ( true ) {
 			\in_array( $raw, array( 'yes', '1', true ), true ) => 'yes',
 			\in_array( $raw, array( 'no', '', false ), true )  => 'no',
-			default                                            => new \WP_Error( 'invalid_choice' ),
+			default                                            => self::reject( 'invalid_choice' ),
 		};
 	}
 
@@ -641,10 +641,10 @@ final class Forms {
 	 */
 	protected static function sanitize_choice( array $field, mixed $raw ): string|\WP_Error {
 		if ( ! self::is_text( $raw ) ) {
-			return new \WP_Error( 'invalid_value' );
+			return self::reject( 'invalid_value' );
 		}
 
-		return \in_array( (string) $raw, self::get_allowed_choices( $field ), true ) ? (string) $raw : new \WP_Error( 'invalid_choice' );
+		return \in_array( (string) $raw, self::get_allowed_choices( $field ), true ) ? (string) $raw : self::reject( 'invalid_choice' );
 	}
 
 	/**
@@ -660,18 +660,18 @@ final class Forms {
 	 */
 	protected static function sanitize_choices( array $field, mixed $raw ): array|\WP_Error {
 		if ( ! \is_array( $raw ) ) {
-			return new \WP_Error( 'invalid_value' );
+			return self::reject( 'invalid_value' );
 		}
 
 		$choices = array();
 		foreach ( $raw as $choice ) {
 			if ( ! self::is_text( $choice ) ) {
-				return new \WP_Error( 'invalid_value' );
+				return self::reject( 'invalid_value' );
 			}
 			$choices[] = (string) $choice;
 		}
 
-		return array() === \array_diff( $choices, self::get_allowed_choices( $field ) ) ? \array_values( \array_unique( $choices ) ) : new \WP_Error( 'invalid_choice' );
+		return array() === \array_diff( $choices, self::get_allowed_choices( $field ) ) ? \array_values( \array_unique( $choices ) ) : self::reject( 'invalid_choice' );
 	}
 
 	/**
@@ -708,6 +708,33 @@ final class Forms {
 	 */
 	protected static function is_disabled_choice( array $field, int|string $key ): bool {
 		return 'radio' === $field['type'] && \is_array( $field['disabled'] ?? null ) && \in_array( $key, $field['disabled'], true );
+	}
+
+	/**
+	 * Returns the rejection under the code, with the message that tells the user what to enter instead.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @phpstan-param 'invalid_value'|'invalid_choice'|'invalid_email'|'invalid_url'|'invalid_number'|'unknown_type'|'missing_validate' $code
+	 *
+	 * @param   string $code The rejection's code.
+	 *
+	 * @return  \WP_Error
+	 */
+	protected static function reject( string $code ): \WP_Error {
+		return new \WP_Error(
+			$code,
+			match ( $code ) {
+				'invalid_value'    => \__( 'Enter a valid value.', 'wp-framework' ),
+				'invalid_choice'   => \__( 'Choose one of the available options.', 'wp-framework' ),
+				'invalid_email'    => \__( 'Enter a valid email address, such as name@example.com.', 'wp-framework' ),
+				'invalid_url'      => \__( 'Enter a valid URL, such as https://example.com.', 'wp-framework' ),
+				'invalid_number'   => \__( 'Enter a number, such as 12 or 3.5.', 'wp-framework' ),
+				'unknown_type'     => \__( 'This field cannot be saved because its type is not supported.', 'wp-framework' ),
+				'missing_validate' => \__( 'This field cannot be saved because nothing validates its value.', 'wp-framework' ),
+			}
+		);
 	}
 
 	/**
