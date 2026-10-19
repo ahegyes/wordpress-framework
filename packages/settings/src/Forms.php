@@ -433,7 +433,7 @@ final class Forms {
 	}
 
 	/**
-	 * Returns the attributes as HTML, the framework's own first, so a custom attribute never overrides one.
+	 * Returns the attributes as HTML, where a custom attribute never sets one the framework sets or leaves off.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -445,7 +445,7 @@ final class Forms {
 	 */
 	protected static function render_attributes( array $own, array $custom = array() ): string {
 		$html = '';
-		foreach ( \array_filter( $own, static fn ( string|bool|null $value ): bool => ! \is_null( $value ) && false !== $value ) + $custom as $name => $value ) {
+		foreach ( \array_filter( $own + $custom, static fn ( string|bool|null $value ): bool => ! \is_null( $value ) && false !== $value ) as $name => $value ) {
 			$html .= true === $value ? " $name" : " $name=\"" . \esc_attr( $value ) . '"';
 		}
 

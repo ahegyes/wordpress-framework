@@ -314,6 +314,20 @@ final class RenderControlTest extends TestCase {
 		self::assertSame( array( 'acme_name', 'acme.key', 'text', '20', 'x' ), \array_map( $input->getAttribute( ... ), array( 'name', 'id', 'type', 'maxlength', 'data-acme' ) ) );
 	}
 
+	public function test_custom_attributes_cannot_set_an_attribute_the_framework_leaves_off(): void {
+		$checkbox = self::render( 'checkbox', array( 'custom_attributes' => array( 'checked' => false ) ), 'no' )->getElementById( 'acme.key' );
+		$select   = self::render(
+			'select',
+			array(
+				'options'           => array( 'a' => 'A' ),
+				'custom_attributes' => array( 'multiple' => 'multiple' ),
+			)
+		)->getElementById( 'acme.key' );
+
+		self::assertFalse( $checkbox->hasAttribute( 'checked' ) );
+		self::assertFalse( $select->hasAttribute( 'multiple' ) );
+	}
+
 	public function test_custom_attributes_with_invalid_or_event_handler_names_are_dropped(): void {
 		$input = self::render(
 			'text',
