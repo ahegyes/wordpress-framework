@@ -155,6 +155,28 @@ final class Forms {
 	}
 
 	/**
+	 * Returns whether the request carries the object form's nonce and the current user may edit the object and use the plugin.
+	 *
+	 * Forms print wp_nonce_field() with the nonce action and the object id joined by an underscore as the action and the nonce action as the field name. That binds the nonce to the object, as WordPress core binds its edit forms, so a save_post that fires for a revision or another object in the same request is refused. The plugin capability matters because WordPress grants every user edit_user on themself.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $nonce_action The form's nonce action, which also names its nonce field.
+	 * @param   int    $object_id    The id of the object the form edits.
+	 * @param   string $object_cap   The capability that edits the object, checked against its id.
+	 * @param   string $plugin_cap   The capability the plugin requires for the form.
+	 *
+	 * @return  bool
+	 */
+	#[\NoDiscard]
+	public static function verify_object_form( string $nonce_action, int $object_id, string $object_cap, string $plugin_cap ): bool {
+		$nonce = \is_string( $_POST[ $nonce_action ] ?? null ) ? \sanitize_text_field( \wp_unslash( $_POST[ $nonce_action ] ) ) : '';
+
+		return false !== \wp_verify_nonce( $nonce, $nonce_action . '_' . $object_id ) && \current_user_can( $object_cap, $object_id ) && \current_user_can( $plugin_cap );
+	}
+
+	/**
 	 * Returns whether the field is disabled, which holds when its custom attributes carry disabled, whatever its value, or a checkbox's top-level disabled is truthy.
 	 *
 	 * That is where WooCommerce renders a control disabled, and browsers submit no disabled control. A radio's top-level disabled lists disabled choices instead, and other types ignore it.
