@@ -79,7 +79,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/settings",
-                "reference": "9ee38427dc6d83d2a33b4aee2c1192e8827db4ef"
+                "reference": "10f7c838c9e500d7507a26241df18fbe241ab1b7"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0",
@@ -90,7 +90,8 @@
                 "branch-alias": {
                     "dev-trunk": "2.x-dev"
                 },
-                "requires-wp": "7.1"
+                "requires-wp": "7.1",
+                "scoping-text-domain": "wp-framework"
             },
             "autoload": {
                 "psr-4": {
@@ -145,7 +146,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "48de797dbe5d91c166ebb4bd81cab5fb3ac8b7fb"
+                "reference": "b9dca411a739d5ca8b2be659544c62b3e9d0724e"
             },
             "require": {
                 "ahegyes/wp-framework-settings": "^2.0",
@@ -161,10 +162,16 @@
                 "scoping-stubs": [
                     "php-stubs/woocommerce-stubs"
                 ],
+                "scoping-text-domain": "wp-framework",
                 "requires-wp": "7.1",
                 "requires-plugins": [
                     "woocommerce"
                 ]
+            },
+            "autoload": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\WooCommerce\\": "src/"
+                }
             },
             "license": [
                 "GPL-2.0-or-later"

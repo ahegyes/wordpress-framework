@@ -8,6 +8,8 @@ includes:
 parameters:
     paths:
         - packages/bootstrap
+        - packages/woocommerce/uninstall.php
+        - packages/woocommerce/uninstall
     phpVersion: 70400
     WPCompat:
         requiresAtLeast: '5.2'
