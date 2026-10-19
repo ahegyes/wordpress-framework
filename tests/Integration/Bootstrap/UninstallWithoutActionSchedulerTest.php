@@ -2,14 +2,13 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
 
+use DeepWebSolutions\Framework\Bootstrap\Uninstaller;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
-use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
-use function DeepWebSolutions\Framework\Bootstrap\uninstall;
-
-#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\uninstall' )]
+#[CoversClass( Uninstaller::class )]
 #[Group( 'without-woocommerce' )]
 final class UninstallWithoutActionSchedulerTest extends TestCase {
 	use IsolatesHooksTrait;
@@ -26,7 +25,7 @@ final class UninstallWithoutActionSchedulerTest extends TestCase {
 		\update_option( "{$this->prefix}_settings", 'x' );
 		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
 
-		uninstall(
+		Uninstaller::run(
 			self::PLUGIN_FILE,
 			array(
 				'cron_hooks' => array( "{$this->prefix}_cron" ),

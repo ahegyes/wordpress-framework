@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Loads the functions a plugin's entry file calls before any autoloader.
+ * Loads the classes a plugin's entry file calls before any autoloader.
  *
  * @since   2.0.0
  * @version 2.0.0

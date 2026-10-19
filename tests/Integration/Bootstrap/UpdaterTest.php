@@ -2,15 +2,14 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
 
+use DeepWebSolutions\Framework\Bootstrap\Updater;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
-use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-use function DeepWebSolutions\Framework\Bootstrap\register_github_updater;
-
-#[CoversFunction( 'DeepWebSolutions\Framework\Bootstrap\register_github_updater' )]
-final class GitHubUpdaterTest extends TestCase {
+#[CoversClass( Updater::class )]
+final class UpdaterTest extends TestCase {
 	use IsolatesHooksTrait;
 
 	protected string $slug;
@@ -120,7 +119,7 @@ final class GitHubUpdaterTest extends TestCase {
 
 	#[DataProvider( 'github_update_uris' )]
 	public function test_a_stable_install_is_offered_the_latest_release_packaged_as_the_asset_named_after_its_text_domain( string $update_uri ): void {
-		register_github_updater( $this->write_plugin( $this->slug, array( 'Update URI' => $update_uri . $this->slug ) ) );
+		Updater::register( $this->write_plugin( $this->slug, array( 'Update URI' => $update_uri . $this->slug ) ) );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
 		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
@@ -134,7 +133,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_a_prerelease_install_skips_drafts_and_caches_under_its_own_channel(): void {
-		register_github_updater( $this->write_plugin( $this->slug, array( 'Version' => '1.1.0-beta.3' ) ) );
+		Updater::register( $this->write_plugin( $this->slug, array( 'Version' => '1.1.0-beta.3' ) ) );
 		$this->stage_list( array( array( 'draft' => true ) + $this->release( 'v1.2.0-beta.2' ), $this->release( 'v1.2.0-beta.1' ) ) );
 
 		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
@@ -148,7 +147,7 @@ final class GitHubUpdaterTest extends TestCase {
 
 	#[DataProvider( 'prerelease_lists' )]
 	public function test_a_prerelease_install_is_offered_the_highest_listed_version( string $installed, array $tags, string $expected ): void {
-		register_github_updater( $this->write_plugin( $this->slug, array( 'Version' => $installed ) ) );
+		Updater::register( $this->write_plugin( $this->slug, array( 'Version' => $installed ) ) );
 		$this->stage_list( \array_map( array( $this, 'release' ), $tags ) );
 
 		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
@@ -159,7 +158,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_an_up_to_date_install_is_listed_without_an_update_and_its_release_is_cached_for_an_hour(): void {
-		register_github_updater( $this->write_plugin( $this->slug, array( 'Version' => '2.0.0' ) ) );
+		Updater::register( $this->write_plugin( $this->slug, array( 'Version' => '2.0.0' ) ) );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
 		$updates = $this->check_for_updates();
@@ -171,7 +170,7 @@ final class GitHubUpdaterTest extends TestCase {
 
 	#[DataProvider( 'unusable_releases' )]
 	public function test_an_unusable_release_offers_nothing_and_is_fetched_again_after_five_minutes( \Closure $stage ): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		$stage( $this );
 
 		$updates  = $this->check_for_updates();
@@ -192,7 +191,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_a_cached_record_without_a_package_is_fetched_again(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		\set_transient( "{$this->slug}_github_release_stable", array( 'version' => '9.0.0' ), \HOUR_IN_SECONDS );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
@@ -203,7 +202,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_another_plugins_check_passes_through_without_a_request(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		$this->write_plugin( "$this->slug-other" );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
@@ -215,7 +214,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_a_check_an_earlier_filter_answered_passes_through_without_a_request(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		$basename = $this->basename();
 		\add_filter(
 			'update_plugins_github.com',
@@ -232,8 +231,8 @@ final class GitHubUpdaterTest extends TestCase {
 
 	public function test_two_plugins_never_answer_for_each_other(): void {
 		$other = "$this->slug-other";
-		register_github_updater( $this->write_plugin( $this->slug ) );
-		register_github_updater( $this->write_plugin( $other ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $other ) );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 		$this->stage_latest( $this->release( 'v3.0.0', $other ), $other );
 
@@ -246,7 +245,7 @@ final class GitHubUpdaterTest extends TestCase {
 
 	#[DataProvider( 'channel_switches' )]
 	public function test_each_channel_caches_separately_so_a_switch_never_serves_the_other_channels_release( string $first_version, string $first_path, string $second_version, string $second_path ): void {
-		register_github_updater( $this->write_plugin( $this->slug, array( 'Version' => $first_version ) ) );
+		Updater::register( $this->write_plugin( $this->slug, array( 'Version' => $first_version ) ) );
 		$this->stage_release_at( $first_path, $this->release( 'v3.0.0-beta.1' ) );
 		$this->check_for_updates();
 
@@ -260,7 +259,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_details_for_its_own_slug_show_the_cached_release_without_another_request(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		$requirements = array(
 			'Requires at least' => '6.0',
 			'Requires PHP'      => '8.1',
@@ -283,7 +282,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_details_for_its_own_slug_stay_local_without_a_release(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		$this->stage( $this->api_url( 'releases/latest' ), 500, '' );
 
 		$details = \plugins_api( 'plugin_information', array( 'slug' => $this->slug ) );
@@ -299,7 +298,7 @@ final class GitHubUpdaterTest extends TestCase {
 
 	#[DataProvider( 'foreign_details_requests' )]
 	public function test_other_details_requests_pass_through_without_a_request( mixed $result, string $action, ?string $slug ): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 
 		$details = \apply_filters( 'plugins_api', $result, $action, (object) array( 'slug' => $slug ?? $this->slug ) );
 
@@ -311,7 +310,7 @@ final class GitHubUpdaterTest extends TestCase {
 	public function test_a_plugin_without_a_github_update_uri_or_a_text_domain_gets_no_updates( array $headers ): void {
 		$plugin_file = $this->write_plugin( $this->slug, $headers );
 
-		register_github_updater( $plugin_file );
+		Updater::register( $plugin_file );
 
 		self::assertFalse( \apply_filters( 'update_plugins_github.com', false, \get_plugin_data( $plugin_file, false, false ), $this->basename(), array() ) );
 		self::assertFalse( \apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => $this->slug ) ) );
@@ -319,7 +318,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_an_offer_carries_the_release_requirements_and_a_php_floor_never_withholds_it(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		$requirements = array(
 			'Requires at least' => '5.8',
 			'Requires PHP'      => '99',
@@ -334,7 +333,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_an_offer_needing_a_newer_wordpress_is_withheld(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		$this->stage_latest( $this->release( 'v2.0.0' ), '', array( 'Requires at least' => '99' ) );
 
 		$updates = $this->check_for_updates();
@@ -345,7 +344,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_the_configuration_filter_runs_at_check_time_with_the_defaults_and_the_basename(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		$calls = array();
 		\add_filter(
 			"dws_github_updater_config_$this->slug",
@@ -373,7 +372,7 @@ final class GitHubUpdaterTest extends TestCase {
 
 	#[DataProvider( 'unusable_configurations' )]
 	public function test_a_disabled_or_unusable_configuration_offers_nothing_and_leaves_details_to_wordpress( \Closure $filter ): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		\add_filter( "dws_github_updater_config_$this->slug", $filter );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
@@ -386,7 +385,7 @@ final class GitHubUpdaterTest extends TestCase {
 	}
 
 	public function test_a_filtered_repository_asset_and_channel_drive_the_request_the_package_and_the_cache(): void {
-		register_github_updater( $this->write_plugin( $this->slug ) );
+		Updater::register( $this->write_plugin( $this->slug ) );
 		\add_filter(
 			"dws_github_updater_config_$this->slug",
 			static fn (): array => array(
