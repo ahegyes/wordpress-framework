@@ -252,6 +252,43 @@ final class SettingsTest extends TestCase {
 		self::assertNull( $saved->querySelector( '#message.error b' ) );
 	}
 
+	// An absent textarea would join them, but WooCommerce's own save raises a deprecation for it, passing null to trim(), before the bridge runs.
+	public static function unposted_fields(): array {
+		return array(
+			'select' => array( 'select', array( 'options' => self::COLORS ), 'blue' ),
+			'text'   => array( 'text', array(), 'old' ),
+		);
+	}
+
+	public static function cleared_woocommerce_lists(): array {
+		return array(
+			'multiselect'            => array( 'multiselect', array( 'options' => self::COLORS ), array( 'red' ) ),
+			'multi-select-countries' => array( 'multi_select_countries', array(), array( 'RO' ) ),
+		);
+	}
+
+	#[DataProvider( 'unposted_fields' )]
+	public function test_a_field_the_form_did_not_post_keeps_its_stored_value( string $type, array $keys, string $stored ): void {
+		\update_option( "{$this->prefix}_field", $stored );
+		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( $type, 'field', $keys ) ) ) ) );
+		$data = self::serialize_form( $this->open( $spec )['body'], 'form#mainform' ) + array( 'save' => 'Save changes' );
+		unset( $data[ "{$this->prefix}_field" ] );
+
+		$this->admin_request( 'POST', $this->settings_path( $this->prefix, '' ), $this->admin, self::FIXTURE, $spec, $data );
+
+		self::assertSame( $stored, \get_option( "{$this->prefix}_field" ) );
+	}
+
+	#[DataProvider( 'cleared_woocommerce_lists' )]
+	public function test_a_cleared_woocommerce_list_without_validate_stores_an_empty_list( string $type, array $keys, array $stored ): void {
+		\update_option( "{$this->prefix}_list", $stored );
+		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( $type, 'list', $keys ) ) ) ) );
+
+		$this->save( $spec, '', array( "{$this->prefix}_list" => array() ) );
+
+		self::assertSame( array(), \get_option( "{$this->prefix}_list" ) );
+	}
+
 	public function test_validate_receives_no_for_an_unchecked_checkbox_and_an_empty_list_for_a_cleared_multiselect(): void {
 		\update_option( "{$this->prefix}_flag", 'yes' );
 		\update_option( "{$this->prefix}_colors", array( 'red' ) );
