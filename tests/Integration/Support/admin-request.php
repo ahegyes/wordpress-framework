@@ -97,4 +97,10 @@ $wp_filter = array( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibi
 	),
 );
 
+// WooCommerce sends the first admin request within 30 seconds of its install to its setup wizard, as in CI's fresh environment.
+$wp_filter['woocommerce_prevent_automatic_wizard_redirect'][10][] = array( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Hooks the request before WordPress loads.
+	'function'      => '__return_true',
+	'accepted_args' => 0,
+);
+
 require dirname( __DIR__, 6 ) . '/wp-admin/' . $acme_request['file'];
