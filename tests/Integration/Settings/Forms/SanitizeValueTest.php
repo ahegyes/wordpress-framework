@@ -14,6 +14,16 @@ final class SanitizeValueTest extends TestCase {
 		2 => 'Two',
 	);
 
+	protected const array MESSAGES = array(
+		'invalid_value'    => 'Enter a valid value.',
+		'invalid_choice'   => 'Choose one of the available options.',
+		'invalid_email'    => 'Enter a valid email address, such as name@example.com.',
+		'invalid_url'      => 'Enter a valid URL, such as https://example.com.',
+		'invalid_number'   => 'Enter a number, such as 12 or 3.5.',
+		'unknown_type'     => 'This field cannot be saved because its type is not supported.',
+		'missing_validate' => 'This field cannot be saved because nothing validates its value.',
+	);
+
 	public static function accepted(): array {
 		return array(
 			'text-strips-tags-and-trims'        => array( 'text', '  <b>Hi</b> there ', 'Hi there' ),
@@ -94,12 +104,12 @@ final class SanitizeValueTest extends TestCase {
 	}
 
 	#[DataProvider( 'rejected' )]
-	public function test_a_value_without_validate_is_rejected_with_an_empty_message( string $type, mixed $raw, string $code ): void {
+	public function test_a_value_without_validate_is_rejected_with_the_message_of_its_code( string $type, mixed $raw, string $code ): void {
 		$result = Forms::sanitize_value( self::field( $type ), $raw );
 
 		self::assertInstanceOf( \WP_Error::class, $result );
 		self::assertSame( $code, $result->get_error_code() );
-		self::assertSame( '', $result->get_error_message() );
+		self::assertSame( self::MESSAGES[ $code ], $result->get_error_message() );
 	}
 
 	public function test_a_radio_rejects_a_disabled_choice_and_accepts_an_enabled_one(): void {
@@ -115,7 +125,10 @@ final class SanitizeValueTest extends TestCase {
 			'render' => static fn (): string => '<input>',
 		);
 
-		self::assertSame( 'missing_validate', Forms::sanitize_value( $field, 'x' )->get_error_code() );
+		$result = Forms::sanitize_value( $field, 'x' );
+
+		self::assertSame( 'missing_validate', $result->get_error_code() );
+		self::assertSame( self::MESSAGES['missing_validate'], $result->get_error_message() );
 	}
 
 	public function test_validate_receives_the_raw_submission_alone_and_its_return_is_stored_as_is(): void {
