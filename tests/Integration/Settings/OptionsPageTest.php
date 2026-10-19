@@ -412,7 +412,7 @@ final class OptionsPageTest extends TestCase {
 
 	public function test_the_submenu_entry_and_the_page_exist_only_for_users_holding_the_capability(): void {
 		$spec = $this->spec( array( self::field( 'text', 'name' ) ), array( 'parent' => 'tools.php' ) );
-		$link = '#menu-tools a[href="tools.php?page=' . $this->id . '"]';
+		$link = '#menu-tools a[href$="?page=' . $this->id . '"]';
 
 		$admin_menu  = $this->admin_request( 'GET', 'tools.php', $this->admin, self::FIXTURE, $spec )['body'];
 		$editor_menu = $this->admin_request( 'GET', 'tools.php', $this->editor, self::FIXTURE, $spec )['body'];

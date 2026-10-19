@@ -1,0 +1,328 @@
+<?php declare( strict_types=1 );
+
+namespace DeepWebSolutions\Framework\Settings;
+
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+
+\defined( 'ABSPATH' ) || exit;
+
+/**
+ * Adds a submenu page whose tabs each edit one option row through the Settings API.
+ *
+ * Each tab's form posts to options.php under a settings group named after its option, so WordPress checks the nonce and the page's capability before the page sanitizes the submission.
+ *
+ * @since   2.0.0
+ * @version 2.0.0
+ *
+ * @phpstan-import-type Field from Forms
+ * @phpstan-type Tab array{slug: string, title: string, option: string, fields: list<Field>}
+ * @phpstan-type Page array{parent: string, capability: string, page_title: string, menu_title: string, tabs: list<Tab>}
+ */
+final class OptionsPage {
+	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The page's definition, evaluated on first use and with its tabs filtered.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     Page|null
+	 */
+	protected ?array $page = null;
+
+	// endregion
+
+	// region MAGIC METHODS
+
+	/**
+	 * Constructor.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string           $id         The page's menu slug, which also prefixes its tabs filter.
+	 * @param   \Closure(): Page $definition The definition, evaluated after init on first use, which never throws.
+	 *
+	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
+	 */
+	public function __construct(
+		protected string $id,
+		protected \Closure $definition
+	) {
+		if ( ! self::is_valid_key( $id ) ) {
+			throw new InvalidArgumentException( "Options page id '$id' is not a lowercase letter, after an optional underscore, followed by lowercase letters, digits, underscores and hyphens." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+	}
+
+	// endregion
+
+	// region METHODS
+
+	/**
+	 * Registers the hooks that add the page and its settings.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function register_hooks(): void {
+		\add_action( 'admin_menu', array( $this, 'add_page' ) );
+		\add_action( 'admin_init', array( $this, 'register_settings' ) );
+	}
+
+	// endregion
+
+	// region HOOKS
+
+	/**
+	 * Adds the page to its parent menu for users holding its capability.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function add_page(): void {
+		$page = $this->get_page();
+		\add_submenu_page( $page['parent'], $page['page_title'], $page['menu_title'], $page['capability'], $this->id, array( $this, 'render_page' ) );
+	}
+
+	/**
+	 * Registers each tab's option as a setting in a group of its own name and hooks the option's capability and sanitization.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function register_settings(): void {
+		foreach ( \array_unique( \array_column( $this->get_page()['tabs'], 'option' ) ) as $option ) {
+			\register_setting( $option, $option );
+			\add_filter( "option_page_capability_$option", array( $this, 'get_capability' ) );
+			\add_filter( "pre_update_option_$option", array( $this, 'sanitize_submission' ), 10, 3 );
+		}
+	}
+
+	/**
+	 * Returns the page's capability, which options.php requires to save its options.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  string
+	 */
+	public function get_capability(): string {
+		return $this->get_page()['capability'];
+	}
+
+	/**
+	 * Returns the row to store for a tab's options.php submission: the stored row with the accepted fields replaced, or the stored row itself when no field was accepted.
+	 *
+	 * Other writes of the option pass through unchanged. Each rejected field keeps its stored value and adds a settings error that names it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed  $value     The submitted row, unslashed by options.php, or null when the form posted none of its fields.
+	 * @param   mixed  $old_value The stored row.
+	 * @param   string $option    The option's name.
+	 *
+	 * @return  mixed
+	 */
+	public function sanitize_submission( mixed $value, mixed $old_value, string $option ): mixed {
+		// WordPress core reads option_page from the request, not only the body, and trims it, so the same reading decides whether the submission is this option's.
+		$option_page = \is_string( $_REQUEST['option_page'] ?? null ) ? \sanitize_text_field( \wp_unslash( $_REQUEST['option_page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- options.php verifies the nonce before it saves.
+		if ( 'options.php' !== ( $GLOBALS['pagenow'] ?? '' ) || $option_page !== $option ) {
+			return $value;
+		}
+
+		$fields = array();
+		foreach ( $this->get_page()['tabs'] as $tab ) {
+			if ( $option === $tab['option'] ) {
+				$fields = \array_merge( $fields, $tab['fields'] );
+			}
+		}
+
+		$result = Forms::sanitize_fields( $fields, \is_array( $value ) ? $value : array() );
+		foreach ( $fields as $field ) {
+			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
+				\add_settings_error( $option, $field['id'], \esc_html( self::get_rejection_message( $field, $result['errors'][ $field['id'] ] ) ) );
+			}
+		}
+
+		return array() === $result['values'] ? $old_value : \array_replace( \is_array( $old_value ) ? $old_value : array(), $result['values'] );
+	}
+
+	/**
+	 * Prints the page: its title, the settings errors when the parent menu does not print them, the tab navigation and the current tab's form.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	public function render_page(): void {
+		$page = $this->get_page();
+		$tab  = $this->get_current_tab();
+
+		echo '<div class="wrap"><h1>' . \esc_html( $page['page_title'] ) . '</h1>';
+		// WordPress core prints the settings errors on the pages under Settings itself.
+		if ( 'options-general.php' !== $page['parent'] ) {
+			\settings_errors();
+		}
+		if ( \is_null( $tab ) ) {
+			echo '</div>';
+			return;
+		}
+
+		if ( \count( $page['tabs'] ) > 1 ) {
+			echo '<nav class="nav-tab-wrapper" aria-label="' . \esc_attr( $page['page_title'] ) . '">';
+			foreach ( $page['tabs'] as $link ) {
+				$url = \esc_url( \add_query_arg( 'tab', $link['slug'], \menu_page_url( $this->id, false ) ) );
+				echo $link['slug'] === $tab['slug'] ? "<a href=\"$url\" class=\"nav-tab nav-tab-active\" aria-current=\"page\">" : "<a href=\"$url\" class=\"nav-tab\">"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The URL is escaped.
+				echo \esc_html( $link['title'] ) . '</a>';
+			}
+			echo '</nav>';
+		}
+
+		$this->render_form( $tab );
+		echo '</div>';
+	}
+
+	/**
+	 * Prints the control of a field row.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array{field: Field, value: mixed, name: string, id: string} $args The field, its stored value and the control's name and id.
+	 */
+	public function render_field( array $args ): void {
+		echo Forms::render_control( $args['field'], $args['value'], $args['name'], $args['id'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control.
+	}
+
+	// endregion
+
+	// region HELPERS
+
+	/**
+	 * Returns the page's definition, evaluating it and filtering its tabs on first use.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  Page
+	 */
+	protected function get_page(): array {
+		if ( \is_null( $this->page ) ) {
+			$page = ( $this->definition )();
+
+			/**
+			 * Filters the tabs of the options page, so that other plugins can add tabs or fields.
+			 *
+			 * @since   2.0.0
+			 * @version 2.0.0
+			 *
+			 * @param   list<Tab> $tabs The page's tabs.
+			 */
+			$page['tabs'] = \apply_filters( "{$this->id}_tabs", $page['tabs'] );
+			$this->page   = $page;
+		}
+
+		return $this->page;
+	}
+
+	/**
+	 * Returns the tab the request names, or the first tab when it names none of them, or null when the page has no tabs.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  Tab|null
+	 */
+	protected function get_current_tab(): ?array {
+		$tabs = $this->get_page()['tabs'];
+		$slug = \is_string( $_GET['tab'] ?? null ) ? \sanitize_text_field( \wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Selects the tab to show and changes nothing.
+		foreach ( $tabs as $tab ) {
+			if ( $slug === $tab['slug'] ) {
+				return $tab;
+			}
+		}
+
+		return $tabs[0] ?? null;
+	}
+
+	/**
+	 * Prints the tab's form, with one Settings API row per field that has an id.
+	 *
+	 * A radio, a checkboxes group and a checkbox with a desc are named by their fieldset's legend, so their row label is plain text, while every other row label points at its control.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Tab $tab The tab.
+	 */
+	protected function render_form( array $tab ): void {
+		$option = $tab['option'];
+		$stored = \get_option( $option );
+		$stored = \is_array( $stored ) ? $stored : array();
+		foreach ( $tab['fields'] as $field ) {
+			if ( ! isset( $field['id'] ) ) {
+				continue;
+			}
+
+			$id   = "$option.{$field['id']}";
+			$args = array(
+				'field' => $field,
+				'value' => \array_key_exists( $field['id'], $stored ) ? $stored[ $field['id'] ] : ( $field['default'] ?? '' ),
+				'name'  => "{$option}[{$field['id']}]",
+				'id'    => $id,
+			);
+			if ( ! \in_array( $field['type'], array( 'radio', 'checkboxes' ), true ) && ! ( 'checkbox' === $field['type'] && '' !== ( $field['desc'] ?? '' ) ) ) {
+				$args['label_for'] = $id;
+			}
+			\add_settings_field( $field['id'], \esc_html( $field['title'] ?? '' ), array( $this, 'render_field' ), $this->id, 'default', $args );
+		}
+
+		echo '<form action="options.php" method="post">';
+		\settings_fields( $option );
+		echo '<table class="form-table" role="presentation">';
+		\do_settings_fields( $this->id, 'default' );
+		echo '</table>';
+		\submit_button();
+		echo '</form>';
+	}
+
+	/**
+	 * Returns the settings error for a rejected field, which names the field by its title, or by its id when it has none, and adds the rejection's message when it has one.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field     $field The field.
+	 * @param   \WP_Error $error The rejection.
+	 *
+	 * @return  string
+	 */
+	protected static function get_rejection_message( array $field, \WP_Error $error ): string {
+		$name    = '' !== ( $field['title'] ?? '' ) ? $field['title'] : (string) ( $field['id'] ?? '' );
+		$message = $error->get_error_message();
+		if ( '' === $message ) {
+			/* translators: %s: The field's title. */
+			return \sprintf( \__( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $name );
+		}
+
+		/* translators: 1: The field's title. 2: What to enter instead. */
+		return \sprintf( \__( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $name, $message );
+	}
+
+	/**
+	 * Returns whether the key is an optional underscore, a lowercase letter and then lowercase letters, digits, underscores and hyphens, which every v1 option key, meta key, prefix and slug is.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $key The key.
+	 *
+	 * @return  bool
+	 */
+	protected static function is_valid_key( string $key ): bool {
+		return 1 === \preg_match( '/\A_?[a-z][a-z0-9_-]*\z/', $key );
+	}
+
+	// endregion
+}

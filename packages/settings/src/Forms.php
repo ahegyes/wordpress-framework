@@ -126,8 +126,8 @@ final class Forms {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   list<Field>          $fields    The fields.
-	 * @param   array<string, mixed> $submitted The unslashed submission, keyed by field id.
+	 * @param   list<Field>             $fields    The fields.
+	 * @param   array<array-key, mixed> $submitted The unslashed submission, keyed by field id.
 	 *
 	 * @return  array{values: array<string, mixed>, errors: array<string, \WP_Error>}
 	 */
