@@ -31,6 +31,26 @@ final class RenderControlTest extends TestCase {
 		self::assertSame( 'a&amp;b', $document->querySelector( 'option[selected]' )->getAttribute( 'value' ) );
 	}
 
+	public function test_labels_and_help_point_at_ids_holding_entities(): void {
+		$radio    = self::render(
+			'radio',
+			array(
+				'desc'    => 'Help.',
+				'options' => array( 'a' => 'A' ),
+			),
+			'',
+			'acme_key',
+			'acme&amp;key'
+		);
+		$checkbox = self::render( 'checkbox', array( 'desc' => 'Enable.' ), '', 'acme_key', 'acme&amp;key' );
+
+		self::assertSame( 'acme&amp;key.0', $radio->querySelector( 'label' )->getAttribute( 'for' ) );
+		self::assertNotNull( $radio->getElementById( 'acme&amp;key.0' ) );
+		self::assertSame( array( 'Help.' ), self::descriptions( $radio, $radio->querySelector( 'fieldset' ) ) );
+		self::assertSame( 'acme&amp;key', $checkbox->querySelector( 'label' )->getAttribute( 'for' ) );
+		self::assertNotNull( $checkbox->getElementById( 'acme&amp;key' ) );
+	}
+
 	public function test_a_textarea_keeps_a_leading_newline(): void {
 		self::assertSame( "\nFirst", self::text( self::render( 'textarea', array(), "\nFirst" )->getElementById( 'acme.key' ) ) );
 	}

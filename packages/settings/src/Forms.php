@@ -294,7 +294,7 @@ final class Forms {
 			return $control . self::render_help( $help );
 		}
 
-		return '<fieldset>' . self::render_legend( $field ) . '<label for="' . \esc_attr( $id ) . '">' . $control . ' ' . \wp_kses_post( $field['desc'] ) . '</label>' . self::render_help( $help ) . '</fieldset>';
+		return '<fieldset>' . self::render_legend( $field ) . '<label' . self::render_attributes( array( 'for' => $id ) ) . '>' . $control . ' ' . \wp_kses_post( $field['desc'] ) . '</label>' . self::render_help( $help ) . '</fieldset>';
 	}
 
 	/**
@@ -372,7 +372,7 @@ final class Forms {
 				'checked'  => \in_array( (string) $key, $chosen, true ),
 				'disabled' => $disabled || self::is_disabled_choice( $field, $key ),
 			);
-			$choices   .= '<label for="' . \esc_attr( "$id.$index" ) . '"><input' . self::render_attributes( $attributes, $custom ) . ' /> ' . \esc_html( $label ) . '</label><br />';
+			$choices   .= '<label' . self::render_attributes( array( 'for' => "$id.$index" ) ) . '><input' . self::render_attributes( $attributes, $custom ) . ' /> ' . \esc_html( $label ) . '</label><br />';
 			++$index;
 		}
 
@@ -427,7 +427,12 @@ final class Forms {
 	protected static function render_help( array $help ): string {
 		$html = '';
 		foreach ( $help as $help_id => $text ) {
-			$html .= '<p class="description" id="' . \esc_attr( $help_id ) . '">' . \wp_kses_post( $text ) . '</p>';
+			$html .= '<p' . self::render_attributes(
+				array(
+					'class' => 'description',
+					'id'    => $help_id,
+				)
+			) . '>' . \wp_kses_post( $text ) . '</p>';
 		}
 
 		return $html;
