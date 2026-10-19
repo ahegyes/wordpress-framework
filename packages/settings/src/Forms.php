@@ -80,6 +80,81 @@ final class Forms {
 	}
 
 	/**
+	 * Returns the value to store for the field's submission, or a WP_Error under which the host keeps the stored value.
+	 *
+	 * A field with validate hands the submission, alone, to the callable, which returns the value to store or a WP_Error and owns the field's allowed values, so no type sanitizer runs before or after it. Without validate, the field's type sanitizes the submission and checks its choices, and a rejection carries a code and an empty message for the host to replace. Every WP_Error message is plain text, which the host escapes.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field $field The field.
+	 * @param   mixed $raw   The unslashed submission, in which a cleared multi-value field is an empty string.
+	 *
+	 * @return  mixed|\WP_Error
+	 */
+	#[\NoDiscard]
+	public static function sanitize_value( array $field, mixed $raw ): mixed {
+		if ( '' === $raw && \in_array( $field['type'], array( 'multiselect', 'checkboxes' ), true ) ) {
+			$raw = array();
+		}
+
+		if ( isset( $field['validate'] ) ) {
+			return $field['validate']( $raw );
+		}
+		if ( isset( $field['render'] ) ) {
+			return new \WP_Error( 'missing_validate' );
+		}
+
+		return match ( $field['type'] ) {
+			'text'                      => self::is_text( $raw ) ? \sanitize_text_field( (string) $raw ) : new \WP_Error( 'invalid_value' ),
+			'textarea'                  => self::is_text( $raw ) ? \sanitize_textarea_field( (string) $raw ) : new \WP_Error( 'invalid_value' ),
+			'email'                     => self::sanitize_email( $raw ),
+			'url'                       => self::sanitize_url( $raw ),
+			'number'                    => self::sanitize_number( $raw ),
+			'checkbox'                  => self::sanitize_checkbox( $raw ),
+			'select', 'radio'           => self::sanitize_choice( $field, $raw ),
+			'multiselect', 'checkboxes' => self::sanitize_choices( $field, $raw ),
+			default                     => new \WP_Error( 'unknown_type' ),
+		};
+	}
+
+	/**
+	 * Returns the accepted values and the rejections of a submission, keyed by field id, for the defined, present and enabled fields only.
+	 *
+	 * Callers merge the values onto the stored row with array_replace( $stored, $result['values'] ) and report the errors, so a submission writes no id outside the definition, and every stored id it leaves out, including those of rejected fields and of fields absent from the definition, keeps its value.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   list<Field>          $fields    The fields.
+	 * @param   array<string, mixed> $submitted The unslashed submission, keyed by field id.
+	 *
+	 * @return  array{values: array<string, mixed>, errors: array<string, \WP_Error>}
+	 */
+	#[\NoDiscard]
+	public static function sanitize_fields( array $fields, array $submitted ): array {
+		$result = array(
+			'values' => array(),
+			'errors' => array(),
+		);
+		foreach ( $fields as $field ) {
+			$id = $field['id'] ?? null;
+			if ( \is_null( $id ) || ! \array_key_exists( $id, $submitted ) || self::is_disabled( $field ) ) {
+				continue;
+			}
+
+			$value = self::sanitize_value( $field, $submitted[ $id ] );
+			if ( \is_wp_error( $value ) ) {
+				$result['errors'][ $id ] = $value;
+			} else {
+				$result['values'][ $id ] = $value;
+			}
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Returns whether the field is disabled, which holds when its custom attributes carry disabled, whatever its value, or a checkbox's top-level disabled is truthy.
 	 *
 	 * That is where WooCommerce renders a control disabled, and browsers submit no disabled control. A radio's top-level disabled lists disabled choices instead, and other types ignore it.
@@ -260,7 +335,6 @@ final class Forms {
 		$disabled = self::is_disabled( $field );
 		$chosen   = self::get_chosen( $value, $multiple );
 		$custom   = self::get_custom_attributes( $field );
-		$excluded = ! $multiple && \is_array( $field['disabled'] ?? null ) ? $field['disabled'] : array();
 
 		$choices = $multiple && ! $disabled ? self::render_hidden( $name, '' ) : '';
 		$index   = 0;
@@ -273,7 +347,7 @@ final class Forms {
 				'class'    => $field['class'] ?? null,
 				'style'    => $field['css'] ?? null,
 				'checked'  => \in_array( (string) $key, $chosen, true ),
-				'disabled' => $disabled || \in_array( $key, $excluded, true ),
+				'disabled' => $disabled || self::is_disabled_choice( $field, $key ),
 			);
 			$choices   .= '<label for="' . \esc_attr( "$id.$index" ) . '"><input' . self::render_attributes( $attributes, $custom ) . ' /> ' . \esc_html( $label ) . '</label><br />';
 			++$index;
@@ -432,6 +506,197 @@ final class Forms {
 		}
 
 		return \is_array( $value ) ? \array_values( \array_map( self::to_string( ... ), $value ) ) : array();
+	}
+
+	/**
+	 * Returns the submission as a trimmed email address, or a WP_Error when sanitize_email() would empty or rewrite it, which would erase the stored address or store a different one.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $raw The unslashed submission.
+	 *
+	 * @return  string|\WP_Error
+	 */
+	protected static function sanitize_email( mixed $raw ): string|\WP_Error {
+		if ( ! self::is_text( $raw ) ) {
+			return new \WP_Error( 'invalid_value' );
+		}
+
+		$email = \trim( (string) $raw );
+
+		return '' === $email || ( \sanitize_email( $email ) === $email && false !== \is_email( $email ) ) ? $email : new \WP_Error( 'invalid_email' );
+	}
+
+	/**
+	 * Returns the submission as a URL safe to store, or a WP_Error when esc_url_raw() would empty it, as it does for a disallowed or mistyped scheme.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $raw The unslashed submission.
+	 *
+	 * @return  string|\WP_Error
+	 */
+	protected static function sanitize_url( mixed $raw ): string|\WP_Error {
+		if ( ! self::is_text( $raw ) ) {
+			return new \WP_Error( 'invalid_value' );
+		}
+
+		$url = \trim( (string) $raw );
+		if ( '' === $url ) {
+			return '';
+		}
+
+		$safe = \esc_url_raw( $url );
+
+		return '' === $safe ? new \WP_Error( 'invalid_url' ) : $safe;
+	}
+
+	/**
+	 * Returns the submission as a trimmed number string in HTML's floating-point grammar, or a WP_Error for anything else that is not empty.
+	 *
+	 * A number input renders any other numeric string, such as +1 or 1., as empty, so the next save would clear it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $raw The unslashed submission.
+	 *
+	 * @return  string|\WP_Error
+	 */
+	protected static function sanitize_number( mixed $raw ): string|\WP_Error {
+		if ( \is_float( $raw ) && ! \is_finite( $raw ) ) {
+			return new \WP_Error( 'invalid_number' );
+		}
+		if ( ! self::is_text( $raw ) ) {
+			return new \WP_Error( 'invalid_value' );
+		}
+
+		$number = \trim( (string) $raw );
+		if ( '' === $number ) {
+			return '';
+		}
+
+		return 1 === \preg_match( '/\A-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?\z/', $number ) && \is_finite( (float) $number ) ? $number : new \WP_Error( 'invalid_number' );
+	}
+
+	/**
+	 * Returns yes or no for a checkbox submission, or a WP_Error for any other value.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $raw The unslashed submission.
+	 *
+	 * @return  string|\WP_Error
+	 */
+	protected static function sanitize_checkbox( mixed $raw ): string|\WP_Error {
+		return match ( true ) {
+			\in_array( $raw, array( 'yes', '1', true ), true ) => 'yes',
+			\in_array( $raw, array( 'no', '', false ), true )  => 'no',
+			default                                            => new \WP_Error( 'invalid_choice' ),
+		};
+	}
+
+	/**
+	 * Returns the submitted choice of a select or radio as a string, or a WP_Error when it is not one of the field's enabled choices.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field $field The field.
+	 * @param   mixed $raw   The unslashed submission.
+	 *
+	 * @return  string|\WP_Error
+	 */
+	protected static function sanitize_choice( array $field, mixed $raw ): string|\WP_Error {
+		if ( ! self::is_text( $raw ) ) {
+			return new \WP_Error( 'invalid_value' );
+		}
+
+		return \in_array( (string) $raw, self::get_allowed_choices( $field ), true ) ? (string) $raw : new \WP_Error( 'invalid_choice' );
+	}
+
+	/**
+	 * Returns the submitted choices of a multiselect or checkboxes group as a list of distinct strings, or a WP_Error when one is not among the field's choices.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field $field The field.
+	 * @param   mixed $raw   The unslashed submission.
+	 *
+	 * @return  list<string>|\WP_Error
+	 */
+	protected static function sanitize_choices( array $field, mixed $raw ): array|\WP_Error {
+		if ( ! \is_array( $raw ) ) {
+			return new \WP_Error( 'invalid_value' );
+		}
+
+		$choices = array();
+		foreach ( $raw as $choice ) {
+			if ( ! self::is_text( $choice ) ) {
+				return new \WP_Error( 'invalid_value' );
+			}
+			$choices[] = (string) $choice;
+		}
+
+		return array() === \array_diff( $choices, self::get_allowed_choices( $field ) ) ? \array_values( \array_unique( $choices ) ) : new \WP_Error( 'invalid_choice' );
+	}
+
+	/**
+	 * Returns the keys of the field's enabled choices as strings, which is how a form posts them.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field $field The field.
+	 *
+	 * @return  list<string>
+	 */
+	protected static function get_allowed_choices( array $field ): array {
+		$allowed = array();
+		foreach ( \array_keys( $field['options'] ?? array() ) as $key ) {
+			if ( ! self::is_disabled_choice( $field, $key ) ) {
+				$allowed[] = (string) $key;
+			}
+		}
+
+		return $allowed;
+	}
+
+	/**
+	 * Returns whether a radio's top-level disabled list names the choice, compared strictly with the choice's key as WooCommerce compares it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field      $field The field.
+	 * @param   int|string $key   The choice's key in the field's options.
+	 *
+	 * @return  bool
+	 */
+	protected static function is_disabled_choice( array $field, int|string $key ): bool {
+		return 'radio' === $field['type'] && \is_array( $field['disabled'] ?? null ) && \in_array( $key, $field['disabled'], true );
+	}
+
+	/**
+	 * Returns whether the value is a string, an int or a finite float, the values a single-value field accepts.
+	 *
+	 * PHP 8.5 warns when it casts NAN to a string.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @phpstan-assert-if-true string|int|float $value
+	 *
+	 * @param   mixed $value The value.
+	 *
+	 * @return  bool
+	 */
+	protected static function is_text( mixed $value ): bool {
+		return \is_string( $value ) || \is_int( $value ) || ( \is_float( $value ) && \is_finite( $value ) );
 	}
 
 	/**
