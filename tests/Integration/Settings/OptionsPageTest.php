@@ -168,7 +168,7 @@ final class OptionsPageTest extends TestCase {
 		self::assertSame( array( 'Email was not saved, so it keeps its previous value. Enter a valid email address, such as name@example.com.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
-	public function test_titles_and_messages_print_as_text_and_an_untitled_field_is_named_by_its_id(): void {
+	public function test_titles_and_messages_print_as_text_and_an_untitled_field_is_labelled_and_named_by_its_id(): void {
 		$spec = $this->spec(
 			array(
 				self::field( 'email', 'email', array( 'title' => '<em>Email</em>' ) ),
@@ -189,7 +189,8 @@ final class OptionsPageTest extends TestCase {
 
 		$page = $this->follow( $spec, $this->admin, $this->save( $spec, $this->admin, $data ) )['body'];
 
-		self::assertSame( array( '<em>Email</em>', '' ), self::row_titles( $form ) );
+		self::assertSame( array( '<em>Email</em>', 'site' ), self::row_titles( $form ) );
+		self::assertSame( "{$this->option}.site", self::document( $form )->querySelectorAll( 'form tr' )->item( 1 )?->querySelector( 'th label' )?->getAttribute( 'for' ) );
 		self::assertNull( self::document( $form )->querySelector( 'form em' ) );
 		self::assertSame(
 			array(

@@ -265,8 +265,9 @@ final class OptionsPage {
 				continue;
 			}
 
-			$id   = "$option.{$field['id']}";
-			$args = array(
+			$field['title'] = self::get_title( $field );
+			$id             = "$option.{$field['id']}";
+			$args           = array(
 				'field' => $field,
 				'value' => \array_key_exists( $field['id'], $stored ) ? $stored[ $field['id'] ] : ( $field['default'] ?? '' ),
 				'name'  => "{$option}[{$field['id']}]",
@@ -275,7 +276,7 @@ final class OptionsPage {
 			if ( ! \in_array( $field['type'], array( 'radio', 'checkboxes' ), true ) && ! ( 'checkbox' === $field['type'] && '' !== ( $field['desc'] ?? '' ) ) ) {
 				$args['label_for'] = $id;
 			}
-			\add_settings_field( $field['id'], \esc_html( $field['title'] ?? '' ), array( $this, 'render_field' ), $this->id, 'default', $args );
+			\add_settings_field( $field['id'], \esc_html( $field['title'] ), array( $this, 'render_field' ), $this->id, 'default', $args );
 		}
 
 		echo '<form action="options.php" method="post">';
@@ -288,7 +289,7 @@ final class OptionsPage {
 	}
 
 	/**
-	 * Returns the settings error for a rejected field, which names the field by its title, or by its id when it has none, and adds the rejection's message when it has one.
+	 * Returns the settings error for a rejected field, which names the field and adds the rejection's message when it has one.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -299,7 +300,7 @@ final class OptionsPage {
 	 * @return  string
 	 */
 	protected static function get_rejection_message( array $field, \WP_Error $error ): string {
-		$name    = '' !== ( $field['title'] ?? '' ) ? $field['title'] : (string) ( $field['id'] ?? '' );
+		$name    = self::get_title( $field );
 		$message = $error->get_error_message();
 		if ( '' === $message ) {
 			/* translators: %s: The field's title. */
@@ -308,6 +309,20 @@ final class OptionsPage {
 
 		/* translators: 1: The field's title. 2: What to enter instead. */
 		return \sprintf( \__( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $name, $message );
+	}
+
+	/**
+	 * Returns the field's title, or its id when the title is empty, so that every row label, legend and settings error names its field.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field $field The field.
+	 *
+	 * @return  string
+	 */
+	protected static function get_title( array $field ): string {
+		return '' !== ( $field['title'] ?? '' ) ? $field['title'] : ( $field['id'] ?? '' );
 	}
 
 	/**
