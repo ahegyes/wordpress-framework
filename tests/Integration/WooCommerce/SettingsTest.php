@@ -84,31 +84,23 @@ final class SettingsTest extends TestCase {
 	}
 
 	public function test_a_section_builds_its_fields_only_when_woocommerce_asks_for_them(): void {
-		$calls = array();
-		$tab   = new SettingsTab(
-			$this->prefix,
-			static fn (): array => array(
-				'label'    => 'Acme',
-				'sections' => array(
-					''         => array(
-						'label'  => 'General',
-						'fields' => static function () use ( &$calls ): array {
-							$calls[] = '';
-
-							return array();
-						},
-					),
-					'advanced' => array(
-						'label'  => 'Advanced',
-						'fields' => static function () use ( &$calls ): array {
-							$calls[] = 'advanced';
-
-							return array();
-						},
-					),
-				),
-			)
+		$calls    = array();
+		$sections = array();
+		$labels   = array(
+			''         => 'General',
+			'advanced' => 'Advanced',
 		);
+		foreach ( $labels as $section_id => $label ) {
+			$sections[ $section_id ] = array(
+				'label'  => $label,
+				'fields' => static function () use ( &$calls, $section_id ): array {
+					$calls[] = $section_id;
+
+					return array();
+				},
+			);
+		}
+		$tab = new SettingsTab( $this->prefix, $this->tab_definition( $sections ) );
 		self::assertSame( array(), $calls );
 
 		$tab->get_settings_for_section( 'advanced' );
@@ -375,7 +367,20 @@ final class SettingsTest extends TestCase {
 
 	public function test_a_custom_type_field_renders_in_woocommerces_row_through_its_render_callable(): void {
 		\update_option( "{$this->prefix}_widget", 'stored' );
-		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->custom_field( array( 'title' => "Customer's <b>widget</b>" ) ) ) ) ) );
+		// WooCommerce's title and sectionend entries open and close the table that holds the rows.
+		$fields = array(
+			array(
+				'type'  => 'title',
+				'id'    => "{$this->prefix}_options",
+				'title' => 'Options',
+			),
+			$this->custom_field( array( 'title' => "Customer's <b>widget</b>" ) ),
+			array(
+				'type' => 'sectionend',
+				'id'   => "{$this->prefix}_options",
+			),
+		);
+		$spec   = $this->tab_spec( array( '' => self::section( 'General', $fields ) ) );
 
 		$opened = $this->open( $spec );
 		$row    = self::document( $opened['body'] )->querySelector( "form#mainform #{$this->prefix}_widget" )?->closest( 'tr' );
