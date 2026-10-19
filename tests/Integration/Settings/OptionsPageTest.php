@@ -117,7 +117,7 @@ final class OptionsPageTest extends TestCase {
 		$value = array( 'name' => ' <b>raw</b> ' );
 		$spec  = $this->spec( array( self::field( 'text', 'name', array( 'validate' => 'acme:append' ) ) ), array(), array( 'update' => array( $this->option => $value ) ) );
 
-		$request = $this->admin_request( 'GET', 'admin-post.php', $this->admin, self::FIXTURE, $spec );
+		$request = $this->admin_request( 'GET', "admin-post.php?option_page={$this->option}", $this->admin, self::FIXTURE, $spec );
 
 		self::assertSame( $value, \get_option( $this->option ) );
 		self::assertSame( array(), $request['records'] );
