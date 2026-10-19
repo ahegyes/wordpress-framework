@@ -108,10 +108,9 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "841dc92d2ba09ae0307df0df227c84c148d4447f"
+                "reference": "8a9edb3ab997a0b6f26d6af9a8cb2051946d686d"
             },
             "require": {
-                "ext-filter": "*",
                 "php": ">=8.5"
             },
             "type": "library",
@@ -123,15 +122,12 @@
             "autoload": {
                 "psr-4": {
                     "DeepWebSolutions\\Framework\\Shared\\": "src/"
-                },
-                "files": [
-                    "src/functions.php"
-                ]
+                }
             },
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects, versions and helper functions.",
+            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects and versions.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
