@@ -257,7 +257,8 @@ final class Forms {
 			'aria-describedby' => self::get_described_by( $help ),
 		);
 
-		return '<textarea' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . '>' . \esc_textarea( self::to_string( $value ) ) . '</textarea>' . self::render_help( $help );
+		// HTML parsing drops a newline right after the opening tag, so one is printed for it to drop instead of the value's own.
+		return '<textarea' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . ">\n" . \esc_textarea( self::to_string( $value ) ) . '</textarea>' . self::render_help( $help );
 	}
 
 	/**
@@ -446,7 +447,8 @@ final class Forms {
 	protected static function render_attributes( array $own, array $custom = array() ): string {
 		$html = '';
 		foreach ( \array_filter( $own + $custom, static fn ( string|bool|null $value ): bool => ! \is_null( $value ) && false !== $value ) as $name => $value ) {
-			$html .= true === $value ? " $name" : " $name=\"" . \esc_attr( $value ) . '"';
+			// esc_attr() leaves existing entities as they are, so a stored &amp; would post back as & unless its ampersand is encoded first.
+			$html .= true === $value ? " $name" : " $name=\"" . \esc_attr( \str_replace( '&', '&amp;', $value ) ) . '"';
 		}
 
 		return $html;
@@ -504,7 +506,7 @@ final class Forms {
 		foreach ( $field['custom_attributes'] ?? array() as $name => $value ) {
 			$name = \strtolower( (string) $name );
 			if ( 1 === \preg_match( '/\A[a-z][a-z0-9-]*\z/', $name ) && ! \str_starts_with( $name, 'on' ) ) {
-				$attributes[ $name ] = (string) $value;
+				$attributes[ $name ] = self::to_string( $value );
 			}
 		}
 
@@ -722,7 +724,7 @@ final class Forms {
 	}
 
 	/**
-	 * Returns a scalar as a string, and anything else as an empty string.
+	 * Returns a string, an int, a finite float or a bool as a string, and anything else as an empty string.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -732,7 +734,7 @@ final class Forms {
 	 * @return  string
 	 */
 	protected static function to_string( mixed $value ): string {
-		return \is_scalar( $value ) ? (string) $value : '';
+		return \is_bool( $value ) || self::is_text( $value ) ? (string) $value : '';
 	}
 
 	// endregion

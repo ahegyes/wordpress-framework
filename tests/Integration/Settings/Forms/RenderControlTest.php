@@ -24,6 +24,22 @@ final class RenderControlTest extends TestCase {
 		self::assertSame( '<script>label</script>', self::text( $document->querySelector( 'option' ) ) );
 	}
 
+	public function test_stored_values_holding_entities_post_back_unchanged(): void {
+		$document = self::render( 'select', array( 'options' => array( 'a&amp;b' => 'A' ) ), 'a&amp;b' );
+
+		self::assertSame( 'Tom &amp; Jerry', self::render( 'text', array(), 'Tom &amp; Jerry' )->getElementById( 'acme.key' )->getAttribute( 'value' ) );
+		self::assertSame( 'a&amp;b', $document->querySelector( 'option[selected]' )->getAttribute( 'value' ) );
+	}
+
+	public function test_a_textarea_keeps_a_leading_newline(): void {
+		self::assertSame( "\nFirst", self::text( self::render( 'textarea', array(), "\nFirst" )->getElementById( 'acme.key' ) ) );
+	}
+
+	public function test_a_non_finite_value_renders_as_empty(): void {
+		self::assertSame( '', self::render( 'text', array(), \NAN )->getElementById( 'acme.key' )->getAttribute( 'value' ) );
+		self::assertSame( '', self::render( 'text', array( 'custom_attributes' => array( 'data-acme' => \NAN ) ) )->getElementById( 'acme.key' )->getAttribute( 'data-acme' ) );
+	}
+
 	public function test_a_single_control_carries_the_id_and_prints_under_the_name(): void {
 		$input = self::render( 'text', array(), 'stored', 'acme_settings[key]', 'acme.key' )->getElementById( 'acme.key' );
 
