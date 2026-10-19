@@ -75,6 +75,21 @@ final class PackageManifestsTest extends TestCase {
 		self::assertArrayNotHasKey( 'autoload', self::read_manifest( 'bootstrap' ) );
 	}
 
+	public static function autoloaded_packages(): array {
+		return array(
+			'shared'      => array( 'shared', 'DeepWebSolutions\\Framework\\Shared\\' ),
+			'core'        => array( 'core', 'DeepWebSolutions\\Framework\\' ),
+			'settings'    => array( 'settings', 'DeepWebSolutions\\Framework\\Settings\\' ),
+			'woocommerce' => array( 'woocommerce', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
+		);
+	}
+
+	// Composer includes a files entry on every request, and anything outside src/ is loaded by path on runtimes below the floor.
+	#[DataProvider( 'autoloaded_packages' )]
+	public function test_an_autoloaded_package_maps_only_its_namespace_to_src( string $package, string $prefix ): void {
+		self::assertSame( array( 'psr-4' => array( $prefix => 'src/' ) ), self::read_manifest( $package )['autoload'] ?? null );
+	}
+
 	public function test_every_package_directory_carries_an_index_stub(): void {
 		$missing = array();
 		foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory(), \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::SELF_FIRST ) as $file ) {
