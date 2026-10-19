@@ -42,7 +42,7 @@ final class OptionsPage {
 	 * @version 2.0.0
 	 *
 	 * @param   string           $id         The page's menu slug, which also prefixes its tabs filter.
-	 * @param   \Closure(): Page $definition The definition, evaluated after init on first use, which never throws.
+	 * @param   \Closure(): Page $definition The definition, which is evaluated on first use after init and must not throw.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
 	 */
@@ -112,9 +112,9 @@ final class OptionsPage {
 	}
 
 	/**
-	 * Returns the row to store for a tab's options.php submission: the stored row with the accepted fields replaced, or the stored row itself when no field was accepted.
+	 * Returns the row to store for the option's own options.php submission, in which only the accepted fields change.
 	 *
-	 * Other writes of the option pass through unchanged. Each rejected field keeps its stored value and adds a settings error that names it.
+	 * Other writes of the option pass through unchanged. A rejected field keeps its stored value and adds a settings error that names it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -150,7 +150,7 @@ final class OptionsPage {
 	}
 
 	/**
-	 * Prints the page: its title, the settings errors when the parent menu does not print them, the tab navigation and the current tab's form.
+	 * Prints the page with the form of the tab the request names.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -249,8 +249,6 @@ final class OptionsPage {
 	/**
 	 * Prints the tab's form, with one Settings API row per field that has an id.
 	 *
-	 * A radio, a checkboxes group and a checkbox with a desc are named by their fieldset's legend, so their row label is plain text, while every other row label points at its control.
-	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
@@ -326,7 +324,9 @@ final class OptionsPage {
 	}
 
 	/**
-	 * Returns whether the key is an optional underscore, a lowercase letter and then lowercase letters, digits, underscores and hyphens, which every v1 option key, meta key, prefix and slug is.
+	 * Returns whether the key is valid as a helper id.
+	 *
+	 * The pattern accepts every v1 option key, meta key, prefix and slug, so that ports keep their keys.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
