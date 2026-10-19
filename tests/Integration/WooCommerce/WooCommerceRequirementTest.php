@@ -60,9 +60,12 @@ final class WooCommerceRequirementTest extends TestCase {
 		);
 		$requirement->check();
 
-		$html = $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) );
+		$notice = \Dom\HTMLDocument::createFromString( $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
 
-		self::assertStringContainsString( 'Acme &lt;b&gt;Shop&lt;/b&gt; needs WooCommerce 99.1&lt;i&gt; or later', $html );
+		// WordPress core strips tags from the plugin's name, while the header's version reaches the notice as written.
+		self::assertNotNull( $notice );
+		self::assertSame( 'Acme Shop needs WooCommerce 99.1<i> or later, so its features stay off until WooCommerce is updated.', \trim( $notice->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertNull( $notice->querySelector( 'b, i' ) );
 	}
 
 	public function test_a_failed_check_reads_translations_only_when_the_notice_renders(): void {

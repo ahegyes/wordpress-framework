@@ -74,6 +74,7 @@
     "lint:php:phpstan": [
       "phpstan analyse -c phpstan.shared.neon -v --memory-limit=1G",
       "phpstan analyse -c phpstan.wordpress.neon -v --memory-limit=1G",
+      "phpstan analyse -c phpstan.woocommerce.neon -v --memory-limit=1G",
       "phpstan analyse -c phpstan.bootstrap.neon -v --memory-limit=1G"
     ],
 

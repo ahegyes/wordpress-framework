@@ -146,7 +146,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "48de797dbe5d91c166ebb4bd81cab5fb3ac8b7fb"
+                "reference": "b9dca411a739d5ca8b2be659544c62b3e9d0724e"
             },
             "require": {
                 "ahegyes/wp-framework-settings": "^2.0",
@@ -162,10 +162,16 @@
                 "scoping-stubs": [
                     "php-stubs/woocommerce-stubs"
                 ],
+                "scoping-text-domain": "wp-framework",
                 "requires-wp": "7.1",
                 "requires-plugins": [
                     "woocommerce"
                 ]
+            },
+            "autoload": {
+                "psr-4": {
+                    "DeepWebSolutions\\Framework\\WooCommerce\\": "src/"
+                }
             },
             "license": [
                 "GPL-2.0-or-later"
