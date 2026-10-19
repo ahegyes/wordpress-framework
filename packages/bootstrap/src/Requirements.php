@@ -1,12 +1,4 @@
 <?php declare( strict_types=1 );
-/**
- * Defines the requirements gate, which keeps a plugin from loading code its PHP or WordPress cannot run.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @package DeepWebSolutions\Framework\Bootstrap
- */
 
 namespace DeepWebSolutions\Framework\Bootstrap;
 

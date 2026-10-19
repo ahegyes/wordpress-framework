@@ -1,12 +1,4 @@
 <?php declare( strict_types=1 );
-/**
- * Defines the updater, which offers a plugin's GitHub releases through WordPress's own update screens.
- *
- * @since   2.0.0
- * @version 2.0.0
- *
- * @package DeepWebSolutions\Framework\Bootstrap
- */
 
 namespace DeepWebSolutions\Framework\Bootstrap;
 
