@@ -389,6 +389,25 @@ final class TransientCacheTest extends TestCase {
 	}
 
 	#[DataProvider( 'backends' )]
+	public function test_changing_a_stored_or_returned_object_never_changes_the_entry( bool $object_cache ): void {
+		$previous = \wp_using_ext_object_cache( $object_cache );
+
+		try {
+			$cache  = $this->cache();
+			$object = (object) array( 'name' => 'Stored.' );
+			$cache->set( 'key', array( $object ) );
+			$object->name = 'Changed after set().';
+
+			$read          = $cache->get( 'key' );
+			$read[0]->name = 'Changed after get().';
+
+			self::assertEquals( array( (object) array( 'name' => 'Stored.' ) ), $cache->get( 'key' ) );
+		} finally {
+			$GLOBALS['_wp_using_ext_object_cache'] = $previous;
+		}
+	}
+
+	#[DataProvider( 'backends' )]
 	public function test_clearing_makes_every_earlier_entry_miss_and_a_key_set_again_reuses_its_entry( bool $object_cache ): void {
 		$previous = \wp_using_ext_object_cache( $object_cache );
 
