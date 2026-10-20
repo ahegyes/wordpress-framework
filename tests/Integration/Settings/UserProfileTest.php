@@ -153,17 +153,19 @@ final class UserProfileTest extends TestCase {
 	}
 
 	public function test_a_user_editing_themself_without_the_forms_capability_gets_no_section_and_stores_nothing(): void {
-		\add_user_meta( $this->subscriber, "_{$this->prefix}_name", 'kept' );
+		$contributor = $this->make_profile_user( 'acme_object_forms_contributor', 'contributor' );
+		\add_user_meta( $contributor, "_{$this->prefix}_name", 'kept' );
 		$open   = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'read' ) );
 		$closed = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'edit_users' ) );
 
-		$hidden = self::document( $this->admin_request( 'GET', 'profile.php', $this->subscriber, self::FIXTURE, $closed )['body'] );
-		$data   = self::serialize_form( $this->admin_request( 'GET', 'profile.php', $this->subscriber, self::FIXTURE, $open )['body'], 'form#your-profile', array( $this->control_name( 'name' ) => 'forged' ) );
-		$this->admin_request( 'POST', 'profile.php', $this->subscriber, self::FIXTURE, $closed, $data );
+		$hidden = self::document( $this->admin_request( 'GET', 'profile.php', $contributor, self::FIXTURE, $closed )['body'] );
+		$data   = self::serialize_form( $this->admin_request( 'GET', 'profile.php', $contributor, self::FIXTURE, $open )['body'], 'form#your-profile', array( $this->control_name( 'name' ) => 'forged' ) );
+		$this->admin_request( 'POST', 'profile.php', $contributor, self::FIXTURE, $closed, $data );
 
 		self::assertNotNull( $hidden->querySelector( 'form#your-profile' ) );
 		self::assertNull( $hidden->querySelector( "input[name=\"{$this->id}_nonce\"]" ) );
-		self::assertSame( array( 'kept' ), $this->meta( $this->subscriber, 'name' ) );
+		self::assertArrayHasKey( "{$this->id}_nonce", $data );
+		self::assertSame( array( 'kept' ), $this->meta( $contributor, 'name' ) );
 	}
 
 	public function test_an_update_in_code_stores_nothing(): void {
