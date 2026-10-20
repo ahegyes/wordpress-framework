@@ -5,6 +5,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Caching;
 use DeepWebSolutions\Framework\Caching\InvalidCacheKeyException;
 use DeepWebSolutions\Framework\Caching\TransientCache;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -15,6 +16,7 @@ use Psr\SimpleCache\InvalidArgumentException as PsrInvalidArgumentException;
 #[CoversClass( TransientCache::class )]
 #[CoversClass( InvalidCacheKeyException::class )]
 final class TransientCacheTest extends TestCase {
+	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 
@@ -216,8 +218,141 @@ final class TransientCacheTest extends TestCase {
 		self::assertSame( 'Default.', $this->cache()->get( 'key', 'Default.' ) );
 	}
 
+	public static function lifetimes(): array {
+		return array(
+			'null-is-a-day'   => array( null, \DAY_IN_SECONDS ),
+			'seconds'         => array( 120, 120 ),
+			'hours-interval'  => array( new \DateInterval( 'PT2H' ), 7200 ),
+			'months-interval' => array( new \DateInterval( 'P1M' ), null ),
+		);
+	}
+
+	#[DataProvider( 'lifetimes' )]
+	public function test_an_entry_expires_after_its_lifetime( null|int|\DateInterval $ttl, ?int $seconds ): void {
+		$before = \time();
+		$this->cache()->set( 'key', 'Value.', $ttl );
+		$after = \time();
+
+		$seconds ??= ( new \DateTimeImmutable( "@$before" ) )->add( $ttl )->getTimestamp() - $before;
+		self::assertGreaterThanOrEqual( $before + $seconds, $this->timeout( 'key' ) );
+		self::assertLessThanOrEqual( $after + $seconds, $this->timeout( 'key' ) );
+	}
+
+	public static function expired_lifetimes(): array {
+		$inverted         = new \DateInterval( 'PT1M' );
+		$inverted->invert = 1;
+
+		return array(
+			'zero'              => array( 0 ),
+			'negative'          => array( -60 ),
+			'inverted-interval' => array( $inverted ),
+		);
+	}
+
+	#[DataProvider( 'expired_lifetimes' )]
+	public function test_a_lifetime_of_zero_or_less_deletes_the_entry( int|\DateInterval $ttl ): void {
+		$cache = $this->cache();
+		$cache->set( 'key', 'Value.' );
+
+		self::assertTrue( $cache->set( 'key', 'Newer.', $ttl ) );
+		self::assertTrue( $cache->set( 'absent', 'Value.', $ttl ) );
+		self::assertSame( array( "{$this->prefix}_cache_generation" => 'on' ), $this->stored() );
+		self::assertFalse( $cache->has( 'key' ) );
+	}
+
+	public function test_an_entry_whose_timeout_has_passed_reads_as_the_default(): void {
+		global $wpdb;
+
+		$cache = $this->cache();
+		$cache->set( 'key', 'Value.', \HOUR_IN_SECONDS );
+		$wpdb->update( $wpdb->options, array( 'option_value' => \time() - 1 ), array( 'option_name' => "_transient_timeout_{$this->prefix}_" . \md5( 'key' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Expires the entry without waiting.
+		\wp_cache_flush();
+
+		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
+		self::assertFalse( $cache->has( 'key' ) );
+	}
+
+	public function test_setting_the_value_the_store_already_holds_succeeds(): void {
+		$cache = $this->cache();
+		$cache->set( 'key', array( 'a' => 1 ) );
+
+		self::assertTrue( $cache->set( 'key', array( 'a' => 1 ) ) );
+	}
+
+	public function test_a_failed_write_returns_false_and_keeps_the_prior_value(): void {
+		global $wpdb;
+
+		$cache = $this->cache();
+		$cache->set( 'key', 'Prior.' );
+		$this->fail_queries( "UPDATE `$wpdb->options` SET" );
+
+		self::assertFalse( $cache->set( 'key', 'Newer.' ) );
+		\wp_cache_flush();
+		self::assertSame( 'Prior.', $cache->get( 'key' ) );
+	}
+
+	public function test_a_value_the_options_table_refuses_returns_false(): void {
+		global $wpdb;
+
+		$cache = $this->cache();
+		$cache->set( 'other', 'Value.' );
+		$wpdb->suppress_errors( true );
+
+		try {
+			self::assertFalse( $cache->set( 'key', array( 'bytes' => "\xff\xfe" ) ) );
+		} finally {
+			$wpdb->suppress_errors( false );
+		}
+		self::assertFalse( $cache->has( 'key' ) );
+	}
+
+	public function test_deleting_succeeds_for_a_present_entry_and_for_an_absent_key(): void {
+		$cache = $this->cache();
+		$cache->set( 'key', 'Value.' );
+
+		self::assertTrue( $cache->delete( 'key' ) );
+		self::assertFalse( $cache->has( 'key' ) );
+		self::assertTrue( $cache->delete( 'key' ) );
+		self::assertTrue( $cache->delete( 'never-set' ) );
+	}
+
+	public function test_a_failed_delete_returns_false(): void {
+		global $wpdb;
+
+		$cache = $this->cache();
+		$cache->set( 'key', 'Value.' );
+		$this->fail_queries( "DELETE FROM `$wpdb->options`" );
+
+		self::assertFalse( $cache->delete( 'key' ) );
+	}
+
+	public function test_behind_a_persistent_object_cache_the_same_results_hold(): void {
+		$previous = \wp_using_ext_object_cache( true );
+
+		try {
+			$cache = $this->cache();
+			self::assertTrue( $cache->set( 'key', false ) );
+			self::assertTrue( $cache->set( 'key', false ) );
+			self::assertFalse( $cache->get( 'key', 'Default.' ) );
+			self::assertTrue( $cache->delete( 'key' ) );
+			self::assertTrue( $cache->delete( 'key' ) );
+			self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
+			self::assertTrue( $cache->set( 'key', 'Value.', 0 ) );
+			self::assertSame( array( "{$this->prefix}_cache_generation" => 'on' ), $this->stored() );
+		} finally {
+			// The flag is null without a drop-in, and passing null only reads it.
+			$GLOBALS['_wp_using_ext_object_cache'] = $previous;
+		}
+	}
+
 	protected function cache(): TransientCache {
 		return new TransientCache( "{$this->prefix}_" );
+	}
+
+	protected function timeout( string $key ): int {
+		global $wpdb;
+
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "_transient_timeout_{$this->prefix}_" . \md5( $key ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Inspects the stored timeout.
 	}
 
 	protected function stored(): array {
