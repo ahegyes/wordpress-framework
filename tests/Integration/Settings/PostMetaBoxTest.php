@@ -67,6 +67,13 @@ final class PostMetaBoxTest extends TestCase {
 		);
 	}
 
+	public static function heartbeat_refreshes(): array {
+		return array(
+			'classic-editor' => array( 'wp-refresh-post-nonces' ),
+			'block-editor'   => array( 'wp-refresh-metabox-loader-nonces' ),
+		);
+	}
+
 	#[DataProvider( 'invalid_helper_ids' )]
 	public function test_an_invalid_form_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
@@ -648,6 +655,77 @@ final class PostMetaBoxTest extends TestCase {
 		self::assertSame( array(), $this->meta( $post_id, 'name' ) );
 	}
 
+	public function test_the_block_editors_meta_box_save_stores_as_the_classic_save_does(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_flag" => 'yes' ) );
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ), $this->field( 'checkbox', 'flag' ) ), array(), array( 'editor' => 'block' ) );
+
+		$this->block_editor_save(
+			$spec,
+			$post_id,
+			array(
+				$this->control_name( 'name' ) => 'O\'Brien C:\\dir',
+				$this->control_name( 'flag' ) => false,
+			)
+		);
+
+		self::assertSame( array( 'O\'Brien C:\\dir' ), $this->meta( $post_id, 'name' ) );
+		self::assertSame( array( 'no' ), $this->meta( $post_id, 'flag' ) );
+	}
+
+	public function test_a_rejection_in_the_block_editor_waits_for_the_next_classic_screen(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_note" => 'kept' ) );
+		$spec    = $this->spec( array( $this->field( 'text', 'note', array( 'validate' => 'acme:reject' ) ) ), array(), array( 'editor' => 'block' ) );
+
+		$saved      = $this->block_editor_save( $spec, $post_id, array( $this->control_name( 'note' ) => 'too long' ) );
+		$redirected = $this->follow( $spec, $saved );
+		$list       = $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec );
+
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'note' ) );
+		self::assertNotNull( self::document( $redirected['body'] )->querySelector( 'form.metabox-base-form' ) );
+		self::assertSame( array(), self::rejections( $redirected['body'] ) );
+		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $list['body'] ) );
+	}
+
+	#[DataProvider( 'heartbeat_refreshes' )]
+	public function test_the_heartbeat_refreshes_the_forms_nonce_for_its_post( string $refresh ): void {
+		$post_id = $this->make_post();
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$form    = self::serialize_form( $this->edit_screen( $spec, $post_id )['body'], 'form#post' );
+
+		$reply = $this->heartbeat( $spec, $this->admin, array( $refresh => array( 'post_id' => (string) $post_id ) ) );
+
+		self::assertSame( $form[ "{$this->id}_nonce" ], $reply[ $refresh ]['replace'][ "{$this->id}_nonce" ] ?? null );
+		self::assertArrayHasKey( '_wpnonce', $reply[ $refresh ]['replace'] );
+	}
+
+	public function test_the_heartbeat_refreshes_no_form_nonce_for_a_user_who_may_not_edit_with_the_form_or_another_post_type(): void {
+		$post_id = $this->make_post();
+		$page_id = $this->make_post( array(), 'page' );
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'manage_options' ) );
+
+		$editor = $this->heartbeat( $spec, $this->editor, array( 'wp-refresh-post-nonces' => array( 'post_id' => (string) $post_id ) ) );
+		$page   = $this->heartbeat( $spec, $this->admin, array( 'wp-refresh-post-nonces' => array( 'post_id' => (string) $page_id ) ) );
+
+		self::assertArrayHasKey( '_wpnonce', $editor['wp-refresh-post-nonces']['replace'] );
+		self::assertArrayNotHasKey( "{$this->id}_nonce", $editor['wp-refresh-post-nonces']['replace'] );
+		self::assertArrayHasKey( '_wpnonce', $page['wp-refresh-post-nonces']['replace'] );
+		self::assertArrayNotHasKey( "{$this->id}_nonce", $page['wp-refresh-post-nonces']['replace'] );
+	}
+
+	public function test_only_the_block_editor_prints_the_script_that_refreshes_the_forms_nonce(): void {
+		$post_id = $this->make_post();
+		$fields  = array( $this->field( 'text', 'name' ) );
+
+		$block   = $this->edit_screen( $this->spec( $fields, array(), array( 'editor' => 'block' ) ), $post_id )['body'];
+		$classic = $this->edit_screen( $this->spec( $fields ), $post_id )['body'];
+
+		$scripts = self::scripts_naming( $block, "'{$this->id}_nonce'" );
+		self::assertCount( 1, $scripts );
+		self::assertStringContainsString( "'heartbeat-tick'", $scripts[0] );
+		self::assertStringContainsString( "['wp-refresh-metabox-loader-nonces']", $scripts[0] );
+		self::assertSame( array(), self::scripts_naming( $classic, "'{$this->id}_nonce'" ) );
+	}
+
 	protected function spec( array $fields, array $form = array(), array $extra = array() ): array {
 		return $extra + array(
 			'id'        => $this->id,
@@ -705,6 +783,47 @@ final class PostMetaBoxTest extends TestCase {
 		}
 
 		return $messages;
+	}
+
+	// The block editor posts its meta box forms with the base form to the meta box loader's URL, as its requestMetaBoxUpdates() does.
+	protected function block_editor_save( array $spec, int $post_id, array $changes = array() ): array {
+		$body = $this->edit_screen( $spec, $post_id )['body'];
+		$data = \array_replace_recursive( self::serialize_form( $body, 'form.metabox-base-form' ), self::serialize_form( $body, 'form.metabox-location-advanced', $changes ) );
+		self::assertSame( 1, \preg_match( '/var _wpMetaBoxUrl = ("[^"]+");/', $body, $matches ) );
+
+		return $this->admin_request( 'POST', \explode( '/wp-admin/', (string) \json_decode( $matches[1] ), 2 )[1], $this->admin, self::FIXTURE, $spec, $data );
+	}
+
+	// A heartbeat nonce that is no longer fresh makes WordPress refresh the screen's nonces, as it does for a page left open.
+	protected function heartbeat( array $spec, int $user_id, array $data ): array {
+		$reply = $this->admin_request(
+			'POST',
+			'admin-ajax.php',
+			$user_id,
+			self::FIXTURE,
+			$spec,
+			array(
+				'action'    => 'heartbeat',
+				'_nonce'    => 'expired',
+				'screen_id' => 'post',
+				'data'      => $data,
+			)
+		);
+		$json  = \json_decode( $reply['body'], true );
+		self::assertIsArray( $json, $reply['body'] );
+
+		return $json;
+	}
+
+	protected static function scripts_naming( string $html, string $needle ): array {
+		$scripts = array();
+		foreach ( self::document( $html )->querySelectorAll( 'script' ) as $script ) {
+			if ( \str_contains( $script->textContent, $needle ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+				$scripts[] = $script->textContent; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+			}
+		}
+
+		return $scripts;
 	}
 
 	protected static function heartbeat_nonce( string $html ): string {
