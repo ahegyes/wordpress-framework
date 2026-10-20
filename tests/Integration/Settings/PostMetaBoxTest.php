@@ -382,7 +382,8 @@ final class PostMetaBoxTest extends TestCase {
 					"_{$this->prefix}_locked" => 'tampered',
 					"_{$this->prefix}_flag"   => 'no',
 				),
-			)
+			),
+			array( array( $this->id, "_{$this->prefix}_name" ) )
 		);
 
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
@@ -752,11 +753,16 @@ final class PostMetaBoxTest extends TestCase {
 		return "{$this->id}[_{$this->prefix}_$name]";
 	}
 
-	// The form posts as the Update button submits it, after the user set the named controls; tampering replaces or removes posted keys.
+	// The form posts as the Update button submits it, after the user set the named controls; tampering replaces posted keys and removes posted keys or a key of the form's array.
 	protected function save( array $spec, int $post_id, array $changes = array(), array $tampered = array(), array $removed = array() ): array {
 		$data = \array_replace_recursive( self::serialize_form( $this->edit_screen( $spec, $post_id )['body'], 'form#post', $changes ), $tampered ) + array( 'save' => 'Update' );
 		foreach ( $removed as $name ) {
-			unset( $data[ $name ] );
+			if ( \is_array( $name ) ) {
+				self::assertArrayHasKey( $name[1], $data[ $name[0] ] );
+				unset( $data[ $name[0] ][ $name[1] ] );
+			} else {
+				unset( $data[ $name ] );
+			}
 		}
 
 		return $this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
