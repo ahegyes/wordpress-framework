@@ -46,6 +46,20 @@ final class ProductDataTabTest extends TestCase {
 		);
 	}
 
+	public static function silent_and_worded_rejections(): array {
+		return array(
+			'worded' => array( 'acme:reject', "Customer's <b>note</b> was not saved, so it keeps its previous value. Use at most four characters." ),
+			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> was not saved because its value is not valid, so it keeps its previous value." ),
+		);
+	}
+
+	public static function multi_value_selections(): array {
+		return array(
+			'two'  => array( array( 'red', 'teal' ), array( 'red', 'teal' ) ),
+			'none' => array( array(), array() ),
+		);
+	}
+
 	#[DataProvider( 'invalid_helper_ids' )]
 	public function test_an_invalid_tab_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
@@ -332,6 +346,341 @@ final class ProductDataTabTest extends TestCase {
 		self::assertNull( $screen->querySelector( "[id=\"{$this->prefix}_product_data\"] script" ) );
 	}
 
+	public function test_registering_hooks_the_save_onto_the_product_woocommerce_saves(): void {
+		$tab = new ProductDataTab( $this->prefix, static fn (): array => array() );
+
+		$tab->register_hooks();
+
+		self::assertSame( 10, \has_action( 'woocommerce_admin_process_product_object', array( $tab, 'save_fields' ) ) );
+	}
+
+	public function test_an_unchanged_save_stores_the_defaults_of_a_product_predating_its_fields(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						$this->field( 'checkbox', 'flag', array( 'default' => 'yes' ) ),
+						$this->field(
+							'select',
+							'color',
+							array(
+								'options' => self::COLORS,
+								'default' => 'blue',
+							)
+						),
+					)
+				),
+			)
+		);
+
+		$this->save( $spec, $product->get_id() );
+
+		self::assertSame( array( 'yes' ), $this->meta( $product, 'flag' ) );
+		self::assertSame( array( 'blue' ), $this->meta( $product, 'color' ) );
+	}
+
+	public function test_stored_empty_values_stay_stored_on_an_unchanged_save(): void {
+		$product = $this->make_product(
+			array(
+				"_{$this->prefix}_name"   => '',
+				"_{$this->prefix}_colors" => array(),
+			)
+		);
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						$this->field( 'text', 'name', array( 'default' => 'fallback' ) ),
+						$this->field(
+							'multiselect',
+							'colors',
+							array(
+								'options' => self::COLORS,
+								'default' => array( 'red' ),
+							)
+						),
+					)
+				),
+			)
+		);
+
+		$this->save( $spec, $product->get_id() );
+
+		self::assertSame( array( '' ), $this->meta( $product, 'name' ) );
+		self::assertSame( array( array() ), $this->meta( $product, 'colors' ) );
+	}
+
+	public function test_a_field_whose_name_differs_from_its_id_saves_under_its_name(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_alias" => 'kept' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'alias', array( 'name' => "_{$this->prefix}_stored[]" ) ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_stored" => 'new' ) );
+
+		self::assertSame( array( 'new' ), $this->meta( $product, 'stored' ) );
+		self::assertSame( array( 'kept' ), $this->meta( $product, 'alias' ) );
+	}
+
+	public function test_a_field_without_validate_is_sanitized_by_its_type(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_name" => ' <b>bold</b> ' ) );
+
+		self::assertSame( array( 'bold' ), $this->meta( $product, 'name' ) );
+	}
+
+	public function test_submissions_are_stored_unslashed_on_a_new_and_an_existing_key(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_existing" => 'old' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'fresh' ), $this->field( 'text', 'existing' ) ) ) ) );
+
+		$this->save(
+			$spec,
+			$product->get_id(),
+			array(
+				"_{$this->prefix}_fresh"    => "O'Brien C:\\dir",
+				"_{$this->prefix}_existing" => "O'Brien C:\\dir",
+			)
+		);
+
+		self::assertSame( array( "O'Brien C:\\dir" ), $this->meta( $product, 'fresh' ) );
+		self::assertSame( array( "O'Brien C:\\dir" ), $this->meta( $product, 'existing' ) );
+	}
+
+	public function test_validate_receives_the_unslashed_submission_alone_and_its_return_value_is_stored(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name', array( 'validate' => 'acme:append' ) ) ) ) ) );
+
+		$saved = $this->save( $spec, $product->get_id(), array( "_{$this->prefix}_name" => "O'Brien" ) );
+
+		self::assertSame( array( "O'Brien!" ), $this->meta( $product, 'name' ) );
+		self::assertSame( array( array( 'validate', "_{$this->prefix}_name", "O'Brien" ) ), $saved['records'] );
+	}
+
+	public function test_a_rejected_choice_keeps_the_stored_value_and_says_what_to_choose(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_color" => 'red' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'select', 'color', array( 'options' => self::COLORS ) ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array(), array( "_{$this->prefix}_color" => 'purple' ) );
+
+		self::assertSame( array( 'red' ), $this->meta( $product, 'color' ) );
+		self::assertSame( array( 'Color was not saved, so it keeps its previous value. Choose one of the available options.' ), $this->errors( $spec, $product ) );
+	}
+
+	#[DataProvider( 'silent_and_worded_rejections' )]
+	public function test_a_rejection_keeps_the_stored_value_and_shows_its_message_once_as_text( string $behavior, string $message ): void {
+		$product = $this->make_product( array( "_{$this->prefix}_note" => 'old' ) );
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						$this->field(
+							'text',
+							'note',
+							array(
+								'label'    => "Customer's <b>note</b>",
+								'validate' => $behavior,
+							)
+						),
+					)
+				),
+			)
+		);
+
+		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_note" => 'too long' ) );
+		$next  = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
+		$after = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
+
+		self::assertSame( array( 'old' ), $this->meta( $product, 'note' ) );
+		self::assertSame( array( $message ), self::texts( $next, '#woocommerce_errors p' ) );
+		self::assertNull( $next->querySelector( '#woocommerce_errors b' ) );
+		self::assertSame( array(), self::texts( $after, '#woocommerce_errors p' ) );
+	}
+
+	public function test_an_unchecked_checkbox_stores_no(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_flag" => 'yes' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'checkbox', 'flag' ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_flag" => false ) );
+
+		self::assertSame( array( 'no' ), $this->meta( $product, 'flag' ) );
+	}
+
+	#[DataProvider( 'disabled_checkboxes' )]
+	public function test_a_disabled_checkbox_keeps_its_value_even_when_a_value_is_posted( array $keys ): void {
+		$product = $this->make_product( array( "_{$this->prefix}_flag" => 'yes' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'checkbox', 'flag', $keys ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array(), array( "_{$this->prefix}_flag" => 'no' ) );
+
+		self::assertSame( array( 'yes' ), $this->meta( $product, 'flag' ) );
+	}
+
+	public function test_a_field_the_form_did_not_post_keeps_its_stored_value(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_name" => 'old' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array(), array(), array( "_{$this->prefix}_name" ) );
+
+		self::assertSame( array( 'old' ), $this->meta( $product, 'name' ) );
+	}
+
+	public function test_a_posted_key_outside_the_definition_is_never_stored(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array(), array( "_{$this->prefix}_other" => 'injected' ) );
+
+		self::assertSame( array(), $this->meta( $product, 'other' ) );
+	}
+
+	#[DataProvider( 'multi_value_selections' )]
+	public function test_a_multiselect_stores_exactly_its_selected_choices_under_its_key( array $selection, array $stored ): void {
+		$product = $this->make_product( array( "_{$this->prefix}_colors" => array( 'blue' ) ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'multiselect', 'colors', array( 'options' => self::COLORS ) ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_colors" => $selection ) );
+
+		self::assertSame( array( $stored ), $this->meta( $product, 'colors' ) );
+	}
+
+	#[DataProvider( 'multi_value_selections' )]
+	public function test_a_checkboxes_group_stores_exactly_its_checked_choices( array $selection, array $stored ): void {
+		$product = $this->make_product( array( "_{$this->prefix}_colors" => array( 'blue' ) ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'checkboxes', 'colors', array( 'options' => self::COLORS ) ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_colors" => $selection ) );
+
+		self::assertSame( array( $stored ), $this->meta( $product, 'colors' ) );
+	}
+
+	public function test_a_checkboxes_group_rejects_an_unknown_choice(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_colors" => array( 'blue' ) ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'checkboxes', 'colors', array( 'options' => self::COLORS ) ) ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array(), array( "_{$this->prefix}_colors" => array( 'purple' ) ) );
+
+		self::assertSame( array( array( 'blue' ) ), $this->meta( $product, 'colors' ) );
+		self::assertSame( array( 'Colors was not saved, so it keeps its previous value. Choose one of the available options.' ), $this->errors( $spec, $product ) );
+	}
+
+	public function test_a_custom_type_field_stores_its_validates_return_value_under_its_key(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array( $this->group( array( $this->custom_field( array( 'validate' => 'acme:append' ) ) ) ) ) );
+
+		$saved = $this->save( $spec, $product->get_id(), array( "_{$this->prefix}_widget" => 'v' ) );
+
+		self::assertSame( array( 'v!' ), $this->meta( $product, 'widget' ) );
+		self::assertContains( array( 'validate', "_{$this->prefix}_widget", 'v' ), $saved['records'] );
+	}
+
+	public function test_a_custom_type_field_without_validate_is_rejected(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_widget" => 'old' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->custom_field() ) ) ) );
+
+		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_widget" => 'v' ) );
+
+		self::assertSame( array( 'old' ), $this->meta( $product, 'widget' ) );
+		self::assertSame( array( 'Widget was not saved, so it keeps its previous value. This field cannot be saved because nothing validates its value.' ), $this->errors( $spec, $product ) );
+	}
+
+	public function test_an_unsupported_product_never_saves_the_tabs_fields(): void {
+		$product = $this->make_product( array(), 'variable' );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ), array( 'supports' => 'acme:simple' ) );
+
+		$this->save( $spec, $product->get_id(), array(), array( "_{$this->prefix}_name" => 'injected' ) );
+
+		self::assertSame( array(), $this->meta( $product, 'name' ) );
+	}
+
+	public function test_a_v1_meta_key_round_trips_through_the_panel(): void {
+		$key     = "_{$this->prefix}-wrwc_warranty-type";
+		$product = $this->make_product( array( $key => 'limited' ) );
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						array(
+							'type'    => 'select',
+							'id'      => "{$this->prefix}_wrwc_warranty_type",
+							'name'    => $key,
+							'label'   => 'Warranty type',
+							'options' => array(
+								'none'     => 'None',
+								'limited'  => 'Limited',
+								'lifetime' => 'Lifetime',
+							),
+						),
+					)
+				),
+			)
+		);
+
+		$this->save( $spec, $product->get_id() );
+		self::assertSame( array( 'limited' ), \get_post_meta( $product->get_id(), $key, false ) );
+
+		$this->save( $spec, $product->get_id(), array( $key => 'lifetime' ) );
+		self::assertSame( array( 'lifetime' ), \get_post_meta( $product->get_id(), $key, false ) );
+	}
+
+	public function test_the_product_is_saved_once(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ), array( 'count_saves' => true ) );
+
+		$saved = $this->save( $spec, $product->get_id(), array( "_{$this->prefix}_name" => 'new' ) );
+
+		self::assertSame( array( 'new' ), $this->meta( $product, 'name' ) );
+		self::assertSame( array( array( 'saved', $product->get_id() ) ), $saved['records'] );
+	}
+
+	public function test_an_unchanged_save_keeps_the_stored_value_under_a_view_filter(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_name" => 'stored' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ), array( 'filtered' => "_{$this->prefix}_name" ) );
+
+		$this->save( $spec, $product->get_id() );
+
+		self::assertSame( array( 'stored' ), $this->meta( $product, 'name' ) );
+	}
+
+	public function test_a_per_product_field_list_receives_the_product_being_saved(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ), array( 'per_product' => true ) ) ) );
+
+		$saved = $this->save( $spec, $product->get_id(), array( "_{$this->prefix}_name" => 'new' ) );
+
+		self::assertSame( array( 'new' ), $this->meta( $product, 'name' ) );
+		self::assertSame( array( array( 'fields', $product->get_id() ) ), $saved['records'] );
+	}
+
+	public function test_a_group_contributed_through_the_groups_filter_saves_for_the_product_being_saved(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array(), array( 'contributed' => array( $this->field( 'text', 'extra', array( 'validate' => 'acme:append' ) ) ) ) );
+
+		$saved = $this->save( $spec, $product->get_id(), array( "_{$this->prefix}_extra" => 'v' ) );
+
+		self::assertSame( array( 'v!' ), $this->meta( $product, 'extra' ) );
+		self::assertSame(
+			array(
+				array( 'groups', $product->get_id() ),
+				array( 'validate', "_{$this->prefix}_extra", 'v' ),
+			),
+			$saved['records']
+		);
+	}
+
+	public function test_a_new_product_saves_its_fields_when_published(): void {
+		$spec = $this->spec( array( $this->group( array( $this->field( 'text', 'name', array( 'default' => 'fresh' ) ), $this->field( 'checkbox', 'flag' ) ) ) ) );
+
+		$screen     = $this->new_screen( $spec );
+		$data       = self::serialize_form( $screen['body'], 'form#post', array( "_{$this->prefix}_flag" => true ) ) + array( 'publish' => 'Publish' );
+		$product_id = (int) $data['post_ID'];
+		$this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
+
+		self::assertSame( 'publish', \get_post_status( $product_id ) );
+		self::assertSame( array( 'fresh' ), \get_post_meta( $product_id, "_{$this->prefix}_name", false ) );
+		self::assertSame( array( 'yes' ), \get_post_meta( $product_id, "_{$this->prefix}_flag", false ) );
+	}
+
 	protected function spec( array $groups, array $extra = array() ): array {
 		return array(
 			'id'     => $this->prefix,
@@ -366,6 +715,34 @@ final class ProductDataTabTest extends TestCase {
 		$this->product_ids[] = (int) self::document( $request['body'] )->querySelector( 'input#post_ID' )?->getAttribute( 'value' );
 
 		return $request;
+	}
+
+	// The form posts as the Update button submits it, after the user set the named controls; tampering replaces or removes posted keys.
+	protected function save( array $spec, int $product_id, array $changes = array(), array $tampered = array(), array $removed = array() ): array {
+		$data = \array_replace( self::serialize_form( $this->edit_screen( $spec, $product_id )['body'], 'form#post', $changes ), $tampered ) + array( 'save' => 'Update' );
+		foreach ( $removed as $name ) {
+			unset( $data[ $name ] );
+		}
+
+		return $this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
+	}
+
+	protected function meta( \WC_Product $product, string $name ): array {
+		return \get_post_meta( $product->get_id(), "_{$this->prefix}_$name", false );
+	}
+
+	// WooCommerce shows the errors a save stored on the next admin page.
+	protected function errors( array $spec, \WC_Product $product ): array {
+		return self::texts( self::document( $this->edit_screen( $spec, $product->get_id() )['body'] ), '#woocommerce_errors p' );
+	}
+
+	protected static function texts( \Dom\HTMLDocument $document, string $selector ): array {
+		$texts = array();
+		foreach ( $document->querySelectorAll( $selector ) as $element ) {
+			$texts[] = \trim( $element->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		}
+
+		return $texts;
 	}
 
 	protected function control( \Dom\HTMLDocument $screen, string $name ): \Dom\Element {
