@@ -214,6 +214,20 @@ final class ObjectForm {
 		}
 	}
 
+	/**
+	 * Returns the form's nonce for the object keyed by its field's HTML id, as WordPress's heartbeat refreshes nonces, or nothing for a current user who may not edit the object with the form.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $object_id The object's id.
+	 *
+	 * @return  array<string, string>
+	 */
+	public function get_refreshed_nonces( int $object_id ): array {
+		return $this->can_edit( $object_id ) ? array( "{$this->id}_nonce" => \wp_create_nonce( "{$this->id}_nonce_$object_id" ) ) : array();
+	}
+
 	// endregion
 
 	// region HOOKS

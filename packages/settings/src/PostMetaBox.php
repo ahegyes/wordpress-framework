@@ -72,6 +72,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 		$this->form = $form;
 		\add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 10, 2 );
 		\add_action( 'save_post', array( $this, 'save_meta_box' ), 10, 2 );
+		\add_filter( 'wp_refresh_nonces', array( $this, 'refresh_nonces' ), 11, 2 );
 	}
 
 	/**
@@ -136,7 +137,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	}
 
 	/**
-	 * Prints the form inside the box.
+	 * Prints the form inside the box and, on the block editor's screen, the script that copies the form's refreshed nonce into its field.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -145,6 +146,14 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 */
 	public function render_meta_box( \WP_Post $post ): void {
 		$this->form->render( $post->ID );
+
+		// The block editor's heartbeat script sets only core's nonces, by name, while the classic editor's sets every one the heartbeat returns.
+		if ( true === \get_current_screen()?->is_block_editor() ) {
+			foreach ( \array_keys( $this->form->get_refreshed_nonces( $post->ID ) ) as $field ) {
+				$field = \esc_js( $field );
+				\wp_add_inline_script( 'heartbeat', "jQuery( document ).on( 'heartbeat-tick', function ( event, data ) { var nonces = data['wp-refresh-metabox-loader-nonces']; if ( nonces && nonces.replace && nonces.replace['$field'] ) { jQuery( '#$field' ).val( nonces.replace['$field'] ); } } );" );
+			}
+		}
 	}
 
 	/**
@@ -160,6 +169,35 @@ final class PostMetaBox implements ObjectFormHostInterface {
 		if ( \in_array( $post->post_type, $this->post_types, true ) ) {
 			$this->form->save( $post_id );
 		}
+	}
+
+	/**
+	 * Adds the form's nonce to the nonces the heartbeat refreshes for a post of the box's types, in the classic editor and in the block editor's meta box loader.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array<mixed> $response The heartbeat response.
+	 * @param   array<mixed> $data     The data the heartbeat sent.
+	 *
+	 * @return  array<mixed>
+	 */
+	public function refresh_nonces( array $response, array $data ): array {
+		foreach ( array( 'wp-refresh-post-nonces', 'wp-refresh-metabox-loader-nonces' ) as $key ) {
+			$refresh = $response[ $key ] ?? null;
+			$request = $data[ $key ] ?? null;
+			if ( ! \is_array( $refresh ) || ! isset( $refresh['replace'] ) || ! \is_array( $refresh['replace'] ) || ! \is_array( $request ) || ! \is_numeric( $request['post_id'] ?? null ) ) {
+				continue;
+			}
+
+			$post_id = (int) $request['post_id'];
+			if ( \in_array( \get_post_type( $post_id ), $this->post_types, true ) ) {
+				$refresh['replace'] += $this->form->get_refreshed_nonces( $post_id );
+				$response[ $key ]    = $refresh;
+			}
+		}
+
+		return $response;
 	}
 
 	// endregion
