@@ -280,7 +280,8 @@ final class CapabilityGrantsTest extends TestCase {
 		$row = \get_option( "{$this->prefix}_grants" );
 
 		\remove_role( $other );
-		\update_option( "{$this->prefix}_unrelated", array( $editor => array() ) );
+		\add_option( "{$this->prefix}_unrelated", array( $editor => array() ) );
+		\update_option( "{$this->prefix}_unrelated", array() );
 
 		self::assertSame( $row, \get_option( "{$this->prefix}_grants" ) );
 	}
@@ -411,6 +412,7 @@ final class CapabilityGrantsTest extends TestCase {
 			$this->stored_caps( $editor )
 		);
 		self::assertEquals( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ) ) ), $this->ledger() );
+		self::assertSame( array(), $this->logger->records );
 	}
 
 	public static function malformed_rows(): array {
