@@ -568,8 +568,15 @@ final class CapabilityGrantsTest extends TestCase {
 		return $this->stored_roles()[ $role ]['capabilities'] ?? array();
 	}
 
+	// The order of a role's ledgered capabilities is not behavior.
 	protected function ledger(): array {
-		return \get_option( "{$this->prefix}_grants" )['grants'] ?? array();
+		return \array_map(
+			static function ( array $caps ): array {
+				\sort( $caps );
+				return $caps;
+			},
+			\get_option( "{$this->prefix}_grants" )['grants'] ?? array()
+		);
 	}
 
 	protected function hooks_of( object $component ): array {
