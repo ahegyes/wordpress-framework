@@ -369,6 +369,47 @@ final class OrderMetaBoxTest extends TestCase {
 		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'name' ) );
 	}
 
+	public function test_on_the_posts_table_the_box_shows_the_stored_values(): void {
+		$this->use_order_storage( 'posts' );
+		$order = $this->make_order( array( "_{$this->prefix}_name" => 'stored' ) );
+		$spec  = $this->spec( array( $this->field( 'text', 'name' ) ), array(), array( 'storage' => 'posts' ) );
+
+		$screen = self::document( $this->posts_edit_screen( $spec, $order->get_id() )['body'] );
+
+		self::assertSame( 'shop_order', \get_post_type( $order->get_id() ) );
+		self::assertNotNull( $screen->querySelector( "form#post div.postbox[id=\"{$this->id}\"] input[type=hidden][name=\"{$this->id}_nonce\"]" ) );
+		self::assertSame( 'stored', $this->control( $this->box( $screen ), 'name' )->getAttribute( 'value' ) );
+	}
+
+	public function test_on_the_posts_table_update_stores_the_accepted_values(): void {
+		$this->use_order_storage( 'posts' );
+		$order = $this->make_order( array( "_{$this->prefix}_name" => 'old' ) );
+		$spec  = $this->spec( array( $this->field( 'text', 'name' ), $this->field( 'checkbox', 'flag' ) ), array(), array( 'storage' => 'posts' ) );
+
+		$this->posts_save(
+			$spec,
+			$order->get_id(),
+			array(
+				$this->control_name( 'name' ) => 'O\'Brien C:\\dir',
+				$this->control_name( 'flag' ) => true,
+			)
+		);
+
+		self::assertSame( array( 'O\'Brien C:\\dir' ), $this->meta( $order->get_id(), 'name' ) );
+		self::assertSame( array( 'yes' ), $this->meta( $order->get_id(), 'flag' ) );
+	}
+
+	public function test_on_the_posts_table_a_rejection_shows_after_the_redirect(): void {
+		$this->use_order_storage( 'posts' );
+		$order = $this->make_order( array( "_{$this->prefix}_note" => 'kept' ) );
+		$spec  = $this->spec( array( $this->field( 'text', 'note', array( 'validate' => 'acme:reject' ) ) ), array(), array( 'storage' => 'posts' ) );
+
+		$saved = $this->posts_save( $spec, $order->get_id(), array( $this->control_name( 'note' ) => 'too long' ) );
+
+		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'note' ) );
+		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $this->follow( $spec, $saved )['body'] ) );
+	}
+
 	protected function spec( array $fields, array $form = array(), array $extra = array() ): array {
 		return $extra + array(
 			'id'        => $this->id,
@@ -409,6 +450,12 @@ final class OrderMetaBoxTest extends TestCase {
 		return $this->admin_request( 'POST', "admin.php?page=wc-orders&action=edit&id=$order_id", $this->admin, self::FIXTURE, $spec, $data );
 	}
 
+	protected function posts_save( array $spec, int $order_id, array $changes ): array {
+		$data = self::serialize_form( $this->posts_edit_screen( $spec, $order_id )['body'], 'form#post', $changes ) + array( 'save' => 'Update' );
+
+		return $this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
+	}
+
 	protected function follow( array $spec, array $saved ): array {
 		self::assertIsString( $saved['location'] );
 
@@ -434,6 +481,10 @@ final class OrderMetaBoxTest extends TestCase {
 
 	protected function edit_screen( array $spec, int $order_id, ?int $user_id = null ): array {
 		return $this->admin_request( 'GET', "admin.php?page=wc-orders&action=edit&id=$order_id", $user_id ?? $this->admin, self::FIXTURE, $spec );
+	}
+
+	protected function posts_edit_screen( array $spec, int $order_id ): array {
+		return $this->admin_request( 'GET', "post.php?post=$order_id&action=edit", $this->admin, self::FIXTURE, $spec );
 	}
 
 	protected function box( \Dom\HTMLDocument $screen ): \Dom\Element {
