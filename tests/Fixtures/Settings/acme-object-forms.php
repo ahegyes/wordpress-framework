@@ -2,7 +2,7 @@
 /**
  * Adds the request spec's object form on plugins_loaded, as a plugin without the kernel does.
  *
- * The spec names the form's host (post, user or term) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. Fields listed per object come from a closure that records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, give the form a recording store and update the saved post again inside save_post.
+ * The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. Fields listed per object come from a closure that records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
  *
  * @package Acme
  */
@@ -12,6 +12,7 @@ use DeepWebSolutions\Framework\Settings\ObjectStoreInterface;
 use DeepWebSolutions\Framework\Settings\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\TermForm;
 use DeepWebSolutions\Framework\Settings\UserProfile;
+use DeepWebSolutions\Framework\WooCommerce\Orders\OrderMetaBox;
 
 require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
 
@@ -62,9 +63,10 @@ add_action(
 		};
 
 		$host = match ( $spec['host'] ) {
-			'post' => new PostMetaBox( ...$spec['host_args'] ),
-			'user' => new UserProfile(),
-			'term' => new TermForm( ...$spec['host_args'] ),
+			'post'  => new PostMetaBox( ...$spec['host_args'] ),
+			'user'  => new UserProfile(),
+			'term'  => new TermForm( ...$spec['host_args'] ),
+			'order' => new OrderMetaBox( ...$spec['host_args'] ),
 		};
 
 		$store = null;
@@ -104,6 +106,21 @@ if ( isset( $spec['contributed'] ) ) {
 		},
 		10,
 		2
+	);
+}
+
+if ( 'posts' === ( $spec['storage'] ?? null ) ) {
+	add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', static fn (): string => 'no' );
+}
+
+if ( isset( $spec['status_probe'] ) ) {
+	add_action(
+		'woocommerce_order_status_changed',
+		static function ( int $order_id, string $from, string $to, WC_Order $order ) use ( $spec ): void {
+			$GLOBALS['acme_outcome']['records'][] = array( 'status_changed', $to, $order->get_meta( $spec['status_probe'], true, 'edit' ) );
+		},
+		10,
+		4
 	);
 }
 
