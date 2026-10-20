@@ -171,7 +171,7 @@ final class PostMetaBoxTest extends TestCase {
 
 		$row = $box->querySelector( 'fieldset.form-field' );
 		self::assertNotNull( $row );
-		self::assertSame( 'Color', \trim( (string) $row->querySelector( ':scope > legend.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Color', \trim( (string) $box->querySelector( 'fieldset.form-field > legend.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertCount( 1, $row->querySelectorAll( 'legend' ) );
 		self::assertNull( $box->querySelector( "label.post-attributes-label[for=\"{$this->id}._{$this->prefix}_color\"]" ) );
 		self::assertNotNull( $row->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
