@@ -440,6 +440,18 @@ final class ProductDataTabTest extends TestCase {
 		self::assertSame( array( 'kept' ), $this->meta( $product, 'alias' ) );
 	}
 
+	public function test_text_holding_html_entities_survives_an_unchanged_save(): void {
+		$stored  = 'Use &lt;b&gt;bold&lt;/b&gt; &amp; more';
+		$product = $this->make_product( array( "_{$this->prefix}_name" => $stored ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ) );
+
+		$screen = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
+		$this->save( $spec, $product->get_id() );
+
+		self::assertSame( $stored, $this->control( $screen, 'name' )->getAttribute( 'value' ) );
+		self::assertSame( array( $stored ), $this->meta( $product, 'name' ) );
+	}
+
 	public function test_a_field_without_validate_is_sanitized_by_its_type(): void {
 		$product = $this->make_product();
 		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ) );
