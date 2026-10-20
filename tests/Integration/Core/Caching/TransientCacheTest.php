@@ -3,19 +3,48 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Caching;
 
 use DeepWebSolutions\Framework\Caching\InvalidCacheKeyException;
+use DeepWebSolutions\Framework\Caching\OptionCacheGeneration;
 use DeepWebSolutions\Framework\Caching\TransientCache;
+use DeepWebSolutions\Framework\Shared\Caching\CacheGenerationInterface;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\InvalidArgumentException as PsrInvalidArgumentException;
+
+final class RecordingGeneration implements CacheGenerationInterface {
+	public array $calls = array();
+
+	public function __construct(
+		public ?string $current = null,
+		public ?string $next = 'one'
+	) {}
+
+	#[\Override]
+	public function get(): ?string {
+		$this->calls[] = 'get';
+
+		return $this->current;
+	}
+
+	#[\Override]
+	public function advance(): ?string {
+		$this->calls[] = 'advance';
+		$this->current = $this->next ?? $this->current;
+
+		return $this->next;
+	}
+}
 
 #[CoversClass( TransientCache::class )]
 #[CoversClass( InvalidCacheKeyException::class )]
 final class TransientCacheTest extends TestCase {
+	use CreatesSitesTrait;
 	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
@@ -343,6 +372,213 @@ final class TransientCacheTest extends TestCase {
 			// The flag is null without a drop-in, and passing null only reads it.
 			$GLOBALS['_wp_using_ext_object_cache'] = $previous;
 		}
+	}
+
+	public static function backends(): array {
+		return array(
+			'options-table' => array( false ),
+			'object-cache'  => array( true ),
+		);
+	}
+
+	#[DataProvider( 'backends' )]
+	public function test_clearing_makes_every_earlier_entry_miss_and_a_key_set_again_reuses_its_entry( bool $object_cache ): void {
+		$previous = \wp_using_ext_object_cache( $object_cache );
+
+		try {
+			$cache = $this->cache();
+			$cache->set( 'a', 'A.' );
+			$cache->set( 'b', 'B.' );
+			$stored = $this->stored();
+
+			self::assertTrue( $cache->clear() );
+			self::assertSame( 'Default.', $cache->get( 'a', 'Default.' ) );
+			self::assertFalse( $cache->has( 'b' ) );
+
+			$cache->set( 'a', 'Again.' );
+			self::assertSame( 'Again.', $cache->get( 'a' ) );
+			self::assertSame( 'Default.', $cache->get( 'b', 'Default.' ) );
+			self::assertSame( \array_keys( $stored ), \array_keys( $this->stored() ) );
+		} finally {
+			$GLOBALS['_wp_using_ext_object_cache'] = $previous;
+		}
+	}
+
+	public function test_each_clear_stores_a_new_generation_even_on_a_cache_never_used(): void {
+		$cache = $this->cache();
+
+		self::assertTrue( $cache->clear() );
+		$first = \get_option( "{$this->prefix}_cache_generation" );
+		self::assertTrue( $cache->clear() );
+
+		self::assertIsString( $first );
+		self::assertNotSame( $first, \get_option( "{$this->prefix}_cache_generation" ) );
+	}
+
+	public function test_without_a_generation_every_read_misses_without_a_write(): void {
+		\set_transient(
+			"{$this->prefix}_" . \md5( 'key' ),
+			array(
+				'value'      => 'Value.',
+				'generation' => '',
+			),
+			\HOUR_IN_SECONDS
+		);
+		$stored = $this->stored();
+		$cache  = $this->cache();
+
+		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
+		self::assertFalse( $cache->has( 'key' ) );
+		self::assertSame( array( 'key' => 'Default.' ), $cache->getMultiple( array( 'key' ), 'Default.' ) );
+		self::assertSame( $stored, $this->stored() );
+	}
+
+	public function test_an_entry_from_before_the_generation_was_deleted_never_comes_back(): void {
+		$cache = $this->cache();
+		$cache->set( 'old', 'Old.' );
+		\delete_option( "{$this->prefix}_cache_generation" );
+
+		$cache->set( 'new', 'New.' );
+
+		self::assertSame( 'New.', $cache->get( 'new' ) );
+		self::assertSame( 'Default.', $cache->get( 'old', 'Default.' ) );
+	}
+
+	public function test_the_multiple_methods_round_trip_from_arrays_and_generators(): void {
+		$cache = $this->cache();
+
+		$values = static function (): \Generator {
+			yield 'a' => 'A.';
+			yield 'b' => false;
+		};
+
+		self::assertTrue( $cache->setMultiple( $values() ) );
+		self::assertSame(
+			array(
+				'a' => 'A.',
+				'b' => false,
+				'c' => 'Default.',
+			),
+			$cache->getMultiple( array( 'a', 'b', 'c' ), 'Default.' )
+		);
+		self::assertSame( array( 'a' => 'A.' ), $cache->getMultiple( ( static fn (): \Generator => yield 'a' )() ) );
+		self::assertTrue( $cache->deleteMultiple( ( static fn (): \Generator => yield from array( 'a', 'never-set' ) )() ) );
+		self::assertSame(
+			array(
+				'a' => null,
+				'b' => false,
+			),
+			$cache->getMultiple( array( 'a', 'b' ) )
+		);
+	}
+
+	public function test_the_multiple_methods_accept_integer_keys_as_their_strings(): void {
+		$cache = $this->cache();
+
+		self::assertTrue( $cache->setMultiple( array( '7' => 'Seven.' ) ) );
+
+		self::assertSame( 'Seven.', $cache->get( '7' ) );
+		self::assertSame( array( 7 => 'Seven.' ), $cache->getMultiple( array( 7 ) ) );
+		self::assertTrue( $cache->deleteMultiple( array( 7 ) ) );
+		self::assertFalse( $cache->has( '7' ) );
+	}
+
+	public function test_reading_several_keys_from_the_options_table_runs_one_query(): void {
+		global $wpdb;
+
+		$cache = $this->cache();
+		$cache->set( 'warm', 'Value.' );
+		$queries = $wpdb->num_queries;
+
+		$cache->getMultiple( array( 'a', 'b', 'c', 'warm' ) );
+
+		self::assertSame( $queries + 1, $wpdb->num_queries );
+	}
+
+	public function test_a_failed_write_or_delete_among_several_returns_false(): void {
+		$cache = $this->cache();
+		$cache->setMultiple( \array_fill_keys( array( 'a', 'b' ), 'Prior.' ) );
+		$this->fail_queries( "_transient_{$this->prefix}_" . \md5( 'b' ) );
+
+		self::assertFalse( $cache->setMultiple( \array_fill_keys( array( 'a', 'b' ), 'Newer.' ) ) );
+		self::assertFalse( $cache->deleteMultiple( array( 'a', 'b' ) ) );
+		self::assertFalse( $cache->has( 'a' ) );
+	}
+
+	public function test_two_prefixes_never_see_or_clear_each_others_entries(): void {
+		$one = $this->cache();
+		$two = new TransientCache( "{$this->prefix}_two_" );
+		$one->set( 'key', 'One.' );
+		$two->set( 'key', 'Two.' );
+
+		$one->clear();
+
+		self::assertSame( 'Default.', $one->get( 'key', 'Default.' ) );
+		self::assertSame( 'Two.', $two->get( 'key' ) );
+	}
+
+	public function test_caches_that_share_a_generation_clear_together(): void {
+		$generation = new OptionCacheGeneration( "{$this->prefix}_shared_generation" );
+		$one        = new TransientCache( "{$this->prefix}_one_", $generation );
+		$two        = new TransientCache( "{$this->prefix}_two_", $generation );
+		$one->set( 'key', 'One.' );
+		$two->set( 'key', 'Two.' );
+
+		self::assertTrue( $one->clear() );
+
+		self::assertFalse( $one->has( 'key' ) );
+		self::assertFalse( $two->has( 'key' ) );
+		self::assertFalse( \get_option( "{$this->prefix}_one_cache_generation" ) );
+	}
+
+	public function test_a_custom_generation_is_started_only_by_a_first_write_or_a_clear(): void {
+		$generation = new RecordingGeneration();
+		$cache      = new TransientCache( "{$this->prefix}_", $generation );
+
+		$cache->get( 'key' );
+		$cache->has( 'key' );
+		$cache->getMultiple( array( 'key' ) );
+		self::assertNotContains( 'advance', $generation->calls );
+
+		self::assertTrue( $cache->set( 'key', 'Value.' ) );
+		self::assertTrue( $cache->set( 'other', 'Value.' ) );
+		self::assertSame( 1, \count( \array_keys( $generation->calls, 'advance', true ) ) );
+		self::assertSame( 'Value.', $cache->get( 'key' ) );
+
+		$generation->next = 'two';
+		self::assertTrue( $cache->clear() );
+		self::assertSame( 2, \count( \array_keys( $generation->calls, 'advance', true ) ) );
+		self::assertFalse( $cache->has( 'key' ) );
+	}
+
+	public function test_a_generation_that_cannot_be_started_fails_writes_and_clears(): void {
+		$generation = new RecordingGeneration( null, null );
+		$cache      = new TransientCache( "{$this->prefix}_", $generation );
+
+		self::assertFalse( $cache->set( 'key', 'Value.' ) );
+		self::assertFalse( $cache->clear() );
+		self::assertSame( array(), $this->stored() );
+	}
+
+	#[Group( 'multisite' )]
+	public function test_entries_and_their_generation_belong_to_the_current_site(): void {
+		$site_id = $this->make_site( 'acme-cache' );
+		$cache   = $this->cache();
+		$cache->set( 'key', 'Main.' );
+
+		\switch_to_blog( $site_id );
+		try {
+			$missed = $cache->get( 'key', 'Default.' );
+			$cache->set( 'key', 'Other.' );
+			$cache->clear();
+			$cleared = $cache->has( 'key' );
+		} finally {
+			\restore_current_blog();
+		}
+
+		self::assertSame( 'Default.', $missed );
+		self::assertFalse( $cleared );
+		self::assertSame( 'Main.', $cache->get( 'key' ) );
 	}
 
 	protected function cache(): TransientCache {
