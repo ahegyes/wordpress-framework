@@ -62,8 +62,8 @@ final class PostMetaBoxTest extends TestCase {
 
 	public static function silent_and_worded_rejections(): array {
 		return array(
-			'worded' => array( 'acme:reject', "Customer's <b>note</b> was not saved, so it keeps its previous value. Use at most four characters." ),
-			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> was not saved because its value is not valid, so it keeps its previous value." ),
+			'worded' => array( 'acme:reject', "Customer's <b>note</b> \\o/ was not saved, so it keeps its previous value. Use at most four characters." ),
+			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> \\o/ was not saved because its value is not valid, so it keeps its previous value." ),
 		);
 	}
 
@@ -409,7 +409,7 @@ final class PostMetaBoxTest extends TestCase {
 					'text',
 					'note',
 					array(
-						'title'    => 'Customer\'s <b>note</b>',
+						'title'    => 'Customer\'s <b>note</b> \\o/',
 						'validate' => $behavior,
 					)
 				),
