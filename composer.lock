@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "5ae499cd8a5975741037ed57a30d12d991864a73"
+                "reference": "fb6e0230ddd9f416d6c5988446fb95e25a95bbd0"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0",
@@ -67,7 +67,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "Plugin kernel for WordPress: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices and role capability grants.",
+            "description": "Plugin kernel for WordPress: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices, role capability grants and a PSR-16 transient cache.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
@@ -115,7 +115,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "8a9edb3ab997a0b6f26d6af9a8cb2051946d686d"
+                "reference": "444050182c7303f3b06a8062a27ea148afaf4543"
             },
             "require": {
                 "php": ">=8.5"
@@ -134,7 +134,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects and versions.",
+            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects, versions and the cache generation contract.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
