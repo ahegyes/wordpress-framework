@@ -218,13 +218,20 @@ final class TransientCacheTest extends TestCase {
 
 	public static function foreign_values(): array {
 		return array(
-			'bare-string' => array( 'Value.' ),
-			'list'        => array( array( 'Value.', 'Generation.' ) ),
-			'value-only'  => array( array( 'value' => 'Value.' ) ),
-			'extra-key'   => array(
-				array(
+			'bare-string'     => array( static fn ( string $generation ): mixed => 'Value.' ),
+			'list'            => array( static fn ( string $generation ): mixed => array( 'Value.', $generation ) ),
+			'value-only'      => array( static fn ( string $generation ): mixed => array( 'value' => 'Value.' ) ),
+			'generation-only' => array( static fn ( string $generation ): mixed => array( 'generation' => $generation ) ),
+			'no-value'        => array(
+				static fn ( string $generation ): mixed => array(
+					'data'       => 'Value.',
+					'generation' => $generation,
+				),
+			),
+			'extra-key'       => array(
+				static fn ( string $generation ): mixed => array(
 					'value'      => 'Value.',
-					'generation' => 'Generation.',
+					'generation' => $generation,
 					'extra'      => true,
 				),
 			),
@@ -232,10 +239,10 @@ final class TransientCacheTest extends TestCase {
 	}
 
 	#[DataProvider( 'foreign_values' )]
-	public function test_a_value_stored_without_the_envelope_reads_as_a_miss( mixed $stored ): void {
+	public function test_a_value_stored_without_the_envelope_reads_as_a_miss( \Closure $stored ): void {
 		$cache = $this->cache();
 		$cache->set( 'other', 'Value.' );
-		\set_transient( "{$this->prefix}_" . \md5( 'key' ), $stored, \HOUR_IN_SECONDS );
+		\set_transient( "{$this->prefix}_" . \md5( 'key' ), $stored( \get_option( "{$this->prefix}_cache_generation" ) ), \HOUR_IN_SECONDS );
 
 		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
 		self::assertFalse( $cache->has( 'key' ) );
@@ -420,7 +427,7 @@ final class TransientCacheTest extends TestCase {
 			"{$this->prefix}_" . \md5( 'key' ),
 			array(
 				'value'      => 'Value.',
-				'generation' => '',
+				'generation' => null,
 			),
 			\HOUR_IN_SECONDS
 		);
@@ -498,11 +505,12 @@ final class TransientCacheTest extends TestCase {
 	public function test_a_failed_write_or_delete_among_several_returns_false(): void {
 		$cache = $this->cache();
 		$cache->setMultiple( \array_fill_keys( array( 'a', 'b' ), 'Prior.' ) );
-		$this->fail_queries( "_transient_{$this->prefix}_" . \md5( 'b' ) );
+		$this->fail_queries( "_transient_{$this->prefix}_" . \md5( 'a' ) );
 
 		self::assertFalse( $cache->setMultiple( \array_fill_keys( array( 'a', 'b' ), 'Newer.' ) ) );
+		self::assertSame( 'Newer.', $cache->get( 'b' ) );
 		self::assertFalse( $cache->deleteMultiple( array( 'a', 'b' ) ) );
-		self::assertFalse( $cache->has( 'a' ) );
+		self::assertFalse( $cache->has( 'b' ) );
 	}
 
 	public function test_two_prefixes_never_see_or_clear_each_others_entries(): void {
@@ -579,6 +587,31 @@ final class TransientCacheTest extends TestCase {
 		self::assertSame( 'Default.', $missed );
 		self::assertFalse( $cleared );
 		self::assertSame( 'Main.', $cache->get( 'key' ) );
+	}
+
+	public function test_behind_a_persistent_object_cache_a_failed_delete_returns_false(): void {
+		global $wp_object_cache;
+
+		$previous = \wp_using_ext_object_cache( true );
+		$original = $wp_object_cache;
+
+		$wp_object_cache = new class() extends \WP_Object_Cache {
+			#[\Override]
+			public function delete( $key, $group = 'default', $deprecated = false ) {
+				return false;
+			}
+		};
+
+		try {
+			$cache = $this->cache();
+			$cache->set( 'key', 'Value.' );
+
+			self::assertFalse( $cache->delete( 'key' ) );
+			self::assertSame( 'Value.', $cache->get( 'key' ) );
+		} finally {
+			$wp_object_cache                       = $original;
+			$GLOBALS['_wp_using_ext_object_cache'] = $previous;
+		}
 	}
 
 	protected function cache(): TransientCache {
