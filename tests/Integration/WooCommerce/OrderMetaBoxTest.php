@@ -53,6 +53,13 @@ final class OrderMetaBoxTest extends TestCase {
 		);
 	}
 
+	public static function silent_and_worded_rejections(): array {
+		return array(
+			'worded' => array( 'acme:reject', "Customer's <b>note</b> \\o/ was not saved, so it keeps its previous value. Use at most four characters." ),
+			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> \\o/ was not saved because its value is not valid, so it keeps its previous value." ),
+		);
+	}
+
 	public function test_a_box_serves_one_form(): void {
 		$host = new OrderMetaBox();
 		( new ObjectForm( "{$this->id}_a", static fn (): array => array(), $host ) )->register_hooks();
@@ -86,7 +93,7 @@ final class OrderMetaBoxTest extends TestCase {
 		$other = $this->spec( array( $this->field( 'text', 'name' ) ), array(), array( 'host_args' => array( 'order_types' => array( 'shop_subscription' ) ) ) );
 
 		$screen    = self::document( $this->edit_screen( $spec, $order->get_id() )['body'] );
-		$elsewhere =self::document( $this->edit_screen( $other, $order->get_id() )['body'] );
+		$elsewhere = self::document( $this->edit_screen( $other, $order->get_id() )['body'] );
 
 		self::assertSame( 'Acme details', \trim( (string) $screen->querySelector( "form#order div.postbox[id=\"{$this->id}\"] h2.hndle" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNotNull( $this->box( $screen )->querySelector( "input[type=hidden][name=\"{$this->id}_nonce\"]" ) );
@@ -209,6 +216,159 @@ final class OrderMetaBoxTest extends TestCase {
 		$this->control( $box, 'extra' );
 	}
 
+	public function test_the_box_saves_before_woocommerces_order_data(): void {
+		$host = new OrderMetaBox();
+		( new ObjectForm( $this->id, static fn (): array => array(), $host ) )->register_hooks();
+
+		self::assertSame( 35, \has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
+	}
+
+	public function test_update_stores_the_accepted_values_through_the_orders_meta(): void {
+		$order = $this->make_order(
+			array(
+				"_{$this->prefix}_kept" => 'kept',
+				"_{$this->prefix}_flag" => 'yes',
+				"_{$this->prefix}_list" => array( 'red' ),
+			)
+		);
+		$spec  = $this->spec(
+			array(
+				$this->field( 'text', 'name' ),
+				$this->field( 'text', 'kept' ),
+				$this->field( 'checkbox', 'flag' ),
+				$this->field( 'multiselect', 'list', array( 'options' => self::COLORS ) ),
+			)
+		);
+
+		$this->save(
+			$spec,
+			$order->get_id(),
+			array(
+				$this->control_name( 'name' ) => 'O\'Brien C:\\dir',
+				$this->control_name( 'kept' ) => 'unposted',
+				$this->control_name( 'flag' ) => false,
+				$this->control_name( 'list' ) => array(),
+			),
+			array(),
+			array( array( $this->id, "_{$this->prefix}_kept" ) )
+		);
+
+		self::assertSame( array( 'O\'Brien C:\\dir' ), $this->meta( $order->get_id(), 'name' ) );
+		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'kept' ) );
+		self::assertSame( array( 'no' ), $this->meta( $order->get_id(), 'flag' ) );
+		self::assertSame( array( array() ), $this->meta( $order->get_id(), 'list' ) );
+	}
+
+	#[DataProvider( 'silent_and_worded_rejections' )]
+	public function test_a_rejection_keeps_the_value_and_shows_once_on_the_edit_screen_woocommerce_redirects_to( string $behavior, string $message ): void {
+		$order = $this->make_order( array( "_{$this->prefix}_note" => 'kept' ) );
+		$spec  = $this->spec(
+			array(
+				$this->field(
+					'text',
+					'note',
+					array(
+						'title'    => 'Customer\'s <b>note</b> \\o/',
+						'validate' => $behavior,
+					)
+				),
+			)
+		);
+
+		$saved = $this->save( $spec, $order->get_id(), array( $this->control_name( 'note' ) => 'too long' ) );
+		$next  = $this->follow( $spec, $saved );
+		$after = $this->edit_screen( $spec, $order->get_id() );
+
+		self::assertStringContainsString( "page=wc-orders&action=edit&id={$order->get_id()}", (string) $saved['location'] );
+		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'note' ) );
+		self::assertSame( array( $message ), self::rejections( $next['body'] ) );
+		self::assertSame( array(), self::rejections( $after['body'] ) );
+	}
+
+	public function test_a_status_change_in_the_same_save_sees_the_stored_values(): void {
+		$order = $this->make_order( array( "_{$this->prefix}_name" => 'old' ) );
+		$spec  = $this->spec( array( $this->field( 'text', 'name' ) ), array(), array( 'status_probe' => "_{$this->prefix}_name" ) );
+
+		$saved = $this->save(
+			$spec,
+			$order->get_id(),
+			array(
+				$this->control_name( 'name' ) => 'new',
+				'order_status'                => 'wc-completed',
+			)
+		);
+
+		self::assertSame( array( array( 'status_changed', 'completed', 'new' ) ), $this->records( $saved, 'status_changed' ) );
+	}
+
+	public function test_the_new_order_screen_renders_defaults_and_create_stores_them(): void {
+		$spec = $this->spec( array( $this->field( 'text', 'name', array( 'default' => 'fresh' ) ), $this->field( 'checkbox', 'flag' ) ) );
+
+		$screen   = $this->admin_request( 'GET', 'admin.php?page=wc-orders&action=new', $this->admin, self::FIXTURE, $spec );
+		$data     = self::serialize_form( $screen['body'], 'form#order', array( $this->control_name( 'flag' ) => true ) );
+		$order_id = (int) $data['post_ID'];
+		$order    = \wc_get_order( $order_id );
+		self::assertInstanceOf( \WC_Order::class, $order );
+		$this->orders[] = $order;
+
+		$this->admin_request( 'POST', "admin.php?page=wc-orders&action=edit&id=$order_id", $this->admin, self::FIXTURE, $spec, $data );
+
+		self::assertSame( 'fresh', $this->control( $this->box( self::document( $screen['body'] ) ), 'name' )->getAttribute( 'value' ) );
+		self::assertSame( array( 'fresh' ), $this->meta( $order_id, 'name' ) );
+		self::assertSame( array( 'yes' ), $this->meta( $order_id, 'flag' ) );
+	}
+
+	public function test_a_nonce_minted_for_another_order_or_none_stores_nothing(): void {
+		$order = $this->make_order( array( "_{$this->prefix}_name" => 'kept' ) );
+		$spec  = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$other = self::serialize_form( $this->edit_screen( $spec, $this->make_order()->get_id() )['body'], 'form#order' );
+
+		$this->save( $spec, $order->get_id(), array( $this->control_name( 'name' ) => 'borrowed' ), array( "{$this->id}_nonce" => $other[ "{$this->id}_nonce" ] ) );
+		$this->save( $spec, $order->get_id(), array( $this->control_name( 'name' ) => 'unsigned' ), array(), array( "{$this->id}_nonce" ) );
+
+		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'name' ) );
+	}
+
+	public function test_a_user_without_the_forms_capability_stores_nothing(): void {
+		$order   = $this->make_order( array( "_{$this->prefix}_name" => 'kept' ) );
+		$manager = $this->make_user( 'acme_order_meta_box_manager', 'shop_manager' );
+		$open    = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$closed  = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'manage_options' ) );
+
+		$data = self::serialize_form( $this->edit_screen( $open, $order->get_id(), $manager )['body'], 'form#order', array( $this->control_name( 'name' ) => 'forged' ) );
+		$this->admin_request( 'POST', "admin.php?page=wc-orders&action=edit&id={$order->get_id()}", $manager, self::FIXTURE, $closed, $data );
+
+		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'name' ) );
+	}
+
+	public function test_an_order_saved_in_code_stores_nothing(): void {
+		$order = $this->make_order( array( "_{$this->prefix}_name" => 'kept' ) );
+		$form  = new ObjectForm(
+			$this->id,
+			fn (): array => array(
+				'title'      => 'Acme details',
+				'capability' => 'edit_shop_orders',
+				'fields'     => array( $this->field( 'text', 'name' ) ),
+			),
+			new OrderMetaBox()
+		);
+		$form->register_hooks();
+		\wp_set_current_user( $this->admin );
+		$_POST[ "{$this->id}_nonce" ] = \wp_create_nonce( "{$this->id}_nonce_{$order->get_id()}" );
+		$_POST[ $this->id ]           = array( "_{$this->prefix}_name" => 'programmatic' );
+
+		try {
+			$order->set_customer_note( 'Updated in code' );
+			$order->save();
+		} finally {
+			unset( $_POST[ "{$this->id}_nonce" ], $_POST[ $this->id ] );
+			\wp_set_current_user( 0 );
+		}
+
+		self::assertSame( 'Updated in code', \wc_get_order( $order->get_id() )->get_customer_note() );
+		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'name' ) );
+	}
+
 	protected function spec( array $fields, array $form = array(), array $extra = array() ): array {
 		return $extra + array(
 			'id'        => $this->id,
@@ -228,6 +388,44 @@ final class OrderMetaBoxTest extends TestCase {
 			'id'    => "_{$this->prefix}_$name",
 			'title' => \ucfirst( $name ),
 		);
+	}
+
+	protected function control_name( string $name ): string {
+		return "{$this->id}[_{$this->prefix}_$name]";
+	}
+
+	// The form posts as WooCommerce's Update button submits it, after the user set the named controls; tampering replaces posted keys and removes posted keys or a key of the form's array.
+	protected function save( array $spec, int $order_id, array $changes = array(), array $tampered = array(), array $removed = array() ): array {
+		$data = \array_replace_recursive( self::serialize_form( $this->edit_screen( $spec, $order_id )['body'], 'form#order', $changes ), $tampered );
+		foreach ( $removed as $name ) {
+			if ( \is_array( $name ) ) {
+				self::assertArrayHasKey( $name[1], $data[ $name[0] ] );
+				unset( $data[ $name[0] ][ $name[1] ] );
+			} else {
+				unset( $data[ $name ] );
+			}
+		}
+
+		return $this->admin_request( 'POST', "admin.php?page=wc-orders&action=edit&id=$order_id", $this->admin, self::FIXTURE, $spec, $data );
+	}
+
+	protected function follow( array $spec, array $saved ): array {
+		self::assertIsString( $saved['location'] );
+
+		return $this->admin_request( 'GET', \explode( '/wp-admin/', $saved['location'], 2 )[1], $this->admin, self::FIXTURE, $spec );
+	}
+
+	protected function meta( int $order_id, string $name ): array {
+		return $this->order_meta( $order_id, "_{$this->prefix}_$name" );
+	}
+
+	protected static function rejections( string $html ): array {
+		$messages = array();
+		foreach ( self::document( $html )->querySelectorAll( 'div.notice-error.is-dismissible > p' ) as $message ) {
+			$messages[] = \trim( $message->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		}
+
+		return $messages;
 	}
 
 	protected function records( array $request, string $kind ): array {

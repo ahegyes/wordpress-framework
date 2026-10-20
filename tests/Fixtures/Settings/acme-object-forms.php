@@ -2,7 +2,7 @@
 /**
  * Adds the request spec's object form on plugins_loaded, as a plugin without the kernel does.
  *
- * The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. Fields listed per object come from a closure that records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, give the form a recording store and update the saved post again inside save_post.
+ * The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. Fields listed per object come from a closure that records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
  *
  * @package Acme
  */
@@ -111,6 +111,17 @@ if ( isset( $spec['contributed'] ) ) {
 
 if ( 'posts' === ( $spec['storage'] ?? null ) ) {
 	add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', static fn (): string => 'no' );
+}
+
+if ( isset( $spec['status_probe'] ) ) {
+	add_action(
+		'woocommerce_order_status_changed',
+		static function ( int $order_id, string $from, string $to, WC_Order $order ) use ( $spec ): void {
+			$GLOBALS['acme_outcome']['records'][] = array( 'status_changed', $to, $order->get_meta( $spec['status_probe'], true, 'edit' ) );
+		},
+		10,
+		4
+	);
 }
 
 if ( 'classic' === ( $spec['editor'] ?? null ) ) {
