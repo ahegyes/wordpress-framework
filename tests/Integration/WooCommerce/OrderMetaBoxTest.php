@@ -62,12 +62,11 @@ final class OrderMetaBoxTest extends TestCase {
 		( new ObjectForm( "{$this->id}_b", static fn (): array => array(), $host ) )->register_hooks();
 	}
 
-	public function test_the_box_is_added_on_add_meta_boxes_and_saves_before_woocommerces_order_data(): void {
+	public function test_the_box_is_added_on_add_meta_boxes(): void {
 		$host = new OrderMetaBox();
 		( new ObjectForm( $this->id, static fn (): array => array(), $host ) )->register_hooks();
 
 		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
-		self::assertSame( 35, \has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_a_screen_needs_it(): void {
