@@ -234,7 +234,7 @@ final class ProductDataTabTest extends TestCase {
 
 		$hidden = $screen->querySelector( "input[type=hidden][name=\"_{$this->prefix}_colors\"]" );
 		self::assertSame( '', $hidden?->getAttribute( 'value' ) );
-		self::assertSame( "_{$this->prefix}_colors[]", $hidden?->nextElementSibling?->getAttribute( 'name' ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( "_{$this->prefix}_colors[]", $hidden?->nextElementSibling?->querySelector( 'select' )?->getAttribute( 'name' ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertTrue( $this->control( $screen, 'colors' )->hasAttribute( 'multiple' ) );
 		self::assertSame( array( 'red', 'teal' ), $this->selected( $screen, 'colors' ) );
 	}
