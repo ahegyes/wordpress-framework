@@ -37,7 +37,7 @@ trait OrderFixturesTrait {
 		$order = \wc_get_order( $order_id );
 		self::assertInstanceOf( \WC_Order::class, $order );
 
-		return \array_map( static fn ( \WC_Meta_Data $meta ): mixed => $meta->value, $order->get_meta( $key, false, 'edit' ) );
+		return \array_values( \array_map( static fn ( \WC_Meta_Data $meta ): mixed => $meta->value, $order->get_meta( $key, false, 'edit' ) ) );
 	}
 
 	// Each order keeps the data store it was created with, so it deletes from its own storage.

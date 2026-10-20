@@ -38,6 +38,13 @@ final class OrderMetaStoreTest extends TestCase {
 		);
 	}
 
+	public function test_the_stored_value_is_read_past_woocommerces_view_filter(): void {
+		$order = $this->make_order( array( "_{$this->prefix}_text" => 'stored' ) );
+		\add_filter( "woocommerce_order_get__{$this->prefix}_text", static fn (): string => 'filtered' );
+
+		self::assertSame( array( "_{$this->prefix}_text" => 'stored' ), ( new OrderMetaStore() )->get_values( $order->get_id(), array( "_{$this->prefix}_text" ) ) );
+	}
+
 	#[DataProvider( 'order_storages' )]
 	public function test_values_are_stored_as_given_text_backslashes_included( string $storage ): void {
 		$this->use_order_storage( $storage );
