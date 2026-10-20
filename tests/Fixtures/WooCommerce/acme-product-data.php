@@ -2,7 +2,7 @@
 /**
  * Adds the request spec's product data tab on plugins_loaded, as a plugin without the kernel does.
  *
- * A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. A group with per_product set lists its fields through a closure that records the product it receives. The spec may also restrict the tab to simple products, contribute a group through the tab's groups filter, filter a meta key's view reads and record each product save.
+ * A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. A group with per_product set lists its fields through a closure that records the product it receives. The spec may also restrict the tab to simple products, contribute a group through the tab's groups filter, filter a meta key's view reads and record each product save, noting whether it happens while WooCommerce processes the edit form's product.
  *
  * @package Acme
  */
@@ -96,7 +96,7 @@ if ( $spec['count_saves'] ?? false ) {
 	add_action(
 		'woocommerce_after_product_object_save',
 		static function ( WC_Product $product ): void {
-			$GLOBALS['acme_outcome']['records'][] = array( 'saved', $product->get_id() );
+			$GLOBALS['acme_outcome']['records'][] = array( 'saved', $product->get_id(), doing_action( 'woocommerce_admin_process_product_object' ) );
 		}
 	);
 }

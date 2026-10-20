@@ -623,14 +623,16 @@ final class ProductDataTabTest extends TestCase {
 		self::assertSame( array( 'lifetime' ), \get_post_meta( $product->get_id(), $key, false ) );
 	}
 
-	public function test_the_product_is_saved_once(): void {
+	public function test_saving_the_tabs_fields_adds_no_product_save_to_woocommerces_own(): void {
 		$product = $this->make_product();
-		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ), array( 'count_saves' => true ) );
 
-		$saved = $this->save( $spec, $product->get_id(), array( "_{$this->prefix}_name" => 'new' ) );
+		$without = $this->save( $this->spec( array(), array( 'count_saves' => true ) ), $product->get_id() );
+		$with    = $this->save( $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ), array( 'count_saves' => true ) ), $product->get_id(), array( "_{$this->prefix}_name" => 'new' ) );
 
 		self::assertSame( array( 'new' ), $this->meta( $product, 'name' ) );
-		self::assertSame( array( array( 'saved', $product->get_id() ) ), $saved['records'] );
+		self::assertNotSame( array(), $without['records'] );
+		self::assertNotContains( true, \array_column( $without['records'], 2 ) );
+		self::assertSame( $without['records'], $with['records'] );
 	}
 
 	public function test_an_unchanged_save_keeps_the_stored_value_under_a_view_filter(): void {
@@ -672,7 +674,14 @@ final class ProductDataTabTest extends TestCase {
 		$spec = $this->spec( array( $this->group( array( $this->field( 'text', 'name', array( 'default' => 'fresh' ) ), $this->field( 'checkbox', 'flag' ) ) ) ) );
 
 		$screen     = $this->new_screen( $spec );
-		$data       = self::serialize_form( $screen['body'], 'form#post', array( "_{$this->prefix}_flag" => true ) ) + array( 'publish' => 'Publish' );
+		$data       = self::serialize_form(
+			$screen['body'],
+			'form#post',
+			array(
+				'post_title'            => 'Acme product',
+				"_{$this->prefix}_flag" => true,
+			)
+		) + array( 'publish' => 'Publish' );
 		$product_id = (int) $data['post_ID'];
 		$this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
 
@@ -694,11 +703,11 @@ final class ProductDataTabTest extends TestCase {
 	}
 
 	protected function field( string $type, string $name, array $keys = array() ): array {
-		return array(
+		return $keys + array(
 			'type'  => $type,
 			'id'    => "_{$this->prefix}_$name",
 			'label' => \ucfirst( $name ),
-		) + $keys;
+		);
 	}
 
 	protected function custom_field( array $keys = array() ): array {
