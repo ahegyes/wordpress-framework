@@ -253,6 +253,25 @@ final class ProductDataTabTest extends TestCase {
 		self::assertSame( array( 'red', 'teal' ), $this->selected( $screen, 'colors' ) );
 	}
 
+	public function test_a_number_field_accepts_any_decimal_unless_it_sets_its_own_step(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_weight" => '1.25' ) );
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						$this->field( 'number', 'weight' ),
+						$this->field( 'number', 'count', array( 'custom_attributes' => array( 'step' => '1' ) ) ),
+					)
+				),
+			)
+		);
+
+		$screen = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
+
+		self::assertSame( 'any', $this->control( $screen, 'weight' )->getAttribute( 'step' ) );
+		self::assertSame( '1', $this->control( $screen, 'count' )->getAttribute( 'step' ) );
+	}
+
 	public function test_an_enabled_checkbox_posts_no_when_unchecked(): void {
 		$product = $this->make_product();
 		$spec    = $this->spec( array( $this->group( array( $this->field( 'checkbox', 'flag' ) ) ) ) );
