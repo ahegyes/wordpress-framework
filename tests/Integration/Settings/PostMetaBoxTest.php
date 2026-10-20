@@ -60,6 +60,13 @@ final class PostMetaBoxTest extends TestCase {
 		);
 	}
 
+	public static function silent_and_worded_rejections(): array {
+		return array(
+			'worded' => array( 'acme:reject', "Customer's <b>note</b> was not saved, so it keeps its previous value. Use at most four characters." ),
+			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> was not saved because its value is not valid, so it keeps its previous value." ),
+		);
+	}
+
 	#[DataProvider( 'invalid_helper_ids' )]
 	public function test_an_invalid_form_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
@@ -298,6 +305,349 @@ final class PostMetaBoxTest extends TestCase {
 		self::assertCount( 1, $box->querySelectorAll( '.form-field' ) );
 	}
 
+	public function test_update_stores_the_accepted_values_under_their_field_ids(): void {
+		$post_id = $this->make_post(
+			array(
+				"_{$this->prefix}_flag"  => 'yes',
+				"_{$this->prefix}_boxes" => array( 'red' ),
+			)
+		);
+		$spec    = $this->spec(
+			array(
+				$this->field( 'text', 'name' ),
+				$this->field( 'text', 'shout', array( 'validate' => 'acme:append' ) ),
+				$this->field( 'checkbox', 'flag' ),
+				$this->field( 'multiselect', 'list', array( 'options' => self::COLORS ) ),
+				$this->field( 'checkboxes', 'boxes', array( 'options' => self::COLORS ) ),
+			)
+		);
+
+		$this->save(
+			$spec,
+			$post_id,
+			array(
+				$this->control_name( 'name' )  => 'O\'Brien C:\\dir',
+				$this->control_name( 'shout' ) => 'v',
+				$this->control_name( 'flag' )  => false,
+				$this->control_name( 'list' )  => array( 'red', 'teal' ),
+				$this->control_name( 'boxes' ) => array(),
+			)
+		);
+
+		self::assertSame( array( 'O\'Brien C:\\dir' ), $this->meta( $post_id, 'name' ) );
+		self::assertSame( array( 'v!' ), $this->meta( $post_id, 'shout' ) );
+		self::assertSame( array( 'no' ), $this->meta( $post_id, 'flag' ) );
+		self::assertSame( array( array( 'red', 'teal' ) ), $this->meta( $post_id, 'list' ) );
+		self::assertSame( array( array() ), $this->meta( $post_id, 'boxes' ) );
+	}
+
+	public function test_validate_receives_the_unslashed_submission_alone(): void {
+		$post_id = $this->make_post();
+		$spec    = $this->spec( array( $this->field( 'text', 'name', array( 'validate' => 'acme:record' ) ) ) );
+
+		$saved = $this->save( $spec, $post_id, array( $this->control_name( 'name' ) => 'O\'Brien C:\\dir' ) );
+
+		self::assertSame( array( array( 'validate', "_{$this->prefix}_name", 'O\'Brien C:\\dir' ) ), $this->records( $saved, 'validate' ) );
+	}
+
+	public function test_an_unposted_or_disabled_field_keeps_its_value(): void {
+		$post_id = $this->make_post(
+			array(
+				"_{$this->prefix}_name"   => 'kept',
+				"_{$this->prefix}_locked" => 'kept',
+				"_{$this->prefix}_flag"   => 'yes',
+			)
+		);
+		$spec    = $this->spec(
+			array(
+				$this->field( 'text', 'name' ),
+				$this->field( 'text', 'locked', array( 'custom_attributes' => array( 'disabled' => 'disabled' ) ) ),
+				$this->field( 'checkbox', 'flag', array( 'disabled' => true ) ),
+			)
+		);
+
+		$this->save(
+			$spec,
+			$post_id,
+			array(),
+			array(
+				$this->id => array(
+					"_{$this->prefix}_locked" => 'tampered',
+					"_{$this->prefix}_flag"   => 'no',
+				),
+			)
+		);
+
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'locked' ) );
+		self::assertSame( array( 'yes' ), $this->meta( $post_id, 'flag' ) );
+	}
+
+	public function test_a_posted_key_outside_the_definition_is_ignored(): void {
+		$post_id = $this->make_post();
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
+
+		$this->save( $spec, $post_id, array( $this->control_name( 'name' ) => 'new' ), array( $this->control_name( 'other' ) => 'injected' ) );
+
+		self::assertSame( array( 'new' ), $this->meta( $post_id, 'name' ) );
+		self::assertSame( array(), $this->meta( $post_id, 'other' ) );
+	}
+
+	#[DataProvider( 'silent_and_worded_rejections' )]
+	public function test_a_rejection_keeps_the_value_and_shows_once_as_text_on_the_next_screen( string $behavior, string $message ): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_note" => 'kept' ) );
+		$spec    = $this->spec(
+			array(
+				$this->field(
+					'text',
+					'note',
+					array(
+						'title'    => 'Customer\'s <b>note</b>',
+						'validate' => $behavior,
+					)
+				),
+			)
+		);
+
+		$saved = $this->save( $spec, $post_id, array( $this->control_name( 'note' ) => 'too long' ) );
+		$next  = $this->follow( $spec, $saved );
+		$after = $this->edit_screen( $spec, $post_id );
+
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'note' ) );
+		self::assertSame( array( $message ), self::rejections( $next['body'] ) );
+		self::assertSame( array(), self::rejections( $after['body'] ) );
+	}
+
+	public function test_a_membership_rejection_names_the_field_and_what_to_enter(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_color" => 'red' ) );
+		$spec    = $this->spec( array( $this->field( 'select', 'color', array( 'options' => self::COLORS ) ) ) );
+
+		$saved = $this->save( $spec, $post_id, array(), array( $this->control_name( 'color' ) => 'black' ) );
+
+		self::assertSame( array( 'red' ), $this->meta( $post_id, 'color' ) );
+		self::assertSame( array( 'Color was not saved, so it keeps its previous value. Choose one of the available options.' ), self::rejections( $this->follow( $spec, $saved )['body'] ) );
+	}
+
+	public function test_a_new_post_renders_defaults_and_saves_them_on_publish(): void {
+		$spec = $this->spec( array( $this->field( 'text', 'name', array( 'default' => 'fresh' ) ), $this->field( 'checkbox', 'flag' ) ) );
+
+		$screen  = $this->admin_request( 'GET', 'post-new.php', $this->admin, self::FIXTURE, $spec );
+		$data    = self::serialize_form(
+			$screen['body'],
+			'form#post',
+			array(
+				'post_title'                  => 'Acme post',
+				$this->control_name( 'flag' ) => true,
+			)
+		) + array( 'publish' => 'Publish' );
+		$post_id = (int) $data['post_ID'];
+
+		$this->post_ids[] = $post_id;
+		$this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
+
+		self::assertSame( 'publish', \get_post_status( $post_id ) );
+		self::assertSame( array( 'fresh' ), $this->meta( $post_id, 'name' ) );
+		self::assertSame( array( 'yes' ), $this->meta( $post_id, 'flag' ) );
+	}
+
+	public function test_a_nonce_minted_for_another_post_or_none_stores_nothing(): void {
+		$post_id  = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ) );
+		$other_id = $this->make_post();
+		$spec     = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$other    = self::serialize_form( $this->edit_screen( $spec, $other_id )['body'], 'form#post' );
+
+		$this->save( $spec, $post_id, array( $this->control_name( 'name' ) => 'borrowed' ), array( "{$this->id}_nonce" => $other[ "{$this->id}_nonce" ] ) );
+		$this->save( $spec, $post_id, array( $this->control_name( 'name' ) => 'unsigned' ), array(), array( "{$this->id}_nonce" ) );
+
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
+	}
+
+	public function test_a_user_without_the_forms_capability_stores_nothing(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ) );
+		$open    = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$closed  = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'manage_options' ) );
+
+		$data = self::serialize_form( $this->edit_screen( $open, $post_id, $this->editor )['body'], 'form#post', array( $this->control_name( 'name' ) => 'forged' ) ) + array( 'save' => 'Update' );
+		$this->admin_request( 'POST', 'post.php', $this->editor, self::FIXTURE, $closed, $data );
+
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
+	}
+
+	public function test_quick_edit_stores_nothing(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ) );
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$list    = self::document( $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec )['body'] );
+
+		$this->admin_request(
+			'POST',
+			'admin-ajax.php',
+			$this->admin,
+			self::FIXTURE,
+			$spec,
+			array(
+				'action'       => 'inline-save',
+				'_inline_edit' => (string) $list->querySelector( 'input#_inline_edit' )?->getAttribute( 'value' ),
+				'post_ID'      => (string) $post_id,
+				'post_type'    => 'post',
+				'post_title'   => 'Quickly edited',
+				'_status'      => 'publish',
+				'screen'       => 'edit-post',
+				'post_view'    => 'list',
+				$this->id      => array( "_{$this->prefix}_name" => 'quick' ),
+			)
+		);
+
+		self::assertSame( 'Quickly edited', \get_the_title( $post_id ) );
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
+	}
+
+	public function test_bulk_edit_stores_nothing(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ) );
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$list    = self::document( $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec )['body'] );
+
+		$bulk = $this->admin_request(
+			'POST',
+			'edit.php',
+			$this->admin,
+			self::FIXTURE,
+			$spec,
+			array(
+				'action'    => 'edit',
+				'bulk_edit' => 'Update',
+				'post_type' => 'post',
+				'_wpnonce'  => (string) $list->querySelector( 'form#posts-filter input#_wpnonce' )?->getAttribute( 'value' ),
+				'post'      => array( (string) $post_id ),
+				'_status'   => 'private',
+				$this->id   => array( "_{$this->prefix}_name" => 'bulk' ),
+			)
+		);
+
+		self::assertIsString( $bulk['location'] );
+		self::assertSame( 'private', \get_post_status( $post_id ) );
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
+	}
+
+	public function test_a_save_without_the_forms_nonce_stores_nothing(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ) );
+		$form    = new ObjectForm(
+			$this->id,
+			fn (): array => array(
+				'title'      => 'Acme details',
+				'capability' => 'edit_posts',
+				'fields'     => array( $this->field( 'text', 'name' ) ),
+			),
+			new PostMetaBox( array( 'post' ) )
+		);
+		$form->register_hooks();
+		\wp_set_current_user( $this->admin );
+		$_POST[ $this->id ] = array( "_{$this->prefix}_name" => 'programmatic' );
+
+		try {
+			\wp_update_post(
+				array(
+					'ID'         => $post_id,
+					'post_title' => 'Updated in code',
+				)
+			);
+		} finally {
+			unset( $_POST[ $this->id ] );
+			\wp_set_current_user( 0 );
+		}
+
+		self::assertSame( 'Updated in code', \get_the_title( $post_id ) );
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
+	}
+
+	public function test_previewing_a_published_post_stores_nothing(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ) );
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
+
+		$changes = array(
+			'content'                     => 'Previewed content',
+			$this->control_name( 'name' ) => 'previewed',
+		);
+		$data    = \array_replace( self::serialize_form( $this->edit_screen( $spec, $post_id )['body'], 'form#post', $changes ), array( 'wp-preview' => 'dopreview' ) );
+		$this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
+
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
+		self::assertNotFalse( \wp_get_post_autosave( $post_id, $this->admin ) );
+	}
+
+	public function test_a_drafts_heartbeat_autosave_stores_nothing(): void {
+		$post_id = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ), 'post', 'draft' );
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$screen  = $this->edit_screen( $spec, $post_id );
+		$form    = self::serialize_form( $screen['body'], 'form#post' );
+
+		$this->admin_request(
+			'POST',
+			'admin-ajax.php',
+			$this->admin,
+			self::FIXTURE,
+			$spec,
+			array(
+				'action'    => 'heartbeat',
+				'_nonce'    => self::heartbeat_nonce( $screen['body'] ),
+				'screen_id' => 'post',
+				'has_focus' => 'true',
+				'data'      => array(
+					'wp_autosave' => array(
+						'post_id'     => (string) $post_id,
+						'post_type'   => 'post',
+						'post_author' => (string) $this->admin,
+						'post_title'  => 'Autosaved',
+						'content'     => '',
+						'excerpt'     => '',
+						'_wpnonce'    => $form['_wpnonce'],
+					),
+				),
+			)
+		);
+
+		self::assertSame( 'Autosaved', \get_the_title( $post_id ) );
+		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
+	}
+
+	public function test_a_nested_update_of_the_same_post_saves_and_reports_once(): void {
+		$post_id = $this->make_post();
+		$spec    = $this->spec(
+			array(
+				$this->field( 'text', 'name', array( 'validate' => 'acme:record' ) ),
+				$this->field( 'text', 'note', array( 'validate' => 'acme:reject' ) ),
+			),
+			array(),
+			array( 'nested_update' => true )
+		);
+
+		$saved = $this->save(
+			$spec,
+			$post_id,
+			array(
+				$this->control_name( 'name' ) => 'once',
+				$this->control_name( 'note' ) => 'too long',
+			)
+		);
+
+		self::assertCount( 2, $this->records( $saved, 'validate' ) );
+		self::assertSame( array( 'once' ), $this->meta( $post_id, 'name' ) );
+		self::assertCount( 1, self::rejections( $this->follow( $spec, $saved )['body'] ) );
+	}
+
+	public function test_a_custom_store_receives_the_reads_and_the_writes(): void {
+		$post_id = $this->make_post();
+		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ), array(), array( 'store' => 'acme:recording' ) );
+
+		$screen = $this->edit_screen( $spec, $post_id );
+		$saved  = $this->save( $spec, $post_id, array( $this->control_name( 'name' ) => 'stored' ) );
+		$again  = $this->edit_screen( $spec, $post_id );
+
+		self::assertContains( array( 'get_values', $post_id, array( "_{$this->prefix}_name" ) ), $screen['records'] );
+		self::assertContains( array( 'update_values', $post_id, array( "_{$this->prefix}_name" => 'stored' ) ), $saved['records'] );
+		self::assertSame( 'stored', $this->control( $this->box( self::document( $again['body'] ) ), 'name' )->getAttribute( 'value' ) );
+		self::assertSame( array(), $this->meta( $post_id, 'name' ) );
+	}
+
 	protected function spec( array $fields, array $form = array(), array $extra = array() ): array {
 		return $extra + array(
 			'id'        => $this->id,
@@ -318,6 +668,49 @@ final class PostMetaBoxTest extends TestCase {
 			'id'    => "_{$this->prefix}_$name",
 			'title' => \ucfirst( $name ),
 		);
+	}
+
+	protected function control_name( string $name ): string {
+		return "{$this->id}[_{$this->prefix}_$name]";
+	}
+
+	// The form posts as the Update button submits it, after the user set the named controls; tampering replaces or removes posted keys.
+	protected function save( array $spec, int $post_id, array $changes = array(), array $tampered = array(), array $removed = array() ): array {
+		$data = \array_replace_recursive( self::serialize_form( $this->edit_screen( $spec, $post_id )['body'], 'form#post', $changes ), $tampered ) + array( 'save' => 'Update' );
+		foreach ( $removed as $name ) {
+			unset( $data[ $name ] );
+		}
+
+		return $this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
+	}
+
+	protected function follow( array $spec, array $saved ): array {
+		self::assertIsString( $saved['location'] );
+
+		return $this->admin_request( 'GET', \explode( '/wp-admin/', $saved['location'], 2 )[1], $this->admin, self::FIXTURE, $spec );
+	}
+
+	protected function meta( int $post_id, string $name ): array {
+		return \get_post_meta( $post_id, "_{$this->prefix}_$name", false );
+	}
+
+	protected function records( array $request, string $kind ): array {
+		return \array_values( \array_filter( $request['records'], static fn ( array $record ): bool => $kind === $record[0] ) );
+	}
+
+	protected static function rejections( string $html ): array {
+		$messages = array();
+		foreach ( self::document( $html )->querySelectorAll( 'div.notice-error.is-dismissible > p' ) as $message ) {
+			$messages[] = \trim( $message->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		}
+
+		return $messages;
+	}
+
+	protected static function heartbeat_nonce( string $html ): string {
+		self::assertSame( 1, \preg_match( '/var heartbeatSettings = \{"nonce":"([0-9a-f]+)"/', $html, $matches ) );
+
+		return $matches[1];
 	}
 
 	protected function make_post( array $meta = array(), string $type = 'post', string $status = 'publish' ): int {
