@@ -40,6 +40,16 @@ final class ObjectForm {
 	 */
 	protected array $fields = array();
 
+	/**
+	 * The ids of the objects the request saved the form for.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     list<int>
+	 */
+	protected array $saved = array();
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -166,6 +176,44 @@ final class ObjectForm {
 		$this->host->render_rows( \esc_html( $this->get_title() ), $rows );
 	}
 
+	/**
+	 * Stores the accepted fields of the request's submission for the object, and keeps each rejection for the current user's next admin screen.
+	 *
+	 * Nothing changes unless the request carries the form's nonce for the object and the current user may edit the object and holds the definition's capability. A field the form did not post, because it was not rendered or is disabled, keeps its value, as a rejected one does. The form saves once per object and request, because a save that updates the object again fires the host's save hook again with the same submission.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $object_id The object's id.
+	 */
+	public function save( int $object_id ): void {
+		// Saves that carry no form, such as REST, cron and quick edit, return before the definition is evaluated.
+		if ( ! isset( $_POST[ "{$this->id}_nonce" ] ) || \in_array( $object_id, $this->saved, true ) || ! Forms::verify_object_form( "{$this->id}_nonce", $object_id, $this->host->get_object_capability(), $this->get_form()['capability'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Forms::verify_object_form() verifies the nonce.
+			return;
+		}
+
+		$this->saved[] = $object_id;
+		$submitted     = \is_array( $_POST[ $this->id ] ?? null ) ? \wp_unslash( $_POST[ $this->id ] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Forms::verify_object_form() verified the nonce, and Forms::sanitize_fields() sanitizes each field.
+		$fields        = $this->get_fields( $object_id );
+		$result        = Forms::sanitize_fields( $fields, $submitted );
+		if ( array() !== $result['values'] ) {
+			$this->get_store()->update_values( $object_id, $result['values'] );
+		}
+
+		$messages = array();
+		foreach ( $fields as $field ) {
+			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
+				$messages[] = self::get_rejection_message( $field, $result['errors'][ $field['id'] ] );
+			}
+		}
+		if ( array() !== $messages ) {
+			$user_id = \get_current_user_id();
+			$kept    = \get_user_option( "{$this->id}_rejections", $user_id );
+			// The metadata API unslashes what it is given, which would strip a message's own backslashes.
+			\update_user_option( $user_id, "{$this->id}_rejections", \wp_slash( \array_merge( \is_array( $kept ) ? $kept : array(), $messages ) ) );
+		}
+	}
+
 	// endregion
 
 	// region HOOKS
@@ -272,6 +320,29 @@ final class ObjectForm {
 	 */
 	protected function can_edit( int $object_id ): bool {
 		return \current_user_can( $this->host->get_object_capability(), $object_id ) && \current_user_can( $this->get_form()['capability'] );
+	}
+
+	/**
+	 * Returns the notice for a rejected field, which names the field and adds the rejection's message when it has one.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field     $field The field.
+	 * @param   \WP_Error $error The rejection.
+	 *
+	 * @return  string
+	 */
+	protected static function get_rejection_message( array $field, \WP_Error $error ): string {
+		$name    = self::get_field_title( $field );
+		$message = $error->get_error_message();
+		if ( '' === $message ) {
+			/* translators: %s: The field's title. */
+			return \sprintf( \__( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $name );
+		}
+
+		/* translators: 1: The field's title. 2: What to enter instead. */
+		return \sprintf( \__( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $name, $message );
 	}
 
 	/**

@@ -387,7 +387,7 @@ final class PostMetaBoxTest extends TestCase {
 		$post_id = $this->make_post();
 		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
 
-		$this->save( $spec, $post_id, array( $this->control_name( 'name' ) => 'new' ), array( $this->control_name( 'other' ) => 'injected' ) );
+		$this->save( $spec, $post_id, array( $this->control_name( 'name' ) => 'new' ), array( $this->id => array( "_{$this->prefix}_other" => 'injected' ) ) );
 
 		self::assertSame( array( 'new' ), $this->meta( $post_id, 'name' ) );
 		self::assertSame( array(), $this->meta( $post_id, 'other' ) );
@@ -422,7 +422,7 @@ final class PostMetaBoxTest extends TestCase {
 		$post_id = $this->make_post( array( "_{$this->prefix}_color" => 'red' ) );
 		$spec    = $this->spec( array( $this->field( 'select', 'color', array( 'options' => self::COLORS ) ) ) );
 
-		$saved = $this->save( $spec, $post_id, array(), array( $this->control_name( 'color' ) => 'black' ) );
+		$saved = $this->save( $spec, $post_id, array(), array( $this->id => array( "_{$this->prefix}_color" => 'black' ) ) );
 
 		self::assertSame( array( 'red' ), $this->meta( $post_id, 'color' ) );
 		self::assertSame( array( 'Color was not saved, so it keeps its previous value. Choose one of the available options.' ), self::rejections( $this->follow( $spec, $saved )['body'] ) );

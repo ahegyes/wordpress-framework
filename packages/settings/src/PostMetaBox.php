@@ -71,6 +71,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 
 		$this->form = $form;
 		\add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 10, 2 );
+		\add_action( 'save_post', array( $this, 'save_meta_box' ), 10, 2 );
 	}
 
 	/**
@@ -144,6 +145,21 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 */
 	public function render_meta_box( \WP_Post $post ): void {
 		$this->form->render( $post->ID );
+	}
+
+	/**
+	 * Saves the form for a saved post of the box's types, which leaves out revisions and autosaves, whose post type is revision.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int      $post_id The saved post's id.
+	 * @param   \WP_Post $post    The saved post.
+	 */
+	public function save_meta_box( int $post_id, \WP_Post $post ): void {
+		if ( \in_array( $post->post_type, $this->post_types, true ) ) {
+			$this->form->save( $post_id );
+		}
 	}
 
 	// endregion
