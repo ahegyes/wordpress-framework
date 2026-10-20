@@ -14,11 +14,27 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class PackageManifestsTest extends TestCase {
 	protected const array REQUIRES = array(
-		'bootstrap'   => array( 'php' ),
-		'shared'      => array( 'php' ),
-		'core'        => array( 'ahegyes/wp-framework-shared', 'ext-filter', 'php', 'psr/clock', 'psr/container', 'psr/log' ),
-		'settings'    => array( 'ahegyes/wp-framework-shared', 'php' ),
-		'woocommerce' => array( 'ahegyes/wp-framework-settings', 'ahegyes/wp-framework-shared', 'php', 'psr/log' ),
+		'bootstrap'   => array( 'php' => '>=7.4' ),
+		'shared'      => array( 'php' => '>=8.5' ),
+		'core'        => array(
+			'ahegyes/wp-framework-shared' => '^2.0',
+			'ext-filter'                  => '*',
+			'php'                         => '>=8.5',
+			'psr/clock'                   => '^1',
+			'psr/container'               => '^2',
+			'psr/log'                     => '^3',
+			'psr/simple-cache'            => '^3',
+		),
+		'settings'    => array(
+			'ahegyes/wp-framework-shared' => '^2.0',
+			'php'                         => '>=8.5',
+		),
+		'woocommerce' => array(
+			'ahegyes/wp-framework-settings' => '^2.0',
+			'ahegyes/wp-framework-shared'   => '^2.0',
+			'php'                           => '>=8.5',
+			'psr/log'                       => '^3',
+		),
 	);
 
 	// Core's root prefix comes last, because every other package's prefix extends it.
@@ -31,6 +47,7 @@ final class PackageManifestsTest extends TestCase {
 		'Psr\\Clock\\'                               => 'psr/clock',
 		'Psr\\Container\\'                           => 'psr/container',
 		'Psr\\Log\\'                                 => 'psr/log',
+		'Psr\\SimpleCache\\'                         => 'psr/simple-cache',
 	);
 
 	public static function packages(): array {
@@ -50,12 +67,15 @@ final class PackageManifestsTest extends TestCase {
 
 	#[DataProvider( 'packages' )]
 	public function test_a_package_requires_exactly_its_mapped_edges( string $package, array $requires ): void {
-		self::assertEqualsCanonicalizing( $requires, \array_keys( self::read_manifest( $package )['require'] ) );
+		$manifest = self::read_manifest( $package )['require'];
+		\ksort( $manifest );
+
+		self::assertSame( $requires, $manifest );
 	}
 
 	#[DataProvider( 'packages' )]
 	public function test_a_package_references_only_itself_and_the_packages_it_requires( string $package, array $requires ): void {
-		$allowed    = array( "ahegyes/wp-framework-$package", ...$requires );
+		$allowed    = array( "ahegyes/wp-framework-$package", ...\array_keys( $requires ) );
 		$violations = array();
 
 		$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory() . "/$package", \FilesystemIterator::SKIP_DOTS ) );

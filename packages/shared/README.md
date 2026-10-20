@@ -1,5 +1,5 @@
 # wp-framework-shared
 
-WordPress-free PHP primitives: framework exceptions, results, value objects and versions.
+WordPress-free PHP primitives: framework exceptions, results, value objects, versions and the cache generation contract.
 
 This package is developed in the [wordpress-framework](https://github.com/ahegyes/wordpress-framework) monorepo, which holds its documentation, issues, pull requests and changelog.

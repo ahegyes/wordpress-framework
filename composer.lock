@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "7845971cbe1e8c3ed5d8c5862794f25f708ff989"
+                "reference": "fb6e0230ddd9f416d6c5988446fb95e25a95bbd0"
             },
             "require": {
                 "ahegyes/wp-framework-shared": "^2.0",
@@ -48,7 +48,8 @@
                 "php": ">=8.5",
                 "psr/clock": "^1",
                 "psr/container": "^2",
-                "psr/log": "^3"
+                "psr/log": "^3",
+                "psr/simple-cache": "^3"
             },
             "type": "library",
             "extra": {
@@ -66,7 +67,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "Plugin kernel for WordPress: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, and admin notices.",
+            "description": "Plugin kernel for WordPress: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices, role capability grants and a PSR-16 transient cache.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
@@ -114,7 +115,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "8a9edb3ab997a0b6f26d6af9a8cb2051946d686d"
+                "reference": "444050182c7303f3b06a8062a27ea148afaf4543"
             },
             "require": {
                 "php": ">=8.5"
@@ -133,7 +134,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects and versions.",
+            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects, versions and the cache generation contract.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
@@ -333,6 +334,57 @@
                 "source": "https://github.com/php-fig/log/tree/3.0.2"
             },
             "time": "2024-09-11T13:17:53+00:00"
+        },
+        {
+            "name": "psr/simple-cache",
+            "version": "3.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-fig/simple-cache.git",
+                "reference": "764e0b3939f5ca87cb904f570ef9be2d78a07865"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-fig/simple-cache/zipball/764e0b3939f5ca87cb904f570ef9be2d78a07865",
+                "reference": "764e0b3939f5ca87cb904f570ef9be2d78a07865",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "3.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Psr\\SimpleCache\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PHP-FIG",
+                    "homepage": "https://www.php-fig.org/"
+                }
+            ],
+            "description": "Common interfaces for simple caching",
+            "keywords": [
+                "cache",
+                "caching",
+                "psr",
+                "psr-16",
+                "simple-cache"
+            ],
+            "support": {
+                "source": "https://github.com/php-fig/simple-cache/tree/3.0.0"
+            },
+            "time": "2021-10-29T13:26:27+00:00"
         }
     ],
     "packages-dev": [
