@@ -84,12 +84,12 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertSame( array(), $this->hooks_of( $grants ) );
 	}
 
-	public function test_registering_hooks_runs_the_grants_on_wp_loaded_at_10(): void {
+	public function test_registering_hooks_runs_the_grants_on_wp_loaded_and_watches_role_deletions_at_10(): void {
 		$grants = $this->grants( array( $this->role( 'editor' ) => array( $this->cap( 'a' ) ) ) );
 
 		$grants->register_hooks();
 
-		self::assertSame( array( 'wp_loaded@10/1:run' ), $this->hooks_of( $grants ) );
+		self::assertSame( array( 'updated_option@10/3:forget_deleted_roles', 'wp_loaded@10/1:run' ), $this->hooks_of( $grants ) );
 	}
 
 	public function test_the_first_run_grants_each_declared_pair_to_its_role_and_ledgers_it(): void {
@@ -147,6 +147,146 @@ final class CapabilityGrantsTest extends TestCase {
 		$this->grants( $declared )->run();
 
 		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $later ) );
+		self::assertEquals( $declared, $this->ledger() );
+	}
+
+	public function test_a_declared_pair_the_role_already_held_is_never_ledgered_or_revoked(): void {
+		$editor = $this->add_role( 'editor', array( $this->cap( 'a' ) => true ) );
+
+		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ) ) ) )->run();
+
+		self::assertEquals( array( $editor => array( $this->cap( 'b' ) ) ), $this->ledger() );
+
+		$this->next_request();
+		$this->grants( array() )->run();
+
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
+		self::assertSame( array(), $this->ledger() );
+	}
+
+	public function test_a_ledgered_pair_the_declaration_drops_is_revoked_unless_changed_by_hand_and_leaves_the_ledger(): void {
+		$editor = $this->add_role( 'editor' );
+		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ), $this->cap( 'c' ) ) ) )->run();
+		\wp_roles()->remove_cap( $editor, $this->cap( 'b' ) );
+		\wp_roles()->add_cap( $editor, $this->cap( 'c' ), false );
+
+		$this->next_request();
+		$this->grants( array() )->run();
+
+		self::assertSame( array( $this->cap( 'c' ) => false ), $this->stored_caps( $editor ) );
+		self::assertSame( array(), $this->ledger() );
+	}
+
+	public function test_a_ledgered_pair_whose_role_is_gone_leaves_the_ledger(): void {
+		$editor   = $this->add_role( 'editor' );
+		$author   = $this->add_role( 'author' );
+		$declared = array(
+			$editor => array( $this->cap( 'a' ) ),
+			$author => array( $this->cap( 'a' ) ),
+		);
+		$this->grants( $declared )->run();
+		\remove_role( $author );
+
+		$this->next_request();
+		$this->grants( $declared )->run();
+
+		self::assertEquals( array( $editor => array( $this->cap( 'a' ) ) ), $this->ledger() );
+	}
+
+	public function test_a_declared_pair_removed_or_denied_by_hand_stays_so_when_a_later_run_grants_another(): void {
+		$editor = $this->add_role( 'editor' );
+		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ) ) ) )->run();
+		\wp_roles()->remove_cap( $editor, $this->cap( 'a' ) );
+		\wp_roles()->add_cap( $editor, $this->cap( 'b' ), false );
+
+		$this->next_request();
+		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ), $this->cap( 'c' ) ) ) )->run();
+
+		self::assertSame(
+			array(
+				$this->cap( 'b' ) => false,
+				$this->cap( 'c' ) => true,
+			),
+			$this->stored_caps( $editor )
+		);
+		self::assertEquals( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ), $this->cap( 'c' ) ) ), $this->ledger() );
+	}
+
+	public function test_a_declared_role_deleted_and_created_again_in_a_later_request_is_granted_again(): void {
+		$editor   = $this->add_role( 'editor' );
+		$declared = array( $editor => array( $this->cap( 'a' ) ) );
+		$this->grants( $declared )->run();
+		\remove_role( $editor );
+		$this->next_request();
+		$this->grants( $declared )->run();
+
+		$this->add_role( 'editor' );
+		$this->next_request();
+		$this->grants( $declared )->run();
+
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
+	}
+
+	public function test_a_declared_role_deleted_and_created_again_in_one_request_is_granted_again_on_the_next(): void {
+		$editor   = $this->add_role( 'editor' );
+		$declared = array( $editor => array( $this->cap( 'a' ) ) );
+		$grants   = $this->grants( $declared );
+		$grants->register_hooks();
+		$grants->run();
+
+		\remove_role( $editor );
+		$this->add_role( 'editor' );
+		$this->next_request();
+		$this->grants( $declared )->run();
+
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
+	}
+
+	public function test_a_shop_manager_role_reset_by_woocommerce_is_granted_again_on_the_next_request(): void {
+		$declared = array( 'shop_manager' => array( $this->cap( 'a' ) ) );
+		$grants   = $this->grants( $declared );
+		$grants->register_hooks();
+		$grants->run();
+
+		\WC_Install::remove_roles();
+		\WC_Install::create_roles();
+
+		self::assertArrayNotHasKey( $this->cap( 'a' ), $this->stored_caps( 'shop_manager' ) );
+
+		$this->next_request();
+		$this->grants( $declared )->run();
+
+		self::assertTrue( $this->stored_caps( 'shop_manager' )[ $this->cap( 'a' ) ] ?? false );
+	}
+
+	public function test_deleting_an_undeclared_role_or_writing_another_option_leaves_the_ledger_row(): void {
+		$editor = $this->add_role( 'editor' );
+		$other  = $this->add_role( 'other' );
+		$grants = $this->grants( array( $editor => array( $this->cap( 'a' ) ) ) );
+		$grants->register_hooks();
+		$grants->run();
+		$row = \get_option( "{$this->prefix}_grants" );
+
+		\remove_role( $other );
+		\update_option( "{$this->prefix}_unrelated", array( $editor => array() ) );
+
+		self::assertSame( $row, \get_option( "{$this->prefix}_grants" ) );
+	}
+
+	public function test_a_changed_declaration_grants_the_added_pairs_and_revokes_the_dropped_ones_in_one_run(): void {
+		$editor = $this->add_role( 'editor' );
+		$author = $this->add_role( 'author' );
+		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ) ) ) )->run();
+
+		$this->next_request();
+		$declared = array(
+			$editor => array( $this->cap( 'b' ) ),
+			$author => array( $this->cap( 'a' ) ),
+		);
+		$this->grants( $declared )->run();
+
+		self::assertSame( array( $this->cap( 'b' ) => true ), $this->stored_caps( $editor ) );
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $author ) );
 		self::assertEquals( $declared, $this->ledger() );
 	}
 
