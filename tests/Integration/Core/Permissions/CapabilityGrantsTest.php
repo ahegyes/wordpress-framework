@@ -4,11 +4,14 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Permissions;
 
 use DeepWebSolutions\Framework\Permissions\CapabilityGrants;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger as PsrAbstractLogger;
 
@@ -21,9 +24,18 @@ final class GrantsLogger extends PsrAbstractLogger {
 	}
 }
 
+final class FailingGrantsLogger extends PsrAbstractLogger {
+	#[\Override]
+	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
+		throw new \UnexpectedValueException( 'The log is not writable.' );
+	}
+}
+
 #[CoversClass( CapabilityGrants::class )]
 final class CapabilityGrantsTest extends TestCase {
+	use CreatesSitesTrait;
 	use CreatesUsersTrait;
+	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 
@@ -290,6 +302,184 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertEquals( $declared, $this->ledger() );
 	}
 
+	public function test_a_grant_the_roles_row_does_not_keep_is_logged_and_made_again_on_the_next_request(): void {
+		$editor   = $this->add_role( 'editor' );
+		$declared = array( $editor => array( $this->cap( 'a' ) ) );
+		$this->keep_roles_row();
+
+		$this->grants( $declared )->run();
+		$this->next_request();
+		$this->grants( $declared )->run();
+
+		self::assertSame( array(), $this->stored_caps( $editor ) );
+		self::assertSame( array(), $this->ledger() );
+		$warning = array( 'warning', 'The roles row did not keep the capability changes {changes}, so the next request makes them again.', array( 'changes' => "grant {$this->cap( 'a' )} to $editor" ) );
+		self::assertSame( array( $warning, $warning ), $this->logger->records );
+
+		\remove_all_filters( 'pre_update_option_' . \wp_roles()->role_key );
+		$this->next_request();
+		$this->grants( $declared )->run();
+
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
+		self::assertEquals( $declared, $this->ledger() );
+	}
+
+	public function test_a_revocation_the_roles_row_does_not_keep_stays_ledgered_and_is_made_again_on_the_next_request(): void {
+		$editor = $this->add_role( 'editor' );
+		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
+		$this->keep_roles_row();
+
+		$this->next_request();
+		$this->grants( array() )->run();
+
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
+		self::assertEquals( array( $editor => array( $this->cap( 'a' ) ) ), $this->ledger() );
+		self::assertSame( array( array( 'warning', 'The roles row did not keep the capability changes {changes}, so the next request makes them again.', array( 'changes' => "revoke {$this->cap( 'a' )} from $editor" ) ) ), $this->logger->records );
+
+		\remove_all_filters( 'pre_update_option_' . \wp_roles()->role_key );
+		$this->next_request();
+		$this->grants( array() )->run();
+
+		self::assertSame( array(), $this->stored_caps( $editor ) );
+		self::assertSame( array(), $this->ledger() );
+	}
+
+	public function test_a_warning_whose_logger_throws_reaches_the_error_log_without_breaking_the_request(): void {
+		$editor   = $this->add_role( 'editor' );
+		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
+		$previous = \ini_set( 'error_log', $log_file );
+		$this->keep_roles_row();
+
+		try {
+			$this->grants( array( $editor => array( $this->cap( 'a' ) ) ), new FailingGrantsLogger() )->run();
+			$log = (string) \file_get_contents( $log_file );
+		} finally {
+			\ini_set( 'error_log', (string) $previous );
+			\wp_delete_file( $log_file );
+		}
+
+		self::assertStringContainsString( "[{$this->prefix}_grants.warning] The roles row did not keep the capability changes {changes}, so the next request makes them again. {\"changes\":\"grant {$this->cap( 'a' )} to $editor\"}", $log );
+		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
+	}
+
+	public function test_while_a_run_grants_the_ledger_row_lists_the_pairs_as_pending(): void {
+		global $wpdb;
+
+		$editor  = $this->add_role( 'editor' );
+		$pending = null;
+		$this->before_query(
+			\wp_roles()->role_key,
+			function () use ( $wpdb, &$pending ): void {
+				$raw     = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "{$this->prefix}_grants" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
+				$pending = \maybe_unserialize( (string) $raw )['pending'] ?? null;
+			}
+		);
+
+		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
+
+		self::assertSame( array( $editor => array( $this->cap( 'a' ) ) ), $pending );
+		self::assertSame( array(), \get_option( "{$this->prefix}_grants" )['pending'] );
+	}
+
+	public function test_a_run_interrupted_after_its_pending_write_converges_on_the_next(): void {
+		$editor = $this->add_role(
+			'editor',
+			array(
+				$this->cap( 'b' ) => true,
+				$this->cap( 'c' ) => false,
+			)
+		);
+		\update_option(
+			"{$this->prefix}_grants",
+			array(
+				'v'           => 1,
+				'fingerprint' => '',
+				'grants'      => array(),
+				'pending'     => array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ), $this->cap( 'c' ) ) ),
+			),
+			true
+		);
+
+		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ), $this->cap( 'c' ) ) ) )->run();
+
+		self::assertSame(
+			array(
+				$this->cap( 'b' ) => true,
+				$this->cap( 'c' ) => false,
+				$this->cap( 'a' ) => true,
+			),
+			$this->stored_caps( $editor )
+		);
+		self::assertEquals( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ) ) ), $this->ledger() );
+	}
+
+	public static function malformed_rows(): array {
+		return array(
+			'not-an-array'     => array( 'not-an-array' ),
+			'no-version'       => array( 'no-version' ),
+			'other-version'    => array( 'other-version' ),
+			'malformed-grants' => array( 'malformed-grants' ),
+		);
+	}
+
+	#[DataProvider( 'malformed_rows' )]
+	public function test_a_missing_or_malformed_row_reads_as_an_empty_ledger( string $kind ): void {
+		$editor = $this->add_role( 'editor' );
+		$grants = array( $editor => array( $this->cap( 'a' ) ) );
+		$row    = match ( $kind ) {
+			'not-an-array'     => 'acme',
+			'no-version'       => array(
+				'fingerprint' => '',
+				'grants'      => $grants,
+			),
+			'other-version'    => array(
+				'v'           => 2,
+				'fingerprint' => '',
+				'grants'      => $grants,
+			),
+			'malformed-grants' => array(
+				'v'           => 1,
+				'fingerprint' => '',
+				'grants'      => array(
+					$editor => 'acme',
+					7       => array( $this->cap( 'a' ) ),
+				),
+			),
+		};
+		\update_option( "{$this->prefix}_grants", $row, true );
+
+		$this->grants( $grants )->run();
+
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
+		self::assertEquals( $grants, $this->ledger() );
+	}
+
+	#[Group( 'multisite' )]
+	public function test_a_run_and_a_role_deletion_change_only_their_own_sites_roles_and_ledger(): void {
+		$site_id = $this->make_site( 'acme-grants' );
+		$editor  = $this->role( 'editor' );
+
+		\switch_to_blog( $site_id );
+		try {
+			$this->add_role( 'editor' );
+			$grants = $this->grants( array( $editor => array( $this->cap( 'a' ) ) ) );
+			$grants->register_hooks();
+			$grants->run();
+			$granted = $this->stored_caps( $editor );
+			$ledger  = $this->ledger();
+			\remove_role( $editor );
+			$forgotten = $this->ledger();
+		} finally {
+			\restore_current_blog();
+		}
+
+		self::assertSame( array( $this->cap( 'a' ) => true ), $granted );
+		self::assertEquals( array( $editor => array( $this->cap( 'a' ) ) ), $ledger );
+		self::assertSame( array(), $forgotten );
+		self::assertArrayNotHasKey( $editor, $this->stored_roles() );
+		self::assertFalse( \get_option( "{$this->prefix}_grants" ) );
+	}
+
 	protected function grants( array $grants, ?PsrAbstractLogger $logger = null ): CapabilityGrants {
 		return new CapabilityGrants( "{$this->prefix}_grants", $grants, $logger ?? $this->logger );
 	}
@@ -312,6 +502,11 @@ final class CapabilityGrantsTest extends TestCase {
 	protected function next_request(): void {
 		\wp_cache_flush();
 		\wp_roles()->for_site();
+	}
+
+	// A role-locking plugin can keep the stored roles from changing while the request's copy changes.
+	protected function keep_roles_row(): void {
+		\add_filter( 'pre_update_option_' . \wp_roles()->role_key, static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
 	}
 
 	protected function stored_roles(): array {
