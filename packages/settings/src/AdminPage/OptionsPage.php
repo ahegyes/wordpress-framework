@@ -1,7 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\AdminPage;
 
+use DeepWebSolutions\Framework\Settings\Forms;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 
 \defined( 'ABSPATH' ) || exit;

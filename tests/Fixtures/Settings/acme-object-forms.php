@@ -7,12 +7,12 @@
  * @package Acme
  */
 
-use DeepWebSolutions\Framework\Settings\ObjectForm;
-use DeepWebSolutions\Framework\Settings\ObjectStoreInterface;
-use DeepWebSolutions\Framework\Settings\PostMetaBox;
-use DeepWebSolutions\Framework\Settings\TermForm;
-use DeepWebSolutions\Framework\Settings\UserProfile;
-use DeepWebSolutions\Framework\WooCommerce\Orders\OrderMetaBox;
+use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
+use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\TermForm;
+use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
+use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
+use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
+use DeepWebSolutions\Framework\WooCommerce\EditScreen\Hosts\OrderMetaBox;
 
 require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
 

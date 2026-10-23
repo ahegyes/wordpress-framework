@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Settings;
 
-use DeepWebSolutions\Framework\Settings\ObjectForm;
-use DeepWebSolutions\Framework\Settings\PostMetaBox;
+use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
+use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;

@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Tests\Unit\Shared\Version;
 
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Version\Version;
+use DeepWebSolutions\Framework\Shared\Versioning\Version;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

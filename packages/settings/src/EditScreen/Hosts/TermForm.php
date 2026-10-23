@@ -1,7 +1,11 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\EditScreen\Hosts;
 
+use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
+use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormHostInterface;
+use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
+use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 
 \defined( 'ABSPATH' ) || exit;

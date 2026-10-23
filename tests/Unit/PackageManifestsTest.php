@@ -139,7 +139,7 @@ final class PackageManifestsTest extends TestCase {
 			'core'                  => array( 'core/src', 'DeepWebSolutions\\Framework\\Core\\' ),
 			'settings'              => array( 'settings/src', 'DeepWebSolutions\\Framework\\Settings\\' ),
 			'woocommerce'           => array( 'woocommerce/src', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
-			'woocommerce-bootstrap' => array( 'woocommerce/uninstall', 'DeepWebSolutions\\Framework\\WooCommerce\\Bootstrap\\' ),
+			'woocommerce-bootstrap' => array( 'woocommerce/bootstrap', 'DeepWebSolutions\\Framework\\WooCommerce\\Bootstrap\\' ),
 		);
 	}
 
@@ -169,7 +169,7 @@ final class PackageManifestsTest extends TestCase {
 	public function test_a_namespace_relative_name_resolves_against_its_namespace(): void {
 		$file = \dirname( __DIR__ ) . '/Fixtures/package-manifests/relative-name.php';
 
-		self::assertContains( 'DeepWebSolutions\\Framework\\Settings\\OptionsPage', self::referenced_names( $file ) );
+		self::assertContains( 'DeepWebSolutions\\Framework\\Settings\\AdminPage\\OptionsPage', self::referenced_names( $file ) );
 	}
 
 	protected static function closure( string $package ): array {

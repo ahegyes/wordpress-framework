@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Shared\Version;
+namespace DeepWebSolutions\Framework\Shared\Versioning;
 
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;

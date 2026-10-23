@@ -4,7 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce;
 
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
-use DeepWebSolutions\Framework\WooCommerce\Orders\OrderMetaStore;
+use DeepWebSolutions\Framework\WooCommerce\EditScreen\Stores\OrderMetaStore;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

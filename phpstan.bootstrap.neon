@@ -9,7 +9,7 @@ parameters:
     paths:
         - packages/bootstrap
         - packages/woocommerce/uninstall.php
-        - packages/woocommerce/uninstall
+        - packages/woocommerce/bootstrap
     phpVersion: 70400
     WPCompat:
         requiresAtLeast: '5.2'

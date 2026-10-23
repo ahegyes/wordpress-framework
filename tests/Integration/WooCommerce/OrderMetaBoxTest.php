@@ -2,14 +2,14 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce;
 
-use DeepWebSolutions\Framework\Settings\ObjectForm;
+use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
-use DeepWebSolutions\Framework\WooCommerce\Orders\OrderMetaBox;
+use DeepWebSolutions\Framework\WooCommerce\EditScreen\Hosts\OrderMetaBox;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

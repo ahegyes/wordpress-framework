@@ -4,7 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce;
 
 use Automattic\WooCommerce\Internal\Admin\Logging\LogHandlerFileV2;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesLogMessagesTrait;
-use DeepWebSolutions\Framework\WooCommerce\WooCommerceLogger;
+use DeepWebSolutions\Framework\WooCommerce\Logging\WooCommerceLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

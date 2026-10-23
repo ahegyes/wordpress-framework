@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Settings;
 
-use DeepWebSolutions\Framework\Settings\MetadataStore;
+use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\After;

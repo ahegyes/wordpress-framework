@@ -1,6 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Settings;
+namespace DeepWebSolutions\Framework\Settings\EditScreen\Stores;
+
+use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
 
 \defined( 'ABSPATH' ) || exit;
 

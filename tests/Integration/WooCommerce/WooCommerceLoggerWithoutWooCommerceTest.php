@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce;
 
-use DeepWebSolutions\Framework\WooCommerce\WooCommerceLogger;
+use DeepWebSolutions\Framework\WooCommerce\Logging\WooCommerceLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
