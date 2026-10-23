@@ -20,30 +20,20 @@ use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
  * @version 2.0.0
  *
  * @phpstan-import-type Field from Forms
- * @phpstan-type Form array{title: string, capability: string, fields: list<Field>|\Closure(int): list<Field>}
+ * @phpstan-type Form array{title: string, capability: string, fields: list<Field>}
  */
 final class ObjectForm {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The form's definition, evaluated on first use.
+	 * The form of each object the request has resolved, with its fields filtered, keyed by the object's id.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     Form|null
+	 * @var     array<int, Form>
 	 */
-	protected ?array $form = null;
-
-	/**
-	 * The fields of each object the request has resolved, keyed by the object's id.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     array<int, list<Field>>
-	 */
-	protected array $fields = array();
+	protected array $forms = array();
 
 	/**
 	 * The ids of the objects the request saved the form for.
@@ -75,17 +65,17 @@ final class ObjectForm {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string                    $id         The form's id, which starts with the plugin's prefix and names the form's controls, nonce and fields filter.
-	 * @param   \Closure(): Form          $definition The definition, which is evaluated on first use after init and must not throw.
-	 * @param   ObjectFormHostInterface   $host       The host that shows and saves the form.
-	 * @param   AdminNotices              $notices    The plugin's admin notices, which report the rejections.
-	 * @param   ObjectStoreInterface|null $store      Optional. The store of the form's values. Default is null, for the host's store.
+	 * @param   string                        $id         The form's id, which starts with the plugin's prefix and names the form's controls, nonce and fields filter.
+	 * @param   ObjectFormDefinitionInterface $definition The definition, which the form asks for once per object, on first use after init.
+	 * @param   ObjectFormHostInterface       $host       The host that shows and saves the form.
+	 * @param   AdminNotices                  $notices    The plugin's admin notices, which report the rejections.
+	 * @param   ObjectStoreInterface|null     $store      Optional. The store of the form's values. Default is null, for the host's store.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
 	 */
 	public function __construct(
 		protected string $id,
-		protected \Closure $definition,
+		protected ObjectFormDefinitionInterface $definition,
 		protected ObjectFormHostInterface $host,
 		protected AdminNotices $notices,
 		protected ?ObjectStoreInterface $store = null
@@ -110,15 +100,17 @@ final class ObjectForm {
 	}
 
 	/**
-	 * Returns the form's title.
+	 * Returns the form's title for the object.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @param   int $object_id The object's id.
+	 *
 	 * @return  string
 	 */
-	public function get_title(): string {
-		return $this->get_form()['title'];
+	public function get_title( int $object_id ): string {
+		return $this->get_form( $object_id )['title'];
 	}
 
 	// endregion
@@ -155,7 +147,7 @@ final class ObjectForm {
 	 * @return  bool
 	 */
 	public function can_render( int $object_id ): bool {
-		return $this->can_edit( $object_id ) && array() !== \array_column( $this->get_fields( $object_id ), 'id' );
+		return $this->can_edit( $object_id ) && array() !== \array_column( $this->get_form( $object_id )['fields'], 'id' );
 	}
 
 	/**
@@ -173,7 +165,7 @@ final class ObjectForm {
 			return;
 		}
 
-		$fields = $this->get_fields( $object_id );
+		$fields = $this->get_form( $object_id )['fields'];
 		$rows   = array();
 		foreach ( Forms::get_rows( $fields, $this->get_store()->get_values( $object_id, \array_column( $fields, 'id' ) ), $this->id ) as $row ) {
 			$control = Forms::render_control( $row['field'], $row['value'], $row['name'], $row['id'] );
@@ -187,7 +179,7 @@ final class ObjectForm {
 		}
 
 		\wp_nonce_field( $this->get_nonce_action( $object_id ), $this->get_nonce_name(), false );
-		$this->host->render_rows( \esc_html( $this->get_title() ), $rows );
+		$this->host->render_rows( \esc_html( $this->get_title( $object_id ) ), $rows );
 	}
 
 	/**
@@ -209,7 +201,7 @@ final class ObjectForm {
 
 		$this->saved[] = $object_id;
 		$submitted     = \is_array( $_POST[ $this->id ] ?? null ) ? \wp_unslash( $_POST[ $this->id ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Forms::sanitize_fields() sanitizes each field.
-		$fields        = $this->get_fields( $object_id );
+		$fields        = $this->get_form( $object_id )['fields'];
 		$result        = Forms::sanitize_fields( $fields, $submitted );
 		if ( array() !== $result['values'] ) {
 			$this->get_store()->update_values( $object_id, $result['values'] );
@@ -246,30 +238,18 @@ final class ObjectForm {
 	// region HELPERS
 
 	/**
-	 * Returns the form's definition, evaluating it on first use.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  Form
-	 */
-	protected function get_form(): array {
-		return $this->form ??= ( $this->definition )();
-	}
-
-	/**
-	 * Returns the form's fields for the object, as other plugins filter them, resolving them once per object.
+	 * Returns the form for the object, with its fields as other plugins filter them, resolving it once per object.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   int $object_id The object's id.
 	 *
-	 * @return  list<Field>
+	 * @return  Form
 	 */
-	protected function get_fields( int $object_id ): array {
-		if ( ! isset( $this->fields[ $object_id ] ) ) {
-			$fields = $this->get_form()['fields'];
+	protected function get_form( int $object_id ): array {
+		if ( ! isset( $this->forms[ $object_id ] ) ) {
+			$form = $this->definition->get_object_form( $this->id, $object_id );
 
 			/**
 			 * Filters the fields of the object form for one object, so that other plugins can add fields.
@@ -280,10 +260,11 @@ final class ObjectForm {
 			 * @param   list<Field> $fields    The form's fields for the object.
 			 * @param   int         $object_id The id of the object being edited or saved.
 			 */
-			$this->fields[ $object_id ] = \apply_filters( "{$this->id}_fields", $fields instanceof \Closure ? $fields( $object_id ) : $fields, $object_id );
+			$form['fields']            = \apply_filters( "{$this->id}_fields", $form['fields'], $object_id );
+			$this->forms[ $object_id ] = $form;
 		}
 
-		return $this->fields[ $object_id ];
+		return $this->forms[ $object_id ];
 	}
 
 	/**
@@ -311,7 +292,7 @@ final class ObjectForm {
 	 * @return  bool
 	 */
 	protected function can_edit( int $object_id ): bool {
-		return \current_user_can( $this->host->get_object_capability(), $object_id ) && \current_user_can( $this->get_form()['capability'] );
+		return \current_user_can( $this->host->get_object_capability(), $object_id ) && \current_user_can( $this->get_form( $object_id )['capability'] );
 	}
 
 	/**

@@ -11,6 +11,7 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -79,30 +80,21 @@ final class PostMetaBoxTest extends TestCase {
 	public function test_an_invalid_form_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new ObjectForm( $id, static fn (): array => array(), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
+		new ObjectForm( $id, new RecordedDefinition( static fn (): array => array() ), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_form_id( string $id ): void {
 		$host = new PostMetaBox( array( 'post' ) );
-		$form = new ObjectForm( $id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
+		$form = new ObjectForm( $id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 		$form->register_hooks();
 
 		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_a_screen_needs_it(): void {
-		$calls = 0;
-		$form  = new ObjectForm(
-			$this->id,
-			static function () use ( &$calls ): array {
-				++$calls;
-
-				return array();
-			},
-			new PostMetaBox( array( 'post' ) ),
-			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
-		);
+		$definition = new RecordedDefinition( static fn (): array => array() );
+		$form       = new ObjectForm( $this->id, $definition, new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 		$form->register_hooks();
 		$post_id = $this->make_post();
 		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
@@ -110,7 +102,7 @@ final class PostMetaBoxTest extends TestCase {
 		$dashboard = $this->admin_request( 'GET', 'index.php', $this->admin, self::FIXTURE, $spec );
 		$edit      = $this->edit_screen( $spec, $post_id );
 
-		self::assertSame( 0, $calls );
+		self::assertSame( array(), $definition->calls );
 		self::assertNotContains( array( 'definition' ), $dashboard['records'] );
 		self::assertSame( array( array( 'definition' ) ), \array_values( \array_filter( $edit['records'], static fn ( array $record ): bool => 'definition' === $record[0] ) ) );
 	}
@@ -532,10 +524,12 @@ final class PostMetaBoxTest extends TestCase {
 		$post_id = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ) );
 		$form    = new ObjectForm(
 			$this->id,
-			fn (): array => array(
-				'title'      => 'Acme details',
-				'capability' => 'edit_posts',
-				'fields'     => array( $this->field( 'text', 'name' ) ),
+			new RecordedDefinition(
+				fn (): array => array(
+					'title'      => 'Acme details',
+					'capability' => 'edit_posts',
+					'fields'     => array( $this->field( 'text', 'name' ) ),
+				)
 			),
 			new PostMetaBox( array( 'post' ) ),
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )

@@ -2,11 +2,12 @@
 /**
  * Adds the request spec's product data tab on plugins_loaded, as a plugin without the kernel does.
  *
- * A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. A group with per_product set lists its fields through a closure that records the product it receives. The spec may also restrict the tab to simple products, contribute a group through the tab's groups filter, filter a meta key's view reads and record each product save, noting whether it happens while WooCommerce processes the edit form's product.
+ * A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. A group with per_product set records the product the definition receives. The spec may also restrict the tab to simple products, contribute a group through the tab's groups filter, filter a meta key's view reads and record each product save, noting whether it happens while WooCommerce processes the edit form's product.
  *
  * @package Acme
  */
 
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\WooCommerce\ProductData\ProductDataTab;
 
 require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
@@ -43,34 +44,34 @@ $acme_with_behaviors = static function ( array $fields ): array {
 add_action(
 	'plugins_loaded',
 	static function () use ( $spec, $acme_with_behaviors ): void {
-		$groups = array();
-		foreach ( $spec['groups'] as $group ) {
-			$fields = $acme_with_behaviors( $group['fields'] );
-			if ( $group['per_product'] ?? false ) {
-				$fields = static function ( WC_Product $product ) use ( $fields ): array {
-					$GLOBALS['acme_outcome']['records'][] = array( 'fields', $product->get_id() );
+		$definition = new RecordedDefinition(
+			static function ( string $tab_id, WC_Product $product ) use ( $spec, $acme_with_behaviors ): ?array {
+				if ( 'acme:simple' === ( $spec['supports'] ?? null ) && ! $product->is_type( 'simple' ) ) {
+					return null;
+				}
 
-					return $fields;
-				};
+				$groups = array();
+				foreach ( $spec['groups'] as $group ) {
+					if ( $group['per_product'] ?? false ) {
+						$GLOBALS['acme_outcome']['records'][] = array( 'fields', $product->get_id() );
+					}
+					$groups[] = array( 'fields' => $acme_with_behaviors( $group['fields'] ) ) + array_intersect_key( $group, array( 'class' => true ) );
+				}
+
+				return array(
+					'label'  => $spec['label'],
+					'groups' => $groups,
+				) + array_intersect_key(
+					$spec,
+					array(
+						'priority' => true,
+						'class'    => true,
+					)
+				);
 			}
-			$groups[] = array( 'fields' => $fields ) + array_intersect_key( $group, array( 'class' => true ) );
-		}
-
-		$tab = array(
-			'label'  => $spec['label'],
-			'groups' => $groups,
-		) + array_intersect_key(
-			$spec,
-			array(
-				'priority' => true,
-				'class'    => true,
-			)
 		);
-		if ( 'acme:simple' === ( $spec['supports'] ?? null ) ) {
-			$tab['supports'] = static fn ( WC_Product $product ): bool => $product->is_type( 'simple' );
-		}
 
-		( new ProductDataTab( $spec['id'], static fn (): array => $tab ) )->register_hooks();
+		( new ProductDataTab( $spec['id'], $definition ) )->register_hooks();
 	}
 );
 

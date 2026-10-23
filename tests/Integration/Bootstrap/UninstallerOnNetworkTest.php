@@ -99,6 +99,35 @@ final class UninstallerOnNetworkTest extends TestCase {
 		self::assertSame( ! $constant, $this->user_meta_exists( "{$this->prefix}_global_state" ) );
 	}
 
+	public function test_a_throw_on_one_site_leaves_the_other_sites_swept_and_is_thrown_after_the_rest(): void {
+		$this->seed_site( $this->main_site, 'yes' );
+		$this->seed_site( $this->other_site, 'yes' );
+		$main_site = $this->main_site;
+		$filter    = static function ( mixed $value ) use ( $main_site ): mixed {
+			if ( \get_current_blog_id() === $main_site ) {
+				throw new \LogicException( 'The filter failed.' );
+			}
+
+			return $value;
+		};
+		\add_filter( "option_{$this->prefix}_remove_data", $filter );
+
+		$failure = null;
+		try {
+			Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
+		} catch ( \RuntimeException $exception ) {
+			$failure = $exception;
+		} finally {
+			\remove_filter( "option_{$this->prefix}_remove_data", $filter );
+		}
+
+		self::assertInstanceOf( \RuntimeException::class, $failure );
+		self::assertStringContainsString( "site $this->main_site: The filter failed.", $failure->getMessage() );
+		self::assertSame( array( true, true, false, true ), $this->site_state( $this->main_site ) );
+		self::assertSame( array( false, false, false, false ), $this->site_state( $this->other_site ) );
+		self::assertSame( array( "cleanup:site:$this->other_site" ), $this->summarize_calls() );
+	}
+
 	public function test_a_web_request_on_a_large_network_refuses_before_any_change_and_names_wp_plugin_uninstall(): void {
 		self::assertFalse( \defined( 'WP_CLI' ) );
 		\add_filter( 'wp_is_large_network', '__return_true' );

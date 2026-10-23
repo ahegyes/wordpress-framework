@@ -382,6 +382,64 @@ final class UninstallerTest extends TestCase {
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 
+	public function test_a_throw_from_another_plugins_delete_hook_ends_the_sites_pass_and_a_retry_without_it_completes(): void {
+		$this->seed_footprint();
+		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		$settings = "{$this->prefix}_settings";
+		$listener = static function ( string $option ) use ( $settings ): void {
+			if ( $settings === $option ) {
+				throw new \LogicException( 'The listener failed.' );
+			}
+		};
+		\add_action( 'delete_option', $listener );
+
+		$failure = null;
+		try {
+			Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+		} catch ( \RuntimeException $exception ) {
+			$failure = $exception;
+		} finally {
+			\remove_action( 'delete_option', $listener );
+		}
+
+		self::assertInstanceOf( \RuntimeException::class, $failure );
+		self::assertStringContainsString( 'The listener failed.', $failure->getMessage() );
+		self::assertTrue( $this->option_exists( $settings ) );
+		self::assertTrue( $this->table_exists( "{$this->prefix}_log" ) );
+		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
+
+		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
+
+		$this->assert_footprint_deleted();
+		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
+	}
+
+	public function test_an_action_scheduler_cancel_that_throws_is_logged_without_holding_the_uninstall_back(): void {
+		$this->seed_footprint();
+		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_as" );
+		$listener = static function (): void {
+			throw new \LogicException( 'The cancel failed.' );
+		};
+		\add_action( 'action_scheduler_bulk_cancel_actions', $listener );
+		try {
+			$log = $this->capture_error_log(
+				fn () => Uninstaller::run(
+					self::PLUGIN_FILE,
+					array( 'as_hooks' => array( "{$this->prefix}_as" ) ) + $this->footprint(),
+					array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
+				)
+			);
+		} finally {
+			\remove_action( 'action_scheduler_bulk_cancel_actions', $listener );
+		}
+
+		self::assertCount( 1, $log );
+		self::assertStringContainsString( "] Uninstall could not unschedule: Action Scheduler hook {$this->prefix}_as: The cancel failed.", $log[0] );
+		$this->assert_footprint_deleted();
+		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
+	}
+
 	public static function retaining_and_consenting(): array {
 		return array(
 			'retaining'  => array( false ),

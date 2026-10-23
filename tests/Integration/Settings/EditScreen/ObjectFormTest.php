@@ -21,6 +21,7 @@ use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -37,7 +38,7 @@ final class ObjectFormTest extends TestCase {
 
 	protected int $post_id;
 
-	protected int $evaluations = 0;
+	protected ?RecordedDefinition $definition = null;
 
 	#[\Override]
 	protected function setUp(): void {
@@ -75,6 +76,26 @@ final class ObjectFormTest extends TestCase {
 		$this->form( new PostMetaBox( array( 'post' ) ) )->save( $this->post_id );
 
 		self::assertSame( 'Saved.', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( array( array( "{$this->prefix}_details", $this->post_id ) ), $this->definition->calls );
+	}
+
+	public function test_the_definition_receives_the_forms_id_and_each_object_once(): void {
+		\wp_set_current_user( $this->author_id );
+		$other_id = (int) \wp_insert_post(
+			array(
+				'post_title'  => 'Acme',
+				'post_status' => 'publish',
+				'post_author' => $this->author_id,
+			)
+		);
+		$form     = $this->form( new PostMetaBox( array( 'post' ) ) );
+
+		$form->can_render( $this->post_id );
+		$form->can_render( $other_id );
+		$form->can_render( $this->post_id );
+		\wp_delete_post( $other_id, true );
+
+		self::assertSame( array( array( "{$this->prefix}_details", $this->post_id ), array( "{$this->prefix}_details", $other_id ) ), $this->definition->calls );
 	}
 
 	public function test_a_user_editing_their_own_profile_with_the_forms_capability_stores_the_fields(): void {
@@ -124,7 +145,7 @@ final class ObjectFormTest extends TestCase {
 
 		$this->form( new PostMetaBox( array( 'post' ) ) )->save( $this->post_id );
 
-		self::assertSame( 0, $this->evaluations );
+		self::assertSame( array(), $this->definition->calls );
 		self::assertSame( '', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 	}
 
@@ -135,7 +156,7 @@ final class ObjectFormTest extends TestCase {
 
 		$this->form( new PostMetaBox( array( 'post' ) ) )->save( $this->post_id );
 
-		self::assertSame( 0, $this->evaluations );
+		self::assertSame( array(), $this->definition->calls );
 		self::assertSame( '', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 	}
 
@@ -185,7 +206,7 @@ final class ObjectFormTest extends TestCase {
 
 		$this->expectException( LogicException::class );
 
-		( new ObjectForm( "{$this->prefix}_other", static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		( new ObjectForm( "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 	}
 
 	public function test_a_host_the_consumer_writes_serves_one_form_too(): void {
@@ -208,26 +229,26 @@ final class ObjectFormTest extends TestCase {
 
 		$this->expectException( LogicException::class );
 
-		( new ObjectForm( "{$this->prefix}_other", static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		( new ObjectForm( "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 	}
 
 	protected function form( ObjectFormHostInterface $host, string $capability = 'edit_posts' ): ObjectForm {
+		$this->definition = new RecordedDefinition(
+			fn (): array => array(
+				'title'      => 'Details',
+				'capability' => $capability,
+				'fields'     => array(
+					array(
+						'type' => 'text',
+						'id'   => "_{$this->prefix}_name",
+					),
+				),
+			)
+		);
+
 		return new ObjectForm(
 			"{$this->prefix}_details",
-			function () use ( $capability ): array {
-				++$this->evaluations;
-
-				return array(
-					'title'      => 'Details',
-					'capability' => $capability,
-					'fields'     => array(
-						array(
-							'type' => 'text',
-							'id'   => "_{$this->prefix}_name",
-						),
-					),
-				);
-			},
+			$this->definition,
 			$host,
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
@@ -238,21 +259,23 @@ final class ObjectFormTest extends TestCase {
 
 		return new ObjectForm(
 			"{$this->prefix}_details",
-			fn (): array => array(
-				'title'      => 'Details',
-				'capability' => 'edit_posts',
-				'fields'     => array(
-					array(
-						'type' => 'text',
-						'id'   => "_{$this->prefix}_name",
+			new RecordedDefinition(
+				fn (): array => array(
+					'title'      => 'Details',
+					'capability' => 'edit_posts',
+					'fields'     => array(
+						array(
+							'type' => 'text',
+							'id'   => "_{$this->prefix}_name",
+						),
+						array(
+							'type'     => 'text',
+							'id'       => "_{$this->prefix}_note",
+							'title'    => 'Note & more',
+							'validate' => static fn (): \WP_Error => new \WP_Error( 'acme_rejected', 'Use at most four characters.' ),
+						),
 					),
-					array(
-						'type'     => 'text',
-						'id'       => "_{$this->prefix}_note",
-						'title'    => 'Note & more',
-						'validate' => static fn (): \WP_Error => new \WP_Error( 'acme_rejected', 'Use at most four characters.' ),
-					),
-				),
+				)
 			),
 			new PostMetaBox( array( 'post' ) ),
 			$notices

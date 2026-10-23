@@ -8,6 +8,7 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use DeepWebSolutions\Framework\WooCommerce\Setting\Fields;
@@ -67,46 +68,40 @@ final class SettingsTest extends TestCase {
 	public function test_an_invalid_tab_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new SettingsTab( $id, $this->tab_definition( array() ) );
+		new SettingsTab( $id, $this->tab( array() ), $this->fields_definition() );
 	}
 
 	#[DataProvider( 'invalid_helper_ids' )]
 	public function test_an_invalid_section_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new SettingsSection( $id, $this->section_definition( 'products', array() ) );
+		new SettingsSection( $id, $this->registered_section( 'products' ), $this->fields_definition() );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_tab_and_section_id( string $id ): void {
-		self::assertSame( $id, ( new SettingsTab( $id, $this->tab_definition( array() ) ) )->get_id() );
-		self::assertSame( $id, ( new SettingsSection( $id, $this->section_definition( 'products', array() ) ) )->get_id() );
+		self::assertSame( $id, ( new SettingsTab( $id, $this->tab( array() ), $this->fields_definition() ) )->get_id() );
+		self::assertSame( $id, ( new SettingsSection( $id, $this->registered_section( 'products' ), $this->fields_definition() ) )->get_id() );
 	}
 
 	public function test_a_section_builds_its_fields_only_when_woocommerce_asks_for_them(): void {
-		$calls    = array();
-		$sections = array();
-		$labels   = array(
-			''         => 'General',
-			'advanced' => 'Advanced',
+		$definition = $this->fields_definition();
+		$tab        = new SettingsTab(
+			$this->prefix,
+			$this->tab(
+				array(
+					''         => 'General',
+					'advanced' => 'Advanced',
+				)
+			),
+			$definition
 		);
-		foreach ( $labels as $section_id => $label ) {
-			$sections[ $section_id ] = array(
-				'label'  => $label,
-				'fields' => static function () use ( &$calls, $section_id ): array {
-					$calls[] = $section_id;
-
-					return array();
-				},
-			);
-		}
-		$tab = new SettingsTab( $this->prefix, $this->tab_definition( $sections ) );
-		self::assertSame( array(), $calls );
+		self::assertSame( array(), $definition->calls );
 
 		$tab->get_settings_for_section( 'advanced' );
 		$tab->get_settings_for_section( 'advanced' );
 
-		self::assertSame( array( 'advanced' ), $calls );
+		self::assertSame( array( array( $this->prefix, 'advanced' ) ), $definition->calls );
 		self::assertSame(
 			array(
 				''         => 'General',
@@ -182,6 +177,19 @@ final class SettingsTest extends TestCase {
 		self::assertSame( array( array( 'validate', "{$this->prefix}_name", 'v' ) ), $saved['records'] );
 	}
 
+	public function test_a_registered_section_builds_its_fields_once_from_its_tab_and_id(): void {
+		$definition = $this->fields_definition( array( $this->field( 'text', 'name' ) ) );
+		$section    = new SettingsSection( $this->prefix, $this->registered_section( 'products' ), $definition );
+		$parent     = new SettingsTab( 'products', $this->tab( array() ), $this->fields_definition() );
+		self::assertSame( array(), $definition->calls );
+
+		$section->get_settings( $parent );
+		$fields = $section->get_settings( $parent );
+
+		self::assertSame( array( array( 'products', $this->prefix ) ), $definition->calls );
+		self::assertSame( array( $this->field( 'text', 'name' ) ), $fields );
+	}
+
 	public function test_a_section_whose_id_is_taken_is_rejected_by_the_registry(): void {
 		$wrong    = array();
 		$registry = SettingsSectionRegistry::get_instance();
@@ -193,8 +201,8 @@ final class SettingsTest extends TestCase {
 			}
 		);
 
-		self::assertTrue( $registry->register( new SettingsSection( $this->prefix, $this->section_definition( 'products', array() ) ) ) );
-		self::assertFalse( $registry->register( new SettingsSection( $this->prefix, $this->section_definition( 'products', array() ) ) ) );
+		self::assertTrue( $registry->register( new SettingsSection( $this->prefix, $this->registered_section( 'products' ), $this->fields_definition() ) ) );
+		self::assertFalse( $registry->register( new SettingsSection( $this->prefix, $this->registered_section( 'products' ), $this->fields_definition() ) ) );
 		self::assertSame( array( SettingsSectionRegistry::class . '::register' ), $wrong );
 	}
 
@@ -525,25 +533,28 @@ final class SettingsTest extends TestCase {
 		return $this->field( "{$this->prefix}_widget", 'widget', $keys + array( 'render' => 'acme:render' ) );
 	}
 
-	protected function tab_definition( array $sections ): \Closure {
-		return static fn (): array => array(
+	protected function tab( array $labels ): array {
+		return array(
 			'label'    => 'Acme',
-			'sections' => $sections,
+			'sections' => $labels,
 		);
 	}
 
-	protected function section_definition( string $tab, array $fields ): \Closure {
-		return static fn (): array => array(
-			'tab'    => $tab,
-			'label'  => 'Acme',
-			'fields' => static fn (): array => $fields,
+	protected function registered_section( string $tab ): array {
+		return array(
+			'tab'   => $tab,
+			'label' => 'Acme',
 		);
+	}
+
+	protected function fields_definition( array $fields = array() ): RecordedDefinition {
+		return new RecordedDefinition( static fn (): array => $fields );
 	}
 
 	protected function in_process_section( array $fields ): array {
 		return array(
 			'label'  => 'General',
-			'fields' => static fn (): array => $fields,
+			'fields' => $fields,
 		);
 	}
 
@@ -552,10 +563,8 @@ final class SettingsTest extends TestCase {
 		$this->reset_settings_pages();
 		$tab = new SettingsTab(
 			$this->prefix,
-			static fn (): array => array(
-				'label'    => 'Acme',
-				'sections' => $sections,
-			)
+			$this->tab( \array_map( static fn ( array $section ): string => $section['label'], $sections ) ),
+			new RecordedDefinition( static fn ( string $tab_id, string $section_id ): array => $sections[ $section_id ]['fields'] )
 		);
 		\add_filter(
 			'woocommerce_get_settings_pages',

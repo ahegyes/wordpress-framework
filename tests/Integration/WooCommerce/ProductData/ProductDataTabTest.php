@@ -7,6 +7,7 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use DeepWebSolutions\Framework\WooCommerce\ProductData\ProductDataTab;
@@ -64,31 +65,24 @@ final class ProductDataTabTest extends TestCase {
 	public function test_an_invalid_tab_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new ProductDataTab( $id, static fn (): array => array() );
+		new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_tab_id( string $id ): void {
-		$tab = new ProductDataTab( $id, static fn (): array => array() );
+		$tab = new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
 		$tab->register_hooks();
 
 		self::assertSame( 10, \has_filter( 'woocommerce_product_data_tabs', array( $tab, 'add_tab' ) ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_the_edit_screen_needs_it(): void {
-		$calls = 0;
-		$tab   = new ProductDataTab(
-			$this->prefix,
-			static function () use ( &$calls ): array {
-				++$calls;
-
-				return array();
-			}
-		);
+		$definition = new RecordedDefinition( static fn (): ?array => null );
+		$tab        = new ProductDataTab( $this->prefix, $definition );
 
 		$tab->register_hooks();
 
-		self::assertSame( 0, $calls );
+		self::assertSame( array(), $definition->calls );
 		self::assertSame( 10, \has_filter( 'woocommerce_product_data_tabs', array( $tab, 'add_tab' ) ) );
 		self::assertSame( 10, \has_action( 'woocommerce_product_data_panels', array( $tab, 'render_panel' ) ) );
 	}
@@ -316,6 +310,29 @@ final class ProductDataTabTest extends TestCase {
 		self::assertNotNull( $this->control( $screen, 'name' ) );
 	}
 
+	public function test_the_definition_receives_the_tabs_id_and_each_product_once(): void {
+		$product    = $this->make_product();
+		$definition = new RecordedDefinition(
+			static fn (): array => array(
+				'label'  => 'Acme',
+				'groups' => array(),
+			)
+		);
+		$tab        = new ProductDataTab( $this->prefix, $definition );
+
+		$GLOBALS['product_object'] = $product;
+		try {
+			$tab->add_tab( array() );
+			\ob_start();
+			$tab->render_panel();
+			\ob_end_clean();
+		} finally {
+			unset( $GLOBALS['product_object'] );
+		}
+
+		self::assertSame( array( array( $this->prefix, $product ) ), $definition->calls );
+	}
+
 	public function test_an_unsupported_product_shows_neither_the_tab_nor_its_panel(): void {
 		$simple   = $this->make_product();
 		$variable = $this->make_product( array(), 'variable' );
@@ -369,7 +386,7 @@ final class ProductDataTabTest extends TestCase {
 	}
 
 	public function test_registering_hooks_the_save_onto_the_product_woocommerce_saves(): void {
-		$tab = new ProductDataTab( $this->prefix, static fn (): array => array() );
+		$tab = new ProductDataTab( $this->prefix, new RecordedDefinition( static fn (): ?array => null ) );
 
 		$tab->register_hooks();
 

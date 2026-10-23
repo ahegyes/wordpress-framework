@@ -9,6 +9,7 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -46,7 +47,7 @@ final class TermFormTest extends TestCase {
 
 	public function test_the_host_registers_on_each_of_its_taxonomies(): void {
 		$host = new TermForm( array( 'category', 'post_tag' ) );
-		( new ObjectForm( $this->id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
 			self::assertSame( 10, \has_action( "{$taxonomy}_edit_form", array( $host, 'render_section' ) ) );
@@ -149,10 +150,12 @@ final class TermFormTest extends TestCase {
 		\add_term_meta( $term_id, "_{$this->prefix}_name", 'kept' );
 		$form = new ObjectForm(
 			$this->id,
-			fn (): array => array(
-				'title'      => 'Acme term',
-				'capability' => 'manage_categories',
-				'fields'     => array( $this->field( 'text', 'name' ) ),
+			new RecordedDefinition(
+				fn (): array => array(
+					'title'      => 'Acme term',
+					'capability' => 'manage_categories',
+					'fields'     => array( $this->field( 'text', 'name' ) ),
+				)
 			),
 			new TermForm( array( 'category' ) ),
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )

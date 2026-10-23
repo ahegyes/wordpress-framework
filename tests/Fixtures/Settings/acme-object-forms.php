@@ -2,7 +2,7 @@
 /**
  * Adds the request spec's object form on plugins_loaded, as a plugin without the kernel does.
  *
- * The form's id also prefixes the admin notices that report its rejections. The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. Fields listed per object come from a closure that records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
+ * The form's id also prefixes the admin notices that report its rejections. The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. With per_object, the definition also records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
  *
  * @package Acme
  */
@@ -14,6 +14,7 @@ use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\TermForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\WooCommerce\EditScreen\Hosts\OrderMetaBox;
 
 require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
@@ -50,19 +51,17 @@ $acme_with_behaviors = static function ( array $fields ): array {
 add_action(
 	'plugins_loaded',
 	static function () use ( $spec, $acme_with_behaviors ): void {
-		$fields = $acme_with_behaviors( $spec['form']['fields'] );
-		if ( $spec['per_object'] ?? false ) {
-			$fields = static function ( int $object_id ) use ( $fields ): array {
-				$GLOBALS['acme_outcome']['records'][] = array( 'fields', $object_id );
+		$fields     = $acme_with_behaviors( $spec['form']['fields'] );
+		$definition = new RecordedDefinition(
+			static function ( string $form_id, int $object_id ) use ( $spec, $fields ): array {
+				$GLOBALS['acme_outcome']['records'][] = array( 'definition' );
+				if ( $spec['per_object'] ?? false ) {
+					$GLOBALS['acme_outcome']['records'][] = array( 'fields', $object_id );
+				}
 
-				return $fields;
-			};
-		}
-		$definition = static function () use ( $spec, $fields ): array {
-			$GLOBALS['acme_outcome']['records'][] = array( 'definition' );
-
-			return array( 'fields' => $fields ) + $spec['form'];
-		};
+				return array( 'fields' => $fields ) + $spec['form'];
+			}
+		);
 
 		$host = match ( $spec['host'] ) {
 			'post'  => new PostMetaBox( ...$spec['host_args'] ),
