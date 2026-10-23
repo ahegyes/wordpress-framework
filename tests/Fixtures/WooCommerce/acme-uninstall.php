@@ -21,8 +21,8 @@ add_action(
 			$spec['plugin_file'],
 			$spec['footprint'],
 			array(
-				'consent'  => $spec['consent'],
-				'handlers' => WooCommerceUninstaller::get_handlers(),
+				'consent'    => $spec['consent'],
+				'meta_types' => WooCommerceUninstaller::get_meta_types(),
 			)
 		);
 	}

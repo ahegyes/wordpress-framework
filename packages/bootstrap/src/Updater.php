@@ -26,9 +26,9 @@ final class Updater {
 	// region METHODS
 
 	/**
-	 * Offers the plugin's GitHub releases as updates, and answers its "View details" request, when its Update URI points at github.com.
+	 * Offers the plugin's GitHub releases as updates, and answers its "View details" request, while its Update URI points at github.com.
 	 *
-	 * A release that needs a newer WordPress is not offered, because WordPress's automatic updates check only the PHP requirement. WordPress asks for Update URI offers from version 5.8, so below it no update is offered.
+	 * The Update URI is read whenever WordPress asks, so the updater answers nothing once it points elsewhere. A release that needs a newer WordPress is not offered, because WordPress's automatic updates check only the PHP requirement. WordPress asks for Update URI offers from version 5.8, so below it no update is offered.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -36,12 +36,6 @@ final class Updater {
 	 * @param   string $plugin_file The path to the plugin's entry file.
 	 */
 	public static function register( string $plugin_file ): void {
-		// WordPress names the update hook after the host of the sanitized Update URI, which gains a scheme when it has none.
-		$headers = \get_file_data( $plugin_file, array( 'uri' => 'Update URI' ) );
-		if ( 'github.com' !== \wp_parse_url( \esc_url_raw( $headers['uri'] ), \PHP_URL_HOST ) ) {
-			return;
-		}
-
 		$basename = \plugin_basename( $plugin_file );
 		\add_filter(
 			'update_plugins_github.com',
@@ -107,12 +101,29 @@ final class Updater {
 		);
 	}
 
+	/**
+	 * Deletes the plugin's cached releases on the current site.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @internal
+	 *
+	 * @param   string $plugin_file The path to the plugin's entry file.
+	 */
+	public static function delete_cached_releases( string $plugin_file ): void {
+		$slug = \get_file_data( $plugin_file, array( 'slug' => 'Text Domain' ) )['slug'];
+		foreach ( array( 'stable', 'prerelease' ) as $channel ) {
+			\delete_transient( self::get_cache_name( $slug, $channel ) );
+		}
+	}
+
 	// endregion
 
 	// region HELPERS
 
 	/**
-	 * Returns the plugin's updater configuration, after its configuration filter, with the plugin's identity, or null when updates are off or the configuration is unusable.
+	 * Returns the plugin's updater configuration, after its configuration filter, with the plugin's identity, or null when its Update URI does not point at github.com, updates are off or the configuration is unusable.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -133,13 +144,15 @@ final class Updater {
 		);
 
 		$slug = $headers['slug'];
-		if ( '' === $slug ) {
+		// WordPress names the update hook after the host of the sanitized Update URI, which gains a scheme when it has none.
+		$uri = \wp_parse_url( \esc_url_raw( $headers['uri'] ) );
+		if ( '' === $slug || ! \is_array( $uri ) || 'github.com' !== ( $uri['host'] ?? '' ) ) {
 			return null;
 		}
 
 		$defaults = array(
 			'enabled'    => true,
-			'repository' => \trim( (string) \wp_parse_url( \esc_url_raw( $headers['uri'] ), \PHP_URL_PATH ), '/' ),
+			'repository' => \trim( $uri['path'] ?? '', '/' ),
 			'asset'      => "$slug.zip",
 			'channel'    => false === \strpos( $headers['version'], '-' ) ? 'stable' : 'prerelease',
 		);
@@ -188,8 +201,7 @@ final class Updater {
 	 * @return  array{version: string, tag: string, package: string, url: string, body: string, requires: string, requires_php: string}|null
 	 */
 	protected static function get_release( array $config ): ?array {
-		// The uninstall engine deletes these names too.
-		$transient = "{$config['slug']}_github_release_{$config['channel']}";
+		$transient = self::get_cache_name( $config['slug'], $config['channel'] );
 		$cached    = \get_transient( $transient );
 		if ( array() === $cached ) {
 			return null;
@@ -307,6 +319,21 @@ final class Updater {
 		}
 
 		return '' === $release['package'] ? null : $release;
+	}
+
+	/**
+	 * Returns the name of the transient that caches the plugin's newest release on the channel.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $slug    The plugin's text domain.
+	 * @param   string $channel The release channel, 'stable' or 'prerelease'.
+	 *
+	 * @return  string
+	 */
+	protected static function get_cache_name( string $slug, string $channel ): string {
+		return "{$slug}_github_release_$channel";
 	}
 
 	/**

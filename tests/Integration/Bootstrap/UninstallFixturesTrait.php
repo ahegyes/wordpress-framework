@@ -30,7 +30,6 @@ trait UninstallFixturesTrait {
 			'option_prefixes'           => array( "{$p}_cache_" ),
 			'transients'                => array( "{$p}_transient" ),
 			'post_types'                => array( "{$p}_type" ),
-			'page_options'              => array( "{$p}_page_id", "{$p}_post_id" ),
 			'meta'                      => array(
 				'post'    => array( "{$p}_flag" ),
 				'term'    => array( "{$p}_flag" ),
@@ -67,10 +66,6 @@ trait UninstallFixturesTrait {
 			$this->ids['type'][] = $this->make_post( "{$p}_type", $status );
 		}
 		$this->ids['foreign_post'] = $this->make_post( "{$p}_other", 'publish' );
-		$this->ids['page']         = $this->make_post( 'page', 'publish' );
-		$this->ids['foreign_page'] = $this->make_post( 'page', 'publish' );
-		\update_option( "{$p}_page_id", $this->ids['page'] );
-		\update_option( "{$p}_post_id", $this->ids['foreign_post'] );
 
 		$term = \wp_insert_term( "$p-term", 'category' );
 		self::assertIsArray( $term );
@@ -116,10 +111,9 @@ trait UninstallFixturesTrait {
 		$blog_prefix = $wpdb->get_blog_prefix();
 
 		return array(
-			'options'      => \array_map( $this->option_exists( ... ), array( "{$p}_settings", "{$p}_cache_a", "{$p}_cache_b", "{$p}_page_id", "{$p}_post_id" ) ),
+			'options'      => \array_map( $this->option_exists( ... ), array( "{$p}_settings", "{$p}_cache_a", "{$p}_cache_b" ) ),
 			'transient'    => false !== \get_transient( "{$p}_transient" ),
 			'posts'        => \count( $this->get_posts_of_type( "{$p}_type" ) ),
-			'page'         => $this->post_exists( $this->ids['page'] ),
 			'meta'         => array(
 				$this->meta_exists( 'post', "{$p}_flag" ),
 				$this->meta_exists( 'post', "{$p}_post_a" ),
@@ -138,10 +132,9 @@ trait UninstallFixturesTrait {
 	protected function assert_footprint_kept(): void {
 		self::assertSame(
 			array(
-				'options'      => array( true, true, true, true, true ),
+				'options'      => array( true, true, true ),
 				'transient'    => true,
 				'posts'        => 3,
-				'page'         => true,
 				'meta'         => array( true, true, true, true, true, true ),
 				'comment'      => true,
 				'user_meta'    => array( true, true, true, true ),
@@ -155,10 +148,9 @@ trait UninstallFixturesTrait {
 	protected function assert_footprint_deleted(): void {
 		self::assertSame(
 			array(
-				'options'      => array( false, false, false, false, false ),
+				'options'      => array( false, false, false ),
 				'transient'    => false,
 				'posts'        => 0,
-				'page'         => false,
 				'meta'         => array( false, false, false, false, false, false ),
 				'comment'      => false,
 				'user_meta'    => array( false, false, false, false ),
@@ -179,7 +171,7 @@ trait UninstallFixturesTrait {
 			array(
 				'options'      => array( true, true, true ),
 				'transient'    => true,
-				'posts'        => array( true, true, true ),
+				'posts'        => array( true, true ),
 				'meta'         => array( true, true, true, true, true, true, true, true, true, true, true, true ),
 				'comment'      => array( true, true ),
 				'user_meta'    => array( true, true, true, true, true ),
@@ -189,7 +181,7 @@ trait UninstallFixturesTrait {
 			array(
 				'options'      => \array_map( $this->option_exists( ... ), array( "{$p}_kept", "{$p}_cacheZz", \strtoupper( "{$p}_cache_x" ) ) ),
 				'transient'    => false !== \get_transient( "{$p}_kept_transient" ),
-				'posts'        => array( $this->post_exists( $this->ids['foreign_post'] ), $this->post_exists( $this->ids['foreign_page'] ), $this->post_exists( $this->ids['upper_post'] ) ),
+				'posts'        => array( $this->post_exists( $this->ids['foreign_post'] ), $this->post_exists( $this->ids['upper_post'] ) ),
 				'meta'         => array(
 					$this->meta_exists( 'post', "{$p}_kept" ),
 					$this->meta_exists( 'post', "{$p}_postZa" ),
@@ -212,22 +204,11 @@ trait UninstallFixturesTrait {
 		);
 	}
 
-	protected function recording_callables( array $handler_keys = array(), string $thrower = '' ): array {
-		$handlers = array();
-		foreach ( $handler_keys as $key ) {
-			$handlers[ $key ] = function ( mixed $values, array $context ) use ( $key, $thrower ): void {
-				$this->calls[] = array( 'handler', $key, $values, $context );
-				if ( 'handler' === $thrower ) {
-					throw new \RuntimeException( 'The handler failed.' );
-				}
-			};
-		}
-
+	protected function recording_cleanup( bool $throws = false ): array {
 		return array(
-			'handlers' => $handlers,
-			'cleanup'  => function ( array $context ) use ( $thrower ): void {
-				$this->calls[] = array( 'cleanup', null, null, $context );
-				if ( 'cleanup' === $thrower ) {
+			'cleanup' => function ( array $context ) use ( $throws ): void {
+				$this->calls[] = array( 'cleanup', $context );
+				if ( $throws ) {
 					throw new \RuntimeException( 'The cleanup failed.' );
 				}
 			},
@@ -334,7 +315,7 @@ trait UninstallFixturesTrait {
 		global $wpdb;
 
 		$p = $this->prefix;
-		foreach ( \array_merge( $this->ids['type'] ?? array(), array( $this->ids['foreign_post'] ?? 0, $this->ids['page'] ?? 0, $this->ids['foreign_page'] ?? 0, $this->ids['upper_post'] ?? 0 ) ) as $id ) {
+		foreach ( \array_merge( $this->ids['type'] ?? array(), array( $this->ids['foreign_post'] ?? 0, $this->ids['upper_post'] ?? 0 ) ) as $id ) {
 			if ( 0 < $id ) {
 				\wp_delete_post( $id, true );
 			}
