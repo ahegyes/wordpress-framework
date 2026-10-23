@@ -75,6 +75,7 @@ final class TermFormTest extends TestCase {
 		self::assertSame( 'Acme term', \trim( (string) $section->previousElementSibling?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'Name', \trim( (string) $section->querySelector( "tr > th[scope=row] > label[for=\"{$this->id}._{$this->prefix}_name\"]" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'Color', \trim( (string) $section->querySelector( 'tr:nth-child(2) > td > fieldset > legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertCount( 1, $section->querySelectorAll( 'tr:nth-child(2) fieldset' ) );
 		self::assertNotNull( $other->querySelector( 'form#edittag' ) );
 		self::assertNull( $other->querySelector( "input[name=\"{$this->id}_nonce\"]" ) );
 	}

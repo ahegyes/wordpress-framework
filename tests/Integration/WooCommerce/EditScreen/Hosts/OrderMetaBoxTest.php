@@ -144,20 +144,20 @@ final class OrderMetaBoxTest extends TestCase {
 	}
 
 	#[DataProvider( 'group_fields' )]
-	public function test_a_group_is_named_by_its_rows_visible_legend( array $keys ): void {
+	public function test_a_group_is_one_fieldset_named_by_its_own_legend_under_its_rows_title( array $keys ): void {
 		$order = $this->make_order();
 		$spec  = $this->spec( array( $this->field( $keys['type'], 'color', $keys + array( 'options' => self::COLORS ) ) ) );
 
 		$box = $this->box( self::document( $this->edit_screen( $spec, $order->get_id() )['body'] ) );
 
-		$row = $box->querySelector( 'fieldset.form-field' );
-		self::assertNotNull( $row );
-		self::assertSame( 'Color', \trim( (string) $box->querySelector( 'fieldset.form-field > legend.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertCount( 1, $row->querySelectorAll( 'legend' ) );
+		$fieldset = $box->querySelector( 'div.form-field > fieldset' );
+		self::assertNotNull( $fieldset );
+		self::assertCount( 1, $box->querySelectorAll( 'fieldset' ) );
+		self::assertSame( 'Color', \trim( (string) $fieldset->querySelector( 'legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Color', \trim( (string) $fieldset->parentElement?->querySelector( 'p.post-attributes-label-wrapper > span.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNull( $box->querySelector( "label.post-attributes-label[for=\"{$this->id}._{$this->prefix}_color\"]" ) );
-		self::assertNotNull( $row->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
+		self::assertNotNull( $fieldset->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
 	}
-
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
 		$order = $this->make_order(
 			array(

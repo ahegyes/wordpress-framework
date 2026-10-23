@@ -272,13 +272,16 @@ final class ProductDataTabTest extends TestCase {
 		self::assertSame( '1', $this->control( $screen, 'count' )->getAttribute( 'step' ) );
 	}
 
-	public function test_an_enabled_checkbox_posts_no_when_unchecked(): void {
+	public function test_an_enabled_checkbox_posts_no_from_before_its_row_when_unchecked(): void {
 		$product = $this->make_product();
 		$spec    = $this->spec( array( $this->group( array( $this->field( 'checkbox', 'flag' ) ) ) ) );
 
 		$screen = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
 
-		self::assertSame( 'no', $screen->querySelector( "input[type=hidden][name=\"_{$this->prefix}_flag\"]" )?->getAttribute( 'value' ) );
+		$hidden = $screen->querySelectorAll( "input[type=hidden][name=\"_{$this->prefix}_flag\"]" );
+		self::assertCount( 1, $hidden );
+		self::assertSame( 'no', $hidden[0]->getAttribute( 'value' ) );
+		self::assertSame( $this->control( $screen, 'flag' ), $hidden[0]->nextElementSibling?->querySelector( 'input[type=checkbox]' ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'yes', $this->control( $screen, 'flag' )->getAttribute( 'value' ) );
 	}
 

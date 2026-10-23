@@ -82,6 +82,7 @@ final class UserProfileTest extends TestCase {
 		self::assertSame( 'Color', \trim( (string) $section->querySelector( 'tr:nth-child(2) > th[scope=row]' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'Color', \trim( (string) $section->querySelector( 'tr:nth-child(2) > td > fieldset > legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertCount( 1, $section->querySelectorAll( 'tr:nth-child(2) legend' ) );
+		self::assertCount( 1, $section->querySelectorAll( 'tr:nth-child(2) fieldset' ) );
 	}
 
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
