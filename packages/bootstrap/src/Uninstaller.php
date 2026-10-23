@@ -67,7 +67,7 @@ final class Uninstaller {
 			try {
 				self::uninstall_site( $plugin_file, $footprint, $consent, $meta_types, $cleanup, $failures );
 			} catch ( \Throwable $throwable ) {
-				// A throw comes from another plugin's hook, and the retry finds the rest of the site's footprint and its consent row.
+				// A throw, such as one from another plugin's hook, ends only this site's pass, and the retry finds the rest of its footprint and its consent row.
 				$failures[] = "site $site_id: {$throwable->getMessage()}";
 			} finally {
 				if ( $multisite ) {
