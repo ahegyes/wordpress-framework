@@ -41,8 +41,10 @@ final class MetadataStore implements ObjectStoreInterface {
 	public function get_values( int $object_id, array $keys ): array {
 		$values = array();
 		foreach ( $keys as $key ) {
-			if ( \metadata_exists( $this->meta_type, $object_id, $key ) ) {
-				$values[ $key ] = \get_metadata( $this->meta_type, $object_id, $key, true );
+			// A NULL row reads as absent, as the metadata API reads it, where get_metadata() would return the registered default.
+			$value = \get_metadata_raw( $this->meta_type, $object_id, $key, true );
+			if ( ! \is_null( $value ) ) {
+				$values[ $key ] = $value;
 			}
 		}
 
