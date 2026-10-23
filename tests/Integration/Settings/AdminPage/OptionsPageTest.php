@@ -8,6 +8,7 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -80,28 +81,39 @@ final class OptionsPageTest extends TestCase {
 	public function test_an_invalid_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new OptionsPage( $id, static fn (): array => array() );
+		new OptionsPage( $id, new RecordedDefinition( static fn (): array => array() ) );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_id( string $id ): void {
-		self::assertInstanceOf( OptionsPage::class, new OptionsPage( $id, static fn (): array => array() ) );
+		self::assertInstanceOf( OptionsPage::class, new OptionsPage( $id, new RecordedDefinition( static fn (): array => array() ) ) );
 	}
 
 	public function test_the_definition_is_evaluated_neither_at_construction_nor_at_registration(): void {
-		$calls = 0;
-		$page  = new OptionsPage(
-			$this->id,
-			static function () use ( &$calls ): array {
-				++$calls;
-
-				return array();
-			}
-		);
+		$definition = new RecordedDefinition( static fn (): array => array() );
+		$page       = new OptionsPage( $this->id, $definition );
 
 		$page->register_hooks();
 
-		self::assertSame( 0, $calls );
+		self::assertSame( array(), $definition->calls );
+	}
+
+	public function test_the_definition_receives_the_pages_id_once(): void {
+		$definition = new RecordedDefinition(
+			static fn (): array => array(
+				'parent'     => 'options-general.php',
+				'capability' => 'manage_options',
+				'page_title' => 'Acme',
+				'menu_title' => 'Acme',
+				'tabs'       => array(),
+			)
+		);
+		$page       = new OptionsPage( $this->id, $definition );
+
+		$page->get_capability();
+		$page->get_capability();
+
+		self::assertSame( array( array( $this->id ) ), $definition->calls );
 	}
 
 	public function test_a_first_save_validates_once_and_stores_the_result_without_an_error(): void {

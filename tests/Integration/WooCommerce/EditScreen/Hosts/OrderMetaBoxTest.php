@@ -8,6 +8,7 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\WooCommerce\EditScreen\OrderFixturesTrait;
@@ -64,7 +65,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_is_added_on_add_meta_boxes(): void {
 		$host = new OrderMetaBox();
-		( new ObjectForm( $this->id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
@@ -211,7 +212,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_saves_before_woocommerces_order_data(): void {
 		$host = new OrderMetaBox();
-		( new ObjectForm( $this->id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		self::assertSame( 35, \has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
 	}
@@ -338,10 +339,12 @@ final class OrderMetaBoxTest extends TestCase {
 		$order = $this->make_order( array( "_{$this->prefix}_name" => 'kept' ) );
 		$form  = new ObjectForm(
 			$this->id,
-			fn (): array => array(
-				'title'      => 'Acme details',
-				'capability' => 'edit_shop_orders',
-				'fields'     => array( $this->field( 'text', 'name' ) ),
+			new RecordedDefinition(
+				fn (): array => array(
+					'title'      => 'Acme details',
+					'capability' => 'edit_shop_orders',
+					'fields'     => array( $this->field( 'text', 'name' ) ),
+				)
 			),
 			new OrderMetaBox(),
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )

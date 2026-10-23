@@ -8,6 +8,7 @@
  */
 
 use DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 
 require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
 
@@ -41,7 +42,7 @@ add_action(
 	static function () use ( $spec, $acme_with_behaviors ): void {
 		$page = new OptionsPage(
 			$spec['id'],
-			static fn (): array => array( 'tabs' => $acme_with_behaviors( $spec['page']['tabs'] ) ) + $spec['page']
+			new RecordedDefinition( static fn (): array => array( 'tabs' => $acme_with_behaviors( $spec['page']['tabs'] ) ) + $spec['page'] )
 		);
 		$page->register_hooks();
 	}

@@ -9,6 +9,7 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -60,7 +61,7 @@ final class UserProfileTest extends TestCase {
 
 	public function test_the_host_registers_on_both_profile_screens(): void {
 		$host = new UserProfile();
-		( new ObjectForm( $this->id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		self::assertSame( 10, \has_action( 'show_user_profile', array( $host, 'render_section' ) ) );
 		self::assertSame( 10, \has_action( 'edit_user_profile', array( $host, 'render_section' ) ) );
@@ -191,10 +192,12 @@ final class UserProfileTest extends TestCase {
 		\add_user_meta( $this->subscriber, "_{$this->prefix}_name", 'kept' );
 		$form = new ObjectForm(
 			$this->id,
-			fn (): array => array(
-				'title'      => 'Acme profile',
-				'capability' => 'edit_users',
-				'fields'     => array( $this->field( 'text', 'name' ) ),
+			new RecordedDefinition(
+				fn (): array => array(
+					'title'      => 'Acme profile',
+					'capability' => 'edit_users',
+					'fields'     => array( $this->field( 'text', 'name' ) ),
+				)
 			),
 			new UserProfile(),
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )

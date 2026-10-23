@@ -7,6 +7,7 @@
  * @package Acme
  */
 
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\WooCommerce\Setting\SettingsSection;
 use DeepWebSolutions\Framework\WooCommerce\Setting\SettingsTab;
 
@@ -46,20 +47,13 @@ if ( isset( $spec['tab'] ) ) {
 	add_filter(
 		'woocommerce_get_settings_pages',
 		static function ( array $pages ) use ( $spec, $acme_with_behaviors ): array {
-			$sections = array();
-			foreach ( $spec['tab']['sections'] as $section_id => $section ) {
-				$sections[ $section_id ] = array(
-					'label'  => $section['label'],
-					'fields' => static fn (): array => $acme_with_behaviors( $section['fields'] ),
-				);
-			}
-
 			$pages[] = new SettingsTab(
 				$spec['tab']['id'],
-				static fn (): array => array(
+				array(
 					'label'    => $spec['tab']['label'],
-					'sections' => $sections,
-				)
+					'sections' => array_map( static fn ( array $section ): string => $section['label'], $spec['tab']['sections'] ),
+				),
+				new RecordedDefinition( static fn ( string $tab_id, string $section_id ): array => $acme_with_behaviors( $spec['tab']['sections'][ $section_id ]['fields'] ) )
 			);
 
 			return $pages;
@@ -74,11 +68,11 @@ if ( isset( $spec['section'] ) ) {
 			$registry->register(
 				new SettingsSection(
 					$spec['section']['id'],
-					static fn (): array => array(
-						'tab'    => $spec['section']['tab'],
-						'label'  => $spec['section']['label'],
-						'fields' => static fn (): array => $acme_with_behaviors( $spec['section']['fields'] ),
-					)
+					array(
+						'tab'   => $spec['section']['tab'],
+						'label' => $spec['section']['label'],
+					),
+					new RecordedDefinition( static fn (): array => $acme_with_behaviors( $spec['section']['fields'] ) )
 				)
 			);
 		}
