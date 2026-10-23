@@ -226,6 +226,16 @@ final class OptionRowsTest extends TestCase {
 		$operation( $rows, $row );
 	}
 
+	// A filter that empties a query makes wpdb return false before it clears the previous query's result.
+	public function test_a_read_whose_query_never_runs_returns_no_row_of_an_earlier_read(): void {
+		$rows = new OptionRows();
+		$rows->upsert( "{$this->prefix}_other", 'Other.' );
+		$rows->get( "{$this->prefix}_other" );
+		\add_filter( 'query', fn ( string $query ): string => \str_contains( $query, "'{$this->prefix}_absent'" ) ? '' : $query );
+
+		self::assertNull( $rows->get( "{$this->prefix}_absent" ) );
+	}
+
 	public static function invalid_calls(): array {
 		return array(
 			'empty-name'       => array( static fn ( OptionRows $rows ): mixed => $rows->get( '' ) ),

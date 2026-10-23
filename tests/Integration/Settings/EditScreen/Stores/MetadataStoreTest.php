@@ -46,6 +46,21 @@ final class MetadataStoreTest extends TestCase {
 	}
 
 	#[DataProvider( 'meta_types' )]
+	public function test_a_null_row_reads_as_absent_with_or_without_a_registered_default( string $meta_type ): void {
+		$object_id = $this->make_object( $meta_type );
+		\register_meta( $meta_type, "_{$this->prefix}_registered", array( 'default' => 'Registered default.' ) );
+
+		try {
+			\update_metadata( $meta_type, $object_id, "_{$this->prefix}_registered", null );
+			\update_metadata( $meta_type, $object_id, "_{$this->prefix}_plain", null );
+
+			self::assertSame( array(), ( new MetadataStore( $meta_type ) )->get_values( $object_id, array( "_{$this->prefix}_registered", "_{$this->prefix}_plain" ) ) );
+		} finally {
+			\unregister_meta_key( $meta_type, "_{$this->prefix}_registered" );
+		}
+	}
+
+	#[DataProvider( 'meta_types' )]
 	public function test_values_are_stored_as_given_backslashes_included( string $meta_type ): void {
 		$object_id = $this->make_object( $meta_type );
 		\add_metadata( $meta_type, $object_id, "_{$this->prefix}_text", 'old' );

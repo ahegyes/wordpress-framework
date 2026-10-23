@@ -70,6 +70,7 @@ final class WooCommerceLoggerTest extends TestCase {
 			'logging-off'       => array( 'woocommerce_logs_logging_enabled', 'no' ),
 			'threshold-above'   => array( 'woocommerce_logs_level_threshold', PsrLogLevel::CRITICAL ),
 			'threshold-at-it'   => array( 'woocommerce_logs_level_threshold', PsrLogLevel::ERROR, false ),
+			'threshold-in-caps' => array( 'woocommerce_logs_level_threshold', 'CRITICAL' ),
 			'logging-on-by-yes' => array( 'woocommerce_logs_logging_enabled', 'yes', false ),
 		);
 	}

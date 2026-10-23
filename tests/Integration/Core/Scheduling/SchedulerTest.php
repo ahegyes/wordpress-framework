@@ -7,6 +7,7 @@ use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Recurrence;
 use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( ActionSchedulerBackend::class )]
 #[CoversClass( WpCronBackend::class )]
 final class SchedulerTest extends TestCase {
+	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 
 	protected const string GROUP = 'acme';
@@ -486,6 +488,13 @@ final class SchedulerTest extends TestCase {
 		\add_filter( 'pre_unschedule_hook', static fn (): \WP_Error => new \WP_Error( 'acme_clear_failed' ) );
 
 		self::assert_wp_error( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ), 'acme_clear_failed' );
+	}
+
+	public function test_a_failed_action_scheduler_lookup_is_returned_by_unscheduling_a_hook(): void {
+		\as_enqueue_async_action( $this->hook );
+		$this->fail_queries( "a.hook='$this->hook'" );
+
+		self::assert_wp_error( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ), 'scheduler_failed' );
 	}
 
 	public function test_a_wp_cron_duplicate_event_is_success(): void {

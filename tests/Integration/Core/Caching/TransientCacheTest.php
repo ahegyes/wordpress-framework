@@ -353,6 +353,15 @@ final class TransientCacheTest extends TestCase {
 		self::assertFalse( $cache->delete( 'key' ) );
 	}
 
+	// A timeout row left behind would expire the next entry stored under the name, because set_transient() keeps an existing timeout.
+	public function test_a_delete_that_leaves_the_timeout_row_returns_false(): void {
+		$cache = $this->cache();
+		$cache->set( 'key', 'Value.' );
+		$this->fail_queries( "_transient_timeout_{$this->prefix}_" . \md5( 'key' ) );
+
+		self::assertFalse( $cache->delete( 'key' ) );
+	}
+
 	public function test_behind_a_persistent_object_cache_the_same_results_hold(): void {
 		$previous = \wp_using_ext_object_cache( true );
 

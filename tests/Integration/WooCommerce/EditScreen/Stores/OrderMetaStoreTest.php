@@ -88,6 +88,34 @@ final class OrderMetaStoreTest extends TestCase {
 	}
 
 	#[DataProvider( 'order_storages' )]
+	public function test_an_integer_like_key_keeps_one_row_through_repeated_writes( string $storage ): void {
+		$this->use_order_storage( $storage );
+		$order = $this->make_order();
+		$store = new OrderMetaStore();
+
+		$store->update_values(
+			$order->get_id(),
+			array(
+				'123' => 'first',
+				'-9'  => 'first',
+				'0'   => 'first',
+			)
+		);
+		$store->update_values(
+			$order->get_id(),
+			array(
+				'123' => 'second',
+				'-9'  => 'second',
+				'0'   => 'second',
+			)
+		);
+
+		self::assertSame( array( 'second' ), $this->order_meta( $order->get_id(), '123' ) );
+		self::assertSame( array( 'second' ), $this->order_meta( $order->get_id(), '-9' ) );
+		self::assertSame( array( 'second' ), $this->order_meta( $order->get_id(), '0' ) );
+	}
+
+	#[DataProvider( 'order_storages' )]
 	public function test_a_write_saves_the_order_once_so_its_update_hook_sees_the_values( string $storage ): void {
 		$this->use_order_storage( $storage );
 		$order = $this->make_order();
