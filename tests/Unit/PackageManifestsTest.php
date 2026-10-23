@@ -3,6 +3,8 @@
 namespace DeepWebSolutions\Framework\Tests\Unit;
 
 use PhpParser\Node\Name;
+use PhpParser\Node\Stmt\ClassLike;
+use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
@@ -131,6 +133,23 @@ final class PackageManifestsTest extends TestCase {
 		self::assertSame( array(), $missing );
 	}
 
+	public static function source_directories(): array {
+		return array(
+			'bootstrap'             => array( 'bootstrap/src', 'DeepWebSolutions\\Framework\\Bootstrap\\' ),
+			'shared'                => array( 'shared/src', 'DeepWebSolutions\\Framework\\Shared\\' ),
+			'core'                  => array( 'core/src', 'DeepWebSolutions\\Framework\\' ),
+			'settings'              => array( 'settings/src', 'DeepWebSolutions\\Framework\\Settings\\' ),
+			'woocommerce'           => array( 'woocommerce/src', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
+			'woocommerce-bootstrap' => array( 'woocommerce/uninstall', 'DeepWebSolutions\\Framework\\WooCommerce\\Bootstrap\\' ),
+		);
+	}
+
+	// Composer drops PSR-4 violations under vendor/ without a word, so a misplaced package class would autoload in no consumer.
+	#[DataProvider( 'source_directories' )]
+	public function test_every_package_class_sits_at_the_path_its_name_implies( string $directory, string $prefix ): void {
+		self::assertSame( array(), self::misplaced_classes( self::packages_directory() . "/$directory", $prefix ) );
+	}
+
 	public function test_a_class_away_from_the_path_its_name_implies_is_misplaced(): void {
 		// The fixture is written at run time, because a misplaced class under tests/ would fail Composer's strict PSR-4 check.
 		$directory = \sys_get_temp_dir() . '/acme-placement-' . \bin2hex( \random_bytes( 3 ) );
@@ -161,6 +180,28 @@ final class PackageManifestsTest extends TestCase {
 		}
 
 		return \array_values( \array_unique( $closure ) );
+	}
+
+	protected static function misplaced_classes( string $directory, string $prefix ): array {
+		$misplaced = array();
+		$files     = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $directory, \FilesystemIterator::SKIP_DOTS ) );
+		foreach ( new \RegexIterator( $files, '/\.php$/' ) as $file ) {
+			$path     = \substr( $file->getPathname(), \strlen( $directory ) + 1 );
+			$expected = $prefix . \str_replace( '/', '\\', \substr( $path, 0, -4 ) );
+			$nodes    = ( new ParserFactory() )->createForHostVersion()->parse( \file_get_contents( $file->getPathname() ) );
+			foreach ( ( new NodeFinder() )->findInstanceOf( $nodes, Namespace_::class ) as $namespace ) {
+				foreach ( ( new NodeFinder() )->findInstanceOf( $namespace->stmts, ClassLike::class ) as $class ) {
+					$name = $namespace->name?->toString() . '\\' . $class->name?->toString();
+					if ( ! \is_null( $class->name ) && $expected !== $name ) {
+						$misplaced[] = "$path: $name";
+					}
+				}
+			}
+		}
+
+		\sort( $misplaced );
+
+		return $misplaced;
 	}
 
 	protected static function packages_directory(): string {
