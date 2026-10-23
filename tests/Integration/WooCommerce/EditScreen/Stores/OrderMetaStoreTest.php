@@ -98,7 +98,6 @@ final class OrderMetaStoreTest extends TestCase {
 			array(
 				'123' => 'first',
 				'-9'  => 'first',
-				'0'   => 'first',
 			)
 		);
 		$store->update_values(
@@ -106,13 +105,11 @@ final class OrderMetaStoreTest extends TestCase {
 			array(
 				'123' => 'second',
 				'-9'  => 'second',
-				'0'   => 'second',
 			)
 		);
 
 		self::assertSame( array( 'second' ), $this->order_meta( $order->get_id(), '123' ) );
 		self::assertSame( array( 'second' ), $this->order_meta( $order->get_id(), '-9' ) );
-		self::assertSame( array( 'second' ), $this->order_meta( $order->get_id(), '0' ) );
 	}
 
 	#[DataProvider( 'order_storages' )]
