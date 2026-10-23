@@ -9,6 +9,8 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( Uninstaller::class )]
@@ -43,31 +45,26 @@ final class UninstallerOnNetworkTest extends TestCase {
 		while ( \ms_is_switched() ) {
 			\restore_current_blog();
 		}
-		$this->on_site( $this->other_site, fn () => \wp_unschedule_hook( "{$this->prefix}_cron" ) );
+		foreach ( \get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		) as $site_id ) {
+			$this->on_site( (int) $site_id, fn () => \wp_unschedule_hook( "{$this->prefix}_cron" ) );
+		}
 	}
 
-	public function test_a_default_run_cleans_only_the_current_site_and_keeps_global_user_meta(): void {
-		$this->seed_site( $this->main_site, 'yes' );
+	public function test_a_subsite_only_plugin_deleted_from_the_network_admin_cleans_its_subsite_and_unschedules_everywhere(): void {
+		$this->seed_site( $this->main_site, null );
 		$this->seed_site( $this->other_site, 'yes' );
 
 		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
 
-		self::assertSame( array( false, false, false, false ), $this->site_state( $this->main_site ) );
-		self::assertSame( array( true, true, true, true ), $this->site_state( $this->other_site ) );
-		self::assertTrue( $this->user_meta_exists( "{$this->prefix}_global_state" ) );
-		self::assertSame( array( "handler:site:$this->main_site", "cleanup:site:$this->main_site" ), $this->summarize_calls() );
-	}
-
-	public function test_a_network_run_cleans_each_site_by_its_own_consent_and_unschedules_on_every_site(): void {
-		$this->seed_site( $this->main_site, 'no' );
-		$this->seed_site( $this->other_site, 'yes' );
-
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args() );
-
-		self::assertSame( array( true, true, false, true ), $this->site_state( $this->main_site ) );
+		self::assertSame( array( true, true, false, false ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->other_site ) );
 		self::assertTrue( $this->user_meta_exists( "{$this->prefix}_global_state" ) );
-		self::assertSame( array( "handler:site:$this->other_site", "cleanup:site:$this->other_site" ), $this->summarize_calls() );
+		self::assertSame( array( "cleanup:site:$this->other_site" ), $this->summarize_calls() );
 	}
 
 	public static function constant_consents(): array {
@@ -82,7 +79,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( $constant ) );
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( $constant ) );
 
 		// The constant consents for every site of the network, which may hold more sites than the test created.
 		$consenting = $constant ? \get_sites(
@@ -93,28 +90,68 @@ final class UninstallerOnNetworkTest extends TestCase {
 		) : array( $this->main_site, $this->other_site );
 		$expected   = array();
 		foreach ( $consenting as $site_id ) {
-			\array_push( $expected, "handler:site:$site_id", "cleanup:site:$site_id" );
+			$expected[] = "cleanup:site:$site_id";
 		}
 		if ( $constant ) {
-			\array_push( $expected, "handler:network:$this->main_site", "cleanup:network:$this->main_site" );
+			$expected[] = "cleanup:network:$this->main_site";
 		}
 		self::assertSame( $expected, $this->summarize_calls() );
 		self::assertSame( ! $constant, $this->user_meta_exists( "{$this->prefix}_global_state" ) );
 	}
 
-	public function test_a_large_network_cleans_only_the_current_site_and_logs_it(): void {
+	public function test_a_web_request_on_a_large_network_refuses_before_any_change_and_names_wp_plugin_uninstall(): void {
+		self::assertFalse( \defined( 'WP_CLI' ) );
 		\add_filter( 'wp_is_large_network', '__return_true' );
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		$log = $this->capture_error_log( fn () => Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), array( 'network' => true ) + $this->args( true ) ) );
+		$failure = null;
+		try {
+			Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( true ) );
+		} catch ( \RuntimeException $exception ) {
+			$failure = $exception;
+		}
 
-		self::assertCount( 1, $log );
-		self::assertStringEndsWith( '] Uninstall cleaned only the current site, because the network is large.', $log[0] );
-		self::assertSame( array( false, false, false, false ), $this->site_state( $this->main_site ) );
+		self::assertInstanceOf( \RuntimeException::class, $failure );
+		self::assertStringContainsString( '`wp plugin uninstall`', $failure->getMessage() );
+		self::assertSame( array( true, true, true, true ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( true, true, true, true ), $this->site_state( $this->other_site ) );
 		self::assertTrue( $this->user_meta_exists( "{$this->prefix}_global_state" ) );
-		self::assertSame( array( "handler:site:$this->main_site", "cleanup:site:$this->main_site" ), $this->summarize_calls() );
+		self::assertSame( array(), $this->calls );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_wp_cli_sweeps_a_large_network(): void {
+		\define( 'WP_CLI', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WP-CLI's own constant, in a process of its own.
+		\add_filter( 'wp_is_large_network', '__return_true' );
+		$this->seed_site( $this->main_site, 'yes' );
+		$this->seed_site( $this->other_site, 'yes' );
+
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
+
+		self::assertSame( array( false, false, false, false ), $this->site_state( $this->main_site ) );
+		self::assertSame( array( false, false, false, false ), $this->site_state( $this->other_site ) );
+	}
+
+	public function test_memory_stays_flat_across_a_sixty_site_sweep(): void {
+		$site_ids = \array_map( fn ( int $number ): int => $this->make_site( "acme-sweep-$number" ), \range( 1, 60 ) );
+		foreach ( $site_ids as $site_id ) {
+			$this->on_site( $site_id, fn () => \wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" ) );
+		}
+		\wp_cache_flush();
+		\gc_collect_cycles();
+		$before = \memory_get_usage();
+
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
+
+		\gc_collect_cycles();
+		$growth = \memory_get_usage() - $before;
+		foreach ( $site_ids as $site_id ) {
+			self::assertFalse( $this->on_site( $site_id, fn () => \wp_next_scheduled( "{$this->prefix}_cron" ) ) );
+		}
+		// Each visited site would otherwise keep about 35 KB of options in WordPress's runtime cache.
+		self::assertLessThan( 1024 * 1024, $growth );
 	}
 
 	protected function network_footprint(): array {
@@ -123,7 +160,6 @@ final class UninstallerOnNetworkTest extends TestCase {
 			'user_meta_site'   => array( "{$this->prefix}_site_state" ),
 			'user_meta_global' => array( "{$this->prefix}_global_state" ),
 			'cron_hooks'       => array( "{$this->prefix}_cron" ),
-			'order_meta'       => array(),
 		);
 	}
 
@@ -134,16 +170,19 @@ final class UninstallerOnNetworkTest extends TestCase {
 			\define( $consent['constant'], true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound -- A unique name per test, since a constant cannot be undefined.
 		}
 
-		return array( 'consent' => $consent ) + $this->recording_callables( array( 'order_meta' ) );
+		return array( 'consent' => $consent ) + $this->recording_cleanup();
 	}
 
-	protected function seed_site( int $site_id, string $consent ): void {
+	// A null consent leaves the consent option unset, as on a site where the plugin never ran.
+	protected function seed_site( int $site_id, ?string $consent ): void {
 		$this->on_site(
 			$site_id,
 			function () use ( $consent ): void {
 				global $wpdb;
 
-				\update_option( "{$this->prefix}_remove_data", $consent );
+				if ( null !== $consent ) {
+					\update_option( "{$this->prefix}_remove_data", $consent );
+				}
 				\update_option( "{$this->prefix}_settings", 'x' );
 				\add_user_meta( $this->user, $wpdb->get_blog_prefix() . "{$this->prefix}_site_state", 'x' );
 				\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
@@ -168,7 +207,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 	}
 
 	protected function summarize_calls(): array {
-		return \array_map( static fn ( array $call ): string => "{$call[0]}:{$call[3]['scope']}:{$call[3]['site_id']}", $this->calls );
+		return \array_map( static fn ( array $call ): string => "{$call[0]}:{$call[1]['scope']}:{$call[1]['site_id']}", $this->calls );
 	}
 
 	protected function on_site( int $site_id, \Closure $operation ): mixed {

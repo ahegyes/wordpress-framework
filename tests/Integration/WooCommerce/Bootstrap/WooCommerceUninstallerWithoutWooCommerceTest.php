@@ -31,8 +31,8 @@ final class WooCommerceUninstallerWithoutWooCommerceTest extends TestCase {
 			self::PLUGIN_FILE,
 			$this->order_footprint(),
 			array(
-				'consent'  => array( 'option' => "{$this->prefix}_remove_data" ),
-				'handlers' => WooCommerceUninstaller::get_handlers(),
+				'consent'    => array( 'option' => "{$this->prefix}_remove_data" ),
+				'meta_types' => WooCommerceUninstaller::get_meta_types(),
 			)
 		);
 

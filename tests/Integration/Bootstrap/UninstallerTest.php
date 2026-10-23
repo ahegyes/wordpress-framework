@@ -59,9 +59,9 @@ final class UninstallerTest extends TestCase {
 	}
 
 	#[DataProvider( 'retaining_consents' )]
-	public function test_a_run_without_consent_keeps_the_footprint_and_calls_no_handler( \Closure $consent ): void {
+	public function test_a_run_without_consent_keeps_the_footprint_and_runs_no_cleanup( \Closure $consent ): void {
 		$this->seed_footprint();
-		$args           = $consent( $this->prefix ) + $this->recording_callables();
+		$args           = $consent( $this->prefix ) + $this->recording_cleanup();
 		$consent_stored = $this->option_exists( "{$this->prefix}_remove_data" );
 
 		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $args );
@@ -83,7 +83,7 @@ final class UninstallerTest extends TestCase {
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 
-	public function test_the_consent_row_survives_every_prefix_delete_until_after_the_cleanup(): void {
+	public function test_the_cleanup_runs_first_while_the_footprint_and_the_consent_row_are_stored(): void {
 		$consent_option = "{$this->prefix}_cache_remove_data";
 		\update_option( $consent_option, 'yes' );
 		\update_option( "{$this->prefix}_cache_a", 'a' );
@@ -103,24 +103,20 @@ final class UninstallerTest extends TestCase {
 			)
 		);
 
-		self::assertSame( array( false, true ), $seen );
+		self::assertSame( array( true, true ), $seen );
+		self::assertFalse( $this->option_exists( "{$this->prefix}_cache_a" ) );
 		self::assertFalse( $this->option_exists( $consent_option ) );
 	}
 
-	public function test_handlers_and_the_cleanup_run_once_with_their_values_and_the_site_context(): void {
+	public function test_the_cleanup_runs_once_with_the_site_context(): void {
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		\update_option( "{$this->prefix}_settings", 'x' );
-		$args            = $this->recording_callables( array( 'order_meta', 'order_item_meta' ) );
-		$args['consent'] = array( 'option' => "{$this->prefix}_remove_data" );
 
 		$log = $this->capture_error_log(
 			fn () => Uninstaller::run(
 				self::PLUGIN_FILE,
-				array(
-					'options'    => array( "{$this->prefix}_settings" ),
-					'order_meta' => array( "_{$this->prefix}_order" ),
-				),
-				$args
+				array( 'options' => array( "{$this->prefix}_settings" ) ),
+				array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_cleanup()
 			)
 		);
 
@@ -130,13 +126,7 @@ final class UninstallerTest extends TestCase {
 			'site_id'     => \get_current_blog_id(),
 			'plugin_file' => self::PLUGIN_FILE,
 		);
-		self::assertSame(
-			array(
-				array( 'handler', 'order_meta', array( "_{$this->prefix}_order" ), $context ),
-				array( 'cleanup', null, null, $context ),
-			),
-			$this->calls
-		);
+		self::assertSame( array( array( 'cleanup', $context ) ), $this->calls );
 	}
 
 	public function test_a_footprint_key_the_engine_cannot_read_is_logged_once_and_skipped(): void {
@@ -147,19 +137,24 @@ final class UninstallerTest extends TestCase {
 			fn () => Uninstaller::run(
 				self::PLUGIN_FILE,
 				array(
-					'optoins'    => array( "{$this->prefix}_settings" ),
-					'order_meta' => array( "_{$this->prefix}_order" ),
-					'transients' => "{$this->prefix}_transient",
-					'meta'       => array( 'user' => array( "{$this->prefix}_flag" ) ),
-					'tables'     => array( '' ),
-					'options'    => array( "{$this->prefix}_settings" ),
+					'optoins'       => array( "{$this->prefix}_settings" ),
+					'order_meta'    => array( "_{$this->prefix}_order" ),
+					'transients'    => "{$this->prefix}_transient",
+					'page_options'  => array( "{$this->prefix}_page_id" ),
+					'meta'          => array( 'user' => array( "{$this->prefix}_flag" ) ),
+					'meta_prefixes' => array( 'acme' => array( "{$this->prefix}_" ) ),
+					'tables'        => array( '' ),
+					'options'       => array( "{$this->prefix}_settings" ),
 				),
-				array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
+				array(
+					'consent'    => array( 'option' => "{$this->prefix}_remove_data" ),
+					'meta_types' => array( 'acme' => array( 'meta_tables' => "{$this->prefix}_meta" ) ),
+				)
 			)
 		);
 
 		self::assertCount( 1, $lines );
-		self::assertStringEndsWith( '] Uninstall skipped the footprint keys it cannot read: optoins, order_meta, transients, meta, tables', $lines[0] );
+		self::assertStringEndsWith( '] Uninstall skipped the footprint keys it cannot read: optoins, order_meta, transients, page_options, meta, meta_prefixes, tables', $lines[0] );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertSame( 'x', \get_transient( "{$this->prefix}_transient" ) );
 	}
@@ -185,21 +180,6 @@ final class UninstallerTest extends TestCase {
 		self::assertStringContainsString( "] Uninstall could not unschedule: cron hook {$this->prefix}_cron: ", $log[0] );
 		$this->assert_footprint_deleted();
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
-	}
-
-	public function test_a_page_option_holding_no_page_deletes_no_post(): void {
-		$this->seed_footprint();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		\update_option( "{$this->prefix}_page_id", '0' );
-		$GLOBALS['post'] = \get_post( $this->ids['foreign_page'] ); // WordPress reads the global post for an id of 0.
-		try {
-			Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
-		} finally {
-			unset( $GLOBALS['post'] );
-		}
-
-		self::assertTrue( $this->post_exists( $this->ids['foreign_page'] ) );
-		self::assertFalse( $this->option_exists( "{$this->prefix}_page_id" ) );
 	}
 
 	#[DataProvider( 'retaining_and_consenting' )]
@@ -277,6 +257,24 @@ final class UninstallerTest extends TestCase {
 		self::assertTrue( \as_has_scheduled_action( "{$this->prefix}_foreign_as" ) );
 	}
 
+	public function test_an_action_scheduler_hook_or_group_named_0_cancels_no_other_action(): void {
+		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_foreign_as" );
+		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_grouped", array(), "$this->prefix-group" );
+
+		Uninstaller::run(
+			self::PLUGIN_FILE,
+			array(
+				'as_hooks'  => array( '0' ),
+				'as_groups' => array( '0' ),
+			),
+			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
+		);
+
+		self::assertTrue( \as_has_scheduled_action( "{$this->prefix}_foreign_as" ) );
+		self::assertTrue( \as_has_scheduled_action( "{$this->prefix}_grouped" ) );
+	}
+
 	public static function failing_statements(): array {
 		return array(
 			'an-option-delete' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings' ),
@@ -291,12 +289,12 @@ final class UninstallerTest extends TestCase {
 
 		$this->seed_footprint();
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		$args = array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_callables( array( 'order_meta' ) );
+		$args = array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_cleanup();
 		$this->fail_queries( $needle( $wpdb, $this->prefix ) );
 
 		$failure = null;
 		try {
-			Uninstaller::run( self::PLUGIN_FILE, array( 'order_meta' => array() ) + $this->footprint(), $args );
+			Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $args );
 		} catch ( \RuntimeException $exception ) {
 			$failure = $exception;
 		}
@@ -305,7 +303,7 @@ final class UninstallerTest extends TestCase {
 		self::assertStringContainsString( $this->prefix . $subject, $failure->getMessage() );
 		self::assertTrue( $this->$kept( $this->prefix . $row ) );
 		self::assertFalse( $this->table_exists( "{$this->prefix}_log" ) );
-		self::assertSame( array( 'handler', 'cleanup' ), \array_column( $this->calls, 0 ) );
+		self::assertSame( array( 'cleanup' ), \array_column( $this->calls, 0 ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
 
 		\remove_all_filters( 'query' );
@@ -318,13 +316,13 @@ final class UninstallerTest extends TestCase {
 
 	public static function refused_deletes(): array {
 		return array(
-			'a-post'     => array( 'pre_delete_post', '_type', true ),
-			'a-meta-row' => array( 'delete_post_metadata_by_mid', '_flag', false ),
+			'a-post'     => array( 'pre_delete_post', '_type' ),
+			'a-meta-row' => array( 'delete_post_metadata_by_mid', '_flag' ),
 		);
 	}
 
 	#[DataProvider( 'refused_deletes' )]
-	public function test_a_delete_wordpress_refuses_is_thrown_after_the_rest_and_a_retry_completes( string $filter, string $subject, bool $page_option_kept ): void {
+	public function test_a_delete_wordpress_refuses_is_thrown_after_the_rest_and_a_retry_completes( string $filter, string $subject ): void {
 		$this->seed_footprint();
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
@@ -347,7 +345,6 @@ final class UninstallerTest extends TestCase {
 		self::assertStringContainsString( $this->prefix . $subject, $failure->getMessage() );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
-		self::assertSame( $page_option_kept, $this->option_exists( "{$this->prefix}_page_id" ) );
 
 		Uninstaller::run(
 			self::PLUGIN_FILE,
@@ -359,38 +356,29 @@ final class UninstallerTest extends TestCase {
 		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron" ) );
 	}
 
-	public static function throwing_callables(): array {
-		return array(
-			'handler' => array( 'handler' ),
-			'cleanup' => array( 'cleanup' ),
-		);
-	}
-
-	#[DataProvider( 'throwing_callables' )]
-	public function test_a_throwing_handler_or_cleanup_keeps_the_consent_row_and_throws_after_the_rest( string $thrower ): void {
+	public function test_a_failing_cleanup_keeps_that_sites_footprint_and_consent_row_and_throws_after_the_rest(): void {
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
 		\update_option( "{$this->prefix}_settings", 'x' );
-		$args            = $this->recording_callables( array( 'order_meta' ), $thrower );
-		$args['consent'] = array( 'option' => "{$this->prefix}_remove_data" );
+		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
 
 		$failure = null;
 		try {
 			Uninstaller::run(
 				self::PLUGIN_FILE,
 				array(
+					'cron_hooks' => array( "{$this->prefix}_cron" ),
 					'options'    => array( "{$this->prefix}_settings" ),
-					'order_meta' => array(),
 				),
-				$args
+				array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_cleanup( true )
 			);
 		} catch ( \RuntimeException $exception ) {
 			$failure = $exception;
 		}
 
 		self::assertInstanceOf( \RuntimeException::class, $failure );
-		self::assertStringContainsString( "$thrower failed", $failure->getMessage() );
-		self::assertSame( array( 'handler', 'cleanup' ), \array_column( $this->calls, 0 ) );
-		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
+		self::assertStringContainsString( 'cleanup: The cleanup failed.', $failure->getMessage() );
+		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron" ) );
+		self::assertTrue( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 

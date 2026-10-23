@@ -37,16 +37,8 @@ final class WooCommerceUninstallerTest extends TestCase {
 		);
 	}
 
-	public static function unreadable_values(): array {
-		return array(
-			'not-a-list'   => array( 'order_meta', 'x' ),
-			'empty-prefix' => array( 'order_meta_prefixes', array( '' ) ),
-			'not-a-string' => array( 'order_item_meta', array( 5 ) ),
-		);
-	}
-
-	public function test_the_handlers_cover_the_woocommerce_footprint_keys(): void {
-		self::assertSame( array( 'order_meta', 'order_meta_prefixes', 'order_item_meta' ), \array_keys( WooCommerceUninstaller::get_handlers() ) );
+	public function test_the_meta_types_are_named_order_and_order_item(): void {
+		self::assertSame( array( 'order', 'order_item' ), \array_keys( WooCommerceUninstaller::get_meta_types() ) );
 	}
 
 	public function test_a_consenting_uninstall_deletes_exactly_the_order_keys_from_post_meta_and_both_order_tables(): void {
@@ -78,35 +70,6 @@ final class WooCommerceUninstallerTest extends TestCase {
 		self::assertFalse( \wp_cache_get( "{$this->prefix}_entry", $group ) );
 	}
 
-	public function test_the_handlers_leave_the_network_pass_alone(): void {
-		$this->seed_order_meta();
-
-		foreach ( WooCommerceUninstaller::get_handlers() as $key => $handler ) {
-			$handler(
-				$this->order_footprint()[ $key ],
-				array(
-					'scope'       => 'network',
-					'site_id'     => \get_current_blog_id(),
-					'plugin_file' => self::PLUGIN_FILE,
-				)
-			);
-		}
-
-		self::assertSame( $this->sorted( $this->order_meta_keys() ), $this->meta_keys_in( 'postmeta' ) );
-		self::assertSame( $this->sorted( $this->order_meta_keys() ), $this->meta_keys_in( 'wc_orders_meta' ) );
-	}
-
-	#[DataProvider( 'unreadable_values' )]
-	public function test_a_value_a_handler_cannot_read_is_logged_and_skipped( string $key, mixed $value ): void {
-		$this->seed_order_meta();
-
-		$lines = $this->capture_error_log( fn () => $this->uninstall( array( $key => $value ) ) );
-
-		self::assertCount( 1, $lines );
-		self::assertStringEndsWith( "] [acme-uninstall/acme-uninstall.php] Uninstall skipped the footprint keys it cannot read: $key", $lines[0] );
-		self::assertSame( $this->sorted( $this->order_meta_keys() ), $this->meta_keys_in( 'postmeta' ) );
-	}
-
 	public function test_with_woocommerce_deactivated_a_consenting_uninstall_still_deletes_from_both_order_tables(): void {
 		$this->seed_order_meta();
 		\update_option( "{$this->prefix}_remove_data", 'yes' );
@@ -136,15 +99,9 @@ final class WooCommerceUninstallerTest extends TestCase {
 			self::PLUGIN_FILE,
 			$footprint,
 			array(
-				'consent'  => array( 'option' => "{$this->prefix}_remove_data" ),
-				'handlers' => WooCommerceUninstaller::get_handlers(),
+				'consent'    => array( 'option' => "{$this->prefix}_remove_data" ),
+				'meta_types' => WooCommerceUninstaller::get_meta_types(),
 			)
 		);
-	}
-
-	protected function sorted( array $keys ): array {
-		\sort( $keys );
-
-		return $keys;
 	}
 }

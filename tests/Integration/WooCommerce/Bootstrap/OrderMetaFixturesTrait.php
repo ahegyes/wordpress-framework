@@ -14,9 +14,11 @@ trait OrderMetaFixturesTrait {
 		$p = $this->prefix;
 
 		return array(
-			'order_meta'          => array( "_{$p}_flag" ),
-			'order_meta_prefixes' => array( "_{$p}_cache_" ),
-			'order_item_meta'     => array( "_{$p}_item" ),
+			'meta'          => array(
+				'order'      => array( "_{$p}_flag" ),
+				'order_item' => array( "_{$p}_item" ),
+			),
+			'meta_prefixes' => array( 'order' => array( "_{$p}_cache_" ) ),
 		);
 	}
 

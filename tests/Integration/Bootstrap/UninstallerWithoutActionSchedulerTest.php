@@ -33,7 +33,7 @@ final class UninstallerWithoutActionSchedulerTest extends TestCase {
 				'as_groups'  => array( "$this->prefix-group" ),
 				'options'    => array( "{$this->prefix}_settings" ),
 			),
-			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_callables()
+			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_cleanup()
 		);
 
 		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron" ) );

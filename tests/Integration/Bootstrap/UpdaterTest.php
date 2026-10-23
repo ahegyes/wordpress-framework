@@ -317,6 +317,14 @@ final class UpdaterTest extends TestCase {
 		self::assertSame( array(), $this->requests );
 	}
 
+	public function test_details_stop_once_the_update_uri_leaves_github(): void {
+		Updater::register( $this->write_plugin( $this->slug ) );
+		$this->write_plugin( $this->slug, array( 'Update URI' => "https://gitlab.com/acme/$this->slug" ) );
+
+		self::assertFalse( \apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => $this->slug ) ) );
+		self::assertSame( array(), $this->requests );
+	}
+
 	public function test_an_offer_carries_the_release_requirements_and_a_php_floor_never_withholds_it(): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
 		$requirements = array(
