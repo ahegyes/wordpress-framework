@@ -38,13 +38,12 @@ final class PackageManifestsTest extends TestCase {
 		),
 	);
 
-	// Core's root prefix comes last, because every other package's prefix extends it.
 	protected const array OWNERS = array(
 		'DeepWebSolutions\\Framework\\Bootstrap\\'   => 'ahegyes/wp-framework-bootstrap',
 		'DeepWebSolutions\\Framework\\Shared\\'      => 'ahegyes/wp-framework-shared',
+		'DeepWebSolutions\\Framework\\Core\\'        => 'ahegyes/wp-framework-core',
 		'DeepWebSolutions\\Framework\\Settings\\'    => 'ahegyes/wp-framework-settings',
 		'DeepWebSolutions\\Framework\\WooCommerce\\' => 'ahegyes/wp-framework-woocommerce',
-		'DeepWebSolutions\\Framework\\'              => 'ahegyes/wp-framework-core',
 		'Psr\\Clock\\'                               => 'psr/clock',
 		'Psr\\Container\\'                           => 'psr/container',
 		'Psr\\Log\\'                                 => 'psr/log',
@@ -87,7 +86,7 @@ final class PackageManifestsTest extends TestCase {
 		foreach ( new \RegexIterator( $files, '/\.php$/' ) as $file ) {
 			foreach ( self::referenced_names( $file->getPathname() ) as $name ) {
 				$owner = self::owner_of( $name );
-				if ( ( ! \is_null( $owner ) || \str_starts_with( $name, 'Psr\\' ) ) && ! \in_array( $owner, $allowed, true ) ) {
+				if ( ( ! \is_null( $owner ) || \str_starts_with( $name, 'Psr\\' ) || \str_starts_with( $name, 'DeepWebSolutions\\Framework\\' ) ) && ! \in_array( $owner, $allowed, true ) ) {
 					$violations[] = $file->getPathname() . ": $name";
 				}
 			}
@@ -110,7 +109,7 @@ final class PackageManifestsTest extends TestCase {
 	public static function autoloaded_packages(): array {
 		return array(
 			'shared'      => array( 'shared', 'DeepWebSolutions\\Framework\\Shared\\' ),
-			'core'        => array( 'core', 'DeepWebSolutions\\Framework\\' ),
+			'core'        => array( 'core', 'DeepWebSolutions\\Framework\\Core\\' ),
 			'settings'    => array( 'settings', 'DeepWebSolutions\\Framework\\Settings\\' ),
 			'woocommerce' => array( 'woocommerce', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
 		);
@@ -137,7 +136,7 @@ final class PackageManifestsTest extends TestCase {
 		return array(
 			'bootstrap'             => array( 'bootstrap/src', 'DeepWebSolutions\\Framework\\Bootstrap\\' ),
 			'shared'                => array( 'shared/src', 'DeepWebSolutions\\Framework\\Shared\\' ),
-			'core'                  => array( 'core/src', 'DeepWebSolutions\\Framework\\' ),
+			'core'                  => array( 'core/src', 'DeepWebSolutions\\Framework\\Core\\' ),
 			'settings'              => array( 'settings/src', 'DeepWebSolutions\\Framework\\Settings\\' ),
 			'woocommerce'           => array( 'woocommerce/src', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
 			'woocommerce-bootstrap' => array( 'woocommerce/uninstall', 'DeepWebSolutions\\Framework\\WooCommerce\\Bootstrap\\' ),

@@ -2,15 +2,15 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Notices;
 
-use DeepWebSolutions\Framework\Notices\Stores\NoticeRecords;
-use DeepWebSolutions\Framework\Notices\Stores\OptionNoticeStore;
-use DeepWebSolutions\Framework\Notices\Stores\RequestNoticeStore;
-use DeepWebSolutions\Framework\Notices\Stores\UserNoticeStore;
-use DeepWebSolutions\Framework\Notices\Notice;
-use DeepWebSolutions\Framework\Notices\NoticeContext;
-use DeepWebSolutions\Framework\Notices\NoticeScope;
-use DeepWebSolutions\Framework\Notices\NoticeStoreInterface;
-use DeepWebSolutions\Framework\Notices\StoredNotice;
+use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeContext;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeStoreInterface;
+use DeepWebSolutions\Framework\Core\AdminNotice\StoredNotice;
+use DeepWebSolutions\Framework\Core\AdminNotice\Stores\NoticeRecords;
+use DeepWebSolutions\Framework\Core\AdminNotice\Stores\OptionNoticeStore;
+use DeepWebSolutions\Framework\Core\AdminNotice\Stores\RequestNoticeStore;
+use DeepWebSolutions\Framework\Core\AdminNotice\Stores\UserNoticeStore;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;

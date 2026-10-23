@@ -2,11 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Storage;
 
+use DeepWebSolutions\Framework\Core\Storage\OptionRow;
+use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
-use DeepWebSolutions\Framework\Storage\OptionRow;
-use DeepWebSolutions\Framework\Storage\OptionRows;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;

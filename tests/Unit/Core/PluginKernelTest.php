@@ -2,10 +2,10 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit\Core;
 
-use DeepWebSolutions\Framework\ComponentInterface;
-use DeepWebSolutions\Framework\CompositeComponentInterface;
-use DeepWebSolutions\Framework\ConditionalComponentInterface;
-use DeepWebSolutions\Framework\PluginKernel;
+use DeepWebSolutions\Framework\Core\ComponentInterface;
+use DeepWebSolutions\Framework\Core\CompositeComponentInterface;
+use DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
+use DeepWebSolutions\Framework\Core\PluginKernel;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Fixtures\Core\GatedOutComposite;
 use DeepWebSolutions\Framework\Tests\Fixtures\Core\UnloadableComponent;

@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit\Core\Utilities;
 
-use DeepWebSolutions\Framework\Utilities\SystemClock;
+use DeepWebSolutions\Framework\Core\Clock\SystemClock;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

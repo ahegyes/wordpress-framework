@@ -2,11 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core;
 
-use DeepWebSolutions\Framework\BatchedMigrationStepInterface;
-use DeepWebSolutions\Framework\MigrationRunner;
-use DeepWebSolutions\Framework\Scheduling\Backends\WpCronBackend;
-use DeepWebSolutions\Framework\Scheduling\Scheduler;
-use DeepWebSolutions\Framework\Scheduling\SchedulerInterface;
+use DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
+use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
+use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
+use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;

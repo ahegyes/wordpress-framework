@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit\Core\Scheduling\Backends;
 
-use DeepWebSolutions\Framework\Scheduling\Backends\ActionSchedulerBackend;
-use DeepWebSolutions\Framework\Scheduling\Backends\BackendState;
+use DeepWebSolutions\Framework\Core\Scheduling\Backends\ActionSchedulerBackend;
+use DeepWebSolutions\Framework\Core\Scheduling\Backends\BackendState;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

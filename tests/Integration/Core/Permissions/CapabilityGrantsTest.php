@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Permissions;
 
-use DeepWebSolutions\Framework\Permissions\CapabilityGrants;
+use DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;

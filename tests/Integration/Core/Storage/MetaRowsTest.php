@@ -2,11 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Storage;
 
+use DeepWebSolutions\Framework\Core\Storage\MetaRow;
+use DeepWebSolutions\Framework\Core\Storage\MetaRows;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
-use DeepWebSolutions\Framework\Storage\MetaRow;
-use DeepWebSolutions\Framework\Storage\MetaRows;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;

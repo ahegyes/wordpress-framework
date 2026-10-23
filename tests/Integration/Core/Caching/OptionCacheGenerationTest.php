@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Caching;
 
-use DeepWebSolutions\Framework\Caching\OptionCacheGeneration;
+use DeepWebSolutions\Framework\Core\Caching\OptionCacheGeneration;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;

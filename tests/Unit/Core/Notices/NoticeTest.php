@@ -2,9 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit\Core\Notices;
 
-use DeepWebSolutions\Framework\Notices\Notice;
-use DeepWebSolutions\Framework\Notices\NoticeScope;
-use DeepWebSolutions\Framework\Notices\NoticeType;
+use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeType;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

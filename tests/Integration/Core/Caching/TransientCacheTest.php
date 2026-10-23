@@ -2,9 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Caching;
 
-use DeepWebSolutions\Framework\Caching\InvalidCacheKeyException;
-use DeepWebSolutions\Framework\Caching\OptionCacheGeneration;
-use DeepWebSolutions\Framework\Caching\TransientCache;
+use DeepWebSolutions\Framework\Core\Caching\Exceptions\InvalidCacheKeyException;
+use DeepWebSolutions\Framework\Core\Caching\OptionCacheGeneration;
+use DeepWebSolutions\Framework\Core\Caching\TransientCache;
 use DeepWebSolutions\Framework\Shared\Caching\CacheGenerationInterface;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;

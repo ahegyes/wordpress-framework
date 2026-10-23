@@ -2,11 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Notices;
 
-use DeepWebSolutions\Framework\Notices\Stores\UserMetaRecipientStates;
-use DeepWebSolutions\Framework\Notices\NoticeContext;
-use DeepWebSolutions\Framework\Notices\NoticeIdentity;
-use DeepWebSolutions\Framework\Notices\NoticeScope;
-use DeepWebSolutions\Framework\Notices\RecipientState;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeContext;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeIdentity;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
+use DeepWebSolutions\Framework\Core\AdminNotice\RecipientState;
+use DeepWebSolutions\Framework\Core\AdminNotice\Stores\UserMetaRecipientStates;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;

@@ -2,9 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core;
 
-use DeepWebSolutions\Framework\MigrationRunner;
-use DeepWebSolutions\Framework\Scheduling\Backends\WpCronBackend;
-use DeepWebSolutions\Framework\Scheduling\Scheduler;
+use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
+use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;

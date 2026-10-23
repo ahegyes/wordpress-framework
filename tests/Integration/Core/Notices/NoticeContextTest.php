@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Notices;
 
-use DeepWebSolutions\Framework\Notices\NoticeContext;
-use DeepWebSolutions\Framework\Notices\NoticeScope;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeContext;
+use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;

@@ -2,9 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Utilities;
 
+use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesLogMessagesTrait;
-use DeepWebSolutions\Framework\Utilities\ErrorLogLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

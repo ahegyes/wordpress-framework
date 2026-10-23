@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "cf42815dfd053bd2e34bc988856f47a6e56aef10"
+                "reference": "eb7b83de92c9a63c066097472466e1d375390e38"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0",
@@ -62,7 +62,7 @@
             },
             "autoload": {
                 "psr-4": {
-                    "DeepWebSolutions\\Framework\\": "src/"
+                    "DeepWebSolutions\\Framework\\Core\\": "src/"
                 }
             },
             "license": [

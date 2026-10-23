@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core;
 
-use DeepWebSolutions\Framework\PluginBoot;
+use DeepWebSolutions\Framework\Core\PluginBoot;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
