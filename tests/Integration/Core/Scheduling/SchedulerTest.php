@@ -2,11 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Scheduling;
 
-use DeepWebSolutions\Framework\Scheduling\Backends\ActionSchedulerBackend;
-use DeepWebSolutions\Framework\Scheduling\Backends\WpCronBackend;
-use DeepWebSolutions\Framework\Scheduling\Recurrence;
-use DeepWebSolutions\Framework\Scheduling\ScheduledHook;
-use DeepWebSolutions\Framework\Scheduling\Scheduler;
+use DeepWebSolutions\Framework\Core\Scheduling\Backends\ActionSchedulerBackend;
+use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
+use DeepWebSolutions\Framework\Core\Scheduling\Recurrence;
+use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
+use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

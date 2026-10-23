@@ -2,8 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Fixtures\Core;
 
-use DeepWebSolutions\Framework\CompositeComponentInterface;
-use DeepWebSolutions\Framework\ConditionalComponentInterface;
+use DeepWebSolutions\Framework\Core\CompositeComponentInterface;
+use DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
 
 final class GatedOutComposite implements CompositeComponentInterface, ConditionalComponentInterface {
 	#[\Override]

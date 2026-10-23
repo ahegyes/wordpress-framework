@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core;
 
-use DeepWebSolutions\Framework\PluginBoot;
+use DeepWebSolutions\Framework\Core\PluginBoot;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;

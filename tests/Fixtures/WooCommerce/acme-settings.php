@@ -7,8 +7,8 @@
  * @package Acme
  */
 
-use DeepWebSolutions\Framework\WooCommerce\Settings\SettingsSection;
-use DeepWebSolutions\Framework\WooCommerce\Settings\SettingsTab;
+use DeepWebSolutions\Framework\WooCommerce\Setting\SettingsSection;
+use DeepWebSolutions\Framework\WooCommerce\Setting\SettingsTab;
 
 require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
 

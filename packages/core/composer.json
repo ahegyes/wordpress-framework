@@ -7,6 +7,7 @@
   "require": {
     "php": ">=8.5",
     "ext-filter": "*",
+    "ahegyes/wp-framework-bootstrap": "^2.0",
     "ahegyes/wp-framework-shared": "^2.0",
     "psr/clock": "^1",
     "psr/container": "^2",
@@ -15,7 +16,7 @@
   },
   "autoload": {
     "psr-4": {
-      "DeepWebSolutions\\Framework\\": "src/"
+      "DeepWebSolutions\\Framework\\Core\\": "src/"
     }
   },
   "extra": {

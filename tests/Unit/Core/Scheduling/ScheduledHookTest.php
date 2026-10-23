@@ -2,7 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit\Core\Scheduling;
 
-use DeepWebSolutions\Framework\Scheduling\ScheduledHook;
+use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

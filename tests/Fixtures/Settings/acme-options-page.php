@@ -7,7 +7,7 @@
  * @package Acme
  */
 
-use DeepWebSolutions\Framework\Settings\OptionsPage;
+use DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
 
 require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
 

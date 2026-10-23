@@ -2,9 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Scheduling;
 
-use DeepWebSolutions\Framework\Scheduling\Recurrence;
-use DeepWebSolutions\Framework\Scheduling\ScheduledHook;
-use DeepWebSolutions\Framework\Scheduling\Scheduler;
+use DeepWebSolutions\Framework\Core\Scheduling\Recurrence;
+use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
+use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;

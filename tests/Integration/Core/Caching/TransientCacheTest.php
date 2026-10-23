@@ -2,10 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Caching;
 
-use DeepWebSolutions\Framework\Caching\InvalidCacheKeyException;
-use DeepWebSolutions\Framework\Caching\OptionCacheGeneration;
-use DeepWebSolutions\Framework\Caching\TransientCache;
-use DeepWebSolutions\Framework\Shared\Caching\CacheGenerationInterface;
+use DeepWebSolutions\Framework\Core\Caching\Exceptions\InvalidCacheKeyException;
+use DeepWebSolutions\Framework\Core\Caching\TransientCache;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
@@ -16,30 +14,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\InvalidArgumentException as PsrInvalidArgumentException;
-
-final class RecordingGeneration implements CacheGenerationInterface {
-	public array $calls = array();
-
-	public function __construct(
-		public ?string $current = null,
-		public ?string $next = 'one'
-	) {}
-
-	#[\Override]
-	public function get(): ?string {
-		$this->calls[] = 'get';
-
-		return $this->current;
-	}
-
-	#[\Override]
-	public function advance(): ?string {
-		$this->calls[] = 'advance';
-		$this->current = $this->next ?? $this->current;
-
-		return $this->next;
-	}
-}
 
 #[CoversClass( TransientCache::class )]
 #[CoversClass( InvalidCacheKeyException::class )]
@@ -65,11 +39,28 @@ final class TransientCacheTest extends TestCase {
 		new TransientCache( $prefix );
 	}
 
+	public static function invalid_generation_options(): array {
+		return array(
+			'empty'    => array( '' ),
+			'leading'  => array( ' acme_generation' ),
+			'trailing' => array( 'acme_generation ' ),
+			'overlong' => array( \str_repeat( 'a', 192 ) ),
+		);
+	}
+
+	#[DataProvider( 'invalid_generation_options' )]
+	public function test_a_generation_option_the_options_table_would_not_keep_is_rejected( string $option ): void {
+		$this->expectException( InvalidArgumentException::class );
+
+		new TransientCache( "{$this->prefix}_", $option );
+	}
+
 	public function test_construction_reads_and_writes_nothing(): void {
 		global $wpdb;
 
 		$queries = $wpdb->num_queries;
 		new TransientCache( \str_pad( "{$this->prefix}_", 140, 'p' ) );
+		new TransientCache( "{$this->prefix}_", \str_pad( "{$this->prefix}_generation", 191, 'g' ) );
 
 		self::assertSame( $queries, $wpdb->num_queries );
 		self::assertSame( array(), $this->stored() );
@@ -430,15 +421,44 @@ final class TransientCacheTest extends TestCase {
 		}
 	}
 
-	public function test_each_clear_stores_a_new_generation_even_on_a_cache_never_used(): void {
+	public function test_each_clear_stores_a_new_random_autoloaded_generation_even_on_a_cache_never_used(): void {
 		$cache = $this->cache();
 
 		self::assertTrue( $cache->clear() );
 		$first = \get_option( "{$this->prefix}_cache_generation" );
 		self::assertTrue( $cache->clear() );
+		$second = \get_option( "{$this->prefix}_cache_generation" );
 
-		self::assertIsString( $first );
-		self::assertNotSame( $first, \get_option( "{$this->prefix}_cache_generation" ) );
+		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', $first );
+		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', $second );
+		self::assertNotSame( $first, $second );
+		self::assertSame( array( "{$this->prefix}_cache_generation" => 'on' ), $this->stored() );
+	}
+
+	public static function unusable_generations(): array {
+		return array(
+			'empty' => array( '' ),
+			'array' => array( array( 'token' ) ),
+		);
+	}
+
+	#[DataProvider( 'unusable_generations' )]
+	public function test_a_generation_option_holding_no_non_empty_string_reads_as_none_until_a_write_starts_one( mixed $stored ): void {
+		\update_option( "{$this->prefix}_cache_generation", $stored );
+		\set_transient(
+			"{$this->prefix}_" . \md5( 'key' ),
+			array(
+				'value'      => 'Value.',
+				'generation' => $stored,
+			),
+			\HOUR_IN_SECONDS
+		);
+		$cache = $this->cache();
+
+		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
+		self::assertTrue( $cache->set( 'other', 'Other.' ) );
+		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', \get_option( "{$this->prefix}_cache_generation" ) );
+		self::assertSame( 'Other.', $cache->get( 'other' ) );
 	}
 
 	public function test_without_a_generation_every_read_misses_without_a_write(): void {
@@ -544,10 +564,9 @@ final class TransientCacheTest extends TestCase {
 		self::assertSame( 'Two.', $two->get( 'key' ) );
 	}
 
-	public function test_caches_that_share_a_generation_clear_together(): void {
-		$generation = new OptionCacheGeneration( "{$this->prefix}_shared_generation" );
-		$one        = new TransientCache( "{$this->prefix}_one_", $generation );
-		$two        = new TransientCache( "{$this->prefix}_two_", $generation );
+	public function test_caches_that_share_a_generation_option_clear_together(): void {
+		$one = new TransientCache( "{$this->prefix}_one_", "{$this->prefix}_shared_generation" );
+		$two = new TransientCache( "{$this->prefix}_two_", "{$this->prefix}_shared_generation" );
 		$one->set( 'key', 'One.' );
 		$two->set( 'key', 'Two.' );
 
@@ -558,29 +577,37 @@ final class TransientCacheTest extends TestCase {
 		self::assertFalse( \get_option( "{$this->prefix}_one_cache_generation" ) );
 	}
 
-	public function test_a_custom_generation_is_started_only_by_a_first_write_or_a_clear(): void {
-		$generation = new RecordingGeneration();
-		$cache      = new TransientCache( "{$this->prefix}_", $generation );
+	public function test_a_generation_is_started_only_by_a_first_write_or_a_clear(): void {
+		$starts = 0;
+		\add_filter(
+			"pre_update_option_{$this->prefix}_cache_generation",
+			static function ( mixed $value ) use ( &$starts ): mixed {
+				++$starts;
+
+				return $value;
+			}
+		);
+		$cache = $this->cache();
 
 		$cache->get( 'key' );
 		$cache->has( 'key' );
 		$cache->getMultiple( array( 'key' ) );
-		self::assertNotContains( 'advance', $generation->calls );
+		self::assertSame( 0, $starts );
 
 		self::assertTrue( $cache->set( 'key', 'Value.' ) );
 		self::assertTrue( $cache->set( 'other', 'Value.' ) );
-		self::assertSame( 1, \count( \array_keys( $generation->calls, 'advance', true ) ) );
+		self::assertSame( 1, $starts );
 		self::assertSame( 'Value.', $cache->get( 'key' ) );
 
-		$generation->next = 'two';
 		self::assertTrue( $cache->clear() );
-		self::assertSame( 2, \count( \array_keys( $generation->calls, 'advance', true ) ) );
+		self::assertSame( 2, $starts );
 		self::assertFalse( $cache->has( 'key' ) );
 	}
 
-	public function test_a_generation_that_cannot_be_started_fails_writes_and_clears(): void {
-		$generation = new RecordingGeneration( null, null );
-		$cache      = new TransientCache( "{$this->prefix}_", $generation );
+	// Returning the stored value from this filter makes update_option() report a failed write, as a refused database write would.
+	public function test_a_generation_that_cannot_be_stored_fails_writes_and_clears(): void {
+		\add_filter( "pre_update_option_{$this->prefix}_cache_generation", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
+		$cache = $this->cache();
 
 		self::assertFalse( $cache->set( 'key', 'Value.' ) );
 		self::assertFalse( $cache->clear() );

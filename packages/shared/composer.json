@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wp-framework-shared",
-  "description": "WordPress-free PHP primitives: framework exceptions, results, value objects, versions and the cache generation contract.",
+  "description": "WordPress-free PHP primitives: framework exceptions, results, value objects and versions.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
