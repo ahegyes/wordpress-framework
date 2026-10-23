@@ -116,7 +116,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "444050182c7303f3b06a8062a27ea148afaf4543"
+                "reference": "8a9edb3ab997a0b6f26d6af9a8cb2051946d686d"
             },
             "require": {
                 "php": ">=8.5"
@@ -135,7 +135,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects, versions and the cache generation contract.",
+            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects and versions.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
