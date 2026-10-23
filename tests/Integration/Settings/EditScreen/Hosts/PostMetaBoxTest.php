@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Settings\EditScreen\Hosts;
 
+use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
@@ -77,16 +79,15 @@ final class PostMetaBoxTest extends TestCase {
 	public function test_an_invalid_form_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new ObjectForm( $id, static fn (): array => array(), new PostMetaBox( array( 'post' ) ) );
+		new ObjectForm( $id, static fn (): array => array(), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_form_id( string $id ): void {
 		$host = new PostMetaBox( array( 'post' ) );
-		$form = new ObjectForm( $id, static fn (): array => array(), $host );
+		$form = new ObjectForm( $id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 		$form->register_hooks();
 
-		self::assertSame( 10, \has_action( 'all_admin_notices', array( $form, 'render_rejections' ) ) );
 		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
 
@@ -99,7 +100,8 @@ final class PostMetaBoxTest extends TestCase {
 
 				return array();
 			},
-			new PostMetaBox( array( 'post' ) )
+			new PostMetaBox( array( 'post' ) ),
+			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		$post_id = $this->make_post();
@@ -535,7 +537,8 @@ final class PostMetaBoxTest extends TestCase {
 				'capability' => 'edit_posts',
 				'fields'     => array( $this->field( 'text', 'name' ) ),
 			),
-			new PostMetaBox( array( 'post' ) )
+			new PostMetaBox( array( 'post' ) ),
+			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		\wp_set_current_user( $this->admin );

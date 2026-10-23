@@ -215,8 +215,8 @@ final class AdminNoticesTest extends TestCase {
 	public static function surfaces(): array {
 		return array(
 			'site-admin'    => array( 'dashboard', array( 'network', 'site', 'user', 'request' ) ),
-			'network-admin' => array( 'dashboard-network', array( 'network', 'request' ) ),
-			'user-admin'    => array( 'dashboard-user', array( 'request' ) ),
+			'network-admin' => array( 'dashboard-network', array( 'network', 'user', 'request' ) ),
+			'user-admin'    => array( 'dashboard-user', array( 'user', 'request' ) ),
 		);
 	}
 

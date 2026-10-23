@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Settings\EditScreen\Hosts;
 
+use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
@@ -11,6 +13,7 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass( ObjectForm::class )]
@@ -48,9 +51,16 @@ final class UserProfileTest extends TestCase {
 		);
 	}
 
+	public static function multisite_profiles(): array {
+		return array(
+			'network-admin' => array( 'network/profile.php' ),
+			'user-admin'    => array( 'user/profile.php' ),
+		);
+	}
+
 	public function test_the_host_registers_on_both_profile_screens(): void {
 		$host = new UserProfile();
-		( new ObjectForm( $this->id, static fn (): array => array(), $host ) )->register_hooks();
+		( new ObjectForm( $this->id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		self::assertSame( 10, \has_action( 'show_user_profile', array( $host, 'render_section' ) ) );
 		self::assertSame( 10, \has_action( 'edit_user_profile', array( $host, 'render_section' ) ) );
@@ -124,6 +134,24 @@ final class UserProfileTest extends TestCase {
 		self::assertSame( array(), self::rejections( $after['body'] ) );
 	}
 
+	#[Group( 'multisite' )]
+	#[DataProvider( 'multisite_profiles' )]
+	public function test_a_rejection_on_a_multisite_profile_shows_after_the_redirect_within_the_same_admin( string $path ): void {
+		$spec = $this->spec( array( $this->field( 'text', 'name' ), $this->field( 'text', 'note', array( 'validate' => 'acme:reject' ) ) ) );
+		\grant_super_admin( $this->admin );
+
+		try {
+			$data  = self::serialize_form( $this->admin_request( 'GET', $path, $this->admin, self::FIXTURE, $spec )['body'], 'form#your-profile', array( $this->control_name( 'note' ) => 'too long' ) );
+			$saved = $this->admin_request( 'POST', $path, $this->admin, self::FIXTURE, $spec, $data );
+			$next  = $this->follow( $spec, $saved );
+		} finally {
+			\revoke_super_admin( $this->admin );
+		}
+
+		self::assertStringStartsWith( \explode( '/', $path )[0] . '/profile.php', \explode( '/wp-admin/', (string) $saved['location'], 2 )[1] );
+		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $next['body'] ) );
+	}
+
 	public function test_a_core_profile_error_shows_the_forms_rejection_in_the_same_response(): void {
 		$spec = $this->spec( array( $this->field( 'text', 'name' ), $this->field( 'text', 'note', array( 'validate' => 'acme:reject' ) ) ) );
 
@@ -168,7 +196,8 @@ final class UserProfileTest extends TestCase {
 				'capability' => 'edit_users',
 				'fields'     => array( $this->field( 'text', 'name' ) ),
 			),
-			new UserProfile()
+			new UserProfile(),
+			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		\wp_set_current_user( $this->admin );

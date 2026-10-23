@@ -2,11 +2,13 @@
 /**
  * Adds the request spec's object form on plugins_loaded, as a plugin without the kernel does.
  *
- * The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. Fields listed per object come from a closure that records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
+ * The form's id also prefixes the admin notices that report its rejections. The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. Fields listed per object come from a closure that records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
  *
  * @package Acme
  */
 
+use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\TermForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
@@ -92,7 +94,9 @@ add_action(
 			};
 		}
 
-		( new ObjectForm( $spec['id'], $definition, $host, $store ) )->register_hooks();
+		$notices = new AdminNotices( $spec['id'], new ErrorLogLogger( 'acme' ) );
+		$notices->register_hooks();
+		( new ObjectForm( $spec['id'], $definition, $host, $notices, $store ) )->register_hooks();
 	}
 );
 

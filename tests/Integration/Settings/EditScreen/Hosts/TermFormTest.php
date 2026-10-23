@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Settings\EditScreen\Hosts;
 
+use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\TermForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
@@ -44,7 +46,7 @@ final class TermFormTest extends TestCase {
 
 	public function test_the_host_registers_on_each_of_its_taxonomies(): void {
 		$host = new TermForm( array( 'category', 'post_tag' ) );
-		( new ObjectForm( $this->id, static fn (): array => array(), $host ) )->register_hooks();
+		( new ObjectForm( $this->id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
 			self::assertSame( 10, \has_action( "{$taxonomy}_edit_form", array( $host, 'render_section' ) ) );
@@ -152,7 +154,8 @@ final class TermFormTest extends TestCase {
 				'capability' => 'manage_categories',
 				'fields'     => array( $this->field( 'text', 'name' ) ),
 			),
-			new TermForm( array( 'category' ) )
+			new TermForm( array( 'category' ) ),
+			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		\wp_set_current_user( $this->admin );

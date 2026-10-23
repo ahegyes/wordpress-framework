@@ -2,16 +2,19 @@
 
 namespace DeepWebSolutions\Framework\Settings\EditScreen;
 
+use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\Framework\Settings\Forms;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
+use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 
 \defined( 'ABSPATH' ) || exit;
 
 /**
  * Adds a form of field arrays to the screen that edits an object, and stores the accepted fields as the object's data.
  *
- * Its host decides where the form shows and when it saves, and its store keeps the values, by default the host's own. The form shows only to a user who may edit the object and holds the definition's capability, carries a nonce bound to the object, and keeps each rejection of a save for the user's next admin screen. Controls post under the form's id, so they never meet the screen's own inputs, and each field stores under its id.
+ * Its host decides where the form shows and when it saves, and its store keeps the values, by default the host's own. The form shows only to a user who may edit the object and holds the definition's capability, carries a nonce bound to the object, and reports each rejection of a save as a one-shot notice for the user's next admin screen. Controls post under the form's id, so they never meet the screen's own inputs, and each field stores under its id.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -72,9 +75,10 @@ final class ObjectForm {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string                    $id         The form's id, which starts with the plugin's prefix and names the form's controls, nonce, fields filter and stored rejections.
+	 * @param   string                    $id         The form's id, which starts with the plugin's prefix and names the form's controls, nonce and fields filter.
 	 * @param   \Closure(): Form          $definition The definition, which is evaluated on first use after init and must not throw.
 	 * @param   ObjectFormHostInterface   $host       The host that shows and saves the form.
+	 * @param   AdminNotices              $notices    The plugin's admin notices, which report the rejections.
 	 * @param   ObjectStoreInterface|null $store      Optional. The store of the form's values. Default is null, for the host's store.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
@@ -83,6 +87,7 @@ final class ObjectForm {
 		protected string $id,
 		protected \Closure $definition,
 		protected ObjectFormHostInterface $host,
+		protected AdminNotices $notices,
 		protected ?ObjectStoreInterface $store = null
 	) {
 		Forms::check_helper_id( $id );
@@ -121,7 +126,7 @@ final class ObjectForm {
 	// region METHODS
 
 	/**
-	 * Registers the hooks that print the rejections a save kept, and the host's hooks.
+	 * Registers the host's hooks.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -136,7 +141,6 @@ final class ObjectForm {
 		}
 
 		self::$hosted[ $this->host ] = $this;
-		\add_action( 'all_admin_notices', array( $this, 'render_rejections' ) );
 		$this->host->register_hooks( $this );
 	}
 
@@ -187,7 +191,7 @@ final class ObjectForm {
 	}
 
 	/**
-	 * Stores the accepted fields of the request's submission for the object, and keeps each rejection for the current user's next admin screen.
+	 * Stores the accepted fields of the request's submission for the object, and reports each rejection as a one-shot error notice for the current user.
 	 *
 	 * Nothing changes unless the request carries the form's nonce for the object, which binds it to the object as WordPress core binds its edit forms, so a save that fires for a revision or another object in the same request is refused, and the current user may edit the object and holds the definition's capability. A field the form did not post, because it was not rendered or is disabled, keeps its value, as a rejected one does. The form saves once per object and request, because a save that updates the object again fires the host's save hook again with the same submission.
 	 *
@@ -211,17 +215,15 @@ final class ObjectForm {
 			$this->get_store()->update_values( $object_id, $result['values'] );
 		}
 
-		$messages = array();
 		foreach ( $fields as $field ) {
 			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
-				$messages[] = Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] );
+				try {
+					$this->notices->add( new Notice( 'rejection-' . \wp_generate_uuid4(), \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) ) );
+				} catch ( RuntimeException ) {
+					// The accepted values are already stored, so a notice the store refuses is only lost.
+					continue;
+				}
 			}
-		}
-		if ( array() !== $messages ) {
-			$user_id = \get_current_user_id();
-			$kept    = \get_user_option( "{$this->id}_rejections", $user_id );
-			// The metadata API unslashes what it is given, which would strip a message's own backslashes.
-			\update_user_option( $user_id, "{$this->id}_rejections", \wp_slash( \array_merge( \is_array( $kept ) ? $kept : array(), $messages ) ) );
 		}
 	}
 
@@ -237,43 +239,6 @@ final class ObjectForm {
 	 */
 	public function get_refreshed_nonces( int $object_id ): array {
 		return $this->can_edit( $object_id ) ? array( $this->get_nonce_name() => \wp_create_nonce( $this->get_nonce_action( $object_id ) ) ) : array();
-	}
-
-	// endregion
-
-	// region HOOKS
-
-	/**
-	 * Prints the rejections the current user's saves kept on this site, once, outside the block editor.
-	 *
-	 * The block editor's styles hide classic notices, and its meta box save renders the edit screen in a request nobody sees.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 */
-	public function render_rejections(): void {
-		// The screen API loads only in the admin.
-		if ( \function_exists( 'get_current_screen' ) && true === \get_current_screen()?->is_block_editor() ) {
-			return;
-		}
-
-		$messages = \get_user_option( "{$this->id}_rejections" );
-		if ( ! \is_array( $messages ) ) {
-			return;
-		}
-
-		\delete_user_option( \get_current_user_id(), "{$this->id}_rejections" );
-		foreach ( $messages as $message ) {
-			if ( \is_string( $message ) ) {
-				\wp_admin_notice(
-					\esc_html( $message ),
-					array(
-						'type'        => 'error',
-						'dismissible' => true,
-					)
-				);
-			}
-		}
 	}
 
 	// endregion
