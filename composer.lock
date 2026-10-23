@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "eb7b83de92c9a63c066097472466e1d375390e38"
+                "reference": "b2357ece030234f3751d1f84d8023535d957b53d"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0",
@@ -68,7 +68,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "Plugin kernel for WordPress: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices, role capability grants and a PSR-16 transient cache.",
+            "description": "Plugin kernel for WordPress: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices, role capability grants and PSR-16 transient and object caches.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
