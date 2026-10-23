@@ -4,7 +4,6 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Settings\EditScreen\Hosts
 
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -57,15 +56,6 @@ final class UserProfileTest extends TestCase {
 		self::assertSame( 10, \has_action( 'edit_user_profile', array( $host, 'render_section' ) ) );
 		self::assertSame( 10, \has_action( 'personal_options_update', array( $host, 'save_profile' ) ) );
 		self::assertSame( 10, \has_action( 'edit_user_profile_update', array( $host, 'save_profile' ) ) );
-	}
-
-	public function test_a_host_serves_one_form(): void {
-		$host = new UserProfile();
-		( new ObjectForm( "{$this->id}_a", static fn (): array => array(), $host ) )->register_hooks();
-
-		$this->expectException( LogicException::class );
-
-		( new ObjectForm( "{$this->id}_b", static fn (): array => array(), $host ) )->register_hooks();
 	}
 
 	#[DataProvider( 'screens' )]

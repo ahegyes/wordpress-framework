@@ -40,15 +40,14 @@ final class FormsGetRowsTest extends TestCase {
 					'label_for' => 'acme_details.name',
 				),
 				array(
-					'field'     => array(
+					'field' => array(
 						'type'  => 'radio',
 						'id'    => 'color',
 						'title' => 'color',
 					),
-					'value'     => '',
-					'name'      => 'acme_details[color]',
-					'id'        => 'acme_details.color',
-					'label_for' => null,
+					'value' => '',
+					'name'  => 'acme_details[color]',
+					'id'    => 'acme_details.color',
 				),
 			),
 			$rows

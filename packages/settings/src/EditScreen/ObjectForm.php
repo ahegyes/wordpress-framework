@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Settings\EditScreen;
 
 use DeepWebSolutions\Framework\Settings\Forms;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -51,6 +52,16 @@ final class ObjectForm {
 	 */
 	protected array $saved = array();
 
+	/**
+	 * The form each host serves, keyed by the host, so that no host serves two forms, including one a consumer writes.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     \WeakMap<ObjectFormHostInterface, ObjectForm>|null
+	 */
+	protected static ?\WeakMap $hosted = null;
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -74,9 +85,7 @@ final class ObjectForm {
 		protected ObjectFormHostInterface $host,
 		protected ?ObjectStoreInterface $store = null
 	) {
-		if ( ! self::is_valid_key( $id ) ) {
-			throw new InvalidArgumentException( "Object form id '$id' is not a lowercase letter, after an optional underscore, followed by lowercase letters, digits, underscores and hyphens." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
+		Forms::check_helper_id( $id );
 	}
 
 	// endregion
@@ -116,8 +125,17 @@ final class ObjectForm {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @throws  LogicException Thrown when the host already serves another form.
 	 */
 	public function register_hooks(): void {
+		self::$hosted ??= new \WeakMap();
+		$hosted         = self::$hosted[ $this->host ] ?? $this;
+		if ( $hosted !== $this ) {
+			throw new LogicException( "The host of object form '{$hosted->get_id()}' cannot also host '$this->id'." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+
+		self::$hosted[ $this->host ] = $this;
 		\add_action( 'all_admin_notices', array( $this, 'render_rejections' ) );
 		$this->host->register_hooks( $this );
 	}
@@ -139,7 +157,7 @@ final class ObjectForm {
 	/**
 	 * Prints the form's nonce and rows for the object, when the form shows for it.
 	 *
-	 * A field's control carries the stored value, or else the field's default, and a group's control carries no legend, because its row names it.
+	 * A field's control carries the stored value, or else the field's default.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -152,35 +170,26 @@ final class ObjectForm {
 		}
 
 		$fields = $this->get_fields( $object_id );
-		$values = $this->get_store()->get_values( $object_id, \array_column( $fields, 'id' ) );
 		$rows   = array();
-		foreach ( $fields as $field ) {
-			if ( ! isset( $field['id'] ) ) {
-				continue;
-			}
-
-			$field['title'] = self::get_field_title( $field );
-			$id             = "{$this->id}.{$field['id']}";
-			$group          = \in_array( $field['type'], array( 'radio', 'checkboxes' ), true ) || ( 'checkbox' === $field['type'] && '' !== ( $field['desc'] ?? '' ) );
-			$value          = \array_key_exists( $field['id'], $values ) ? $values[ $field['id'] ] : ( $field['default'] ?? '' );
-			$control        = Forms::render_control( $group ? array( 'title' => '' ) + $field : $field, $value, "{$this->id}[{$field['id']}]", $id );
+		foreach ( Forms::get_rows( $fields, $this->get_store()->get_values( $object_id, \array_column( $fields, 'id' ) ), $this->id ) as $row ) {
+			$control = Forms::render_control( $row['field'], $row['value'], $row['name'], $row['id'] );
 			if ( '' !== $control ) {
 				$rows[] = array(
-					'title'     => \esc_html( $field['title'] ),
-					'label_for' => $group ? null : $id,
+					'title'     => \esc_html( $row['field']['title'] ?? '' ),
+					'label_for' => $row['label_for'] ?? null,
 					'control'   => $control,
 				);
 			}
 		}
 
-		\wp_nonce_field( "{$this->id}_nonce_$object_id", "{$this->id}_nonce", false );
+		\wp_nonce_field( $this->get_nonce_action( $object_id ), $this->get_nonce_name(), false );
 		$this->host->render_rows( \esc_html( $this->get_title() ), $rows );
 	}
 
 	/**
 	 * Stores the accepted fields of the request's submission for the object, and keeps each rejection for the current user's next admin screen.
 	 *
-	 * Nothing changes unless the request carries the form's nonce for the object and the current user may edit the object and holds the definition's capability. A field the form did not post, because it was not rendered or is disabled, keeps its value, as a rejected one does. The form saves once per object and request, because a save that updates the object again fires the host's save hook again with the same submission.
+	 * Nothing changes unless the request carries the form's nonce for the object, which binds it to the object as WordPress core binds its edit forms, so a save that fires for a revision or another object in the same request is refused, and the current user may edit the object and holds the definition's capability. A field the form did not post, because it was not rendered or is disabled, keeps its value, as a rejected one does. The form saves once per object and request, because a save that updates the object again fires the host's save hook again with the same submission.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -188,13 +197,14 @@ final class ObjectForm {
 	 * @param   int $object_id The object's id.
 	 */
 	public function save( int $object_id ): void {
-		// Saves that carry no form, such as REST, cron and quick edit, return before the definition is evaluated.
-		if ( ! isset( $_POST[ "{$this->id}_nonce" ] ) || \in_array( $object_id, $this->saved, true ) || ! Forms::verify_object_form( "{$this->id}_nonce", $object_id, $this->host->get_object_capability(), $this->get_form()['capability'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Forms::verify_object_form() verifies the nonce.
+		// Saves that carry no form for the object, such as REST, cron and quick edit, return before the definition is evaluated.
+		$nonce = \is_string( $_POST[ $this->get_nonce_name() ] ?? null ) ? \sanitize_text_field( \wp_unslash( $_POST[ $this->get_nonce_name() ] ) ) : '';
+		if ( \in_array( $object_id, $this->saved, true ) || false === \wp_verify_nonce( $nonce, $this->get_nonce_action( $object_id ) ) || ! $this->can_edit( $object_id ) ) {
 			return;
 		}
 
 		$this->saved[] = $object_id;
-		$submitted     = \is_array( $_POST[ $this->id ] ?? null ) ? \wp_unslash( $_POST[ $this->id ] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Forms::verify_object_form() verified the nonce, and Forms::sanitize_fields() sanitizes each field.
+		$submitted     = \is_array( $_POST[ $this->id ] ?? null ) ? \wp_unslash( $_POST[ $this->id ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Forms::sanitize_fields() sanitizes each field.
 		$fields        = $this->get_fields( $object_id );
 		$result        = Forms::sanitize_fields( $fields, $submitted );
 		if ( array() !== $result['values'] ) {
@@ -204,7 +214,7 @@ final class ObjectForm {
 		$messages = array();
 		foreach ( $fields as $field ) {
 			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
-				$messages[] = self::get_rejection_message( $field, $result['errors'][ $field['id'] ] );
+				$messages[] = Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] );
 			}
 		}
 		if ( array() !== $messages ) {
@@ -226,7 +236,7 @@ final class ObjectForm {
 	 * @return  array<string, string>
 	 */
 	public function get_refreshed_nonces( int $object_id ): array {
-		return $this->can_edit( $object_id ) ? array( "{$this->id}_nonce" => \wp_create_nonce( "{$this->id}_nonce_$object_id" ) ) : array();
+		return $this->can_edit( $object_id ) ? array( $this->get_nonce_name() => \wp_create_nonce( $this->get_nonce_action( $object_id ) ) ) : array();
 	}
 
 	// endregion
@@ -326,6 +336,8 @@ final class ObjectForm {
 	/**
 	 * Returns whether the current user may edit the object and holds the definition's capability.
 	 *
+	 * The definition's capability matters because WordPress grants every user edit_user on themself.
+	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
@@ -338,56 +350,29 @@ final class ObjectForm {
 	}
 
 	/**
-	 * Returns the notice for a rejected field, which names the field and adds the rejection's message when it has one.
+	 * Returns the name of the form's nonce field.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @param   Field     $field The field.
-	 * @param   \WP_Error $error The rejection.
 	 *
 	 * @return  string
 	 */
-	protected static function get_rejection_message( array $field, \WP_Error $error ): string {
-		$name    = self::get_field_title( $field );
-		$message = $error->get_error_message();
-		if ( '' === $message ) {
-			/* translators: %s: The field's title. */
-			return \sprintf( \__( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $name );
-		}
-
-		/* translators: 1: The field's title. 2: What to enter instead. */
-		return \sprintf( \__( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $name, $message );
+	protected function get_nonce_name(): string {
+		return "{$this->id}_nonce";
 	}
 
 	/**
-	 * Returns the field's title, or its id when the title is empty, so that every row and rejection names its field.
+	 * Returns the action of the form's nonce for the object.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   Field $field The field.
+	 * @param   int $object_id The object's id.
 	 *
 	 * @return  string
 	 */
-	protected static function get_field_title( array $field ): string {
-		return '' !== ( $field['title'] ?? '' ) ? $field['title'] : ( $field['id'] ?? '' );
-	}
-
-	/**
-	 * Returns whether the key is valid as a helper id.
-	 *
-	 * The pattern accepts every v1 option key, meta key, prefix and slug, so that ports keep their keys.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $key The key.
-	 *
-	 * @return  bool
-	 */
-	protected static function is_valid_key( string $key ): bool {
-		return 1 === \preg_match( '/\A_?[a-z][a-z0-9_-]*\z/', $key );
+	protected function get_nonce_action( int $object_id ): string {
+		return "{$this->id}_nonce_$object_id";
 	}
 
 	// endregion

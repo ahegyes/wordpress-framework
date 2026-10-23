@@ -2,11 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Settings\EditScreen\Hosts;
 
+use DeepWebSolutions\Framework\Settings\EditScreen\FormTable;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormHostInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -42,15 +42,9 @@ final class UserProfile implements ObjectFormHostInterface {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @throws  LogicException Thrown when the profile already hosts another form.
 	 */
 	#[\Override]
 	public function register_hooks( ObjectForm $form ): void {
-		if ( isset( $this->form ) && $form !== $this->form ) {
-			throw new LogicException( "User profile of '{$this->form->get_id()}' cannot also host '{$form->get_id()}'." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
-
 		$this->form = $form;
 		\add_action( 'show_user_profile', array( $this, 'render_section' ) );
 		\add_action( 'edit_user_profile', array( $this, 'render_section' ) );
@@ -88,15 +82,7 @@ final class UserProfile implements ObjectFormHostInterface {
 	 */
 	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
-		echo '<h2>' . $title . '</h2><table class="form-table" role="presentation">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes its title.
-		foreach ( $rows as $row ) {
-			if ( \is_null( $row['label_for'] ) ) {
-				echo '<tr><th scope="row">' . $row['title'] . '</th><td><fieldset><legend class="screen-reader-text"><span>' . $row['title'] . '</span></legend>' . $row['control'] . '</fieldset></td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
-			} else {
-				echo '<tr><th scope="row"><label for="' . \esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label></th><td>' . $row['control'] . '</td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
-			}
-		}
-		echo '</table>';
+		FormTable::render_rows( $title, $rows );
 	}
 
 	// endregion

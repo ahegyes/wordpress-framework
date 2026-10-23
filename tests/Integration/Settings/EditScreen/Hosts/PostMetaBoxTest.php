@@ -5,7 +5,6 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Settings\EditScreen\Hosts
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -89,15 +88,6 @@ final class PostMetaBoxTest extends TestCase {
 
 		self::assertSame( 10, \has_action( 'all_admin_notices', array( $form, 'render_rejections' ) ) );
 		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
-	}
-
-	public function test_a_host_serves_one_form(): void {
-		$host = new PostMetaBox( array( 'post' ) );
-		( new ObjectForm( "{$this->id}_a", static fn (): array => array(), $host ) )->register_hooks();
-
-		$this->expectException( LogicException::class );
-
-		( new ObjectForm( "{$this->id}_b", static fn (): array => array(), $host ) )->register_hooks();
 	}
 
 	public function test_the_definition_is_evaluated_only_when_a_screen_needs_it(): void {

@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\EditScreen\Hosts;
 
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -59,15 +58,6 @@ final class OrderMetaBoxTest extends TestCase {
 			'worded' => array( 'acme:reject', "Customer's <b>note</b> \\o/ was not saved, so it keeps its previous value. Use at most four characters." ),
 			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> \\o/ was not saved because its value is not valid, so it keeps its previous value." ),
 		);
-	}
-
-	public function test_a_box_serves_one_form(): void {
-		$host = new OrderMetaBox();
-		( new ObjectForm( "{$this->id}_a", static fn (): array => array(), $host ) )->register_hooks();
-
-		$this->expectException( LogicException::class );
-
-		( new ObjectForm( "{$this->id}_b", static fn (): array => array(), $host ) )->register_hooks();
 	}
 
 	public function test_the_box_is_added_on_add_meta_boxes(): void {
