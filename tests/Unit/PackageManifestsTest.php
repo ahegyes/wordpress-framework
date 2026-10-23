@@ -190,9 +190,11 @@ final class PackageManifestsTest extends TestCase {
 			$path     = \substr( $file->getPathname(), \strlen( $directory ) + 1 );
 			$expected = $prefix . \str_replace( '/', '\\', \substr( $path, 0, -4 ) );
 			$nodes    = ( new ParserFactory() )->createForHostVersion()->parse( \file_get_contents( $file->getPathname() ) );
-			foreach ( ( new NodeFinder() )->findInstanceOf( $nodes, Namespace_::class ) as $namespace ) {
+			// A file without a namespace declaration holds its classes in the global namespace.
+			$namespaces = ( new NodeFinder() )->findInstanceOf( $nodes, Namespace_::class ) ?: array( new Namespace_( null, $nodes ) );
+			foreach ( $namespaces as $namespace ) {
 				foreach ( ( new NodeFinder() )->findInstanceOf( $namespace->stmts, ClassLike::class ) as $class ) {
-					$name = $namespace->name?->toString() . '\\' . $class->name?->toString();
+					$name = \ltrim( $namespace->name?->toString() . '\\' . $class->name?->toString(), '\\' );
 					if ( ! \is_null( $class->name ) && $expected !== $name ) {
 						$misplaced[] = "$path: $name";
 					}
