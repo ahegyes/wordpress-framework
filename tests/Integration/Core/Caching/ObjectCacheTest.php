@@ -208,6 +208,36 @@ final class ObjectCacheTest extends TestCase {
 		self::assertSame( array( array( $this->group(), false ) ), $fired->getArrayCopy() );
 	}
 
+	public static function unusable_salts(): array {
+		return array(
+			'empty'   => array( '' ),
+			'integer' => array( 5 ),
+			'array'   => array( array( 'token' ) ),
+		);
+	}
+
+	#[DataProvider( 'unusable_salts' )]
+	public function test_a_salt_holding_no_non_empty_string_reads_as_none_until_a_write_starts_one( mixed $stored ): void {
+		\wp_cache_set( 'last_changed', $stored, $this->group() );
+		\wp_cache_set(
+			\md5( 'key' ),
+			array(
+				'value'      => 'Value.',
+				'generation' => $stored,
+			),
+			$this->group()
+		);
+		$cache = $this->cache();
+
+		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
+		self::assertTrue( $cache->set( 'other', 'Other.' ) );
+		self::assertTrue( $cache->setMultiple( array( 'more' => 'More.' ) ) );
+		self::assertIsString( \wp_cache_get( 'last_changed', $this->group() ) );
+		self::assertNotSame( '', \wp_cache_get( 'last_changed', $this->group() ) );
+		self::assertSame( 'Other.', $cache->get( 'other' ) );
+		self::assertSame( 'More.', $cache->get( 'more' ) );
+	}
+
 	public function test_a_first_batch_write_starts_the_salt(): void {
 		$fired = $this->record_last_changed();
 		$cache = $this->cache();
@@ -243,18 +273,15 @@ final class ObjectCacheTest extends TestCase {
 		self::assertFalse( $cache->has( 'key' ) );
 	}
 
-	public function test_a_clear_right_after_a_write_always_makes_the_entry_miss(): void {
+	// Putting the previous time back acts as microtime() returning the same value within one microsecond.
+	public function test_a_clear_whose_last_changed_time_repeats_still_makes_every_entry_miss(): void {
 		$cache = $this->cache();
+		$cache->set( 'key', 'Value.' );
+		\add_action( 'wp_cache_set_last_changed', static fn ( string $group, string $time, mixed $previous ): bool => \wp_cache_set( 'last_changed', $previous, $group ), 10, 3 );
 
-		for ( $run = 0; $run < 1000; ++$run ) {
-			$cache->set( 'key', $run );
-			$cache->clear();
-			if ( $cache->has( 'key' ) ) {
-				self::fail( "The entry of run $run survived the clear." );
-			}
-		}
+		self::assertTrue( $cache->clear() );
 
-		$this->addToAssertionCount( 1 );
+		self::assertFalse( $cache->has( 'key' ) );
 	}
 
 	public function test_another_callers_last_changed_change_clears_the_cache(): void {
