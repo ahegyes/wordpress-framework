@@ -130,7 +130,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 		}
 
 		// WordPress prints a box's title as markup and the block editor lists it as text, so the title goes in as the form defines it.
-		\add_meta_box( $this->form->get_id(), $this->form->get_title(), array( $this, 'render_meta_box' ), $post_type, $this->context, $this->priority );
+		\add_meta_box( $this->form->get_id(), $this->form->get_title( $post->ID ), array( $this, 'render_meta_box' ), $post_type, $this->context, $this->priority );
 	}
 
 	/**

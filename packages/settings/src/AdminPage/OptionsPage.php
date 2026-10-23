@@ -43,14 +43,14 @@ final class OptionsPage {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string           $id         The page's menu slug, which also prefixes its tabs filter.
-	 * @param   \Closure(): Page $definition The definition, which is evaluated on first use after init and must not throw.
+	 * @param   string                         $id         The page's menu slug, which also prefixes its tabs filter.
+	 * @param   OptionsPageDefinitionInterface $definition The definition, which the page asks for once, on first use after init.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
 	 */
 	public function __construct(
 		protected string $id,
-		protected \Closure $definition
+		protected OptionsPageDefinitionInterface $definition
 	) {
 		Forms::check_helper_id( $id );
 	}
@@ -209,7 +209,7 @@ final class OptionsPage {
 	 */
 	protected function get_page(): array {
 		if ( \is_null( $this->page ) ) {
-			$page = ( $this->definition )();
+			$page = $this->definition->get_options_page( $this->id );
 
 			/**
 			 * Filters the tabs of the options page, so that other plugins can add tabs or fields.
