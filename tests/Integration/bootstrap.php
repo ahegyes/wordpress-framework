@@ -15,5 +15,7 @@ register_shutdown_function(
 require_once dirname( __DIR__, 5 ) . '/wp-load.php';
 // Admin pages load the plugin API before any admin notice renders.
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
+// A plugin's entry file loads the bootstrap package, which core and woocommerce print their boot notices through.
+require_once dirname( __DIR__, 2 ) . '/packages/bootstrap/load.php';
 
 $wp_framework_loaded = true;

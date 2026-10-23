@@ -50,32 +50,49 @@ final class Requirements {
 		\add_action(
 			'all_admin_notices',
 			static function () use ( $plugin_file ): void {
-				if ( ! \current_user_can( 'activate_plugins' ) ) {
-					return;
-				}
-
 				// Core translates the plugin's headers while it builds the message, so the message waits until the notice renders.
 				$requirements = \validate_plugin_requirements( \plugin_basename( $plugin_file ) );
 				if ( ! \is_wp_error( $requirements ) ) {
 					return; // Core reads the headers from the plugins directory, so a plugin loaded from elsewhere reads as compatible.
 				}
 
-				if ( \function_exists( 'wp_admin_notice' ) ) {
-					\wp_admin_notice(
-						$requirements->get_error_message(),
-						array(
-							'type'           => 'error',
-							'paragraph_wrap' => false, // Core's message is already paragraphs.
-						)
-					);
-				} else {
-					// The gate runs on WordPress from 5.2, and wp_admin_notice() arrived in 6.4.
-					echo '<div class="notice notice-error">' . \wp_kses_post( $requirements->get_error_message() ) . '</div>';
-				}
+				self::print_admin_notice(
+					$requirements->get_error_message(),
+					array(
+						'type'           => 'error',
+						'paragraph_wrap' => false, // Core's message is already paragraphs.
+					)
+				);
 			}
 		);
 
 		return false;
+	}
+
+	/**
+	 * Prints an admin notice about the plugin to users who can activate plugins, as wp_admin_notice() prints it.
+	 *
+	 * The framework's boot checks report through it, because they run before the plugin's own admin notices exist or without them. Before WordPress 6.4, which has no wp_admin_notice(), it prints the same markup and honors only the type and paragraph_wrap arguments.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string               $message The message, as HTML.
+	 * @param   array<string, mixed> $args    Optional. The notice's arguments, as wp_admin_notice() takes them. Default is an error notice.
+	 * @phpstan-param array{type?: string, dismissible?: bool, id?: string, additional_classes?: array<string>, attributes?: array<string>, paragraph_wrap?: bool} $args
+	 */
+	public static function print_admin_notice( string $message, array $args = array( 'type' => 'error' ) ): void {
+		if ( ! \current_user_can( 'activate_plugins' ) ) {
+			return;
+		}
+
+		if ( \function_exists( 'wp_admin_notice' ) ) {
+			\wp_admin_notice( $message, $args );
+			return;
+		}
+
+		$type = isset( $args['type'] ) && '' !== $args['type'] ? " notice-{$args['type']}" : '';
+		echo \wp_kses_post( '<div class="notice' . \esc_attr( $type ) . '">' . ( false === ( $args['paragraph_wrap'] ?? true ) ? $message : "<p>$message</p>" ) . '</div>' );
 	}
 
 	// endregion
