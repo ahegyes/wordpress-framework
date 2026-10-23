@@ -55,6 +55,8 @@ final readonly class Version extends AbstractValueObject implements \Stringable 
 	/**
 	 * Returns -1, 0 or 1 when this version is lower than, equal to or higher than another.
 	 *
+	 * PHP's version_compare() orders the normalized forms, which ranks the pre-release labels dev, alpha, beta and rc in that order below their release.
+	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
@@ -63,7 +65,7 @@ final readonly class Version extends AbstractValueObject implements \Stringable 
 	 * @return  int<-1, 1>
 	 */
 	public function compare( self $other ): int {
-		return $this->get_precedence() <=> $other->get_precedence();
+		return \version_compare( (string) $this, (string) $other );
 	}
 
 	// endregion
@@ -94,30 +96,6 @@ final readonly class Version extends AbstractValueObject implements \Stringable 
 			\is_null( $parts[4] ) ? null : \strtolower( $parts[4] ),
 			(int) ( $parts[5] ?? 0 )
 		);
-	}
-
-	// endregion
-
-	// region HELPERS
-
-	/**
-	 * Returns the parts in precedence order, with pre-releases ranked below their release.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  array{int, int, int, int, int}
-	 */
-	protected function get_precedence(): array {
-		$label_rank = match ( $this->pre_release ) {
-			'dev'   => 0,
-			'alpha' => 1,
-			'beta'  => 2,
-			'rc'    => 3,
-			default => 4,
-		};
-
-		return array( $this->major, $this->minor, $this->patch, $label_rank, $this->pre_release_number );
 	}
 
 	// endregion
