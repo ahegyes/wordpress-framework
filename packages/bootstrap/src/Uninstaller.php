@@ -26,34 +26,33 @@ final class Uninstaller {
 	// region METHODS
 
 	/**
-	 * Removes the plugin's footprint from the current site, or with the network flag from every site of a network that is not large, wherever the site consents, and unschedules its jobs and deletes its updater's cached releases on every site it visits.
+	 * Removes the plugin's footprint from every site that consents, and unschedules its jobs and deletes its updater's cached releases on every site.
 	 *
-	 * Every operation runs even after another fails. A failed delete of the footprint keeps that site's consent row, and the failed deletes and callables are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback, and a cached release that cannot be deleted is left to expire.
+	 * On each site the cleanup runs first, and a failed cleanup keeps that site's footprint. Every operation runs even after another fails. A failed delete keeps that site's consent row, and the failures are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback, and a cached release that cannot be deleted is left to expire.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   string               $plugin_file The path to the plugin's entry file.
-	 * @param   array<string, mixed> $footprint   The plugin's stored data by kind, under the engine's keys and the handlers' keys.
-	 * @param   array<string, mixed> $args        Optional. The consent (an option, its key in a grouped row, or a constant), the handlers by footprint key, the cleanup and the network flag. Default none, which keeps the footprint.
-	 * @phpstan-param array{consent?: array{option?: string, key?: string, constant?: string}, handlers?: array<string, callable(mixed, array{scope: string, site_id: int, plugin_file: string}): void>, cleanup?: callable(array{scope: string, site_id: int, plugin_file: string}): void, network?: bool} $args
+	 * @param   array<string, mixed> $footprint   The plugin's stored data by kind.
+	 * @param   array<string, mixed> $args        Optional. The consent (an option, its key in a grouped row, or a constant), the meta types the meta kinds may name beside post, term and comment, and the cleanup. Default none, which keeps the footprint.
+	 * @phpstan-param array{consent?: array{option?: string, key?: string, constant?: string}, meta_types?: array<string, array{meta_type?: string, meta_tables?: list<string>, cache_groups?: list<string>}>, cleanup?: callable(array{scope: string, site_id: int, plugin_file: string}): void} $args
 	 *
-	 * @throws  \RuntimeException Thrown when a delete, a handler or the cleanup failed, after everything else ran.
+	 * @throws  \RuntimeException Thrown when a web request runs on a large network, before any change, or when a delete or the cleanup failed, after everything else ran.
 	 */
 	public static function run( string $plugin_file, array $footprint, array $args = array() ): void {
-		$consent  = $args['consent'] ?? array();
-		$handlers = $args['handlers'] ?? array();
-		$cleanup  = $args['cleanup'] ?? null;
-		self::report_unreadable_keys( $plugin_file, $footprint, $handlers );
-
-		$failures = array();
-		$network  = true === ( $args['network'] ?? false ) && \is_multisite();
-		if ( $network && \wp_is_large_network() ) {
-			$network = false;
-			\error_log( '[' . \plugin_basename( $plugin_file ) . '] Uninstall cleaned only the current site, because the network is large.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
+		// A web request could not finish sweeping a large network within the server's time limit, which WP-CLI does not have.
+		if ( \is_multisite() && \wp_is_large_network() && ! ( \defined( 'WP_CLI' ) && true === \constant( 'WP_CLI' ) ) ) {
+			throw new \RuntimeException( 'Uninstall does not sweep a large network in a web request; run `wp plugin uninstall` instead.' );
 		}
 
-		if ( $network ) {
+		$consent    = $args['consent'] ?? array();
+		$cleanup    = $args['cleanup'] ?? null;
+		$meta_types = self::read_meta_types( $args['meta_types'] ?? array() );
+		self::report_unreadable_keys( $plugin_file, $footprint, $meta_types );
+
+		$failures = array();
+		if ( \is_multisite() ) {
 			$site_ids = \get_sites(
 				array(
 					'fields' => 'ids',
@@ -63,18 +62,21 @@ final class Uninstaller {
 			foreach ( $site_ids as $site_id ) {
 				\switch_to_blog( (int) $site_id );
 				try {
-					self::uninstall_site( $plugin_file, $footprint, $consent, $handlers, $cleanup, $failures );
+					self::uninstall_site( $plugin_file, $footprint, $consent, $meta_types, $cleanup, $failures );
 				} finally {
 					\restore_current_blog();
+					// WordPress keeps every visited site's options in its runtime cache, so the sweep's memory would grow with each site.
+					if ( \function_exists( 'wp_cache_supports' ) && \function_exists( 'wp_cache_flush_runtime' ) && \wp_cache_supports( 'flush_runtime' ) ) {
+						\wp_cache_flush_runtime();
+					}
 				}
 			}
 
-			if ( self::has_constant_consent( $consent ) ) {
+			if ( self::has_constant_consent( $consent ) && self::run_cleanup( $cleanup, 'network', $plugin_file, $failures ) ) {
 				self::delete_global_user_meta( $footprint, $failures );
-				self::run_callables( $footprint, $handlers, $cleanup, self::get_context( 'network', $plugin_file ), $failures );
 			}
 		} else {
-			self::uninstall_site( $plugin_file, $footprint, $consent, $handlers, $cleanup, $failures );
+			self::uninstall_site( $plugin_file, $footprint, $consent, $meta_types, $cleanup, $failures );
 		}
 
 		if ( array() !== $failures ) {
@@ -87,31 +89,31 @@ final class Uninstaller {
 	// region HELPERS
 
 	/**
-	 * Runs the uninstall pass on the current site, which deletes the footprint only where the site consents.
+	 * Runs the uninstall pass on the current site, which runs the cleanup and deletes the footprint only where the site consents.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string                                                  $plugin_file The path to the plugin's entry file.
-	 * @param   array<string, mixed>                                    $footprint   The plugin's stored data by kind.
-	 * @param   array{option?: string, key?: string, constant?: string} $consent     The consent argument.
-	 * @param   array<string, callable>                                 $handlers    The handlers by footprint key.
-	 * @param   callable|null                                           $cleanup     The cleanup, if any.
-	 * @param   list<string>                                            $failures    The failures so far, to which this pass adds its own.
+	 * @param   string                                                                                         $plugin_file The path to the plugin's entry file.
+	 * @param   array<string, mixed>                                                                           $footprint   The plugin's stored data by kind.
+	 * @param   array{option?: string, key?: string, constant?: string}                                        $consent     The consent argument.
+	 * @param   array<string, array{meta_type: string, meta_tables: list<string>, cache_groups: list<string>}> $meta_types  The meta types by name.
+	 * @param   callable|null                                                                                  $cleanup     The cleanup, if any.
+	 * @param   list<string>                                                                                   $failures    The failures so far, to which this pass adds its own.
 	 */
-	protected static function uninstall_site( string $plugin_file, array $footprint, array $consent, array $handlers, ?callable $cleanup, array &$failures ): void {
+	protected static function uninstall_site( string $plugin_file, array $footprint, array $consent, array $meta_types, ?callable $cleanup, array &$failures ): void {
 		$unscheduling = array();
 		foreach ( self::get_strings( $footprint, 'cron_hooks' ) as $hook ) {
 			// WordPress below 5.7 ignores the extra argument.
 			self::attempt( "cron hook $hook", static fn () => \wp_unschedule_hook( $hook, true ), $unscheduling ); // @phpstan-ignore WPCompat.parameterNotAvailable.wpunschedulehook.wperror
 		}
 
-		// Action Scheduler is loaded only while a plugin that bundles it is active.
+		// Action Scheduler is loaded only while a plugin that bundles it is active, and it reads a name of '0' as no name, which would cancel every plugin's pending actions.
 		if ( \function_exists( 'as_unschedule_all_actions' ) ) {
-			foreach ( self::get_strings( $footprint, 'as_hooks' ) as $hook ) {
+			foreach ( \array_diff( self::get_strings( $footprint, 'as_hooks' ), array( '0' ) ) as $hook ) {
 				self::attempt( "Action Scheduler hook $hook", static fn () => \as_unschedule_all_actions( $hook ), $unscheduling );
 			}
-			foreach ( self::get_strings( $footprint, 'as_groups' ) as $group ) {
+			foreach ( \array_diff( self::get_strings( $footprint, 'as_groups' ), array( '0' ) ) as $group ) {
 				self::attempt( "Action Scheduler group $group", static fn () => \as_unschedule_all_actions( '', array(), $group ), $unscheduling );
 			}
 		}
@@ -130,13 +132,17 @@ final class Uninstaller {
 			return;
 		}
 
-		$failed         = \count( $failures );
+		// A failed cleanup keeps the footprint, so its retry still finds every row it reads.
+		$failed = \count( $failures );
+		if ( ! self::run_cleanup( $cleanup, 'site', $plugin_file, $failures ) ) {
+			return;
+		}
+
 		$consent_option = $consent['option'] ?? '';
-		self::delete_site_data( $footprint, $consent_option, $failures );
+		self::delete_site_data( $footprint, $consent_option, $meta_types, $failures );
 		if ( ! \is_multisite() ) {
 			self::delete_global_user_meta( $footprint, $failures );
 		}
-		self::run_callables( $footprint, $handlers, $cleanup, self::get_context( 'site', $plugin_file ), $failures );
 
 		// The consent row goes last and only after a clean pass, so an interrupted or failed run still consents on its retry.
 		if ( '' !== $consent_option && \count( $failures ) === $failed ) {
@@ -145,37 +151,24 @@ final class Uninstaller {
 	}
 
 	/**
-	 * Deletes the footprint's per-site rows on the current site, except the consent row and the options of pages that stay.
+	 * Deletes the footprint's per-site rows on the current site, except the consent row.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<string, mixed> $footprint      The plugin's stored data by kind.
-	 * @param   string               $consent_option The consent row, which the caller deletes last.
-	 * @param   list<string>         $failures       The failures so far, to which the deletes add their own.
+	 * @param   array<string, mixed>                                                                           $footprint      The plugin's stored data by kind.
+	 * @param   string                                                                                         $consent_option The consent row, which the caller deletes last.
+	 * @param   array<string, array{meta_type: string, meta_tables: list<string>, cache_groups: list<string>}> $meta_types     The meta types by name.
+	 * @param   list<string>                                                                                   $failures       The failures so far, to which the deletes add their own.
 	 */
-	protected static function delete_site_data( array $footprint, string $consent_option, array &$failures ): void {
+	protected static function delete_site_data( array $footprint, string $consent_option, array $meta_types, array &$failures ): void {
 		$wpdb = self::get_wpdb();
 
-		// A page option is read before any option is deleted, and a page that stays keeps its option, so the retry still finds the page.
-		$kept = array( $consent_option );
-		foreach ( self::get_strings( $footprint, 'page_options' ) as $option ) {
-			$page_id = \get_option( $option );
-			// An id of 0 would make WordPress read the global post.
-			if ( \is_numeric( $page_id ) && 0 < (int) $page_id && 'page' === \get_post_type( (int) $page_id ) ) {
-				$failed = \count( $failures );
-				self::attempt( "page $page_id of option $option", static fn () => self::confirm_deleted( \wp_delete_post( (int) $page_id, true ) ), $failures );
-				if ( \count( $failures ) > $failed ) {
-					$kept[] = $option;
-				}
-			}
-		}
-
-		$options = \array_merge( self::get_strings( $footprint, 'page_options' ), self::get_strings( $footprint, 'options' ) );
+		$options = self::get_strings( $footprint, 'options' );
 		foreach ( self::get_strings( $footprint, 'option_prefixes' ) as $prefix ) {
 			$options = \array_merge( $options, self::get_names_by_prefix( $wpdb->options, 'option_name', $prefix, $failures ) );
 		}
-		foreach ( \array_diff( \array_unique( $options ), $kept ) as $option ) {
+		foreach ( \array_diff( \array_unique( $options ), array( $consent_option ) ) as $option ) {
 			self::attempt( "option $option", static fn () => \delete_option( $option ), $failures );
 		}
 
@@ -195,13 +188,10 @@ final class Uninstaller {
 			}
 		}
 
-		foreach ( self::get_meta_map( $footprint, 'meta' ) as $meta_type => $keys ) {
-			self::delete_meta_keys( $meta_type, $keys, $failures );
-		}
-		foreach ( self::get_meta_map( $footprint, 'meta_prefixes' ) as $meta_type => $prefixes ) {
-			foreach ( $prefixes as $prefix ) {
-				self::delete_meta_keys( $meta_type, self::get_names_by_prefix( (string) \_get_meta_table( $meta_type ), 'meta_key', $prefix, $failures ), $failures );
-			}
+		$meta_keys     = self::get_meta_map( $footprint, 'meta', $meta_types );
+		$meta_prefixes = self::get_meta_map( $footprint, 'meta_prefixes', $meta_types );
+		foreach ( \array_keys( $meta_keys + $meta_prefixes ) as $name ) {
+			self::delete_meta( $meta_types[ $name ], $meta_keys[ $name ] ?? array(), $meta_prefixes[ $name ] ?? array(), $failures );
 		}
 
 		// Site user meta keys carry the site's table prefix, as update_user_option() writes them.
@@ -218,8 +208,59 @@ final class Uninstaller {
 		}
 
 		foreach ( self::get_strings( $footprint, 'tables' ) as $table ) {
-			$name = \str_replace( '`', '``', $wpdb->prefix . $table );
-			self::attempt( "table $table", static fn () => $wpdb->query( "DROP TABLE IF EXISTS `$name`" ), $failures ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier placeholders need WordPress 6.2, so the name is quoted by hand.
+			$name = self::quote_identifier( $wpdb->prefix . $table );
+			self::attempt( "table $table", static fn () => $wpdb->query( "DROP TABLE IF EXISTS $name" ), $failures ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier placeholders need WordPress 6.2, so the name is quoted by hand.
+		}
+	}
+
+	/**
+	 * Deletes a meta type's rows under each key, and under each key that starts with one of the prefixes, from its WordPress meta table and from each of its own tables the current site holds, then flushes its cache groups.
+	 *
+	 * Rows match the key byte for byte, because the tables' collation would also match another plugin's key that differs only in letter case.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   array{meta_type: string, meta_tables: list<string>, cache_groups: list<string>} $meta_type The meta type.
+	 * @param   list<string>                                                                    $keys      The meta keys.
+	 * @param   list<string>                                                                    $prefixes  The meta key prefixes.
+	 * @param   list<string>                                                                    $failures  The failures so far, to which the deletes add their own.
+	 */
+	protected static function delete_meta( array $meta_type, array $keys, array $prefixes, array &$failures ): void {
+		$wpdb = self::get_wpdb();
+
+		$tables = array();
+		foreach ( $meta_type['meta_tables'] as $table ) {
+			if ( self::table_exists( $wpdb->prefix . $table, $failures ) ) {
+				$tables[] = $wpdb->prefix . $table;
+			}
+		}
+
+		$wordpress_tables = '' === $meta_type['meta_type'] ? array() : array( (string) \_get_meta_table( $meta_type['meta_type'] ) );
+		foreach ( $prefixes as $prefix ) {
+			foreach ( \array_merge( $wordpress_tables, $tables ) as $table ) {
+				$keys = \array_merge( $keys, self::get_names_by_prefix( $table, 'meta_key', $prefix, $failures ) );
+			}
+		}
+		$keys = \array_values( \array_unique( $keys ) );
+
+		if ( '' !== $meta_type['meta_type'] ) {
+			self::delete_meta_keys( $meta_type['meta_type'], $keys, $failures );
+		}
+		foreach ( $tables as $table ) {
+			$name = self::quote_identifier( $table );
+			foreach ( $keys as $key ) {
+				// Identifier placeholders need WordPress 6.2, and WordPress 5.3 only formalized the variadic arguments that older versions already took.
+				// @phpstan-ignore argument.type, argument.type, WPCompat.parameterNotAvailable.wpdbprepare.args
+				self::attempt( "$table rows of key $key", static fn () => $wpdb->query( $wpdb->prepare( "DELETE FROM $name WHERE meta_key = %s AND CAST( meta_key AS BINARY ) = CAST( %s AS BINARY )", $key, $key ) ), $failures ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- A meta type's own tables have no WordPress meta API while their plugin is unloaded.
+			}
+		}
+
+		// WordPress flushes a single group from 6.1, and where the object cache cannot, the entries expire on their own.
+		if ( \function_exists( 'wp_cache_supports' ) && \function_exists( 'wp_cache_flush_group' ) && \wp_cache_supports( 'flush_group' ) ) {
+			foreach ( $meta_type['cache_groups'] as $group ) {
+				\wp_cache_flush_group( $group );
+			}
 		}
 	}
 
@@ -264,28 +305,32 @@ final class Uninstaller {
 	}
 
 	/**
-	 * Runs the plugin's handlers and cleanup for one pass.
+	 * Runs the plugin's cleanup, if any, for one pass on the current site, and returns whether it did not fail.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<string, mixed>                                    $footprint The plugin's stored data by kind.
-	 * @param   array<string, callable>                                 $handlers  The handlers by footprint key.
-	 * @param   callable|null                                           $cleanup   The cleanup, if any.
-	 * @param   array{scope: string, site_id: int, plugin_file: string} $context   The pass's context.
-	 * @param   list<string>                                            $failures  The failures so far, to which the callables add their own.
+	 * @param   callable|null $cleanup     The cleanup, if any.
+	 * @param   string        $scope       The pass's scope, 'site' or 'network'.
+	 * @param   string        $plugin_file The path to the plugin's entry file.
+	 * @param   list<string>  $failures    The failures so far, to which the cleanup's failure is added.
+	 *
+	 * @return  bool
 	 */
-	protected static function run_callables( array $footprint, array $handlers, ?callable $cleanup, array $context, array &$failures ): void {
-		foreach ( $handlers as $key => $handler ) {
-			if ( \array_key_exists( $key, $footprint ) ) {
-				$values = $footprint[ $key ];
-				self::attempt( "handler $key", static fn () => $handler( $values, $context ), $failures );
-			}
+	protected static function run_cleanup( ?callable $cleanup, string $scope, string $plugin_file, array &$failures ): bool {
+		if ( null === $cleanup ) {
+			return true;
 		}
 
-		if ( null !== $cleanup ) {
-			self::attempt( 'cleanup', static fn () => $cleanup( $context ), $failures );
-		}
+		$context = array(
+			'scope'       => $scope,
+			'site_id'     => \get_current_blog_id(),
+			'plugin_file' => $plugin_file,
+		);
+		$failed  = \count( $failures );
+		self::attempt( 'cleanup', static fn () => $cleanup( $context ), $failures );
+
+		return \count( $failures ) === $failed;
 	}
 
 	/**
@@ -376,36 +421,17 @@ final class Uninstaller {
 	}
 
 	/**
-	 * Returns the context a handler and the cleanup receive for a pass on the current site.
+	 * Logs, once, the footprint keys the engine does not read, or whose values it cannot read, since their data would otherwise stay without a trace.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $scope       The pass's scope, 'site' or 'network'.
-	 * @param   string $plugin_file The path to the plugin's entry file.
-	 *
-	 * @return  array{scope: string, site_id: int, plugin_file: string}
+	 * @param   string                                                                                         $plugin_file The path to the plugin's entry file.
+	 * @param   array<string, mixed>                                                                           $footprint   The plugin's stored data by kind.
+	 * @param   array<string, array{meta_type: string, meta_tables: list<string>, cache_groups: list<string>}> $meta_types  The meta types by name.
 	 */
-	protected static function get_context( string $scope, string $plugin_file ): array {
-		return array(
-			'scope'       => $scope,
-			'site_id'     => \get_current_blog_id(),
-			'plugin_file' => $plugin_file,
-		);
-	}
-
-	/**
-	 * Logs, once, the footprint keys that neither the engine nor a handler reads, or whose values the engine cannot read, since their data would otherwise stay without a trace.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string               $plugin_file The path to the plugin's entry file.
-	 * @param   array<string, mixed> $footprint   The plugin's stored data by kind.
-	 * @param   array<string, mixed> $handlers    The handlers by footprint key.
-	 */
-	protected static function report_unreadable_keys( string $plugin_file, array $footprint, array $handlers ): void {
-		$lists = array( 'cron_hooks', 'as_hooks', 'as_groups', 'options', 'option_prefixes', 'transients', 'post_types', 'page_options', 'comment_types', 'user_meta_site', 'user_meta_site_prefixes', 'user_meta_global', 'user_meta_global_prefixes', 'capabilities', 'tables' );
+	protected static function report_unreadable_keys( string $plugin_file, array $footprint, array $meta_types ): void {
+		$lists = array( 'cron_hooks', 'as_hooks', 'as_groups', 'options', 'option_prefixes', 'transients', 'post_types', 'comment_types', 'user_meta_site', 'user_meta_site_prefixes', 'user_meta_global', 'user_meta_global_prefixes', 'capabilities', 'tables' );
 		$maps  = array( 'meta', 'meta_prefixes' );
 
 		$unreadable = array();
@@ -413,9 +439,9 @@ final class Uninstaller {
 			if ( \in_array( $key, $lists, true ) ) {
 				$readable = null !== self::read_strings( $value );
 			} elseif ( \in_array( $key, $maps, true ) ) {
-				$readable = null !== self::read_meta_map( $value );
+				$readable = null !== self::read_meta_map( $value, $meta_types );
 			} else {
-				$readable = \array_key_exists( $key, $handlers );
+				$readable = false;
 			}
 
 			if ( ! $readable ) {
@@ -449,13 +475,14 @@ final class Uninstaller {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<string, mixed> $footprint The plugin's stored data by kind.
-	 * @param   string               $key       The footprint key.
+	 * @param   array<string, mixed>                                                                           $footprint  The plugin's stored data by kind.
+	 * @param   string                                                                                         $key        The footprint key.
+	 * @param   array<string, array{meta_type: string, meta_tables: list<string>, cache_groups: list<string>}> $meta_types The meta types by name.
 	 *
 	 * @return  array<string, list<string>>
 	 */
-	protected static function get_meta_map( array $footprint, string $key ): array {
-		return self::read_meta_map( $footprint[ $key ] ?? array() ) ?? array();
+	protected static function get_meta_map( array $footprint, string $key, array $meta_types ): array {
+		return self::read_meta_map( $footprint[ $key ] ?? array(), $meta_types ) ?? array();
 	}
 
 	/**
@@ -486,31 +513,74 @@ final class Uninstaller {
 	}
 
 	/**
-	 * Returns the value as lists of strings by post, term or comment meta type, or null when it is anything else.
+	 * Returns the value as lists of strings by the name of a meta type, or null when it is anything else.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   mixed $value The footprint value.
+	 * @param   mixed                                                                                          $value      The footprint value.
+	 * @param   array<string, array{meta_type: string, meta_tables: list<string>, cache_groups: list<string>}> $meta_types The meta types by name.
 	 *
 	 * @return  array<string, list<string>>|null
 	 */
-	protected static function read_meta_map( $value ): ?array {
+	protected static function read_meta_map( $value, array $meta_types ): ?array {
 		if ( ! \is_array( $value ) ) {
 			return null;
 		}
 
 		$map = array();
-		foreach ( $value as $meta_type => $keys ) {
+		foreach ( $value as $name => $keys ) {
 			$keys = self::read_strings( $keys );
-			if ( ! \in_array( $meta_type, array( 'post', 'term', 'comment' ), true ) || null === $keys ) {
+			if ( ! \is_string( $name ) || ! isset( $meta_types[ $name ] ) || null === $keys ) {
 				return null;
 			}
 
-			$map[ $meta_type ] = $keys;
+			$map[ $name ] = $keys;
 		}
 
 		return $map;
+	}
+
+	/**
+	 * Returns WordPress's post, term and comment meta types, then each readable definition of the argument under another name, by name.
+	 *
+	 * A definition names the WordPress meta type its keys also live in, if any, its own tables without the site's table prefix, and the cache groups that hold its rows. User meta is left out, since on a network its rows belong to every site.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $value The meta types argument.
+	 *
+	 * @return  array<string, array{meta_type: string, meta_tables: list<string>, cache_groups: list<string>}>
+	 */
+	protected static function read_meta_types( $value ): array {
+		$meta_types = array();
+		foreach ( array( 'post', 'term', 'comment' ) as $meta_type ) {
+			$meta_types[ $meta_type ] = array(
+				'meta_type'    => $meta_type,
+				'meta_tables'  => array(),
+				'cache_groups' => array(),
+			);
+		}
+
+		foreach ( \is_array( $value ) ? $value : array() as $name => $definition ) {
+			if ( ! \is_string( $name ) || isset( $meta_types[ $name ] ) || ! \is_array( $definition ) ) {
+				continue;
+			}
+
+			$meta_type    = $definition['meta_type'] ?? '';
+			$meta_tables  = self::read_strings( $definition['meta_tables'] ?? array() );
+			$cache_groups = self::read_strings( $definition['cache_groups'] ?? array() );
+			if ( \in_array( $meta_type, array( '', 'post', 'term', 'comment' ), true ) && null !== $meta_tables && null !== $cache_groups ) {
+				$meta_types[ $name ] = array(
+					'meta_type'    => $meta_type,
+					'meta_tables'  => $meta_tables,
+					'cache_groups' => $cache_groups,
+				);
+			}
+		}
+
+		return $meta_types;
 	}
 
 	/**
@@ -529,10 +599,11 @@ final class Uninstaller {
 	protected static function get_names_by_prefix( string $table, string $column, string $prefix, array &$failures ): array {
 		$wpdb = self::get_wpdb();
 
+		$name = self::quote_identifier( $table );
 		$wpdb->flush();
 		// Identifier placeholders need WordPress 6.2, and WordPress 5.3 only formalized the variadic arguments that older versions already took.
 		// @phpstan-ignore argument.type, WPCompat.parameterNotAvailable.wpdbprepare.args
-		$names = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT CAST( `$column` AS BINARY ) FROM `$table` WHERE `$column` LIKE %s", $wpdb->esc_like( $prefix ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WordPress lists no option or meta key by prefix.
+		$names = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT CAST( `$column` AS BINARY ) FROM $name WHERE `$column` LIKE %s", $wpdb->esc_like( $prefix ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WordPress lists no option or meta key by prefix.
 		if ( '' !== $wpdb->last_error ) {
 			$failures[] = "the names under $prefix in $table: $wpdb->last_error";
 			return array();
@@ -559,10 +630,11 @@ final class Uninstaller {
 	protected static function get_matching_ids( string $table, string $id_column, string $column, string $value, array &$failures ): array {
 		$wpdb = self::get_wpdb();
 
+		$name = self::quote_identifier( $table );
 		$wpdb->flush();
 		// Identifier placeholders need WordPress 6.2, and WordPress 5.3 only formalized the variadic arguments that older versions already took.
 		// @phpstan-ignore argument.type, WPCompat.parameterNotAvailable.wpdbprepare.args
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT `$id_column` AS id, `$column` AS value FROM `$table` WHERE `$column` = %s", $value ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads every row, trashed posts and auto-drafts included.
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT `$id_column` AS id, `$column` AS value FROM $name WHERE `$column` = %s", $value ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads every row, trashed posts and auto-drafts included.
 		if ( '' !== $wpdb->last_error ) {
 			$failures[] = "the $value rows of $table: $wpdb->last_error";
 			return array();
@@ -577,6 +649,48 @@ final class Uninstaller {
 		}
 
 		return $ids;
+	}
+
+	/**
+	 * Returns whether the current site's database holds the table, and records a failed read.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string       $table    The table.
+	 * @param   list<string> $failures The failures so far, to which a failed read is added.
+	 *
+	 * @return  bool
+	 */
+	protected static function table_exists( string $table, array &$failures ): bool {
+		$wpdb = self::get_wpdb();
+
+		$wpdb->flush();
+		// WordPress 5.3 only formalized the variadic arguments that older versions already took.
+		// @phpstan-ignore WPCompat.parameterNotAvailable.wpdbprepare.args
+		$name = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- A schema read.
+		if ( '' !== $wpdb->last_error ) {
+			$failures[] = "the table $table: $wpdb->last_error";
+			return false;
+		}
+
+		return $table === $name;
+	}
+
+	/**
+	 * Returns the table name quoted as a MySQL identifier.
+	 *
+	 * Identifier placeholders need WordPress 6.2, so names are quoted by hand.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $name The table name.
+	 *
+	 * @return  string
+	 */
+	protected static function quote_identifier( string $name ): string {
+		return '`' . \str_replace( '`', '``', $name ) . '`';
 	}
 
 	/**
