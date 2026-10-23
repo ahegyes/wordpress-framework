@@ -131,6 +131,23 @@ final class PackageManifestsTest extends TestCase {
 		self::assertSame( array(), $missing );
 	}
 
+	public function test_a_class_away_from_the_path_its_name_implies_is_misplaced(): void {
+		// The fixture is written at run time, because a misplaced class under tests/ would fail Composer's strict PSR-4 check.
+		$directory = \sys_get_temp_dir() . '/acme-placement-' . \bin2hex( \random_bytes( 3 ) );
+		\mkdir( "$directory/Wrong", 0777, true );
+		\file_put_contents( "$directory/Placed.php", "<?php\nnamespace Acme;\nfinal class Placed {}\n" );
+		\file_put_contents( "$directory/Wrong/Misplaced.php", "<?php\nnamespace Acme\\Right;\nfinal class Misplaced {}\n" );
+
+		try {
+			self::assertSame( array( 'Wrong/Misplaced.php: Acme\\Right\\Misplaced' ), self::misplaced_classes( $directory, 'Acme\\' ) );
+		} finally {
+			\unlink( "$directory/Placed.php" );
+			\unlink( "$directory/Wrong/Misplaced.php" );
+			\rmdir( "$directory/Wrong" );
+			\rmdir( $directory );
+		}
+	}
+
 	public function test_a_namespace_relative_name_resolves_against_its_namespace(): void {
 		$file = \dirname( __DIR__ ) . '/Fixtures/package-manifests/relative-name.php';
 
