@@ -28,7 +28,7 @@ final class Uninstaller {
 	/**
 	 * Removes the plugin's footprint from every site that consents, and unschedules its jobs and deletes its updater's cached releases on every site.
 	 *
-	 * On each site the cleanup runs first, and a failed cleanup keeps that site's footprint. Every operation runs even after another fails. A failed delete keeps that site's consent row, and the failures are thrown once the run ends, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback, and a cached release that cannot be deleted is left to expire.
+	 * On each site the cleanup runs first, and a failed cleanup keeps that site's footprint. A failed delete leaves the others to run, while a throw from another plugin's hook ends that site's pass. Either keeps the site's consent row, and the failures are thrown once every site was visited, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback, and a cached release that cannot be deleted is left to expire.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -38,7 +38,7 @@ final class Uninstaller {
 	 * @param   array<string, mixed> $args        Optional. The consent (an option, its key in a grouped row, or a constant), the meta types the meta kinds may name beside post, term and comment, and the cleanup. Default none, which keeps the footprint.
 	 * @phpstan-param array{consent?: array{option?: string, key?: string, constant?: string}, meta_types?: array<string, array{meta_type?: string, meta_tables?: list<string>, cache_groups?: list<string>}>, cleanup?: callable(array{scope: string, site_id: int, plugin_file: string}): void} $args
 	 *
-	 * @throws  \RuntimeException Thrown when a web request runs on a large network, before any change, or when a delete or the cleanup failed, after everything else ran.
+	 * @throws  \RuntimeException Thrown when a web request runs on a large network, before any change, or when a delete, a site's pass or the cleanup failed, once every site was visited.
 	 */
 	public static function run( string $plugin_file, array $footprint, array $args = array() ): void {
 		// A web request could not finish sweeping a large network within the server's time limit, which WP-CLI does not have.
@@ -51,19 +51,26 @@ final class Uninstaller {
 		$meta_types = self::read_meta_types( $args['meta_types'] ?? array() );
 		self::report_unreadable_keys( $plugin_file, $footprint, $meta_types );
 
-		$failures = array();
-		if ( \is_multisite() ) {
-			$site_ids = \get_sites(
-				array(
-					'fields' => 'ids',
-					'number' => 0,
-				)
-			);
-			foreach ( $site_ids as $site_id ) {
+		$failures  = array();
+		$multisite = \is_multisite();
+		$site_ids  = $multisite ? \get_sites(
+			array(
+				'fields' => 'ids',
+				'number' => 0,
+			)
+		) : array( \get_current_blog_id() );
+		foreach ( $site_ids as $site_id ) {
+			if ( $multisite ) {
 				\switch_to_blog( (int) $site_id );
-				try {
-					self::uninstall_site( $plugin_file, $footprint, $consent, $meta_types, $cleanup, $failures );
-				} finally {
+			}
+
+			try {
+				self::uninstall_site( $plugin_file, $footprint, $consent, $meta_types, $cleanup, $failures );
+			} catch ( \Throwable $throwable ) {
+				// A throw comes from another plugin's hook, and the retry finds the rest of the site's footprint and its consent row.
+				$failures[] = "site $site_id: {$throwable->getMessage()}";
+			} finally {
+				if ( $multisite ) {
 					\restore_current_blog();
 					// WordPress keeps every visited site's options in its runtime cache, so the sweep's memory would grow with each site.
 					if ( \function_exists( 'wp_cache_supports' ) && \function_exists( 'wp_cache_flush_runtime' ) && \wp_cache_supports( 'flush_runtime' ) ) {
@@ -71,12 +78,16 @@ final class Uninstaller {
 					}
 				}
 			}
+		}
 
-			if ( self::has_constant_consent( $consent ) && self::run_cleanup( $cleanup, 'network', $plugin_file, $failures ) ) {
-				self::delete_global_user_meta( $footprint, $failures );
+		if ( $multisite && self::has_constant_consent( $consent ) ) {
+			try {
+				if ( self::run_cleanup( $cleanup, 'network', $plugin_file, $failures ) ) {
+					self::delete_global_user_meta( $footprint, $failures );
+				}
+			} catch ( \Throwable $throwable ) {
+				$failures[] = "network: {$throwable->getMessage()}";
 			}
-		} else {
-			self::uninstall_site( $plugin_file, $footprint, $consent, $meta_types, $cleanup, $failures );
 		}
 
 		if ( array() !== $failures ) {
@@ -102,19 +113,39 @@ final class Uninstaller {
 	 * @param   list<string>                                                                                   $failures    The failures so far, to which this pass adds its own.
 	 */
 	protected static function uninstall_site( string $plugin_file, array $footprint, array $consent, array $meta_types, ?callable $cleanup, array &$failures ): void {
+		$wpdb         = self::get_wpdb();
 		$unscheduling = array();
 		foreach ( self::get_strings( $footprint, 'cron_hooks' ) as $hook ) {
-			// WordPress below 5.7 ignores the extra argument.
-			self::attempt( "cron hook $hook", static fn () => \wp_unschedule_hook( $hook, true ), $unscheduling ); // @phpstan-ignore WPCompat.parameterNotAvailable.wpunschedulehook.wperror
+			$wpdb->flush();
+			try {
+				// WordPress below 5.7 ignores the extra argument.
+				$result = \wp_unschedule_hook( $hook, true ); // @phpstan-ignore WPCompat.parameterNotAvailable.wpunschedulehook.wperror
+			} catch ( \Throwable $throwable ) {
+				$result = $throwable;
+			}
+			self::record_failure( "cron hook $hook", $result, $unscheduling );
 		}
 
 		// Action Scheduler is loaded only while a plugin that bundles it is active, and it reads a name of '0' as no name, which would cancel every plugin's pending actions.
 		if ( \function_exists( 'as_unschedule_all_actions' ) ) {
+			$jobs = array();
 			foreach ( \array_diff( self::get_strings( $footprint, 'as_hooks' ), array( '0' ) ) as $hook ) {
-				self::attempt( "Action Scheduler hook $hook", static fn () => \as_unschedule_all_actions( $hook ), $unscheduling );
+				$jobs[ "Action Scheduler hook $hook" ] = array( $hook );
 			}
 			foreach ( \array_diff( self::get_strings( $footprint, 'as_groups' ), array( '0' ) ) as $group ) {
-				self::attempt( "Action Scheduler group $group", static fn () => \as_unschedule_all_actions( '', array(), $group ), $unscheduling );
+				$jobs[ "Action Scheduler group $group" ] = array( '', array(), $group );
+			}
+
+			foreach ( $jobs as $subject => $arguments ) {
+				$wpdb->flush();
+				try {
+					// Action Scheduler throws when its store fails to cancel an action.
+					\as_unschedule_all_actions( ...$arguments );
+					$result = null;
+				} catch ( \Throwable $throwable ) {
+					$result = $throwable;
+				}
+				self::record_failure( $subject, $result, $unscheduling );
 			}
 		}
 
@@ -143,7 +174,8 @@ final class Uninstaller {
 
 		// The consent row goes last and only after a clean pass, so an interrupted or failed run still consents on its retry.
 		if ( '' !== $consent_option && \count( $failures ) === $failed ) {
-			self::attempt( "option $consent_option", static fn () => \delete_option( $consent_option ), $failures );
+			$wpdb->flush();
+			self::record_failure( "option $consent_option", \delete_option( $consent_option ), $failures );
 		}
 	}
 
@@ -166,22 +198,26 @@ final class Uninstaller {
 			$options = \array_merge( $options, self::get_names_by_prefix( $wpdb->options, 'option_name', $prefix, $failures ) );
 		}
 		foreach ( \array_diff( \array_unique( $options ), array( $consent_option ) ) as $option ) {
-			self::attempt( "option $option", static fn () => \delete_option( $option ), $failures );
+			$wpdb->flush();
+			self::record_failure( "option $option", \delete_option( $option ), $failures );
 		}
 
 		foreach ( self::get_strings( $footprint, 'transients' ) as $transient ) {
-			self::attempt( "transient $transient", static fn () => \delete_transient( $transient ), $failures );
+			$wpdb->flush();
+			self::record_failure( "transient $transient", \delete_transient( $transient ), $failures );
 		}
 
 		foreach ( self::get_strings( $footprint, 'post_types' ) as $post_type ) {
 			foreach ( self::get_matching_ids( $wpdb->posts, 'ID', 'post_type', $post_type, $failures ) as $post_id ) {
-				self::attempt( "post $post_id of type $post_type", static fn () => self::confirm_deleted( \wp_delete_post( $post_id, true ) ), $failures );
+				$wpdb->flush();
+				self::record_failure( "post $post_id of type $post_type", self::confirm_deleted( \wp_delete_post( $post_id, true ) ), $failures );
 			}
 		}
 
 		foreach ( self::get_strings( $footprint, 'comment_types' ) as $comment_type ) {
 			foreach ( self::get_matching_ids( $wpdb->comments, 'comment_ID', 'comment_type', $comment_type, $failures ) as $comment_id ) {
-				self::attempt( "comment $comment_id of type $comment_type", static fn () => self::confirm_deleted( \wp_delete_comment( $comment_id, true ) ), $failures );
+				$wpdb->flush();
+				self::record_failure( "comment $comment_id of type $comment_type", self::confirm_deleted( \wp_delete_comment( $comment_id, true ) ), $failures );
 			}
 		}
 
@@ -200,13 +236,16 @@ final class Uninstaller {
 
 		foreach ( self::get_strings( $footprint, 'capabilities' ) as $capability ) {
 			foreach ( \wp_roles()->role_objects as $role ) {
-				self::attempt( "capability $capability of role $role->name", static fn () => $role->remove_cap( $capability ), $failures );
+				$wpdb->flush();
+				$role->remove_cap( $capability );
+				self::record_failure( "capability $capability of role $role->name", null, $failures );
 			}
 		}
 
 		foreach ( self::get_strings( $footprint, 'tables' ) as $table ) {
 			$name = self::quote_identifier( $wpdb->prefix . $table );
-			self::attempt( "table $table", static fn () => $wpdb->query( "DROP TABLE IF EXISTS $name" ), $failures ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier placeholders need WordPress 6.2, so the name is quoted by hand.
+			$wpdb->flush();
+			self::record_failure( "table $table", $wpdb->query( "DROP TABLE IF EXISTS $name" ), $failures ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier placeholders need WordPress 6.2, so the name is quoted by hand.
 		}
 	}
 
@@ -247,9 +286,10 @@ final class Uninstaller {
 		foreach ( $tables as $table ) {
 			$name = self::quote_identifier( $table );
 			foreach ( $keys as $key ) {
+				$wpdb->flush();
 				// Identifier placeholders need WordPress 6.2, and WordPress 5.3 only formalized the variadic arguments that older versions already took.
 				// @phpstan-ignore argument.type, argument.type, WPCompat.parameterNotAvailable.wpdbprepare.args
-				self::attempt( "$table rows of key $key", static fn () => $wpdb->query( $wpdb->prepare( "DELETE FROM $name WHERE meta_key = %s AND CAST( meta_key AS BINARY ) = CAST( %s AS BINARY )", $key, $key ) ), $failures ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- A meta type's own tables have no WordPress meta API while their plugin is unloaded.
+				self::record_failure( "$table rows of key $key", $wpdb->query( $wpdb->prepare( "DELETE FROM $name WHERE meta_key = %s AND CAST( meta_key AS BINARY ) = CAST( %s AS BINARY )", $key, $key ) ), $failures ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- A meta type's own tables have no WordPress meta API while their plugin is unloaded.
 			}
 		}
 
@@ -292,11 +332,13 @@ final class Uninstaller {
 	 * @param   list<string> $failures  The failures so far, to which the deletes add their own.
 	 */
 	protected static function delete_meta_keys( string $meta_type, array $keys, array &$failures ): void {
+		$wpdb      = self::get_wpdb();
 		$table     = (string) \_get_meta_table( $meta_type );
 		$id_column = 'user' === $meta_type ? 'umeta_id' : 'meta_id';
 		foreach ( $keys as $key ) {
 			foreach ( self::get_matching_ids( $table, $id_column, 'meta_key', $key, $failures ) as $meta_id ) {
-				self::attempt( "$meta_type meta $meta_id of key $key", static fn () => self::confirm_deleted( \delete_metadata_by_mid( $meta_type, $meta_id ) ), $failures );
+				$wpdb->flush();
+				self::record_failure( "$meta_type meta $meta_id of key $key", self::confirm_deleted( \delete_metadata_by_mid( $meta_type, $meta_id ) ), $failures );
 			}
 		}
 	}
@@ -324,56 +366,58 @@ final class Uninstaller {
 			'site_id'     => \get_current_blog_id(),
 			'plugin_file' => $plugin_file,
 		);
-		$failed  = \count( $failures );
-		self::attempt( 'cleanup', static fn () => $cleanup( $context ), $failures );
+		self::get_wpdb()->flush();
+		try {
+			$result = $cleanup( $context );
+		} catch ( \Throwable $throwable ) {
+			$result = $throwable;
+		}
 
-		return \count( $failures ) === $failed;
+		return self::record_failure( 'cleanup', $result, $failures );
 	}
 
 	/**
-	 * Runs one operation and records its failure instead of stopping the pass.
+	 * Records the failure of an operation that ran after the database's last error was flushed, and returns whether it did not fail.
 	 *
 	 * WordPress's delete functions return false both for a missing row and for a failed query, so only the database error tells a failure apart.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string       $subject   What the operation removes, for the failure's message.
-	 * @param   \Closure     $operation The operation.
-	 * @param   list<string> $failures  The failures so far, to which the operation's failure is added.
+	 * @param   string       $subject  What the operation removes or reads, for the failure's message.
+	 * @param   mixed        $result   The operation's return value, or its throw.
+	 * @param   list<string> $failures The failures so far, to which the operation's failure is added.
+	 *
+	 * @return  bool
 	 */
-	protected static function attempt( string $subject, \Closure $operation, array &$failures ): void {
+	protected static function record_failure( string $subject, $result, array &$failures ): bool {
 		$wpdb = self::get_wpdb();
 
-		$wpdb->flush();
-		try {
-			$result = $operation();
-		} catch ( \Throwable $throwable ) {
-			$failures[] = "$subject: {$throwable->getMessage()}";
-			return;
-		}
-
-		if ( $result instanceof \WP_Error ) {
+		if ( $result instanceof \Throwable ) {
+			$failures[] = "$subject: {$result->getMessage()}";
+		} elseif ( $result instanceof \WP_Error ) {
 			$failures[] = "$subject: {$result->get_error_message()}";
 		} elseif ( '' !== $wpdb->last_error ) {
 			$failures[] = "$subject: $wpdb->last_error";
+		} else {
+			return true;
 		}
+
+		return false;
 	}
 
 	/**
-	 * Throws when a WordPress delete that reports its outcome by its return value did not delete.
+	 * Returns an error when a WordPress delete that reports its outcome by its return value did not delete, and otherwise the value.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   mixed $deleted The delete function's return value.
 	 *
-	 * @throws  \RuntimeException Thrown when the value is null or false.
+	 * @return  mixed
 	 */
-	protected static function confirm_deleted( $deleted ): void {
-		if ( null === $deleted || false === $deleted ) {
-			throw new \RuntimeException( 'It was not deleted.' );
-		}
+	protected static function confirm_deleted( $deleted ) {
+		return null === $deleted || false === $deleted ? new \WP_Error( 'not_deleted', 'It was not deleted.' ) : $deleted;
 	}
 
 	/**
@@ -601,8 +645,7 @@ final class Uninstaller {
 		// Identifier placeholders need WordPress 6.2, and WordPress 5.3 only formalized the variadic arguments that older versions already took.
 		// @phpstan-ignore argument.type, WPCompat.parameterNotAvailable.wpdbprepare.args
 		$names = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT CAST( `$column` AS BINARY ) FROM $name WHERE `$column` LIKE %s", $wpdb->esc_like( $prefix ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WordPress lists no option or meta key by prefix.
-		if ( '' !== $wpdb->last_error ) {
-			$failures[] = "the names under $prefix in $table: $wpdb->last_error";
+		if ( ! self::record_failure( "the names under $prefix in $table", $names, $failures ) ) {
 			return array();
 		}
 
@@ -632,8 +675,7 @@ final class Uninstaller {
 		// Identifier placeholders need WordPress 6.2, and WordPress 5.3 only formalized the variadic arguments that older versions already took.
 		// @phpstan-ignore argument.type, WPCompat.parameterNotAvailable.wpdbprepare.args
 		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT `$id_column` AS id, `$column` AS value FROM $name WHERE `$column` = %s", $value ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Reads every row, trashed posts and auto-drafts included.
-		if ( '' !== $wpdb->last_error ) {
-			$failures[] = "the $value rows of $table: $wpdb->last_error";
+		if ( ! self::record_failure( "the $value rows of $table", $rows, $failures ) ) {
 			return array();
 		}
 
@@ -666,8 +708,7 @@ final class Uninstaller {
 		// WordPress 5.3 only formalized the variadic arguments that older versions already took.
 		// @phpstan-ignore WPCompat.parameterNotAvailable.wpdbprepare.args
 		$name = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- A schema read.
-		if ( '' !== $wpdb->last_error ) {
-			$failures[] = "the table $table: $wpdb->last_error";
+		if ( ! self::record_failure( "the table $table", $name, $failures ) ) {
 			return false;
 		}
 
