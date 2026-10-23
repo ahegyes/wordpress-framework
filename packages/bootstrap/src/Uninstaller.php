@@ -123,10 +123,7 @@ final class Uninstaller {
 		}
 
 		// Release caches hold no site data and expire on their own, so they go whatever the consent, and one that cannot be deleted is left to expire.
-		$slug = \get_file_data( $plugin_file, array( 'slug' => 'Text Domain' ) )['slug'];
-		foreach ( array( 'stable', 'prerelease' ) as $channel ) {
-			\delete_transient( "{$slug}_github_release_$channel" );
-		}
+		Updater::delete_cached_releases( $plugin_file );
 
 		if ( ! self::has_constant_consent( $consent ) && ! self::has_stored_consent( $consent ) ) {
 			return;
