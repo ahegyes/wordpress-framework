@@ -89,6 +89,15 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( array( 'acme_initialized' ), $this->fired );
 	}
 
+	public function test_a_composition_named_as_a_callable_boots(): void {
+		$boot = $this->make_boot();
+
+		$boot->run( '__return_true' );
+
+		self::assertSame( 'booted', $boot->status );
+		self::assertSame( array( 'acme_initialized' ), $this->fired );
+	}
+
 	public function test_a_composition_that_reports_an_unmet_requirement_is_blocked(): void {
 		// The all hook receives an action's own arguments, before do_action() pads an argumentless call with an empty string.
 		$arguments = array();
