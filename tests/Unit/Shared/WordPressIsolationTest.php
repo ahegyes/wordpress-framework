@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 final class WordPressIsolationTest extends TestCase {
 	public function test_a_wordpress_call_in_shared_code_fails_the_shared_phpstan_config(): void {
 		$root    = \dirname( __DIR__, 3 );
-		$fixture = "$root/tests/Fixtures/shared/wordpress-call.php";
+		$fixture = "$root/tests/Fixtures/Shared/wordpress-call.php";
 		$command = \implode(
 			' ',
 			\array_map( 'escapeshellarg', array( \PHP_BINARY, "$root/vendor/bin/phpstan", 'analyse', '--configuration', "$root/phpstan.shared.neon", '--error-format', 'json', '--no-progress', $fixture ) )
