@@ -17,23 +17,22 @@ final class PackageManifestsTest extends TestCase {
 		'bootstrap'   => array( 'php' => '>=7.4' ),
 		'shared'      => array( 'php' => '>=8.5' ),
 		'core'        => array(
-			'ahegyes/wp-framework-shared' => '^2.0',
-			'ext-filter'                  => '*',
-			'php'                         => '>=8.5',
-			'psr/clock'                   => '^1',
-			'psr/container'               => '^2',
-			'psr/log'                     => '^3',
-			'psr/simple-cache'            => '^3',
+			'ahegyes/wp-framework-bootstrap' => '^2.0',
+			'ahegyes/wp-framework-shared'    => '^2.0',
+			'ext-filter'                     => '*',
+			'php'                            => '>=8.5',
+			'psr/clock'                      => '^1',
+			'psr/container'                  => '^2',
+			'psr/log'                        => '^3',
+			'psr/simple-cache'               => '^3',
 		),
 		'settings'    => array(
-			'ahegyes/wp-framework-shared' => '^2.0',
-			'php'                         => '>=8.5',
+			'ahegyes/wp-framework-core' => '^2.0',
+			'php'                       => '>=8.5',
 		),
 		'woocommerce' => array(
 			'ahegyes/wp-framework-settings' => '^2.0',
-			'ahegyes/wp-framework-shared'   => '^2.0',
 			'php'                           => '>=8.5',
-			'psr/log'                       => '^3',
 		),
 	);
 
@@ -59,6 +58,10 @@ final class PackageManifestsTest extends TestCase {
 		return $packages;
 	}
 
+	public static function package_names(): array {
+		return \array_map( static fn ( array $package ): array => array( $package[0] ), self::packages() );
+	}
+
 	public function test_the_monorepo_holds_exactly_the_mapped_packages(): void {
 		$directories = \array_map( 'basename', \glob( self::packages_directory() . '/*', \GLOB_ONLYDIR ) );
 
@@ -73,9 +76,9 @@ final class PackageManifestsTest extends TestCase {
 		self::assertSame( $requires, $manifest );
 	}
 
-	#[DataProvider( 'packages' )]
-	public function test_a_package_references_only_itself_and_the_packages_it_requires( string $package, array $requires ): void {
-		$allowed    = array( "ahegyes/wp-framework-$package", ...\array_keys( $requires ) );
+	#[DataProvider( 'package_names' )]
+	public function test_a_package_references_only_its_closure( string $package ): void {
+		$allowed    = self::closure( $package );
 		$violations = array();
 
 		$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory() . "/$package", \FilesystemIterator::SKIP_DOTS ) );
@@ -89,6 +92,13 @@ final class PackageManifestsTest extends TestCase {
 		}
 
 		self::assertSame( array(), $violations );
+	}
+
+	public function test_a_closure_holds_the_package_and_every_package_below_it(): void {
+		self::assertEqualsCanonicalizing(
+			array( 'ahegyes/wp-framework-woocommerce', 'ahegyes/wp-framework-settings', 'ahegyes/wp-framework-core', 'ahegyes/wp-framework-bootstrap', 'ahegyes/wp-framework-shared', 'ext-filter', 'php', 'psr/clock', 'psr/container', 'psr/log', 'psr/simple-cache' ),
+			self::closure( 'woocommerce' )
+		);
 	}
 
 	public function test_the_bootstrap_package_is_never_autoloaded(): void {
@@ -125,6 +135,15 @@ final class PackageManifestsTest extends TestCase {
 		$file = \dirname( __DIR__ ) . '/Fixtures/package-manifests/relative-name.php';
 
 		self::assertContains( 'DeepWebSolutions\\Framework\\Settings\\OptionsPage', self::referenced_names( $file ) );
+	}
+
+	protected static function closure( string $package ): array {
+		$closure = array( "ahegyes/wp-framework-$package" );
+		foreach ( \array_keys( self::REQUIRES[ $package ] ) as $name ) {
+			$closure = \array_merge( $closure, \str_starts_with( $name, 'ahegyes/wp-framework-' ) ? self::closure( \substr( $name, \strlen( 'ahegyes/wp-framework-' ) ) ) : array( $name ) );
+		}
+
+		return \array_values( \array_unique( $closure ) );
 	}
 
 	protected static function packages_directory(): string {

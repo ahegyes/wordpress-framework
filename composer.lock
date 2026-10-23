@@ -40,9 +40,10 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "fb6e0230ddd9f416d6c5988446fb95e25a95bbd0"
+                "reference": "cf42815dfd053bd2e34bc988856f47a6e56aef10"
             },
             "require": {
+                "ahegyes/wp-framework-bootstrap": "^2.0",
                 "ahegyes/wp-framework-shared": "^2.0",
                 "ext-filter": "*",
                 "php": ">=8.5",
@@ -80,10 +81,10 @@
             "dist": {
                 "type": "path",
                 "url": "packages/settings",
-                "reference": "10f7c838c9e500d7507a26241df18fbe241ab1b7"
+                "reference": "bbc31253554faa168ec6417dde3af1eefe351d72"
             },
             "require": {
-                "ahegyes/wp-framework-shared": "^2.0",
+                "ahegyes/wp-framework-core": "^2.0",
                 "php": ">=8.5"
             },
             "type": "library",
@@ -147,13 +148,11 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "b9dca411a739d5ca8b2be659544c62b3e9d0724e"
+                "reference": "d25be94f36ba2eab522dea01911ac1b9b241b6e6"
             },
             "require": {
                 "ahegyes/wp-framework-settings": "^2.0",
-                "ahegyes/wp-framework-shared": "^2.0",
-                "php": ">=8.5",
-                "psr/log": "^3"
+                "php": ">=8.5"
             },
             "type": "library",
             "extra": {
