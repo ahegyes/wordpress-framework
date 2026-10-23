@@ -155,10 +155,12 @@ final class PackageManifestsTest extends TestCase {
 		\mkdir( "$directory/Wrong", 0777, true );
 		\file_put_contents( "$directory/Placed.php", "<?php\nnamespace Acme;\nfinal class Placed {}\n" );
 		\file_put_contents( "$directory/Wrong/Misplaced.php", "<?php\nnamespace Acme\\Right;\nfinal class Misplaced {}\n" );
+		\file_put_contents( "$directory/Loose.php", "<?php\nfinal class Loose {}\n" );
 
 		try {
-			self::assertSame( array( 'Wrong/Misplaced.php: Acme\\Right\\Misplaced' ), self::misplaced_classes( $directory, 'Acme\\' ) );
+			self::assertSame( array( 'Loose.php: Loose', 'Wrong/Misplaced.php: Acme\\Right\\Misplaced' ), self::misplaced_classes( $directory, 'Acme\\' ) );
 		} finally {
+			\unlink( "$directory/Loose.php" );
 			\unlink( "$directory/Placed.php" );
 			\unlink( "$directory/Wrong/Misplaced.php" );
 			\rmdir( "$directory/Wrong" );
