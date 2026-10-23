@@ -31,6 +31,13 @@ final class DismissalLogger extends PsrAbstractLogger {
 	}
 }
 
+final class ThrowingDismissalLogger extends PsrAbstractLogger {
+	#[\Override]
+	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
+		throw new \UnexpectedValueException( 'The log is not writable.' );
+	}
+}
+
 #[CoversClass( AdminNotices::class )]
 final class AdminNoticesDismissalTest extends TestCase {
 	use CreatesSitesTrait;
@@ -294,6 +301,29 @@ final class AdminNoticesDismissalTest extends TestCase {
 		self::assertSame( array( 'error', 'Could not dismiss a {scope} notice: {message}', 'site' ), array( $this->logger->records[0][0], $this->logger->records[0][1], $this->logger->records[0][2]['scope'] ) );
 		self::assertInstanceOf( \Throwable::class, $this->logger->records[0][2]['exception'] );
 		self::assertSame( array(), $this->dismissed );
+	}
+
+	public function test_a_failing_store_whose_logger_throws_answers_500_and_reaches_the_error_log(): void {
+		$notices = new AdminNotices( $this->prefix, new ThrowingDismissalLogger() );
+		$notices->add( $this->notice( 'x', NoticeScope::Site ) );
+		$request = new \WP_REST_Request( 'POST' );
+		$request->set_body_params( $this->shown( $this->admin, 'site', 'x' ) );
+		$this->fail_queries( 'DELETE FROM' );
+		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
+		$previous = \ini_set( 'error_log', $log_file );
+
+		try {
+			$response = $notices->rest_dismiss( $request );
+			$log      = (string) \file_get_contents( $log_file );
+		} finally {
+			\ini_set( 'error_log', (string) $previous );
+			\wp_delete_file( $log_file );
+		}
+
+		self::assertInstanceOf( \WP_Error::class, $response );
+		self::assertSame( array( 'status' => 500 ), $response->get_error_data() );
+		self::assertStringContainsString( "[$this->prefix.error] Could not dismiss a {scope} notice: {message} {\"scope\":\"site\",\"message\":", $log );
+		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 	}
 
 	public function test_the_http_path_with_cookie_authentication_needs_the_rest_nonce(): void {

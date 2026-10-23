@@ -12,6 +12,7 @@ use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\FindsNoticesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -24,6 +25,7 @@ use PHPUnit\Framework\TestCase;
 final class UserNoticeStoreTest extends TestCase {
 	use CreatesSitesTrait;
 	use CreatesUsersTrait;
+	use FindsNoticesTrait;
 	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
@@ -63,7 +65,7 @@ final class UserNoticeStoreTest extends TestCase {
 		$store = new UserNoticeStore( $this->prefix );
 		$store->save( new Notice( 'one', "Can't \\ \"save\"." ), $this->context );
 
-		self::assertSame( "Can't \\ \"save\".", ( new UserNoticeStore( $this->prefix ) )->find( 'one', $this->context )?->notice->message );
+		self::assertSame( "Can't \\ \"save\".", self::find( new UserNoticeStore( $this->prefix ), 'one', $this->context )?->notice->message );
 	}
 
 	public function test_a_failed_insert_throws_and_keeps_the_previous_notice(): void {
@@ -75,7 +77,7 @@ final class UserNoticeStoreTest extends TestCase {
 			$store->save( new Notice( 'one', 'Again.' ), $this->context );
 			self::fail( 'The failed insert did not throw.' );
 		} catch ( RuntimeException ) {
-			self::assertEquals( $previous, ( new UserNoticeStore( $this->prefix ) )->find( 'one', $this->context ) );
+			self::assertEquals( $previous, self::find( new UserNoticeStore( $this->prefix ), 'one', $this->context ) );
 		}
 	}
 
@@ -89,7 +91,7 @@ final class UserNoticeStoreTest extends TestCase {
 			self::fail( 'The failed delete did not throw.' );
 		} catch ( RuntimeException ) {
 			\remove_all_filters( 'query' );
-			self::assertEquals( $observed, $store->find( 'one', $this->context ) );
+			self::assertEquals( $observed, self::find( $store, 'one', $this->context ) );
 		}
 	}
 
@@ -174,7 +176,7 @@ final class UserNoticeStoreTest extends TestCase {
 
 		self::assertSame( array( 'one' ), \array_column( $this->rows( $wpdb->get_blog_prefix( $site_id ) . "{$this->prefix}_notices" ), 'id' ) );
 		self::assertSame( array(), $store->all( $this->context ) );
-		self::assertSame( 'one', $store->find( 'one', $on_site )?->notice->id );
+		self::assertSame( 'one', self::find( $store, 'one', $on_site )?->notice->id );
 	}
 
 	protected function rows( string $key ): array {

@@ -6,7 +6,6 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormHostInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -64,15 +63,9 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @throws  LogicException Thrown when the box already hosts another form.
 	 */
 	#[\Override]
 	public function register_hooks( ObjectForm $form ): void {
-		if ( isset( $this->form ) && $form !== $this->form ) {
-			throw new LogicException( "Post meta box of '{$this->form->get_id()}' cannot also host '{$form->get_id()}'." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
-
 		$this->form = $form;
 		\add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 10, 2 );
 		\add_action( 'save_post', array( $this, 'save_meta_box' ), 10, 2 );
@@ -102,19 +95,19 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Prints the form's rows stacked, a group's title as plain text, and needs no hosted form, so another host can print through it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @param   string    $title The form's title, escaped, which the box's own title shows instead.
+	 * @param   list<Row> $rows  The rows, one per field.
 	 */
 	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
 		foreach ( $rows as $row ) {
-			if ( \is_null( $row['label_for'] ) ) {
-				echo '<fieldset class="form-field"><legend class="post-attributes-label">' . $row['title'] . '</legend>' . $row['control'] . '</fieldset>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
-			} else {
-				echo '<div class="form-field"><p class="post-attributes-label-wrapper"><label class="post-attributes-label" for="' . \esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label></p>' . $row['control'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
-			}
+			$heading = \is_null( $row['label_for'] ) ? '<span class="post-attributes-label">' . $row['title'] . '</span>' : '<label class="post-attributes-label" for="' . \esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label>';
+			echo '<div class="form-field"><p class="post-attributes-label-wrapper">' . $heading . '</p>' . $row['control'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
 		}
 	}
 

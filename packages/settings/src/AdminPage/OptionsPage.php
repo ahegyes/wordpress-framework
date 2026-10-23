@@ -16,6 +16,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  * @version 2.0.0
  *
  * @phpstan-import-type Field from Forms
+ * @phpstan-import-type FieldRow from Forms
  * @phpstan-type Tab array{slug: string, title: string, option: string, fields: list<Field>}
  * @phpstan-type Page array{parent: string, capability: string, page_title: string, menu_title: string, tabs: list<Tab>}
  */
@@ -51,9 +52,7 @@ final class OptionsPage {
 		protected string $id,
 		protected \Closure $definition
 	) {
-		if ( ! self::is_valid_key( $id ) ) {
-			throw new InvalidArgumentException( "Options page id '$id' is not a lowercase letter, after an optional underscore, followed by lowercase letters, digits, underscores and hyphens." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
+		Forms::check_helper_id( $id );
 	}
 
 	// endregion
@@ -143,7 +142,7 @@ final class OptionsPage {
 		$result = Forms::sanitize_fields( $fields, \is_array( $value ) ? $value : array() );
 		foreach ( $fields as $field ) {
 			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
-				\add_settings_error( $option, $field['id'], \esc_html( self::get_rejection_message( $field, $result['errors'][ $field['id'] ] ) ) );
+				\add_settings_error( $option, $field['id'], \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) );
 			}
 		}
 
@@ -190,7 +189,7 @@ final class OptionsPage {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array{field: Field, value: mixed, name: string, id: string} $args The field, its stored value and the control's name and id.
+	 * @param   FieldRow $args The field's row.
 	 */
 	public function render_field( array $args ): void {
 		echo Forms::render_control( $args['field'], $args['value'], $args['name'], $args['id'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control.
@@ -258,24 +257,8 @@ final class OptionsPage {
 	protected function render_form( array $tab ): void {
 		$option = $tab['option'];
 		$stored = \get_option( $option );
-		$stored = \is_array( $stored ) ? $stored : array();
-		foreach ( $tab['fields'] as $field ) {
-			if ( ! isset( $field['id'] ) ) {
-				continue;
-			}
-
-			$field['title'] = self::get_title( $field );
-			$id             = "$option.{$field['id']}";
-			$args           = array(
-				'field' => $field,
-				'value' => \array_key_exists( $field['id'], $stored ) ? $stored[ $field['id'] ] : ( $field['default'] ?? '' ),
-				'name'  => "{$option}[{$field['id']}]",
-				'id'    => $id,
-			);
-			if ( ! \in_array( $field['type'], array( 'radio', 'checkboxes' ), true ) && ! ( 'checkbox' === $field['type'] && '' !== ( $field['desc'] ?? '' ) ) ) {
-				$args['label_for'] = $id;
-			}
-			\add_settings_field( $field['id'], \esc_html( $field['title'] ), array( $this, 'render_field' ), $this->id, 'default', $args );
+		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
+			\add_settings_field( $row['field']['id'] ?? '', \esc_html( $row['field']['title'] ?? '' ), array( $this, 'render_field' ), $this->id, 'default', $row );
 		}
 
 		echo '<form action="options.php" method="post">';
@@ -285,59 +268,6 @@ final class OptionsPage {
 		echo '</table>';
 		\submit_button();
 		echo '</form>';
-	}
-
-	/**
-	 * Returns the settings error for a rejected field, which names the field and adds the rejection's message when it has one.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   Field     $field The field.
-	 * @param   \WP_Error $error The rejection.
-	 *
-	 * @return  string
-	 */
-	protected static function get_rejection_message( array $field, \WP_Error $error ): string {
-		$name    = self::get_title( $field );
-		$message = $error->get_error_message();
-		if ( '' === $message ) {
-			/* translators: %s: The field's title. */
-			return \sprintf( \__( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $name );
-		}
-
-		/* translators: 1: The field's title. 2: What to enter instead. */
-		return \sprintf( \__( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $name, $message );
-	}
-
-	/**
-	 * Returns the field's title, or its id when the title is empty, so that every row label, legend and settings error names its field.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   Field $field The field.
-	 *
-	 * @return  string
-	 */
-	protected static function get_title( array $field ): string {
-		return '' !== ( $field['title'] ?? '' ) ? $field['title'] : ( $field['id'] ?? '' );
-	}
-
-	/**
-	 * Returns whether the key is valid as a helper id.
-	 *
-	 * The pattern accepts every v1 option key, meta key, prefix and slug, so that ports keep their keys.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $key The key.
-	 *
-	 * @return  bool
-	 */
-	protected static function is_valid_key( string $key ): bool {
-		return 1 === \preg_match( '/\A_?[a-z][a-z0-9_-]*\z/', $key );
 	}
 
 	// endregion

@@ -78,6 +78,17 @@ final class NoticeRecordsTest extends TestCase {
 		self::assertSame( $expired, NoticeRecords::is_expired( new StoredNotice( $notice, new NoticeContext( NoticeScope::User, 1, 1 ), 1, 'gen' ) ) );
 	}
 
+	public function test_a_row_is_matched_by_its_notice_id_and_by_its_generation(): void {
+		$row = NoticeRecords::encode( $this->record( 'saved', 1 ) );
+
+		self::assertTrue( NoticeRecords::has_id( $row, 'saved' ) );
+		self::assertFalse( NoticeRecords::has_id( $row, 'other' ) );
+		self::assertFalse( NoticeRecords::has_id( 'saved', 'saved' ) );
+		self::assertTrue( NoticeRecords::has_generation( $row, 'gen-saved' ) );
+		self::assertFalse( NoticeRecords::has_generation( $row, 'gen-other' ) );
+		self::assertFalse( NoticeRecords::has_generation( null, 'gen-saved' ) );
+	}
+
 	public function test_now_is_the_unix_time_in_microseconds(): void {
 		$before = \time();
 		$now    = NoticeRecords::now();

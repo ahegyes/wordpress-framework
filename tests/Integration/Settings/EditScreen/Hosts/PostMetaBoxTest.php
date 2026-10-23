@@ -2,10 +2,11 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Settings\EditScreen\Hosts;
 
+use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -78,26 +79,16 @@ final class PostMetaBoxTest extends TestCase {
 	public function test_an_invalid_form_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new ObjectForm( $id, static fn (): array => array(), new PostMetaBox( array( 'post' ) ) );
+		new ObjectForm( $id, static fn (): array => array(), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_form_id( string $id ): void {
 		$host = new PostMetaBox( array( 'post' ) );
-		$form = new ObjectForm( $id, static fn (): array => array(), $host );
+		$form = new ObjectForm( $id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 		$form->register_hooks();
 
-		self::assertSame( 10, \has_action( 'all_admin_notices', array( $form, 'render_rejections' ) ) );
 		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
-	}
-
-	public function test_a_host_serves_one_form(): void {
-		$host = new PostMetaBox( array( 'post' ) );
-		( new ObjectForm( "{$this->id}_a", static fn (): array => array(), $host ) )->register_hooks();
-
-		$this->expectException( LogicException::class );
-
-		( new ObjectForm( "{$this->id}_b", static fn (): array => array(), $host ) )->register_hooks();
 	}
 
 	public function test_the_definition_is_evaluated_only_when_a_screen_needs_it(): void {
@@ -109,7 +100,8 @@ final class PostMetaBoxTest extends TestCase {
 
 				return array();
 			},
-			new PostMetaBox( array( 'post' ) )
+			new PostMetaBox( array( 'post' ) ),
+			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		$post_id = $this->make_post();
@@ -177,20 +169,20 @@ final class PostMetaBoxTest extends TestCase {
 	}
 
 	#[DataProvider( 'group_fields' )]
-	public function test_a_group_is_named_by_its_rows_visible_legend( array $keys ): void {
+	public function test_a_group_is_one_fieldset_named_by_its_own_legend_under_its_rows_title( array $keys ): void {
 		$post_id = $this->make_post();
 		$spec    = $this->spec( array( $this->field( $keys['type'], 'color', $keys + array( 'options' => self::COLORS ) ) ) );
 
 		$box = $this->box( self::document( $this->edit_screen( $spec, $post_id )['body'] ) );
 
-		$row = $box->querySelector( 'fieldset.form-field' );
-		self::assertNotNull( $row );
-		self::assertSame( 'Color', \trim( (string) $box->querySelector( 'fieldset.form-field > legend.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertCount( 1, $row->querySelectorAll( 'legend' ) );
+		$fieldset = $box->querySelector( 'div.form-field > fieldset' );
+		self::assertNotNull( $fieldset );
+		self::assertCount( 1, $box->querySelectorAll( 'fieldset' ) );
+		self::assertSame( 'Color', \trim( (string) $fieldset->querySelector( 'legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Color', \trim( (string) $fieldset->parentElement?->querySelector( 'p.post-attributes-label-wrapper > span.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNull( $box->querySelector( "label.post-attributes-label[for=\"{$this->id}._{$this->prefix}_color\"]" ) );
-		self::assertNotNull( $row->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
+		self::assertNotNull( $fieldset->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
 	}
-
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
 		$post_id = $this->make_post(
 			array(
@@ -545,7 +537,8 @@ final class PostMetaBoxTest extends TestCase {
 				'capability' => 'edit_posts',
 				'fields'     => array( $this->field( 'text', 'name' ) ),
 			),
-			new PostMetaBox( array( 'post' ) )
+			new PostMetaBox( array( 'post' ) ),
+			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		\wp_set_current_user( $this->admin );

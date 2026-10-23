@@ -3,6 +3,8 @@
 namespace DeepWebSolutions\Framework\Core\Permission;
 
 use DeepWebSolutions\Framework\Core\ComponentInterface;
+use DeepWebSolutions\Framework\Core\Logging\GuardedLogger;
+use DeepWebSolutions\Framework\Core\Storage\Database;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
@@ -21,20 +23,6 @@ use Psr\Log\LoggerInterface as PsrLoggerInterface;
  * @phpstan-type Pairs array<non-empty-string, list<non-empty-string>>
  */
 final class CapabilityGrants implements ComponentInterface {
-	// region FIELDS AND CONSTANTS
-
-	/**
-	 * The length of the option_name column, past which the database truncates a name onto another option's without an error.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     int
-	 */
-	protected const int MAX_OPTION_LENGTH = 191;
-
-	// endregion
-
 	// region MAGIC METHODS
 
 	/**
@@ -54,9 +42,8 @@ final class CapabilityGrants implements ComponentInterface {
 		protected array $grants,
 		protected PsrLoggerInterface $logger
 	) {
-		if ( '' === $ledger_option || \trim( $ledger_option ) !== $ledger_option || \mb_strlen( $ledger_option ) > self::MAX_OPTION_LENGTH ) {
-			throw new InvalidArgumentException( "Option name '$ledger_option' is empty, surrounded by whitespace or longer than 191 characters." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
+		OptionRows::check_name( $ledger_option );
+		$this->logger = new GuardedLogger( $logger, $ledger_option );
 
 		foreach ( $grants as $role => $caps ) {
 			if ( ! \is_string( $role ) || '' === $role || ! \is_array( $caps ) || ! \array_is_list( $caps ) || ! \array_all( $caps, static fn ( mixed $cap ): bool => \is_string( $cap ) && '' !== $cap ) ) {
@@ -182,14 +169,7 @@ final class CapabilityGrants implements ComponentInterface {
 			return;
 		}
 
-		$message = 'The roles row did not keep the capability changes {changes}, so the next request makes them again.';
-		$context = array( 'changes' => \implode( ', ', $failed ) );
-		try {
-			$this->logger->warning( $message, $context );
-		} catch ( \Throwable $logging_failure ) {
-			// A broken logger must neither hide the failure nor break the request on every page load.
-			\error_log( "[$this->ledger_option.warning] $message " . \wp_json_encode( $context ) . "\nThe logger failed: $logging_failure" ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The injected logger failed.
-		}
+		$this->logger->warning( 'The roles row did not keep the capability changes {changes}, so the next request makes them again.', array( 'changes' => \implode( ', ', $failed ) ) );
 	}
 
 	// endregion
@@ -209,8 +189,8 @@ final class CapabilityGrants implements ComponentInterface {
 	 * @param   mixed  $value     The option's new value.
 	 */
 	public function forget_deleted_roles( string $option, mixed $old_value, mixed $value ): void {
-		$wpdb = $GLOBALS['wpdb'] ?? null;
-		if ( ! $wpdb instanceof \wpdb || $wpdb->get_blog_prefix() . 'user_roles' !== $option || ! \is_array( $old_value ) ) {
+		$wpdb = Database::find_wpdb();
+		if ( \is_null( $wpdb ) || $wpdb->get_blog_prefix() . 'user_roles' !== $option || ! \is_array( $old_value ) ) {
 			return;
 		}
 

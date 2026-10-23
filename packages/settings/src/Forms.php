@@ -2,10 +2,12 @@
 
 namespace DeepWebSolutions\Framework\Settings;
 
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Renders the controls of field arrays, sanitizes their submissions and verifies object-form requests.
+ * Renders the controls of field arrays, sanitizes their submissions and names their rejections, for every settings helper and object form.
  *
  * A field array is a WooCommerce settings array whose title the host prints as the row label. Keys are added to the shape, never repurposed.
  *
@@ -13,9 +15,24 @@ namespace DeepWebSolutions\Framework\Settings;
  * @version 2.0.0
  *
  * @phpstan-type Field array{type: string, id?: string, title?: string, desc?: string, desc_tip?: bool|string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, css?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): mixed, render?: callable(array<string, mixed>, mixed, string, string): string}
+ * @phpstan-type FieldRow array{field: Field, value: mixed, name: string, id: string, label_for?: string}
  */
 final class Forms {
 	// region FIELDS AND CONSTANTS
+
+	/**
+	 * The custom attributes each type's control gets unless its field sets them, merged under the field's own.
+	 *
+	 * A number input's default step of 1 would make a stored decimal invalid, and the browser would then refuse to submit the form.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     array<string, array<string, string>>
+	 */
+	public const array DEFAULT_CUSTOM_ATTRIBUTES = array(
+		'number' => array( 'step' => 'any' ),
+	);
 
 	/**
 	 * The class each text-like control gets when its field sets none, as on WordPress core's settings screens.
@@ -52,7 +69,7 @@ final class Forms {
 	/**
 	 * Returns the escaped markup of the field's control, without its row label.
 	 *
-	 * A radio, a checkboxes group and a checkbox with a desc render in a fieldset named by the title, so their host prints the row label as plain text, while every other control carries the id the row label points at. An enabled checkbox or multi-value control posts a hidden input first, so a field absent from a submission was not rendered or is disabled. A field with a render callable renders through it, and the callable escapes, names and describes its control and, unless the field is disabled, prints a hidden empty input before it.
+	 * A radio, a checkboxes group and a checkbox with a desc render in a fieldset named by the title, so their host prints the row label as plain text, while every other control carries the id the row label points at. An enabled checkbox or multi-value control posts a hidden input first, so a field absent from a submission was not rendered or is disabled. A field with a render callable renders through it, and the callable escapes, names and describes its control, a fieldset named by the title for a group, and, unless the field is disabled, prints a hidden empty input before it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -155,28 +172,6 @@ final class Forms {
 	}
 
 	/**
-	 * Returns whether the request carries the object form's nonce and the current user may edit the object and use the plugin.
-	 *
-	 * Forms print wp_nonce_field() with the nonce action and the object id joined by an underscore as the action and the nonce action as the field name. That binds the nonce to the object, as WordPress core binds its edit forms, so a save_post that fires for a revision or another object in the same request is refused. The plugin capability matters because WordPress grants every user edit_user on themself.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $nonce_action The form's nonce action, which also names its nonce field.
-	 * @param   int    $object_id    The id of the object the form edits.
-	 * @param   string $object_cap   The capability that edits the object, checked against its id.
-	 * @param   string $plugin_cap   The capability the plugin requires for the form.
-	 *
-	 * @return  bool
-	 */
-	#[\NoDiscard]
-	public static function verify_object_form( string $nonce_action, int $object_id, string $object_cap, string $plugin_cap ): bool {
-		$nonce = \is_string( $_POST[ $nonce_action ] ?? null ) ? \sanitize_text_field( \wp_unslash( $_POST[ $nonce_action ] ) ) : '';
-
-		return false !== \wp_verify_nonce( $nonce, $nonce_action . '_' . $object_id ) && \current_user_can( $object_cap, $object_id ) && \current_user_can( $plugin_cap );
-	}
-
-	/**
 	 * Returns whether the field is disabled, which holds when its custom attributes carry disabled, whatever its value, or a checkbox's top-level disabled is truthy.
 	 *
 	 * That is where WooCommerce renders a control disabled, and browsers submit no disabled control. A radio's top-level disabled lists disabled choices instead, and other types ignore it.
@@ -190,6 +185,148 @@ final class Forms {
 	 */
 	public static function is_disabled( array $field ): bool {
 		return \array_key_exists( 'disabled', \array_change_key_case( $field['custom_attributes'] ?? array() ) ) || ( 'checkbox' === $field['type'] && (bool) ( $field['disabled'] ?? false ) );
+	}
+
+	/**
+	 * Returns whether the field renders as a group in a fieldset its title names, which holds for a radio, a checkboxes group and a checkbox with a desc.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field $field The field.
+	 *
+	 * @return  bool
+	 */
+	public static function is_group( array $field ): bool {
+		return \in_array( $field['type'], array( 'radio', 'checkboxes' ), true ) || ( 'checkbox' === $field['type'] && '' !== ( $field['desc'] ?? '' ) );
+	}
+
+	/**
+	 * Returns the field's title, or its id when the title is empty, so that every row label, legend and rejection names its field.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   Field $field The field.
+	 *
+	 * @return  string
+	 */
+	public static function get_title( array $field ): string {
+		return '' !== ( $field['title'] ?? '' ) ? $field['title'] : ( $field['id'] ?? '' );
+	}
+
+	/**
+	 * Returns the plain-text message for a rejected field, which names the field and adds the rejection's message when it has one.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string    $title The field's title.
+	 * @param   \WP_Error $error The rejection.
+	 *
+	 * @return  string
+	 */
+	public static function get_rejection_message( string $title, \WP_Error $error ): string {
+		$message = $error->get_error_message();
+		if ( '' === $message ) {
+			/* translators: %s: The field's title. */
+			return \sprintf( \__( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $title );
+		}
+
+		/* translators: 1: The field's title. 2: What to enter instead. */
+		return \sprintf( \__( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $title, $message );
+	}
+
+	/**
+	 * Throws when the id is not valid as the id of a settings helper or an object form.
+	 *
+	 * The pattern accepts every v1 option key, meta key, prefix and slug, so that ports keep their keys.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $id The id.
+	 *
+	 * @throws  InvalidArgumentException Thrown when the id is not a lowercase letter, after an optional underscore, followed by lowercase letters, digits, underscores and hyphens.
+	 */
+	public static function check_helper_id( string $id ): void {
+		if ( 1 !== \preg_match( '/\A_?[a-z][a-z0-9_-]*\z/', $id ) ) {
+			throw new InvalidArgumentException( "Helper id '$id' is not a lowercase letter, after an optional underscore, followed by lowercase letters, digits, underscores and hyphens." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+	}
+
+	/**
+	 * Returns the markup of a hidden input.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $name  The name the input posts under.
+	 * @param   string $value The value the input posts.
+	 *
+	 * @return  string
+	 */
+	public static function render_hidden_input( string $name, string $value ): string {
+		return '<input' . self::render_attributes(
+			array(
+				'type'  => 'hidden',
+				'name'  => $name,
+				'value' => $value,
+			)
+		) . ' />';
+	}
+
+	/**
+	 * Returns the value escaped for an HTML attribute, which the browser decodes back to the value exactly and which esc_attr() leaves unchanged.
+	 *
+	 * Its ampersands are encoded first, because esc_attr() leaves existing entities as they are, so a stored &amp; would otherwise post back as &.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $value The value.
+	 *
+	 * @return  string
+	 */
+	public static function escape_attribute( string $value ): string {
+		return \esc_attr( \str_replace( '&', '&amp;', $value ) );
+	}
+
+	/**
+	 * Returns a row for each field with an id: the field named by its title, its stored value or else its default, the name it posts under, its HTML id, and the id its row label points at unless it is a group.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @internal
+	 *
+	 * @param   list<Field>             $fields The fields.
+	 * @param   array<array-key, mixed> $values The stored values, keyed by field id.
+	 * @param   string                  $prefix The prefix of the names and HTML ids, such as an option or a form id.
+	 *
+	 * @return  list<FieldRow>
+	 */
+	public static function get_rows( array $fields, array $values, string $prefix ): array {
+		$rows = array();
+		foreach ( $fields as $field ) {
+			if ( ! isset( $field['id'] ) ) {
+				continue;
+			}
+
+			$field['title'] = self::get_title( $field );
+			$row            = array(
+				'field' => $field,
+				'value' => \array_key_exists( $field['id'], $values ) ? $values[ $field['id'] ] : ( $field['default'] ?? '' ),
+				'name'  => "{$prefix}[{$field['id']}]",
+				'id'    => "$prefix.{$field['id']}",
+			);
+			if ( ! self::is_group( $field ) ) {
+				$row['label_for'] = $row['id'];
+			}
+			$rows[] = $row;
+		}
+
+		return $rows;
 	}
 
 	// endregion
@@ -211,11 +348,7 @@ final class Forms {
 	 */
 	protected static function render_input( array $field, mixed $value, string $name, string $id ): string {
 		$help   = self::get_help( $field, $id );
-		$custom = self::get_custom_attributes( $field );
-		if ( 'number' === $field['type'] ) {
-			// The default step of 1 would make a stored decimal invalid, and the browser would then refuse to submit the form.
-			$custom += array( 'step' => 'any' );
-		}
+		$custom = self::get_custom_attributes( $field ) + ( self::DEFAULT_CUSTOM_ATTRIBUTES[ $field['type'] ] ?? array() );
 
 		$attributes = array(
 			'type'             => $field['type'],
@@ -288,7 +421,7 @@ final class Forms {
 			'disabled'         => $disabled,
 			'aria-describedby' => self::get_described_by( $help ),
 		);
-		$control    = ( $disabled ? '' : self::render_hidden( $name, 'no' ) ) . '<input' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . ' />';
+		$control    = ( $disabled ? '' : self::render_hidden_input( $name, 'no' ) ) . '<input' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . ' />';
 
 		if ( '' === ( $field['desc'] ?? '' ) ) {
 			return $control . self::render_help( $help );
@@ -336,7 +469,7 @@ final class Forms {
 			'aria-describedby' => self::get_described_by( $help ),
 		);
 
-		return ( $multiple && ! $disabled ? self::render_hidden( $name, '' ) : '' ) . '<select' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . '>' . $options . '</select>' . self::render_help( $help );
+		return ( $multiple && ! $disabled ? self::render_hidden_input( $name, '' ) : '' ) . '<select' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . '>' . $options . '</select>' . self::render_help( $help );
 	}
 
 	/**
@@ -359,7 +492,7 @@ final class Forms {
 		$chosen   = self::get_chosen( $value, $multiple );
 		$custom   = self::get_custom_attributes( $field );
 
-		$choices = $multiple && ! $disabled ? self::render_hidden( $name, '' ) : '';
+		$choices = $multiple && ! $disabled ? self::render_hidden_input( $name, '' ) : '';
 		$index   = 0;
 		foreach ( $field['options'] ?? array() as $key => $label ) {
 			$attributes = array(
@@ -377,27 +510,6 @@ final class Forms {
 		}
 
 		return '<fieldset' . self::render_attributes( array( 'aria-describedby' => self::get_described_by( $help ) ) ) . '>' . self::render_legend( $field ) . $choices . self::render_help( $help ) . '</fieldset>';
-	}
-
-	/**
-	 * Returns the markup of a hidden input.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $name  The name the input posts under.
-	 * @param   string $value The value the input posts.
-	 *
-	 * @return  string
-	 */
-	protected static function render_hidden( string $name, string $value ): string {
-		return '<input' . self::render_attributes(
-			array(
-				'type'  => 'hidden',
-				'name'  => $name,
-				'value' => $value,
-			)
-		) . ' />';
 	}
 
 	/**
@@ -452,8 +564,7 @@ final class Forms {
 	protected static function render_attributes( array $own, array $custom = array() ): string {
 		$html = '';
 		foreach ( \array_filter( $own + $custom, static fn ( string|bool|null $value ): bool => ! \is_null( $value ) && false !== $value ) as $name => $value ) {
-			// esc_attr() leaves existing entities as they are, so a stored &amp; would post back as & unless its ampersand is encoded first.
-			$html .= true === $value ? " $name" : " $name=\"" . \esc_attr( \str_replace( '&', '&amp;', $value ) ) . '"';
+			$html .= true === $value ? " $name" : " $name=\"" . self::escape_attribute( $value ) . '"';
 		}
 
 		return $html;

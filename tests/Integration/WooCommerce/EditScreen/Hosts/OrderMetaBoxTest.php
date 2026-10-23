@@ -2,8 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\EditScreen\Hosts;
 
+use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -61,18 +62,9 @@ final class OrderMetaBoxTest extends TestCase {
 		);
 	}
 
-	public function test_a_box_serves_one_form(): void {
-		$host = new OrderMetaBox();
-		( new ObjectForm( "{$this->id}_a", static fn (): array => array(), $host ) )->register_hooks();
-
-		$this->expectException( LogicException::class );
-
-		( new ObjectForm( "{$this->id}_b", static fn (): array => array(), $host ) )->register_hooks();
-	}
-
 	public function test_the_box_is_added_on_add_meta_boxes(): void {
 		$host = new OrderMetaBox();
-		( new ObjectForm( $this->id, static fn (): array => array(), $host ) )->register_hooks();
+		( new ObjectForm( $this->id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
@@ -144,20 +136,20 @@ final class OrderMetaBoxTest extends TestCase {
 	}
 
 	#[DataProvider( 'group_fields' )]
-	public function test_a_group_is_named_by_its_rows_visible_legend( array $keys ): void {
+	public function test_a_group_is_one_fieldset_named_by_its_own_legend_under_its_rows_title( array $keys ): void {
 		$order = $this->make_order();
 		$spec  = $this->spec( array( $this->field( $keys['type'], 'color', $keys + array( 'options' => self::COLORS ) ) ) );
 
 		$box = $this->box( self::document( $this->edit_screen( $spec, $order->get_id() )['body'] ) );
 
-		$row = $box->querySelector( 'fieldset.form-field' );
-		self::assertNotNull( $row );
-		self::assertSame( 'Color', \trim( (string) $box->querySelector( 'fieldset.form-field > legend.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertCount( 1, $row->querySelectorAll( 'legend' ) );
+		$fieldset = $box->querySelector( 'div.form-field > fieldset' );
+		self::assertNotNull( $fieldset );
+		self::assertCount( 1, $box->querySelectorAll( 'fieldset' ) );
+		self::assertSame( 'Color', \trim( (string) $fieldset->querySelector( 'legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Color', \trim( (string) $fieldset->parentElement?->querySelector( 'p.post-attributes-label-wrapper > span.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNull( $box->querySelector( "label.post-attributes-label[for=\"{$this->id}._{$this->prefix}_color\"]" ) );
-		self::assertNotNull( $row->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
+		self::assertNotNull( $fieldset->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
 	}
-
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
 		$order = $this->make_order(
 			array(
@@ -219,7 +211,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_saves_before_woocommerces_order_data(): void {
 		$host = new OrderMetaBox();
-		( new ObjectForm( $this->id, static fn (): array => array(), $host ) )->register_hooks();
+		( new ObjectForm( $this->id, static fn (): array => array(), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		self::assertSame( 35, \has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
 	}
@@ -351,7 +343,8 @@ final class OrderMetaBoxTest extends TestCase {
 				'capability' => 'edit_shop_orders',
 				'fields'     => array( $this->field( 'text', 'name' ) ),
 			),
-			new OrderMetaBox()
+			new OrderMetaBox(),
+			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		\wp_set_current_user( $this->admin );

@@ -170,7 +170,7 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( 'failed', $boot->status );
 		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
 		self::assertSame( array( $failure ), $this->failures );
-		self::assertStringContainsString( '[acme.error] Boot failed; the plugin did not finish starting: composition failed', $log );
+		self::assertStringContainsString( '[acme.error] Boot failed; the plugin did not finish starting: {message} {"message":"composition failed"}', $log );
 		self::assertStringContainsString( 'RuntimeException: composition failed in ' . __FILE__ . ':' . $failure->getLine(), $log );
 		self::assertStringContainsString( $logging_failure::class . ': ' . $logging_failure->getMessage(), $log );
 

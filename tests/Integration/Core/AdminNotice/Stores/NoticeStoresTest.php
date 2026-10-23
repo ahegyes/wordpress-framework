@@ -13,6 +13,7 @@ use DeepWebSolutions\Framework\Core\AdminNotice\Stores\RequestNoticeStore;
 use DeepWebSolutions\Framework\Core\AdminNotice\Stores\UserNoticeStore;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\FindsNoticesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -26,6 +27,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( NoticeRecords::class )]
 final class NoticeStoresTest extends TestCase {
 	use CreatesUsersTrait;
+	use FindsNoticesTrait;
 	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
@@ -60,9 +62,9 @@ final class NoticeStoresTest extends TestCase {
 
 		self::assertEquals( $notice, $record->notice );
 		self::assertEquals( $context, $record->context );
-		self::assertEquals( $record, $this->reader( $kind, $store )->find( 'saved', $context ) );
+		self::assertEquals( $record, self::find( $this->reader( $kind, $store ), 'saved', $context ) );
 		self::assertEquals( array( $record ), $this->reader( $kind, $store )->all( $context ) );
-		self::assertNull( $this->reader( $kind, $store )->find( 'other', $context ) );
+		self::assertNull( self::find( $this->reader( $kind, $store ), 'other', $context ) );
 	}
 
 	#[DataProvider( 'kinds' )]
@@ -99,13 +101,13 @@ final class NoticeStoresTest extends TestCase {
 		$store   = $this->make_store( $kind );
 		$context = $this->context( $kind );
 		$store->save( $this->notice( $kind, 'once' ), $context );
-		$observed = $this->reader( $kind, $store )->find( 'once', $context );
+		$observed = self::find( $this->reader( $kind, $store ), 'once', $context );
 
 		$replacement = $store->save( $this->notice( $kind, 'once', message: 'Again.' ), $context );
 
 		self::assertInstanceOf( StoredNotice::class, $observed );
 		self::assertFalse( $this->reader( $kind, $store )->consume( $observed ) );
-		self::assertEquals( $replacement, $this->reader( $kind, $store )->find( 'once', $context ) );
+		self::assertEquals( $replacement, self::find( $this->reader( $kind, $store ), 'once', $context ) );
 	}
 
 	#[DataProvider( 'kinds' )]
@@ -128,7 +130,7 @@ final class NoticeStoresTest extends TestCase {
 		$expired = $store->save( $this->notice( $kind, 'old', expires_at: \time() ), $context );
 		$store->save( $this->notice( $kind, 'new', expires_at: \time() + 3600 ), $context );
 
-		self::assertNull( $this->reader( $kind, $store )->find( 'old', $context ) );
+		self::assertNull( self::find( $this->reader( $kind, $store ), 'old', $context ) );
 		self::assertSame( array( 'new' ), self::ids( $this->reader( $kind, $store )->all( $context ) ) );
 		self::assertFalse( $store->consume( $expired ) );
 	}
@@ -146,7 +148,7 @@ final class NoticeStoresTest extends TestCase {
 		$listed = $store->all( $context );
 
 		self::assertSame( array(), $listed );
-		self::assertSame( 'Renewed.', $this->reader( $kind, $store )->find( 'renewed', $context )?->notice->message );
+		self::assertSame( 'Renewed.', self::find( $this->reader( $kind, $store ), 'renewed', $context )?->notice->message );
 	}
 
 	#[DataProvider( 'persistent_kinds' )]
@@ -160,7 +162,7 @@ final class NoticeStoresTest extends TestCase {
 		);
 
 		self::assertFalse( $store->consume( $observed ) );
-		self::assertSame( 'Again.', $this->reader( $kind, $store )->find( 'once', $context )?->notice->message );
+		self::assertSame( 'Again.', self::find( $this->reader( $kind, $store ), 'once', $context )?->notice->message );
 	}
 
 	#[DataProvider( 'persistent_kinds' )]
@@ -186,7 +188,7 @@ final class NoticeStoresTest extends TestCase {
 			'network' => 'request',
 		);
 		foreach ( $others as $kind => $other ) {
-			foreach ( array( 'save', 'find', 'all', 'consume', 'remove' ) as $method ) {
+			foreach ( array( 'save', 'all', 'consume', 'remove' ) as $method ) {
 				$cases[ "$kind-$method" ] = array( $kind, $other, $method );
 			}
 		}
@@ -203,7 +205,6 @@ final class NoticeStoresTest extends TestCase {
 
 		match ( $method ) {
 			'save'    => $store->save( $this->notice( $context->scope->value, 'x' ), $context ),
-			'find'    => $store->find( 'x', $context ),
 			'all'     => $store->all( $context ),
 			'consume' => $store->consume( new StoredNotice( $this->notice( $context->scope->value, 'x' ), $context, 1, 'gen' ) ),
 			'remove'  => $store->remove( 'x', $context ),

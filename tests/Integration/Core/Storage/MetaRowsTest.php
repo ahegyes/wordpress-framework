@@ -154,6 +154,18 @@ final class MetaRowsTest extends TestCase {
 		$operation( $rows, $row );
 	}
 
+	public function test_a_delete_that_runs_no_query_ignores_an_earlier_querys_error(): void {
+		global $wpdb;
+
+		$rows = new MetaRows( 'user' );
+		$row  = $rows->add( $this->user_id, "{$this->prefix}_key", 'One.' );
+		$this->fail_queries( 'acme_unrelated_query' );
+		$wpdb->query( 'SELECT acme_unrelated_query' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Leaves an earlier query's error behind.
+		\add_filter( 'delete_user_metadata_by_mid', '__return_true' );
+
+		self::assertTrue( $rows->delete( $row ) );
+	}
+
 	public static function invalid_calls(): array {
 		return array(
 			'unknown-type'        => array( static fn (): mixed => new MetaRows( 'acme' ) ),

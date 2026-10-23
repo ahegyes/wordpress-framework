@@ -48,7 +48,7 @@ interface ObjectFormHostInterface {
 	/**
 	 * Prints the form's rows in the host's layout.
 	 *
-	 * A row's title and control are escaped markup. Its label_for is the HTML id the row's label points at, or null for a group, whose control carries no legend, so the row names it with one.
+	 * A row's title and control are escaped markup. Its label_for is the HTML id the row's label points at, or null for a group, whose control is a fieldset its own legend names, so the row prints its title as plain text.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

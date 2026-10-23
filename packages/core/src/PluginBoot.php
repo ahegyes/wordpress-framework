@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Core;
 
+use DeepWebSolutions\Framework\Bootstrap\Requirements;
+use DeepWebSolutions\Framework\Core\Logging\GuardedLogger;
 use Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -43,7 +45,9 @@ final class PluginBoot {
 		protected string $plugin_file,
 		protected string $hook_prefix,
 		protected PsrLoggerInterface $logger
-	) {}
+	) {
+		$this->logger = new GuardedLogger( $logger, $hook_prefix );
+	}
 
 	// endregion
 
@@ -78,7 +82,7 @@ final class PluginBoot {
 			 * @param   \Throwable $exception The failure that stopped the composition.
 			 */
 			\do_action( "{$this->hook_prefix}_initialization_failure", $exception );
-			if ( \in_array( \wp_get_environment_type(), array( 'local', 'development' ), true ) ) {
+			if ( self::is_development_environment() ) {
 				throw $exception;
 			}
 
@@ -109,6 +113,20 @@ final class PluginBoot {
 		\do_action( "{$this->hook_prefix}_initialized" );
 	}
 
+	/**
+	 * Returns whether the site runs in a local or development environment, where the framework rethrows the failures it records.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @internal
+	 *
+	 * @return  bool
+	 */
+	public static function is_development_environment(): bool {
+		return \in_array( \wp_get_environment_type(), array( 'local', 'development' ), true );
+	}
+
 	// endregion
 
 	// region HOOKS
@@ -120,17 +138,12 @@ final class PluginBoot {
 	 * @version 2.0.0
 	 */
 	public function render_failure_notice(): void {
-		if ( ! \current_user_can( 'activate_plugins' ) ) {
-			return;
-		}
-
-		\wp_admin_notice(
+		Requirements::print_admin_notice(
 			\sprintf(
 				/* translators: %s: The plugin's name. */
 				\esc_html__( '%s could not finish starting, so its features may be unavailable. The error has been logged.', 'wp-framework' ),
 				\esc_html( \get_plugin_data( $this->plugin_file, false )['Name'] )
-			),
-			array( 'type' => 'error' )
+			)
 		);
 	}
 
@@ -139,7 +152,7 @@ final class PluginBoot {
 	// region HELPERS
 
 	/**
-	 * Logs each distinct failure message at most once an hour, through the PHP error log when the logger throws.
+	 * Logs each distinct failure message at most once an hour.
 	 *
 	 * A deterministic failure repeats on every request, so logging each one would flood the log.
 	 *
@@ -155,18 +168,13 @@ final class PluginBoot {
 		}
 
 		\set_transient( $key, 1, HOUR_IN_SECONDS );
-		try {
-			$this->logger->error(
-				'Boot failed; the plugin did not finish starting: {message}',
-				array(
-					'message'   => $exception->getMessage(),
-					'exception' => $exception,
-				)
-			);
-		} catch ( \Throwable $logging_failure ) {
-			// A broken logger must neither hide the failure nor stop the notice and the failure action.
-			\error_log( "[$this->hook_prefix.error] Boot failed; the plugin did not finish starting: {$exception->getMessage()}\n$exception\nThe logger failed: $logging_failure" ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- The injected logger failed.
-		}
+		$this->logger->error(
+			'Boot failed; the plugin did not finish starting: {message}',
+			array(
+				'message'   => $exception->getMessage(),
+				'exception' => $exception,
+			)
+		);
 	}
 
 	// endregion

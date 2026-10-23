@@ -20,6 +20,7 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RendersAdminScreensTrait;
+use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -215,8 +216,8 @@ final class AdminNoticesTest extends TestCase {
 	public static function surfaces(): array {
 		return array(
 			'site-admin'    => array( 'dashboard', array( 'network', 'site', 'user', 'request' ) ),
-			'network-admin' => array( 'dashboard-network', array( 'network', 'request' ) ),
-			'user-admin'    => array( 'dashboard-user', array( 'request' ) ),
+			'network-admin' => array( 'dashboard-network', array( 'network', 'user', 'request' ) ),
+			'user-admin'    => array( 'dashboard-user', array( 'user', 'request' ) ),
 		);
 	}
 
@@ -349,29 +350,35 @@ final class AdminNoticesTest extends TestCase {
 		self::assertArrayNotHasKey( 'data-notice-nonce', $shown[ $this->dom_id( 'user', 'once' ) ] );
 	}
 
-	public function test_the_dismiss_script_prints_only_after_a_persistent_dismissible_notice_and_targets_this_plugins_notices(): void {
+	public function test_the_dismiss_script_loads_on_wp_api_fetch_only_after_a_persistent_dismissible_notice_and_targets_this_plugins_notices(): void {
 		\wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'once', NoticeScope::Request ) );
 		$this->render( $this->admin, $notices );
-		self::assertSame( '', $this->print_script( $notices ) );
+		$notices->enqueue_dismiss_script();
+		self::assertFalse( \wp_script_is( $this->script_handle(), 'registered' ) );
 
 		$notices->add( $this->notice( 'kept', NoticeScope::Request, persistent: true ) );
 		$this->render( $this->admin, $notices );
-		$script = $this->print_script( $notices );
+		$notices->enqueue_dismiss_script();
+		$script = \implode( "\n", \wp_scripts()->get_data( $this->script_handle(), 'after' ) );
 
+		self::assertTrue( \wp_script_is( $this->script_handle() ) );
+		self::assertSame( array( 'wp-api-fetch' ), \wp_scripts()->registered[ $this->script_handle() ]->deps );
 		self::assertSame( 1, \preg_match( '/\}\s*\)\(\s*(\{.*\})\s*\);/s', $script, $matches ) );
-		$settings = \json_decode( $matches[1], true );
-		self::assertSame( $this->prefix, $settings['prefix'] );
-		self::assertSame( \rest_url( \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' ), $settings['url'] );
-		self::assertSame( 1, \wp_verify_nonce( $settings['restNonce'], 'wp_rest' ) );
+		self::assertSame(
+			array(
+				'prefix' => $this->prefix,
+				'path'   => \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals',
+			),
+			\json_decode( $matches[1], true )
+		);
 		self::assertStringContainsString( '\/', $matches[1] );
 		self::assertStringContainsString( "getAttribute( 'data-notices' ) !== settings.prefix", $script );
-		self::assertStringContainsString( "credentials: 'include'", $script );
 		self::assertStringContainsString( "generation: notice.getAttribute( 'data-notice-generation' ) || undefined", $script );
 	}
 
-	public function test_registered_hooks_print_the_notices_and_the_script(): void {
+	public function test_registered_hooks_print_the_notices_and_load_the_script(): void {
 		$notices = $this->notices();
 		$notices->register_hooks();
 		$notices->add( $this->notice( 'kept', NoticeScope::Site, persistent: true ) );
@@ -383,7 +390,7 @@ final class AdminNoticesTest extends TestCase {
 		$html = (string) \ob_get_clean();
 
 		self::assertSame( array( $this->dom_id( 'site', 'kept' ) ), \array_keys( self::notices_in( $html ) ) );
-		self::assertStringContainsString( "\"prefix\":\"{$this->prefix}\"", $html );
+		self::assertTrue( \wp_script_is( $this->script_handle() ) );
 		self::assertSame( 10, \has_action( 'rest_api_init', array( $notices, 'register_rest_routes' ) ) );
 	}
 
@@ -461,11 +468,14 @@ final class AdminNoticesTest extends TestCase {
 		return (string) \ob_get_clean();
 	}
 
-	protected function print_script( AdminNotices $notices ): string {
-		\ob_start();
-		$notices->print_dismiss_script();
+	protected function script_handle(): string {
+		return "{$this->prefix}-notice-dismissal";
+	}
 
-		return (string) \ob_get_clean();
+	#[After]
+	protected function remove_the_script(): void {
+		\wp_dequeue_script( $this->script_handle() );
+		\wp_deregister_script( $this->script_handle() );
 	}
 
 	protected function notice( string $id, NoticeScope $scope = NoticeScope::User, string $message = '', mixed ...$arguments ): Notice {

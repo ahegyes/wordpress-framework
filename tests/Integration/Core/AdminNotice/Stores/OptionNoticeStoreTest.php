@@ -11,6 +11,7 @@ use DeepWebSolutions\Framework\Core\AdminNotice\Stores\OptionNoticeStore;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\FindsNoticesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -22,6 +23,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( OptionNoticeStore::class )]
 final class OptionNoticeStoreTest extends TestCase {
 	use CreatesSitesTrait;
+	use FindsNoticesTrait;
 	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
@@ -53,8 +55,8 @@ final class OptionNoticeStoreTest extends TestCase {
 		$store->save( $this->notice( NoticeScope::Site, 'one', 'Site.' ), NoticeContext::current( NoticeScope::Site ) );
 		$store->save( $this->notice( NoticeScope::Network, 'one', 'Network.' ), NoticeContext::current( NoticeScope::Network ) );
 
-		self::assertSame( 'Site.', $store->find( 'one', NoticeContext::current( NoticeScope::Site ) )?->notice->message );
-		self::assertSame( 'Network.', $store->find( 'one', NoticeContext::current( NoticeScope::Network ) )?->notice->message );
+		self::assertSame( 'Site.', self::find( $store, 'one', NoticeContext::current( NoticeScope::Site ) )?->notice->message );
+		self::assertSame( 'Network.', self::find( $store, 'one', NoticeContext::current( NoticeScope::Network ) )?->notice->message );
 	}
 
 	public function test_a_failed_write_throws_and_keeps_the_previous_notice(): void {
@@ -68,14 +70,13 @@ final class OptionNoticeStoreTest extends TestCase {
 			self::fail( 'The failed write did not throw.' );
 		} catch ( RuntimeException ) {
 			\remove_all_filters( 'query' );
-			self::assertEquals( $previous, $store->find( 'one', $context ) );
+			self::assertEquals( $previous, self::find( $store, 'one', $context ) );
 		}
 	}
 
 	public static function failing_operations(): array {
 		return array(
 			'all-read'       => array( "LIKE '", static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->all( $record->context ) ),
-			'find-read'      => array( "LIKE '", static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->find( 'one', $record->context ) ),
 			'consume-read'   => array( 'SELECT option_value FROM', static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->consume( $record ) ),
 			'consume-delete' => array( 'CAST( option_value AS BINARY )', static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->consume( $record ) ),
 			'remove'         => array( 'DELETE FROM', static fn ( OptionNoticeStore $store, StoredNotice $record ): mixed => $store->remove( 'one', $record->context ) ),
@@ -157,7 +158,7 @@ final class OptionNoticeStoreTest extends TestCase {
 		self::assertSame( array( "{$this->prefix}_notice_one" ), \array_keys( $this->rows( $wpdb->get_blog_prefix( $site_id ) . 'options' ) ) );
 		self::assertSame( array(), $this->rows( $wpdb->options ) );
 		self::assertSame( array(), $store->all( NoticeContext::current( NoticeScope::Site ) ) );
-		self::assertSame( 'one', $store->find( 'one', $on_site )?->notice->id );
+		self::assertSame( 'one', self::find( $store, 'one', $on_site )?->notice->id );
 		self::assertSame( \get_main_site_id(), \get_current_blog_id() );
 	}
 
