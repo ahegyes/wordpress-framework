@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wordpress-framework",
-  "description": "Development monorepo for the wp-framework-* WordPress plugin framework packages.",
+  "description": "A modular framework for WordPress plugins that read as hand-written WordPress code: five packages, each building only on the one below it, with each plugin shipping its own scoped copy.",
   "type": "project",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
