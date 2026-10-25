@@ -7,8 +7,10 @@ use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Recurrence;
 use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ReportsActionSchedulerVersionsTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -19,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 final class SchedulerTest extends TestCase {
 	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
+	use ReportsActionSchedulerVersionsTrait;
 
 	protected const string GROUP = 'acme';
 
@@ -29,8 +32,6 @@ final class SchedulerTest extends TestCase {
 	protected array $writes = array();
 
 	protected array $calls = array();
-
-	protected ?array $registered_versions = null;
 
 	#[\Override]
 	protected function setUp(): void {
@@ -72,9 +73,6 @@ final class SchedulerTest extends TestCase {
 	protected function tearDown(): void {
 		global $wpdb;
 
-		if ( ! \is_null( $this->registered_versions ) ) {
-			( new \ReflectionProperty( \ActionScheduler_Versions::class, 'versions' ) )->setValue( \ActionScheduler_Versions::instance(), $this->registered_versions );
-		}
 		\wp_unschedule_hook( $this->hook );
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE hook LIKE %s', $wpdb->actionscheduler_actions, $wpdb->esc_like( $this->hook ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the rows the test created.
 	}
@@ -82,7 +80,7 @@ final class SchedulerTest extends TestCase {
 	public static function schedulers(): array {
 		return array(
 			'action-scheduler' => array( 'production' ),
-			'wp-cron-alone'    => array( 'wp-cron' ),
+			'wp-cron'          => array( 'wp-cron' ),
 		);
 	}
 
@@ -370,9 +368,9 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_ensuring_while_a_recurring_occurrence_runs_creates_and_clears_nothing(): void {
-		$hook      = new ScheduledHook( $this->hook );
-		$scheduler = $this->make_scheduler( 'production' );
+		$hook = new ScheduledHook( $this->hook );
 		$this->make_scheduler( 'wp-cron' )->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) );
+		$scheduler = $this->make_scheduler( 'production' );
 		\as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
 		\as_schedule_recurring_action( \time() + 3600, 3600, $this->hook, array(), self::GROUP );
 		\add_action(
@@ -391,7 +389,8 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_a_recurring_wp_cron_write_needs_no_earlier_hook_registration(): void {
-		$scheduler = new Scheduler( self::GROUP, array( new WpCronBackend( self::GROUP ) ) );
+		$this->report_action_scheduler_versions( array( '3.9.0' ) );
+		$scheduler = new Scheduler( self::GROUP );
 
 		self::assertTrue( $scheduler->ensure_recurring( new ScheduledHook( $this->hook ), Recurrence::from_interval( 3900 ) ) );
 
@@ -399,11 +398,8 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_a_new_wp_cron_interval_survives_a_cron_run_in_a_later_request(): void {
-		$first_request = new WpCronBackend( self::GROUP );
-		$scheduler     = new Scheduler( self::GROUP, array( $first_request ) );
-		$scheduler->register_hooks();
-		self::assertTrue( $scheduler->ensure_recurring( new ScheduledHook( $this->hook ), Recurrence::from_interval( 3700 ) ) );
-		\remove_filter( 'cron_schedules', array( $first_request, 'add_schedules' ) );
+		self::assertTrue( $this->make_scheduler( 'wp-cron' )->ensure_recurring( new ScheduledHook( $this->hook ), Recurrence::from_interval( 3700 ) ) );
+		\remove_all_filters( 'cron_schedules' ); // A later request starts without the schedules this request added.
 		$this->make_scheduler( 'wp-cron' );
 		$ran = 0;
 		\add_action(
@@ -490,11 +486,14 @@ final class SchedulerTest extends TestCase {
 		self::assert_wp_error( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ), 'acme_clear_failed' );
 	}
 
-	public function test_a_failed_action_scheduler_lookup_is_returned_by_unscheduling_a_hook(): void {
+	public function test_unscheduling_a_hook_on_action_scheduler_is_best_effort(): void {
 		\as_enqueue_async_action( $this->hook );
 		$this->fail_queries( "a.hook='$this->hook'" );
 
-		self::assert_wp_error( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ), 'scheduler_failed' );
+		self::assertTrue( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ) );
+
+		\remove_all_filters( 'query' );
+		self::assertCount( 1, $this->pending_action_ids() );
 	}
 
 	public function test_a_wp_cron_duplicate_event_is_success(): void {
@@ -620,6 +619,12 @@ final class SchedulerTest extends TestCase {
 		self::assertCount( 1, $this->pending_action_ids() );
 	}
 
+	public function test_a_timestamp_below_1_is_rejected(): void {
+		$this->expectException( InvalidArgumentException::class );
+
+		$this->make_scheduler( 'production' )->schedule_single( new ScheduledHook( $this->hook ), 0 );
+	}
+
 	#[DataProvider( 'schedulers' )]
 	public function test_an_invocation_scheduled_in_the_past_runs_at_the_next_dispatch( string $kind ): void {
 		$ran = 0;
@@ -652,11 +657,22 @@ final class SchedulerTest extends TestCase {
 	}
 
 	#[DataProvider( 'prioritized_writes' )]
-	public function test_wp_cron_accepts_the_lowest_and_highest_priority( \Closure $write ): void {
+	public function test_action_scheduler_clamps_a_priority_outside_0_to_255( \Closure $write ): void {
+		$scheduler = $this->make_scheduler( 'production' );
+
+		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( -1 ) ), -1 ) );
+		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( 256 ) ), 256 ) );
+
+		self::assertSame( 0, \ActionScheduler::store()->fetch_action( $this->pending_action_ids( array( -1 ) )[0] )->get_priority() );
+		self::assertSame( 255, \ActionScheduler::store()->fetch_action( $this->pending_action_ids( array( 256 ) )[0] )->get_priority() );
+	}
+
+	#[DataProvider( 'prioritized_writes' )]
+	public function test_wp_cron_ignores_the_priority( \Closure $write ): void {
 		$scheduler = $this->make_scheduler( 'wp-cron' );
 
-		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( 0 ) ), 0 ) );
-		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( 255 ) ), 255 ) );
+		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( -1 ) ), -1 ) );
+		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( 256 ) ), 256 ) );
 
 		self::assertCount( 2, $this->cron_events() );
 	}
@@ -671,9 +687,10 @@ final class SchedulerTest extends TestCase {
 
 	#[DataProvider( 'versions_below_the_floor' )]
 	public function test_action_scheduler_below_the_floor_takes_no_writes( array $versions ): void {
+		$scheduler = $this->make_scheduler( 'production' );
 		$this->report_action_scheduler_versions( $versions );
 
-		self::assertTrue( $this->make_scheduler( 'production' )->enqueue( new ScheduledHook( $this->hook ) ) );
+		self::assertTrue( $scheduler->enqueue( new ScheduledHook( $this->hook ) ) );
 
 		self::assertSame( array(), $this->pending_action_ids() );
 		self::assertCount( 1, $this->cron_events() );
@@ -682,9 +699,10 @@ final class SchedulerTest extends TestCase {
 	public function test_enqueueing_counts_a_running_invocation_on_action_scheduler_below_the_floor(): void {
 		\as_enqueue_async_action( $this->hook, array(), self::GROUP );
 		\ActionScheduler::store()->log_execution( $this->pending_action_ids()[0] );
+		$scheduler = $this->make_scheduler( 'production' );
 		$this->report_action_scheduler_versions( array( '4.0.0' ) );
 
-		self::assertTrue( $this->make_scheduler( 'production' )->enqueue( new ScheduledHook( $this->hook ) ) );
+		self::assertTrue( $scheduler->enqueue( new ScheduledHook( $this->hook ) ) );
 
 		self::assertSame( array(), $this->cron_events() );
 	}
@@ -746,33 +764,18 @@ final class SchedulerTest extends TestCase {
 		self::assertSame( array( $args ), $received );
 	}
 
-	public function test_a_scheduler_without_a_writable_backend_is_an_error(): void {
-		$scheduler = new Scheduler( self::GROUP, array( new ActionSchedulerBackend( self::GROUP ) ) );
-		$this->report_action_scheduler_versions( array( '4.0.0' ) );
-
-		self::assert_wp_error( $scheduler->enqueue( new ScheduledHook( $this->hook ) ), 'scheduler_unavailable' );
-	}
-
 	protected static function assert_wp_error( mixed $actual, string $code ): void {
 		self::assertInstanceOf( \WP_Error::class, $actual );
 		self::assertSame( $code, $actual->get_error_code() );
 	}
 
+	// Action Scheduler below its floor leaves the writes to WP-Cron. A scheduler reads the version at each call, so the kind holds until the next call here.
 	protected function make_scheduler( string $kind ): Scheduler {
-		$scheduler = match ( $kind ) {
-			'production' => new Scheduler( self::GROUP ),
-			'wp-cron'    => new Scheduler( self::GROUP, array( new WpCronBackend( self::GROUP ) ) ),
-		};
+		'wp-cron' === $kind ? $this->report_action_scheduler_versions( array( '3.9.0' ) ) : $this->restore_action_scheduler_versions();
+		$scheduler = new Scheduler( self::GROUP );
 		$scheduler->register_hooks();
 
 		return $scheduler;
-	}
-
-	// The loaded Action Scheduler is at the floor, so the tests below it change only the versions it reports, and tearDown() restores them.
-	protected function report_action_scheduler_versions( array $versions ): void {
-		$property                    = new \ReflectionProperty( \ActionScheduler_Versions::class, 'versions' );
-		$this->registered_versions ??= $property->getValue( \ActionScheduler_Versions::instance() );
-		$property->setValue( \ActionScheduler_Versions::instance(), \array_fill_keys( $versions, '__return_null' ) );
 	}
 
 	protected function pending_action_ids( ?array $args = null ): array {

@@ -2,8 +2,6 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit\Core\Scheduling;
 
-use DeepWebSolutions\Framework\Core\Scheduling\Recurrence;
-use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -43,35 +41,6 @@ final class SchedulerTest extends TestCase {
 		$this->expectException( InvalidArgumentException::class );
 
 		new Scheduler( $group );
-	}
-
-	public static function out_of_range_priorities(): array {
-		$writes = array(
-			'enqueue'          => static fn ( Scheduler $scheduler, ScheduledHook $hook, int $priority ): mixed => $scheduler->enqueue( $hook, $priority ),
-			'schedule-single'  => static fn ( Scheduler $scheduler, ScheduledHook $hook, int $priority ): mixed => $scheduler->schedule_single( $hook, 1, $priority ),
-			'ensure-recurring' => static fn ( Scheduler $scheduler, ScheduledHook $hook, int $priority ): mixed => $scheduler->ensure_recurring( $hook, Recurrence::from_interval( 60 ), $priority ),
-		);
-
-		$cases = array();
-		foreach ( $writes as $name => $write ) {
-			$cases[ "$name-below-zero" ] = array( $write, -1 );
-			$cases[ "$name-above-255" ]  = array( $write, 256 );
-		}
-
-		return $cases;
-	}
-
-	#[DataProvider( 'out_of_range_priorities' )]
-	public function test_a_priority_outside_0_to_255_is_rejected( \Closure $write, int $priority ): void {
-		$this->expectException( InvalidArgumentException::class );
-
-		$write( new Scheduler( 'acme' ), new ScheduledHook( 'acme_sweep' ), $priority );
-	}
-
-	public function test_a_timestamp_below_1_is_rejected(): void {
-		$this->expectException( InvalidArgumentException::class );
-
-		( new Scheduler( 'acme' ) )->schedule_single( new ScheduledHook( 'acme_sweep' ), 0 );
 	}
 
 	public function test_unscheduling_a_hook_rejects_an_empty_hook_name(): void {

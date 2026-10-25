@@ -34,6 +34,16 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 	 */
 	protected array $backends;
 
+	/**
+	 * The WP-Cron backend, which takes every write that Action Scheduler cannot.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     WpCronBackend
+	 */
+	protected WpCronBackend $wp_cron;
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -44,20 +54,17 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string                 $group    The plugin's hook prefix, which names its Action Scheduler group and prefixes its WP-Cron schedules.
-	 * @param   list<BackendInterface> $backends Optional. The backends in order of preference for writes, which only tests replace. Default is Action Scheduler, then WP-Cron.
+	 * @param   string $group The plugin's hook prefix, which names its Action Scheduler group and prefixes its WP-Cron schedules.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the group is invalid.
 	 */
-	public function __construct(
-		string $group,
-		array $backends = array()
-	) {
+	public function __construct( string $group ) {
 		if ( 1 !== \preg_match( '/\A[a-z][a-z0-9_-]{0,189}\z/i', $group ) ) {
 			throw new InvalidArgumentException( "Group '$group' is not a letter followed by up to 189 letters, digits, underscores and hyphens." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
-		$this->backends = array() === $backends ? array( new ActionSchedulerBackend( $group ), new WpCronBackend( $group ) ) : $backends;
+		$this->wp_cron  = new WpCronBackend( $group );
+		$this->backends = array( new ActionSchedulerBackend( $group ), $this->wp_cron );
 	}
 
 	// endregion
@@ -72,11 +79,7 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		foreach ( $this->backends as $backend ) {
-			if ( $backend instanceof ComponentInterface ) {
-				$backend->register_hooks();
-			}
-		}
+		$this->wp_cron->register_schedules();
 	}
 
 	/**
@@ -87,7 +90,6 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 	 */
 	#[\Override]
 	public function enqueue( ScheduledHook $hook, int $priority = 10 ): true|\WP_Error {
-		self::check_priority( $priority );
 		$ready = $this->check_ready( __METHOD__ );
 		if ( true !== $ready ) {
 			return $ready;
@@ -99,8 +101,7 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 				return true;
 			}
 
-			$backend = $this->get_writable_backend();
-			return $backend instanceof \WP_Error ? $backend : $backend->enqueue( $hook, $priority, true );
+			return $this->get_writable_backend()->enqueue( $hook, $priority, true );
 		} catch ( \Throwable $exception ) {
 			return self::get_failure( $exception );
 		}
@@ -116,7 +117,6 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 	 */
 	#[\Override]
 	public function schedule_single( ScheduledHook $hook, int $timestamp, int $priority = 10 ): true|\WP_Error {
-		self::check_priority( $priority );
 		if ( $timestamp < 1 ) {
 			throw new InvalidArgumentException( "Timestamp '$timestamp' is not a positive Unix time." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
@@ -131,8 +131,7 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 				return true;
 			}
 
-			$backend = $this->get_writable_backend();
-			return $backend instanceof \WP_Error ? $backend : $backend->schedule_single( $hook, $timestamp, $priority );
+			return $this->get_writable_backend()->schedule_single( $hook, $timestamp, $priority );
 		} catch ( \Throwable $exception ) {
 			return self::get_failure( $exception );
 		}
@@ -146,7 +145,6 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 	 */
 	#[\Override]
 	public function ensure_recurring( ScheduledHook $hook, Recurrence $recurrence, int $priority = 10 ): true|\WP_Error {
-		self::check_priority( $priority );
 		$ready = $this->check_ready( __METHOD__ );
 		if ( true !== $ready ) {
 			return $ready;
@@ -163,9 +161,7 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 				return $cleared;
 			}
 
-			$backend = $this->get_writable_backend();
-
-			return $backend instanceof \WP_Error ? $backend : $backend->schedule_recurring( $hook, $recurrence, $priority );
+			return $this->get_writable_backend()->schedule_recurring( $hook, $recurrence, $priority );
 		} catch ( \Throwable $exception ) {
 			return self::get_failure( $exception );
 		}
@@ -270,21 +266,15 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 	}
 
 	/**
-	 * Returns the first backend that takes writes, or an error when none does.
+	 * Returns the first backend that takes writes, which is WP-Cron when Action Scheduler does not.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @return  BackendInterface|\WP_Error
+	 * @return  BackendInterface
 	 */
-	protected function get_writable_backend(): BackendInterface|\WP_Error {
-		foreach ( $this->backends as $backend ) {
-			if ( BackendState::Supported === $backend->get_state() ) {
-				return $backend;
-			}
-		}
-
-		return new \WP_Error( 'scheduler_unavailable', 'No scheduler takes writes.' );
+	protected function get_writable_backend(): BackendInterface {
+		return \array_find( $this->backends, static fn ( BackendInterface $backend ): bool => BackendState::Supported === $backend->get_state() ) ?? $this->wp_cron;
 	}
 
 	/**
@@ -370,24 +360,6 @@ final class Scheduler implements SchedulerInterface, ComponentInterface {
 	 */
 	protected function get_readable_backends(): array {
 		return \array_values( \array_filter( $this->backends, static fn ( BackendInterface $backend ): bool => \in_array( $backend->get_state(), array( BackendState::Supported, BackendState::Unsupported ), true ) ) );
-	}
-
-	/**
-	 * Throws when a priority falls outside the range that Action Scheduler stores.
-	 *
-	 * Action Scheduler would clamp it silently.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   int $priority The priority to check.
-	 *
-	 * @throws  InvalidArgumentException Thrown when the priority is outside 0 to 255.
-	 */
-	protected static function check_priority( int $priority ): void {
-		if ( $priority < 0 || $priority > 255 ) {
-			throw new InvalidArgumentException( "Priority '$priority' is outside 0 to 255." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
 	}
 
 	// endregion
