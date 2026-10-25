@@ -382,6 +382,24 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertSame( array(), \get_option( "{$this->prefix}_grants" )['pending'] );
 	}
 
+	public function test_a_pending_record_the_ledger_row_does_not_keep_is_logged_and_grants_nothing_until_the_next_request(): void {
+		$editor   = $this->add_role( 'editor' );
+		$declared = array( $editor => array( $this->cap( 'a' ) ) );
+		\add_filter( "pre_update_option_{$this->prefix}_grants", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
+
+		$this->grants( $declared )->run();
+
+		self::assertSame( array(), $this->stored_caps( $editor ) );
+		self::assertSame( array( array( 'warning', 'The ledger row did not keep the pending grants, so the next request makes them.', array() ) ), $this->logger->records );
+
+		\remove_all_filters( "pre_update_option_{$this->prefix}_grants" );
+		$this->next_request();
+		$this->grants( $declared )->run();
+
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
+		self::assertEquals( $declared, $this->ledger() );
+	}
+
 	public function test_a_run_interrupted_after_its_pending_write_converges_on_the_next(): void {
 		$editor = $this->add_role(
 			'editor',
