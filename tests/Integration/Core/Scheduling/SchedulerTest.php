@@ -7,6 +7,7 @@ use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Recurrence;
 use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ReportsActionSchedulerVersionsTrait;
@@ -618,6 +619,12 @@ final class SchedulerTest extends TestCase {
 		self::assertCount( 1, $this->pending_action_ids() );
 	}
 
+	public function test_a_timestamp_below_1_is_rejected(): void {
+		$this->expectException( InvalidArgumentException::class );
+
+		$this->make_scheduler( 'production' )->schedule_single( new ScheduledHook( $this->hook ), 0 );
+	}
+
 	#[DataProvider( 'schedulers' )]
 	public function test_an_invocation_scheduled_in_the_past_runs_at_the_next_dispatch( string $kind ): void {
 		$ran = 0;
@@ -755,6 +762,32 @@ final class SchedulerTest extends TestCase {
 		'production' === $kind ? $this->run_due_actions() : $this->run_due_cron_events();
 
 		self::assertSame( array( $args ), $received );
+	}
+
+	public function test_an_argument_with_invalid_utf_8_reaches_action_scheduler_callbacks_replaced(): void {
+		$scheduler = $this->make_scheduler( 'production' );
+		$hook      = new ScheduledHook( $this->hook, array( "a\xB1b" ) );
+		$received  = array();
+		\add_action(
+			$this->hook,
+			static function ( string $arg ) use ( &$received ): void {
+				$received[] = $arg;
+			}
+		);
+
+		self::assertTrue( $scheduler->enqueue( $hook ) );
+		self::assertTrue( $scheduler->enqueue( $hook ) );
+		self::assertTrue( $scheduler->is_scheduled( $hook ) );
+		self::assertCount( 1, $this->pending_action_ids() );
+		$this->run_due_actions();
+
+		self::assertSame( array( 'a?b' ), $received );
+	}
+
+	public function test_wp_cron_refuses_an_argument_with_invalid_utf_8(): void {
+		self::assert_wp_error( $this->make_scheduler( 'wp-cron' )->enqueue( new ScheduledHook( $this->hook, array( "a\xB1b" ) ) ), 'could_not_set' );
+
+		self::assertSame( array(), $this->cron_events() );
 	}
 
 	protected static function assert_wp_error( mixed $actual, string $code ): void {

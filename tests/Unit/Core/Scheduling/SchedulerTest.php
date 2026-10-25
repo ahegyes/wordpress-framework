@@ -2,7 +2,6 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit\Core\Scheduling;
 
-use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -42,12 +41,6 @@ final class SchedulerTest extends TestCase {
 		$this->expectException( InvalidArgumentException::class );
 
 		new Scheduler( $group );
-	}
-
-	public function test_a_timestamp_below_1_is_rejected(): void {
-		$this->expectException( InvalidArgumentException::class );
-
-		( new Scheduler( 'acme' ) )->schedule_single( new ScheduledHook( 'acme_sweep' ), 0 );
 	}
 
 	public function test_unscheduling_a_hook_rejects_an_empty_hook_name(): void {
