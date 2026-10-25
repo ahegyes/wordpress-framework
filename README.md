@@ -1,6 +1,6 @@
 # wordpress-framework
 
-A modern, modular framework for building WordPress plugins. Composer-only library, distributed under GPL-2.0-or-later.
+A modular framework for WordPress plugins that read as hand-written WordPress code: five packages, each building only on the one below it, with each plugin shipping its own scoped copy.
 
 ## Architecture
 
@@ -8,15 +8,13 @@ Monorepo publishing five Composer packages:
 
 | Package | Purpose |
 | --- | --- |
-| `ahegyes/wp-framework-bootstrap` | PHP and WordPress floor gate and GitHub release updater, loaded by path before any autoloader. |
-| `ahegyes/wp-framework-shared` | WordPress-free PHP primitives: framework exceptions, results, value objects and versions. |
-| `ahegyes/wp-framework-core` | Plugin kernel: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices, role capability grants, PSR-16 transient and object caches and an uninstall engine. |
-| `ahegyes/wp-framework-settings` | Options pages on the Settings API, form controls and value sanitization. |
-| `ahegyes/wp-framework-woocommerce` | WooCommerce settings tabs and sections, product data tabs, a requirement check, a PSR-3 logger and order meta cleanup. |
+| `ahegyes/wp-framework-bootstrap` | The code a WordPress plugin runs before its autoloader. It parses on PHP 7.4, so a site below the plugin's floors gets a notice instead of a fatal error and still receives the release that fixes it. |
+| `ahegyes/wp-framework-shared` | The WordPress-free building blocks every framework package shares, kept portable enough to work unchanged in any PHP project. |
+| `ahegyes/wp-framework-core` | The plugin kernel. A plugin is composed of small components that load only where they apply, on WordPress's own APIs, with the infrastructure WordPress leaves every plugin to rebuild. |
+| `ahegyes/wp-framework-settings` | Settings screens and edit-screen fields declared as data, so WordPress's own APIs render, validate and save them and a plugin never hand-writes form handling. |
+| `ahegyes/wp-framework-woocommerce` | The framework's settings, edit-screen and logging helpers carried onto WooCommerce's own screens and APIs, for plugins that extend WooCommerce. |
 
 The packages form a stack: core builds on bootstrap and shared, settings on core, and woocommerce on settings, and shared also installs alone.
-
-The `bootstrap` package parses on older PHP versions, so a plugin on an incompatible runtime gets an admin notice instead of a fatal error.
 
 ## Requirements
 

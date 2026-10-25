@@ -1,6 +1,6 @@
 {
   "name": "ahegyes/wp-framework-bootstrap",
-  "description": "PHP and WordPress floor gate and GitHub release updater for WordPress plugins, loaded by path before any autoloader.",
+  "description": "The code a WordPress plugin runs before its autoloader. It parses on PHP 7.4, so a site below the plugin's floors gets a notice instead of a fatal error and still receives the release that fixes it.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",

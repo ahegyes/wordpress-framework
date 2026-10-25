@@ -1,6 +1,6 @@
 # wp-framework-shared
 
-WordPress-free PHP primitives: framework exceptions, results, value objects and versions.
+The WordPress-free building blocks every framework package shares, kept portable enough to work unchanged in any PHP project.
 
 It requires no other framework package.
 

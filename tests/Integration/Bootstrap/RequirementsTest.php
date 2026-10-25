@@ -134,6 +134,40 @@ final class RequirementsTest extends TestCase {
 		self::assertStringContainsString( 'Failed to open stream', $warnings[0] );
 	}
 
+	public function test_an_error_prints_its_message_without_a_paragraph_wrap(): void {
+		$message = '<p>Acme Requirements needs <strong>PHP 99</strong>.</p>';
+		$notice  = \wp_get_admin_notice(
+			$message,
+			array(
+				'type'           => 'error',
+				'paragraph_wrap' => false,
+			)
+		);
+
+		self::assertSame( \wp_kses_post( $notice ), $this->print_notice_as( 'administrator', new \WP_Error( 'acme', $message ) ) );
+	}
+
+	public function test_an_error_keeps_the_arguments_it_is_given(): void {
+		$args = array(
+			'type'           => 'warning',
+			'paragraph_wrap' => true,
+		);
+
+		self::assertSame( \wp_kses_post( \wp_get_admin_notice( 'Acme Requirements needs PHP 99.', $args ) ), $this->print_notice_as( 'administrator', new \WP_Error( 'acme', 'Acme Requirements needs PHP 99.' ), $args ) );
+	}
+
+	public static function unprintable_messages(): array {
+		return array(
+			'null'    => array( null ),
+			'integer' => array( 7 ),
+		);
+	}
+
+	#[DataProvider( 'unprintable_messages' )]
+	public function test_a_message_that_is_neither_a_string_nor_an_error_prints_nothing( mixed $message ): void {
+		self::assertSame( '', $this->print_notice_as( 'administrator', $message ) );
+	}
+
 	protected function write_plugin( string $root, array $headers ): string {
 		$directory = "$root/$this->slug";
 		\mkdir( $directory );
@@ -155,6 +189,15 @@ final class RequirementsTest extends TestCase {
 
 		\ob_start();
 		\do_action( 'all_admin_notices' );
+
+		return (string) \ob_get_clean();
+	}
+
+	protected function print_notice_as( string $role, mixed ...$arguments ): string {
+		\wp_set_current_user( $this->make_user( "acme_requirements_$role", $role ) );
+
+		\ob_start();
+		Requirements::print_admin_notice( ...$arguments );
 
 		return (string) \ob_get_clean();
 	}

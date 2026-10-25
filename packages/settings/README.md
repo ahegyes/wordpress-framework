@@ -1,6 +1,6 @@
 # wp-framework-settings
 
-Settings helpers for WordPress: options pages on the Settings API, form controls and value sanitization.
+Settings screens and edit-screen fields declared as data, so WordPress's own APIs render, validate and save them and a plugin never hand-writes form handling.
 
 It builds on wp-framework-core.
 
