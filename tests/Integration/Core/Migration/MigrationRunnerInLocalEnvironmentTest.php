@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Migration;
 
 use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
-use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -97,7 +96,7 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 	}
 
 	protected function make_runner( array $steps ): MigrationRunner {
-		return new MigrationRunner( __DIR__ . '/../../../Fixtures/Core/acme-boot.php', $this->option, $steps, new PsrNullLogger(), new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ) );
+		return new MigrationRunner( __DIR__ . '/../../../Fixtures/Core/acme-boot.php', $this->option, $steps, new PsrNullLogger(), new Scheduler( 'acme' ) );
 	}
 
 	protected function get_lock(): mixed {

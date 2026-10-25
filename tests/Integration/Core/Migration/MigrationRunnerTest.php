@@ -4,13 +4,13 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Migration;
 
 use DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
 use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
-use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ReportsActionSchedulerVersionsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SettableClock;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -58,6 +58,7 @@ final class RecordedBatches implements BatchedMigrationStepInterface {
 final class MigrationRunnerTest extends TestCase {
 	use CreatesUsersTrait;
 	use IsolatesHooksTrait;
+	use ReportsActionSchedulerVersionsTrait;
 
 	protected const string PLUGIN_FILE = __DIR__ . '/../../../Fixtures/Core/acme-boot.php';
 
@@ -681,7 +682,7 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	public function test_a_batch_time_limit_below_1_second_runs_one_step_per_request(): void {
-		$this->load_wordpress( new MigrationRunner( self::PLUGIN_FILE, $this->option, array( $this->step( 1 ), $this->step( 2 ) ), $this->logger, new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), 0 ) );
+		$this->load_wordpress( new MigrationRunner( self::PLUGIN_FILE, $this->option, array( $this->step( 1 ), $this->step( 2 ) ), $this->logger, $this->make_wp_cron_scheduler(), 0 ) );
 
 		self::assertSame( array( array( 1, 0 ) ), $this->ran );
 		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
@@ -974,7 +975,7 @@ final class MigrationRunnerTest extends TestCase {
 	public function test_a_batched_step_finishes_through_real_scheduler_dispatch( string $kind ): void {
 		$clock     = new SettableClock( new \DateTimeImmutable( '@' . \time() ) );
 		$batches   = new RecordedBatches( 5, static fn () => $clock->advance( 10 ) );
-		$scheduler = 'production' === $kind ? new Scheduler( 'acme' ) : new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) );
+		$scheduler = 'production' === $kind ? new Scheduler( 'acme' ) : $this->make_wp_cron_scheduler();
 		$this->load_wordpress( $this->make_runner( array( $batches ), $clock, null, $scheduler ) );
 
 		$dispatches = 0;
@@ -1131,7 +1132,14 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	protected function make_runner( array $steps, ?PsrClockInterface $clock = null, ?PsrLoggerInterface $logger = null, ?SchedulerInterface $scheduler = null ): MigrationRunner {
-		return new MigrationRunner( self::PLUGIN_FILE, $this->option, $steps, $logger ?? $this->logger, $scheduler ?? new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), 20, $clock );
+		return new MigrationRunner( self::PLUGIN_FILE, $this->option, $steps, $logger ?? $this->logger, $scheduler ?? $this->make_wp_cron_scheduler(), 20, $clock );
+	}
+
+	// Action Scheduler below its floor leaves the writes to WP-Cron.
+	protected function make_wp_cron_scheduler(): Scheduler {
+		$this->report_action_scheduler_versions( array( '3.9.0' ) );
+
+		return new Scheduler( 'acme' );
 	}
 
 	protected function step( int|string $name ): \Closure {
