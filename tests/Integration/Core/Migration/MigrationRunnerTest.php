@@ -10,6 +10,7 @@ use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\SettableClock;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -30,21 +31,6 @@ final class FailingMigrationLogger extends PsrAbstractLogger {
 	#[\Override]
 	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
 		throw new \UnexpectedValueException( 'The log is not writable.' );
-	}
-}
-
-final class SettableClock implements PsrClockInterface {
-	public function __construct(
-		public \DateTimeImmutable $now
-	) {}
-
-	#[\Override]
-	public function now(): \DateTimeImmutable {
-		return $this->now;
-	}
-
-	public function advance( int $seconds ): void {
-		$this->now = $this->now->modify( "+$seconds seconds" );
 	}
 }
 

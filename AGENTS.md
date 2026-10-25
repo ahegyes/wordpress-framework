@@ -21,7 +21,7 @@ wordpress-framework/
 │       ├── Migration/{MigrationRunner, BatchedMigrationStepInterface}
 │       ├── Permission/CapabilityGrants
 │       ├── Scheduling/{SchedulerInterface, Scheduler, ScheduledHook, Recurrence, Backends/ (@internal)}
-│       ├── Storage/{OptionRows, OptionRow, MetaRows, MetaRow, Database (@internal)}
+│       ├── Storage/{OptionRows, OptionRow, MetaRows, MetaRow, Lock, LockClaim, Database (@internal)}
 │       └── Uninstall/Uninstaller
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · core ^2.0
 │   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ · Forms (render_control, sanitize_value, sanitize_fields, is_disabled, is_group, get_title, get_rejection_message, check_helper_id, render_hidden_input, escape_attribute, get_rows (@internal))
@@ -113,3 +113,4 @@ Releases follow SemVer on this contract from the first tag: a break of it ships 
 12. Capability grants act on `wp_loaded` after the declaration changes or a declared role appears or is deleted. A granted capability removed or denied by hand stays so; a declared role deleted and created again is granted again, unless it was deleted while the plugin was inactive, which then reads as a hand removal. WP_Roles writes the whole roles row from the request's copy, so another request's role write in between is lost. A change the row does not keep is logged and made again on every request, which never ends on a site whose roles are defined in code (`$wp_user_roles`) or locked.
 13. `TransientCache` and `ObjectCache` are best effort. On the options table a value holding invalid UTF-8 is refused and `set()` returns false. An object whose class no longer loads reads back as `__PHP_Incomplete_Class`, so a plugin clears its caches when cached classes change. `clear()` leaves earlier entries in place until they expire or the object cache evicts them, and behind a multi-node object cache that is not coherent, a node may read the old generation or salt until the new one reaches it. Without a persistent object cache, `ObjectCache` entries last one request, and an entry outlives its TTL until the request ends; some Memcached drop-ins keep a TTL over 30 days until eviction. Concurrent misses all recompute; nothing locks a key.
 14. The framework's queries name tables through `%i`, so a `wpdb` replacement whose `prepare()` predates WordPress 6.2 breaks them.
+15. A `Lock` lives in the current site's options table, and a hold is judged by the TTL its holder wrote. A holder learns of a takeover only at its next `refresh()`, so data the lock protects is written with a compare-and-swap, such as `OptionRows::replace()`, where a stale write matters.
