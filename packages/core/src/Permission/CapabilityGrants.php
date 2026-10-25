@@ -6,7 +6,6 @@ use DeepWebSolutions\Framework\Core\ComponentInterface;
 use DeepWebSolutions\Framework\Core\Logging\GuardedLogger;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -32,7 +31,7 @@ final class CapabilityGrants implements ComponentInterface {
 	 *
 	 * @param   string             $ledger_option The option that stores, on each site, the fingerprint of the last run and the grants made, autoloaded.
 	 * @param   Pairs              $grants        The capabilities to grant, as lists keyed by role name.
-	 * @param   PsrLoggerInterface $logger        The logger that records the capability changes that did not persist.
+	 * @param   PsrLoggerInterface $logger        The logger that records the writes that did not persist.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the option name or the grants are invalid.
 	 */
@@ -81,7 +80,7 @@ final class CapabilityGrants implements ComponentInterface {
 	 */
 	public function run(): void {
 		$roles       = \wp_roles();
-		$fingerprint = $this->get_fingerprint( $roles );
+		$fingerprint = \md5( (string) \wp_json_encode( array( $this->grants, \array_values( \array_filter( \array_keys( $this->grants ), $roles->is_role( ... ) ) ) ) ) );
 		$row         = $this->get_row();
 		if ( $row['fingerprint'] === $fingerprint ) {
 			return;
@@ -133,6 +132,12 @@ final class CapabilityGrants implements ComponentInterface {
 		// The pending write precedes the grants, so a request killed after granting leaves the next run a record that tells its grants from hand grants.
 		if ( array() !== $granted ) {
 			$this->write_row( '', $ledger, $granted );
+			// update_option() also returns false for an unchanged value, so the record is read back.
+			if ( $this->get_row()['pending'] !== $granted ) {
+				$this->logger->warning( 'The ledger row did not keep the pending grants, so the next request makes them.' );
+				return;
+			}
+
 			foreach ( $granted as $role => $caps ) {
 				foreach ( $caps as $cap ) {
 					$roles->get_role( $role )?->add_cap( $cap );
@@ -140,9 +145,10 @@ final class CapabilityGrants implements ComponentInterface {
 			}
 		}
 
+		// A grant changes the request's copy of the roles even when the row refuses it, so the check reads the option that the next request loads.
+		$stored  = \get_option( $roles->role_key );
 		$failed  = array();
 		$pending = array();
-		$stored  = $this->get_stored_roles( $roles->role_key );
 		foreach ( $granted as $role => $caps ) {
 			foreach ( $caps as $cap ) {
 				if ( true === ( self::get_capabilities( $stored, $role )[ $cap ] ?? null ) ) {
@@ -210,20 +216,6 @@ final class CapabilityGrants implements ComponentInterface {
 	// region HELPERS
 
 	/**
-	 * Returns a hash of the declared grants and of the declared roles that exist, which changes whenever a run could grant something new.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   \WP_Roles $roles The site's roles.
-	 *
-	 * @return  string
-	 */
-	protected function get_fingerprint( \WP_Roles $roles ): string {
-		return \md5( (string) \wp_json_encode( array( $this->grants, \array_values( \array_filter( \array_keys( $this->grants ), $roles->is_role( ... ) ) ) ) ) );
-	}
-
-	/**
 	 * Returns the stored row, which reads as empty when it is missing or is not a valid version 1 row.
 	 *
 	 * @since   2.0.0
@@ -265,26 +257,6 @@ final class CapabilityGrants implements ComponentInterface {
 			),
 			true
 		);
-	}
-
-	/**
-	 * Returns the value of the stored roles row, read past the options cache, or null when the row cannot be read.
-	 *
-	 * A grant changes the request's copy of the roles even when the row keeps its value, so only the row shows what persisted.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $role_key The name of the site's roles option.
-	 *
-	 * @return  mixed
-	 */
-	protected function get_stored_roles( string $role_key ): mixed {
-		try {
-			return OptionRows::get( $role_key )?->value;
-		} catch ( RuntimeException ) {
-			return null;
-		}
 	}
 
 	/**
