@@ -393,12 +393,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "6302f1f9170ef7187027bf39f0c07b84896e930b"
+                "reference": "16169596e0fb3060f267ba13a9e10e32da026db7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/6302f1f9170ef7187027bf39f0c07b84896e930b",
-                "reference": "6302f1f9170ef7187027bf39f0c07b84896e930b",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/16169596e0fb3060f267ba13a9e10e32da026db7",
+                "reference": "16169596e0fb3060f267ba13a9e10e32da026db7",
                 "shasum": ""
             },
             "require": {
@@ -440,7 +440,8 @@
             "type": "library",
             "autoload": {
                 "classmap": [
-                    "php/composer"
+                    "php/composer",
+                    "php/phpstan"
                 ]
             },
             "autoload-dev": {
@@ -518,7 +519,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-10-13T11:24:36+00:00"
+            "time": "2026-10-25T11:09:04+00:00"
         },
         {
             "name": "composer/class-map-generator",
@@ -1814,11 +1815,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.3.1",
+            "version": "2.3.2",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/6155239b488e95d26d1ebd95c6b4bb294d7f09db",
-                "reference": "6155239b488e95d26d1ebd95c6b4bb294d7f09db",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/18bc23a0682f08591529377d271b5c4dfe9ed1dd",
+                "reference": "18bc23a0682f08591529377d271b5c4dfe9ed1dd",
                 "shasum": ""
             },
             "require": {
@@ -1874,7 +1875,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-08T21:09:11+00:00"
+            "time": "2026-10-24T11:36:00+00:00"
         },
         {
             "name": "phpstan/phpstan-deprecation-rules",
