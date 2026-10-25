@@ -485,11 +485,14 @@ final class SchedulerTest extends TestCase {
 		self::assert_wp_error( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ), 'acme_clear_failed' );
 	}
 
-	public function test_a_failed_action_scheduler_lookup_is_returned_by_unscheduling_a_hook(): void {
+	public function test_unscheduling_a_hook_on_action_scheduler_is_best_effort(): void {
 		\as_enqueue_async_action( $this->hook );
 		$this->fail_queries( "a.hook='$this->hook'" );
 
-		self::assert_wp_error( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ), 'scheduler_failed' );
+		self::assertTrue( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ) );
+
+		\remove_all_filters( 'query' );
+		self::assertCount( 1, $this->pending_action_ids() );
 	}
 
 	public function test_a_wp_cron_duplicate_event_is_success(): void {
