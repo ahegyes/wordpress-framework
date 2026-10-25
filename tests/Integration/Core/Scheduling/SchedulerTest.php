@@ -652,11 +652,22 @@ final class SchedulerTest extends TestCase {
 	}
 
 	#[DataProvider( 'prioritized_writes' )]
-	public function test_wp_cron_accepts_the_lowest_and_highest_priority( \Closure $write ): void {
+	public function test_action_scheduler_clamps_a_priority_outside_0_to_255( \Closure $write ): void {
+		$scheduler = $this->make_scheduler( 'production' );
+
+		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( -1 ) ), -1 ) );
+		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( 256 ) ), 256 ) );
+
+		self::assertSame( 0, \ActionScheduler::store()->fetch_action( $this->pending_action_ids( array( -1 ) )[0] )->get_priority() );
+		self::assertSame( 255, \ActionScheduler::store()->fetch_action( $this->pending_action_ids( array( 256 ) )[0] )->get_priority() );
+	}
+
+	#[DataProvider( 'prioritized_writes' )]
+	public function test_wp_cron_ignores_the_priority( \Closure $write ): void {
 		$scheduler = $this->make_scheduler( 'wp-cron' );
 
-		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( 0 ) ), 0 ) );
-		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( 255 ) ), 255 ) );
+		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( -1 ) ), -1 ) );
+		self::assertTrue( $write( $scheduler, new ScheduledHook( $this->hook, array( 256 ) ), 256 ) );
 
 		self::assertCount( 2, $this->cron_events() );
 	}
