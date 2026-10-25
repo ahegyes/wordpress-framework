@@ -100,9 +100,8 @@ final class UpdaterTest extends TestCase {
 
 	public static function plugins_without_updates(): array {
 		return array(
-			'no-update-uri'  => array( array( 'Update URI' => '' ) ),
-			'another-host'   => array( array( 'Update URI' => 'https://gitlab.com/acme/updater' ) ),
-			'no-text-domain' => array( array( 'Text Domain' => '' ) ),
+			'no-update-uri' => array( array( 'Update URI' => '' ) ),
+			'another-host'  => array( array( 'Update URI' => 'https://gitlab.com/acme/updater' ) ),
 		);
 	}
 
@@ -306,8 +305,32 @@ final class UpdaterTest extends TestCase {
 		self::assertSame( array(), $this->requests );
 	}
 
+	public function test_a_plugin_without_a_text_domain_is_offered_releases_under_its_folder_name(): void {
+		Updater::register( $this->write_plugin( $this->slug, array( 'Text Domain' => '' ) ) );
+		$this->stage_latest( $this->release( 'v2.0.0' ) );
+
+		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
+
+		self::assertIsObject( $offer );
+		self::assertSame( $this->slug, $offer->slug );
+		self::assertSame( $this->asset_url( 'v2.0.0' ), $offer->package );
+	}
+
+	public function test_a_plugin_file_outside_a_folder_and_without_a_text_domain_gets_no_updates(): void {
+		$plugin_file = \WP_PLUGIN_DIR . "/$this->slug.php";
+		\file_put_contents( $plugin_file, "<?php\n/**\n * Plugin Name: Acme Updater\n * Version: 1.0.0\n * Update URI: https://github.com/acme/$this->slug\n */\n" );
+		try {
+			Updater::register( $plugin_file );
+
+			self::assertFalse( \apply_filters( 'update_plugins_github.com', false, array(), "$this->slug.php", array() ) );
+			self::assertSame( array(), $this->requests );
+		} finally {
+			\wp_delete_file( $plugin_file );
+		}
+	}
+
 	#[DataProvider( 'plugins_without_updates' )]
-	public function test_a_plugin_without_a_github_update_uri_or_a_text_domain_gets_no_updates( array $headers ): void {
+	public function test_a_plugin_without_a_github_update_uri_gets_no_updates( array $headers ): void {
 		$plugin_file = $this->write_plugin( $this->slug, $headers );
 
 		Updater::register( $plugin_file );
