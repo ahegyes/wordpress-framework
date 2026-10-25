@@ -123,8 +123,8 @@ final class Updater {
 		// WordPress reads a missing Text Domain as the plugin's folder name.
 		$headers = \get_plugin_data( $plugin_file, false, false );
 		$slug    = $headers['TextDomain'];
-		// WordPress names the update hook after the host of the sanitized Update URI, which gains a scheme when it has none.
-		$uri = \wp_parse_url( \esc_url_raw( $headers['UpdateURI'] ) );
+		// WordPress reads the Update URI header from 5.8, and names the update hook after the host of the sanitized URI, which gains a scheme when it has none.
+		$uri = \wp_parse_url( \esc_url_raw( $headers['UpdateURI'] ?? '' ) );
 		if ( '' === $slug || ! \is_array( $uri ) || 'github.com' !== ( $uri['host'] ?? '' ) ) {
 			return null;
 		}
