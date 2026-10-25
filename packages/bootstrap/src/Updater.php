@@ -101,23 +101,6 @@ final class Updater {
 		);
 	}
 
-	/**
-	 * Deletes the plugin's cached releases on the current site.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @internal
-	 *
-	 * @param   string $plugin_file The path to the plugin's entry file.
-	 */
-	public static function delete_cached_releases( string $plugin_file ): void {
-		$slug = \get_file_data( $plugin_file, array( 'slug' => 'Text Domain' ) )['slug'];
-		foreach ( array( 'stable', 'prerelease' ) as $channel ) {
-			\delete_transient( self::get_cache_name( $slug, $channel ) );
-		}
-	}
-
 	// endregion
 
 	// region HELPERS
@@ -133,19 +116,15 @@ final class Updater {
 	 * @return  array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, file: string}|null
 	 */
 	protected static function get_updater_config( string $plugin_file ): ?array {
-		$headers = \get_file_data(
-			$plugin_file,
-			array(
-				'name'    => 'Plugin Name',
-				'version' => 'Version',
-				'slug'    => 'Text Domain',
-				'uri'     => 'Update URI',
-			)
-		);
+		if ( ! \function_exists( 'get_plugin_data' ) ) {
+			require_once \ABSPATH . 'wp-admin/includes/plugin.php';
+		}
 
-		$slug = $headers['slug'];
+		// WordPress reads a missing Text Domain as the plugin's folder name.
+		$headers = \get_plugin_data( $plugin_file, false, false );
+		$slug    = $headers['TextDomain'];
 		// WordPress names the update hook after the host of the sanitized Update URI, which gains a scheme when it has none.
-		$uri = \wp_parse_url( \esc_url_raw( $headers['uri'] ) );
+		$uri = \wp_parse_url( \esc_url_raw( $headers['UpdateURI'] ) );
 		if ( '' === $slug || ! \is_array( $uri ) || 'github.com' !== ( $uri['host'] ?? '' ) ) {
 			return null;
 		}
@@ -154,7 +133,7 @@ final class Updater {
 			'enabled'    => true,
 			'repository' => \trim( $uri['path'] ?? '', '/' ),
 			'asset'      => "$slug.zip",
-			'channel'    => false === \strpos( $headers['version'], '-' ) ? 'stable' : 'prerelease',
+			'channel'    => false === \strpos( $headers['Version'], '-' ) ? 'stable' : 'prerelease',
 		);
 
 		/**
@@ -182,16 +161,16 @@ final class Updater {
 			'asset'      => $config['asset'],
 			'channel'    => $config['channel'],
 			'slug'       => $slug,
-			'name'       => $headers['name'],
-			'version'    => $headers['version'],
+			'name'       => $headers['Name'],
+			'version'    => $headers['Version'],
 			'file'       => \basename( $plugin_file ),
 		);
 	}
 
 	/**
-	 * Returns the newest usable release on the configured channel, from the plugin's cache while it holds one.
+	 * Returns the newest usable release on the configured channel, from the plugin's cache while it holds one, and otherwise from GitHub with the requirements of its tagged entry file.
 	 *
-	 * A usable release is cached for an hour, and a failed fetch or an unusable release as empty for five minutes, so update checks back off from a failing API.
+	 * A usable release is cached for an hour, and a failed fetch or an unusable release as empty for five minutes, so update checks back off from a failing API. GitHub's release list is not ordered by version, so the prerelease channel takes the highest version among the ten it lists first, stable releases included.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -201,44 +180,24 @@ final class Updater {
 	 * @return  array{version: string, tag: string, package: string, url: string, body: string, requires: string, requires_php: string}|null
 	 */
 	protected static function get_release( array $config ): ?array {
-		$transient = self::get_cache_name( $config['slug'], $config['channel'] );
+		$transient = "{$config['slug']}_github_release_{$config['channel']}";
 		$cached    = \get_transient( $transient );
 		if ( array() === $cached ) {
 			return null;
 		}
 
 		$release = self::read_release( $cached );
-		if ( null === $release ) {
-			$release = self::fetch_release( $config );
-			\set_transient( $transient, $release ?? array(), null === $release ? 5 * \MINUTE_IN_SECONDS : \HOUR_IN_SECONDS );
+		if ( null !== $release ) {
+			return $release;
 		}
 
-		return $release;
-	}
-
-	/**
-	 * Returns the newest release on the configured channel from GitHub, with the requirements of its tagged entry file, or null when no usable release can be read.
-	 *
-	 * GitHub's release list is not ordered by version, so the prerelease channel takes the highest version among the ten it lists first, stable releases included.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, file: string} $config The plugin's updater configuration.
-	 *
-	 * @return  array{version: string, tag: string, package: string, url: string, body: string, requires: string, requires_php: string}|null
-	 */
-	protected static function fetch_release( array $config ): ?array {
 		$body     = self::get_response_body( "https://api.github.com/repos/{$config['repository']}/" . ( 'prerelease' === $config['channel'] ? 'releases?per_page=10' : 'releases/latest' ) );
 		$releases = null === $body ? null : \json_decode( $body, true );
-		if ( ! \is_array( $releases ) ) {
-			return null;
-		}
 
 		$newest  = array();
 		$tag     = '';
 		$version = '';
-		foreach ( 'prerelease' === $config['channel'] ? $releases : array( $releases ) as $candidate ) {
+		foreach ( ( \is_array( $releases ) && 'prerelease' === $config['channel'] ) ? $releases : array( $releases ) as $candidate ) {
 			if ( ! \is_array( $candidate ) || true === ( $candidate['draft'] ?? false ) || ! \is_string( $candidate['tag_name'] ?? null ) ) {
 				continue;
 			}
@@ -265,34 +224,35 @@ final class Updater {
 		}
 
 		$entry_file = null === $package ? null : self::get_response_body( "https://raw.githubusercontent.com/{$config['repository']}/" . \rawurlencode( $tag ) . "/{$config['file']}" );
-		if ( null === $entry_file ) {
-			return null;
-		}
+		if ( null !== $entry_file ) {
+			// WordPress's get_file_data() reads only paths, so the fetched entry file is parsed with the same pattern.
+			$entry_file   = \str_replace( "\r", "\n", \substr( $entry_file, 0, 8 * \KB_IN_BYTES ) );
+			$headers      = array(
+				'requires'     => 'Requires at least',
+				'requires_php' => 'Requires PHP',
+			);
+			$requirements = array();
+			foreach ( $headers as $field => $header ) {
+				$requirements[ $field ] = 1 === \preg_match( '/^(?:[ \t]*<\?(?:php)?)?[ \t\/*#@]*' . \preg_quote( $header, '/' ) . ':(.*)$/mi', $entry_file, $match ) ? \trim( (string) \preg_replace( '/\s*(?:\*\/|\?>).*/', '', $match[1] ) ) : '';
+			}
 
-		// WordPress's get_file_data() reads only paths, so the fetched entry file is parsed with the same pattern.
-		$entry_file   = \str_replace( "\r", "\n", \substr( $entry_file, 0, 8 * \KB_IN_BYTES ) );
-		$headers      = array(
-			'requires'     => 'Requires at least',
-			'requires_php' => 'Requires PHP',
-		);
-		$requirements = array();
-		foreach ( $headers as $field => $header ) {
-			$requirements[ $field ] = 1 === \preg_match( '/^(?:[ \t]*<\?(?:php)?)?[ \t\/*#@]*' . \preg_quote( $header, '/' ) . ':(.*)$/mi', $entry_file, $match ) ? \trim( (string) \preg_replace( '/\s*(?:\*\/|\?>).*/', '', $match[1] ) ) : '';
 			// WordPress prints the PHP requirement unescaped on its details screen, so anything but a version makes the release unusable.
-			if ( '' !== $requirements[ $field ] && 1 !== \preg_match( '/^\d+(?:\.\d+)*$/', $requirements[ $field ] ) ) {
-				return null;
+			if ( \preg_grep( '/^(?:\d+(?:\.\d+)*)?$/', $requirements ) === $requirements ) {
+				$release = self::read_release(
+					array(
+						'version' => $version,
+						'tag'     => $tag,
+						'package' => $package,
+						'url'     => $newest['html_url'] ?? null,
+						'body'    => $newest['body'] ?? '',
+					) + $requirements
+				);
 			}
 		}
 
-		return self::read_release(
-			array(
-				'version' => $version,
-				'tag'     => $tag,
-				'package' => $package,
-				'url'     => $newest['html_url'] ?? null,
-				'body'    => $newest['body'] ?? '',
-			) + $requirements
-		);
+		\set_transient( $transient, $release ?? array(), null === $release ? 5 * \MINUTE_IN_SECONDS : \HOUR_IN_SECONDS );
+
+		return $release;
 	}
 
 	/**
@@ -319,21 +279,6 @@ final class Updater {
 		}
 
 		return '' === $release['package'] ? null : $release;
-	}
-
-	/**
-	 * Returns the name of the transient that caches the plugin's newest release on the channel.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   string $slug    The plugin's text domain.
-	 * @param   string $channel The release channel, 'stable' or 'prerelease'.
-	 *
-	 * @return  string
-	 */
-	protected static function get_cache_name( string $slug, string $channel ): string {
-		return "{$slug}_github_release_$channel";
 	}
 
 	/**

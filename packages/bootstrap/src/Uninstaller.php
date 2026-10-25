@@ -5,7 +5,7 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Removes a plugin's stored data where a site consents, and its scheduled jobs and cached releases in every case.
+ * Removes a plugin's stored data where a site consents, and its scheduled jobs in every case.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -26,9 +26,9 @@ final class Uninstaller {
 	// region METHODS
 
 	/**
-	 * Removes the plugin's footprint from every site that consents, and unschedules its jobs and deletes its updater's cached releases on every site.
+	 * Removes the plugin's footprint from every site that consents, and unschedules its jobs on every site.
 	 *
-	 * On each site the cleanup runs first, and a failed cleanup keeps that site's footprint. A failed delete leaves the others to run, while a throw from another plugin's hook ends that site's pass. Either keeps the site's consent row, and the failures are thrown once every site was visited, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback, and a cached release that cannot be deleted is left to expire.
+	 * On each site the cleanup runs first, and a failed cleanup keeps that site's footprint. A failed delete leaves the others to run, while a throw from another plugin's hook ends that site's pass. Either keeps the site's consent row, and the failures are thrown once every site was visited, so WordPress keeps the plugin's files and the next uninstall retries. A job that cannot be unscheduled is logged instead, since it only ever fires into a missing callback.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -152,9 +152,6 @@ final class Uninstaller {
 		if ( array() !== $unscheduling ) {
 			\error_log( '[' . \plugin_basename( $plugin_file ) . '] Uninstall could not unschedule: ' . \implode( '; ', $unscheduling ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
 		}
-
-		// Release caches hold no site data and expire on their own, so they go whatever the consent, and one that cannot be deleted is left to expire.
-		Updater::delete_cached_releases( $plugin_file );
 
 		if ( ! self::has_constant_consent( $consent ) && ! self::has_stored_consent( $consent ) ) {
 			return;
