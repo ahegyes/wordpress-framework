@@ -9,7 +9,7 @@ wordpress-framework/
 ├── packages/bootstrap/    ahegyes/wp-framework-bootstrap    php >=7.4 · no require · no autoload: loaded by path only
 │   ├── load.php             require_once's src/Requirements.php and src/Updater.php   (path = public API)
 │   └── src/
-│       ├── Requirements     ::check_floors( string $plugin_file ): bool · ::print_admin_notice( string $message, array $args = array( 'type' => 'error' ) ): void
+│       ├── Requirements     ::check_floors( string $plugin_file ): bool · ::print_admin_notice( string|\WP_Error $message, array $args = array( 'type' => 'error' ) ): void
 │       └── Updater          ::register( string $plugin_file ): void
 ├── packages/shared/       ahegyes/wp-framework-shared       php >=8.5 · no package require · WordPress-free
 │   └── src/               psr-4 DeepWebSolutions\Framework\Shared\ · Error/, Exception/, Result/, ValueObject/, Versioning/

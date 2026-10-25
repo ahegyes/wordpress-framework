@@ -56,13 +56,7 @@ final class Requirements {
 					return; // Core reads the headers from the plugins directory, so a plugin loaded from elsewhere reads as compatible.
 				}
 
-				self::print_admin_notice(
-					$requirements->get_error_message(),
-					array(
-						'type'           => 'error',
-						'paragraph_wrap' => false, // Core's message is already paragraphs.
-					)
-				);
+				self::print_admin_notice( $requirements );
 			}
 		);
 
@@ -72,17 +66,22 @@ final class Requirements {
 	/**
 	 * Prints an admin notice about the plugin to users who can activate plugins, as wp_admin_notice() prints it.
 	 *
-	 * The framework's boot checks report through it, because they run before the plugin's own admin notices exist or without them. Before WordPress 6.4, which has no wp_admin_notice(), it prints the same markup and honors only the type and paragraph_wrap arguments.
+	 * The framework's boot checks report through it, because they run before the plugin's own admin notices exist or without them. An error prints its message without a paragraph wrap unless the arguments set one, since WordPress core's requirement messages are already paragraphs. Before WordPress 6.4, which has no wp_admin_notice(), it prints the same markup and honors only the type and paragraph_wrap arguments.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string               $message The message, as HTML.
+	 * @param   string|\WP_Error     $message The message, as HTML, or the error whose message to print.
 	 * @param   array<string, mixed> $args    Optional. The notice's arguments, as wp_admin_notice() takes them. Default is an error notice.
 	 * @phpstan-param array{type?: string, dismissible?: bool, id?: string, additional_classes?: array<string>, attributes?: array<string>, paragraph_wrap?: bool} $args
 	 */
-	public static function print_admin_notice( string $message, array $args = array( 'type' => 'error' ) ): void {
-		if ( ! \current_user_can( 'activate_plugins' ) ) {
+	public static function print_admin_notice( $message, array $args = array( 'type' => 'error' ) ): void {
+		if ( \is_wp_error( $message ) ) {
+			$message = $message->get_error_message();
+			$args   += array( 'paragraph_wrap' => false );
+		}
+
+		if ( ! \is_string( $message ) || ! \current_user_can( 'activate_plugins' ) ) {
 			return;
 		}
 
