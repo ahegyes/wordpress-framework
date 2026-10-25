@@ -8,7 +8,6 @@ use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
-use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
@@ -681,26 +680,13 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( array(), $this->ran );
 	}
 
-	public static function batch_time_limits(): array {
-		return array(
-			'zero'          => array( 0, false ),
-			'one-second'    => array( 1, true ),
-			'five-minutes'  => array( 300, true ),
-			'over-five-min' => array( 301, false ),
-		);
+	public function test_a_batch_time_limit_below_1_second_runs_one_step_per_request(): void {
+		$this->load_wordpress( new MigrationRunner( self::PLUGIN_FILE, $this->option, array( $this->step( 1 ), $this->step( 2 ) ), $this->logger, new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), 0 ) );
+
+		self::assertSame( array( array( 1, 0 ) ), $this->ran );
+		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
+		self::assertSame( 1, $this->count_pending_runs() );
 	}
-
-	#[DataProvider( 'batch_time_limits' )]
-	public function test_the_batch_time_limit_stays_between_1_and_300_seconds( int $limit, bool $valid ): void {
-		if ( ! $valid ) {
-			$this->expectException( InvalidArgumentException::class );
-		}
-
-		$runner = new MigrationRunner( self::PLUGIN_FILE, $this->option, array(), $this->logger, new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), $limit );
-
-		self::assertInstanceOf( MigrationRunner::class, $runner );
-	}
-
 
 	public function test_a_request_outside_the_runner_hook_runs_plain_steps_but_no_batch_and_leaves_one_pending_run(): void {
 		$batches = new RecordedBatches( 3 );
