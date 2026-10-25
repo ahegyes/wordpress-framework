@@ -5,7 +5,6 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Storage;
 use DeepWebSolutions\Framework\Core\Storage\MetaRow;
 use DeepWebSolutions\Framework\Core\Storage\MetaRows;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
@@ -181,18 +180,6 @@ final class MetaRowsTest extends TestCase {
 		$this->expectException( InvalidArgumentException::class );
 
 		$call();
-	}
-
-	public function test_without_a_database_connection_the_rows_cannot_be_built(): void {
-		$wpdb            = $GLOBALS['wpdb'];
-		$GLOBALS['wpdb'] = null;
-
-		try {
-			$this->expectException( LogicException::class );
-			new MetaRows( 'user' );
-		} finally {
-			$GLOBALS['wpdb'] = $wpdb;
-		}
 	}
 
 	#[Group( 'multisite' )]

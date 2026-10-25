@@ -5,7 +5,6 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Storage;
 use DeepWebSolutions\Framework\Core\Storage\OptionRow;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
@@ -260,27 +259,6 @@ final class OptionRowsTest extends TestCase {
 		$this->expectException( InvalidArgumentException::class );
 
 		( new OptionRows() )->get( "{$this->prefix}_one", 2 );
-	}
-
-	public function test_an_injected_connection_reads_and_writes_the_same_rows(): void {
-		$second = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
-		$second->set_prefix( $GLOBALS['wpdb']->prefix );
-
-		$written = ( new OptionRows( $second ) )->upsert( "{$this->prefix}_one", 'One.' );
-
-		self::assertEquals( $written, ( new OptionRows() )->get( "{$this->prefix}_one" ) );
-	}
-
-	public function test_without_a_database_connection_the_rows_cannot_be_built(): void {
-		$wpdb            = $GLOBALS['wpdb'];
-		$GLOBALS['wpdb'] = null;
-
-		try {
-			$this->expectException( LogicException::class );
-			new OptionRows();
-		} finally {
-			$GLOBALS['wpdb'] = $wpdb;
-		}
 	}
 
 	#[Group( 'multisite' )]

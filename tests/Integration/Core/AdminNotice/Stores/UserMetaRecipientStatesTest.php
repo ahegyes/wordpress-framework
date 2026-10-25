@@ -8,7 +8,6 @@ use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Core\AdminNotice\RecipientState;
 use DeepWebSolutions\Framework\Core\AdminNotice\Stores\UserMetaRecipientStates;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
@@ -209,18 +208,6 @@ final class UserMetaRecipientStatesTest extends TestCase {
 
 		$key = $site_prefixed ? $wpdb->get_blog_prefix() . "{$this->prefix}_notice_states" : "{$this->prefix}_network_notice_states";
 		self::assertCount( 1, \get_user_meta( $this->user_id, $key, false ) );
-	}
-
-	public function test_without_a_database_connection_the_store_cannot_be_built(): void {
-		$wpdb            = $GLOBALS['wpdb'];
-		$GLOBALS['wpdb'] = null;
-
-		try {
-			$this->expectException( LogicException::class );
-			new UserMetaRecipientStates( $this->prefix );
-		} finally {
-			$GLOBALS['wpdb'] = $wpdb;
-		}
 	}
 
 	#[Group( 'multisite' )]

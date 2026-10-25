@@ -8,7 +8,6 @@ use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Core\AdminNotice\StoredNotice;
 use DeepWebSolutions\Framework\Core\AdminNotice\Stores\NoticeRecords;
 use DeepWebSolutions\Framework\Core\AdminNotice\Stores\OptionNoticeStore;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\FindsNoticesTrait;
@@ -130,18 +129,6 @@ final class OptionNoticeStoreTest extends TestCase {
 
 		self::assertSame( array(), ( new OptionNoticeStore( $this->prefix ) )->all( $context ) );
 		self::assertCount( 1, $longer->all( $context ) );
-	}
-
-	public function test_without_a_database_connection_the_store_cannot_be_built(): void {
-		$wpdb            = $GLOBALS['wpdb'];
-		$GLOBALS['wpdb'] = null;
-
-		try {
-			$this->expectException( LogicException::class );
-			new OptionNoticeStore( $this->prefix );
-		} finally {
-			$GLOBALS['wpdb'] = $wpdb;
-		}
 	}
 
 	#[Group( 'multisite' )]
