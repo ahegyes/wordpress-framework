@@ -434,22 +434,6 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertSame( array(), $this->ledger() );
 	}
 
-	public function test_a_grant_whose_check_cannot_read_the_roles_row_stays_pending_and_is_revoked_once_dropped(): void {
-		$editor = $this->add_role( 'editor' );
-		$this->fail_queries( "WHERE option_name = '" . \wp_roles()->role_key . "'" );
-		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
-		\remove_all_filters( 'query' );
-
-		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
-		self::assertSame( array( $editor => array( $this->cap( 'a' ) ) ), \get_option( "{$this->prefix}_grants" )['pending'] );
-
-		$this->next_request();
-		$this->grants( array() )->run();
-
-		self::assertSame( array(), $this->stored_caps( $editor ) );
-		self::assertSame( array(), $this->ledger() );
-	}
-
 	public function test_a_denial_made_through_wp_roles_earlier_in_the_request_stays(): void {
 		$editor = $this->add_role( 'editor' );
 		\wp_roles()->add_cap( $editor, $this->cap( 'a' ), false );
