@@ -115,7 +115,7 @@ final class PackageManifestsTest extends TestCase {
 		);
 	}
 
-	// Composer includes a files entry on every request, and anything outside src/ is loaded by path on runtimes below the floor.
+	// Composer includes a files entry on every request.
 	#[DataProvider( 'autoloaded_packages' )]
 	public function test_an_autoloaded_package_maps_only_its_namespace_to_src( string $package, string $prefix ): void {
 		self::assertSame( array( 'psr-4' => array( $prefix => 'src/' ) ), self::read_manifest( $package )['autoload'] ?? null );
@@ -134,12 +134,11 @@ final class PackageManifestsTest extends TestCase {
 
 	public static function source_directories(): array {
 		return array(
-			'bootstrap'             => array( 'bootstrap/src', 'DeepWebSolutions\\Framework\\Bootstrap\\' ),
-			'shared'                => array( 'shared/src', 'DeepWebSolutions\\Framework\\Shared\\' ),
-			'core'                  => array( 'core/src', 'DeepWebSolutions\\Framework\\Core\\' ),
-			'settings'              => array( 'settings/src', 'DeepWebSolutions\\Framework\\Settings\\' ),
-			'woocommerce'           => array( 'woocommerce/src', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
-			'woocommerce-bootstrap' => array( 'woocommerce/bootstrap', 'DeepWebSolutions\\Framework\\WooCommerce\\Bootstrap\\' ),
+			'bootstrap'   => array( 'bootstrap/src', 'DeepWebSolutions\\Framework\\Bootstrap\\' ),
+			'shared'      => array( 'shared/src', 'DeepWebSolutions\\Framework\\Shared\\' ),
+			'core'        => array( 'core/src', 'DeepWebSolutions\\Framework\\Core\\' ),
+			'settings'    => array( 'settings/src', 'DeepWebSolutions\\Framework\\Settings\\' ),
+			'woocommerce' => array( 'woocommerce/src', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
 		);
 	}
 

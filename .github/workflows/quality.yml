@@ -20,4 +20,4 @@ jobs:
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@16169596e0fb3060f267ba13a9e10e32da026db7
     with:
       php-versions: '["7.4"]'
-      paths: '["packages/bootstrap", "packages/woocommerce/uninstall.php", "packages/woocommerce/bootstrap"]'
+      paths: '["packages/bootstrap"]'
