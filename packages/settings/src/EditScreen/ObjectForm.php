@@ -127,7 +127,8 @@ final class ObjectForm {
 	 */
 	public function register_hooks(): void {
 		self::$hosted ??= new \WeakMap();
-		$hosted         = self::$hosted[ $this->host ] ?? $this;
+
+		$hosted = self::$hosted[ $this->host ] ?? $this;
 		if ( $hosted !== $this ) {
 			throw new LogicException( "The host of object form '{$hosted->get_id()}' cannot also host '$this->id'." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
@@ -200,9 +201,11 @@ final class ObjectForm {
 		}
 
 		$this->saved[] = $object_id;
-		$submitted     = \is_array( $_POST[ $this->id ] ?? null ) ? \wp_unslash( $_POST[ $this->id ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Forms::sanitize_fields() sanitizes each field.
-		$fields        = $this->get_form( $object_id )['fields'];
-		$result        = Forms::sanitize_fields( $fields, $submitted );
+
+		$submitted = \is_array( $_POST[ $this->id ] ?? null ) ? \wp_unslash( $_POST[ $this->id ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Forms::sanitize_fields() sanitizes each field.
+		$fields    = $this->get_form( $object_id )['fields'];
+
+		$result = Forms::sanitize_fields( $fields, $submitted );
 		if ( array() !== $result['values'] ) {
 			$this->get_store()->update_values( $object_id, $result['values'] );
 		}
@@ -212,8 +215,7 @@ final class ObjectForm {
 				try {
 					$this->notices->add( new Notice( 'rejection-' . \wp_generate_uuid4(), \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) ) );
 				} catch ( RuntimeException ) {
-					// The accepted values are already stored, so a notice the store refuses is only lost.
-					continue;
+					continue; // The accepted values are already stored, so a notice the store refuses is only lost.
 				}
 			}
 		}
@@ -260,7 +262,8 @@ final class ObjectForm {
 			 * @param   list<Field> $fields    The form's fields for the object.
 			 * @param   int         $object_id The id of the object being edited or saved.
 			 */
-			$form['fields']            = \apply_filters( "{$this->id}_fields", $form['fields'], $object_id );
+			$form['fields'] = \apply_filters( "{$this->id}_fields", $form['fields'], $object_id );
+
 			$this->forms[ $object_id ] = $form;
 		}
 
