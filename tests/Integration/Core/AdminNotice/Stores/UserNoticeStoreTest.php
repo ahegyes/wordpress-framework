@@ -8,7 +8,6 @@ use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Core\AdminNotice\StoredNotice;
 use DeepWebSolutions\Framework\Core\AdminNotice\Stores\NoticeRecords;
 use DeepWebSolutions\Framework\Core\AdminNotice\Stores\UserNoticeStore;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
@@ -150,18 +149,6 @@ final class UserNoticeStoreTest extends TestCase {
 		$other = NoticeContext::current( NoticeScope::User, $this->make_user( 'acme_notices_editor', 'editor' ) );
 
 		self::assertSame( array(), $store->all( $other ) );
-	}
-
-	public function test_without_a_database_connection_the_store_cannot_be_built(): void {
-		$wpdb            = $GLOBALS['wpdb'];
-		$GLOBALS['wpdb'] = null;
-
-		try {
-			$this->expectException( LogicException::class );
-			new UserNoticeStore( $this->prefix );
-		} finally {
-			$GLOBALS['wpdb'] = $wpdb;
-		}
 	}
 
 	#[Group( 'multisite' )]

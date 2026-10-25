@@ -9,10 +9,10 @@ use DeepWebSolutions\Framework\Core\Logging\GuardedLogger;
 use DeepWebSolutions\Framework\Core\PluginBoot;
 use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
-use DeepWebSolutions\Framework\Core\Storage\OptionRow;
+use DeepWebSolutions\Framework\Core\Storage\Lock;
+use DeepWebSolutions\Framework\Core\Storage\LockClaim;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use Psr\Clock\ClockInterface as PsrClockInterface;
 use Psr\Log\LoggerInterface as PsrLoggerInterface;
@@ -33,7 +33,7 @@ final class MigrationRunner implements ComponentInterface {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The age in seconds after which another run takes over a held lock.
+	 * The seconds that a run's hold on the lock lasts after it is taken or refreshed, after which another run takes the lock over.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -41,16 +41,6 @@ final class MigrationRunner implements ComponentInterface {
 	 * @var     int
 	 */
 	protected const int LOCK_TTL = 600;
-
-	/**
-	 * The option rows that hold the lock and the stored revision, read past the options cache.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     OptionRows
-	 */
-	protected OptionRows $rows;
 
 	/**
 	 * The clock that the lock and the batch budget read.
@@ -63,24 +53,24 @@ final class MigrationRunner implements ComponentInterface {
 	protected PsrClockInterface $clock;
 
 	/**
-	 * The lock row as this run wrote it, or null without a lock.
+	 * The lock that keeps every other run out while one runs the steps.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     OptionRow|null
+	 * @var     Lock
 	 */
-	protected ?OptionRow $lock = null;
+	protected Lock $lock;
 
 	/**
-	 * Whether this run took its lock over from a run that held it too long.
+	 * The token that names this runner's hold on the lock.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     bool
+	 * @var     string
 	 */
-	protected bool $took_over = false;
+	protected string $owner;
 
 	/**
 	 * The time at which this request's budget ends, set when its first step or batch begins and kept for every later run in the request.
@@ -107,12 +97,10 @@ final class MigrationRunner implements ComponentInterface {
 	 * @param   list<(callable(): void)|BatchedMigrationStepInterface> $steps            The migration steps, append-only, where index 0 brings the data to revision 1.
 	 * @param   PsrLoggerInterface                                     $logger           The logger that records failures and warnings.
 	 * @param   SchedulerInterface                                     $scheduler        The scheduler that runs the runner's hook in the background.
-	 * @param   int                                                    $batch_time_limit Optional. The seconds, from 1 to 300, that a request spends on steps and batches before it pauses. Default is 20.
-	 * @param   \wpdb|null                                             $wpdb             Optional. The database connection. Default is the global one.
+	 * @param   int                                                    $batch_time_limit Optional. The seconds, from 1, that a request spends on steps and batches before it pauses. Default is 20.
 	 * @param   PsrClockInterface|null                                 $clock            Optional. The clock. Default is the system clock.
 	 *
-	 * @throws  InvalidArgumentException Thrown when the batch time limit is outside 1 to 300 seconds.
-	 * @throws  LogicException           Thrown when no database connection is given and the global one is missing.
+	 * @throws  InvalidArgumentException Thrown when the option name cannot name the lock.
 	 */
 	public function __construct(
 		protected string $plugin_file,
@@ -121,16 +109,11 @@ final class MigrationRunner implements ComponentInterface {
 		protected PsrLoggerInterface $logger,
 		protected SchedulerInterface $scheduler,
 		protected int $batch_time_limit = 20,
-		?\wpdb $wpdb = null,
 		?PsrClockInterface $clock = null
 	) {
-		// A budget well under the lock's lifetime keeps a live run, even one with an overlong last batch, from being taken over.
-		if ( $batch_time_limit < 1 || $batch_time_limit > 300 ) {
-			throw new InvalidArgumentException( "Batch time limit '$batch_time_limit' is outside 1 to 300 seconds." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
-
-		$this->rows   = new OptionRows( $wpdb );
 		$this->clock  = $clock ?? new SystemClock();
+		$this->lock   = new Lock( "{$option}_lock", self::LOCK_TTL, $this->clock );
+		$this->owner  = \wp_generate_uuid4();
 		$this->logger = new GuardedLogger( $logger, $option );
 	}
 
@@ -184,14 +167,42 @@ final class MigrationRunner implements ComponentInterface {
 	 */
 	public function run(): void {
 		$target = \count( $this->steps );
-		if ( self::get_revision( $this->option ) === $target || ! $this->lock() ) {
+		if ( self::get_revision( $this->option ) === $target ) {
+			return;
+		}
+
+		try {
+			$claim = $this->lock->acquire( $this->owner );
+		} catch ( RuntimeException $exception ) {
+			$this->logger->warning(
+				'Could not take the data migration lock: {error}',
+				array(
+					'error'     => $exception->getMessage(),
+					'exception' => $exception,
+				)
+			);
+			return;
+		}
+
+		if ( LockClaim::Busy === $claim ) {
 			return;
 		}
 
 		$revision = null;
 		try {
-			$stored_row = $this->read_revision();
-			$revision   = $stored_row ?? 0;
+			try {
+				$row = OptionRows::get( $this->option );
+			} catch ( RuntimeException $exception ) {
+				throw new RuntimeException( "Could not read the stored data revision: {$exception->getMessage()}", 0, $exception ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+			}
+
+			// A malformed revision stops the run, because reading it as 0 would run every step again.
+			$stored = \is_null( $row ) ? 0 : \filter_var( $row->raw, \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE );
+			if ( \is_null( $stored ) || $stored < 0 ) {
+				throw new RuntimeException( "The stored data revision '$row->raw' is not a non-negative integer." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+			}
+
+			$revision = $stored;
 			if ( $revision > $target ) {
 				$this->checkpoint( $target ); // A re-upgrade then re-runs the newer, convergent steps over the rollback-era data.
 				$this->logger->warning(
@@ -202,12 +213,12 @@ final class MigrationRunner implements ComponentInterface {
 					)
 				);
 				$revision = $target;
-			} elseif ( $this->took_over && \is_null( $this->get_error() ) ) {
+			} elseif ( LockClaim::TakenOver === $claim && \is_null( $this->get_error() ) ) {
 				$this->record_error( 'Step ' . ( $revision + 1 ) . ' did not finish within 10 minutes.', $revision );
 				$this->logger->warning( 'Data migration step {step} did not finish within 10 minutes, so it runs again.', array( 'step' => $revision + 1 ) );
 			}
 
-			if ( \is_null( $stored_row ) ) {
+			if ( \is_null( $row ) ) {
 				\add_option(
 					"{$this->option}_first_run",
 					array(
@@ -225,9 +236,25 @@ final class MigrationRunner implements ComponentInterface {
 					return;
 				}
 
-				$step = $this->steps[ $revision ];
-				if ( $this->is_out_of_budget() || ( $step instanceof BatchedMigrationStepInterface && ! \doing_action( $this->get_hook() ) ) ) {
-					$this->pause();
+				$step         = $this->steps[ $revision ];
+				$memory_limit = \wp_convert_hr_to_bytes( (string) \ini_get( 'memory_limit' ) );
+				$spent        = ! \is_null( $this->deadline ) && ( $this->get_time() >= $this->deadline || ( 0 < $memory_limit && \memory_get_usage( true ) > 0.9 * $memory_limit ) );
+				if ( $spent || ( $step instanceof BatchedMigrationStepInterface && ! \doing_action( $this->get_hook() ) ) ) {
+					// The lock goes first, so that the continuation can take it.
+					$this->unlock();
+
+					// Inside its own hook the running invocation would satisfy enqueue(), so the continuation is a single invocation due now.
+					$hook      = new ScheduledHook( $this->get_hook() );
+					$scheduled = \doing_action( $this->get_hook() ) ? $this->scheduler->schedule_single( $hook, \time() ) : $this->scheduler->enqueue( $hook );
+					if ( true !== $scheduled ) {
+						$this->logger->warning(
+							'Could not schedule the next data migration run: {error}',
+							array(
+								'error'     => $scheduled->get_error_message(),
+								'exception' => $scheduled->get_error_data(),
+							)
+						);
+					}
 					return;
 				}
 
@@ -250,10 +277,31 @@ final class MigrationRunner implements ComponentInterface {
 					$this->checkpoint( $revision + 1 );
 					++$revision;
 				}
-				$this->clear_error();
+
+				// The step or batch succeeded, so a recorded failure is no longer current.
+				if ( false !== \get_option( "{$this->option}_error" ) ) {
+					\delete_option( "{$this->option}_error" );
+				}
 			}
 		} catch ( \Throwable $exception ) {
-			$this->fail( $exception, $revision );
+			if ( $this->holds_lock( $revision ?? 0 ) ) {
+				$this->record_error( $exception->getMessage(), $revision );
+			}
+
+			$this->logger->error(
+				'Data migration failed: {message}',
+				array(
+					'message'   => $exception->getMessage(),
+					'exception' => $exception,
+				)
+			);
+
+			// In production the lock stays until its hold expires, so a failing step runs again 10 minutes later; elsewhere the fixed step runs on the next request.
+			if ( PluginBoot::is_development_environment() ) {
+				$this->unlock();
+				throw $exception;
+			}
+
 			return;
 		}
 
@@ -334,39 +382,7 @@ final class MigrationRunner implements ComponentInterface {
 	// region HELPERS
 
 	/**
-	 * Takes the lock row, or takes it over once it is older than the lock's lifetime, and returns whether this run holds it.
-	 *
-	 * The lock bypasses the options cache, so that concurrent requests see each other's rows.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  bool
-	 */
-	protected function lock(): bool {
-		$now             = $this->clock->now()->getTimestamp();
-		$this->took_over = false;
-
-		try {
-			$this->lock = $this->rows->insert( $this->get_lock_name(), $now );
-			if ( \is_null( $this->lock ) ) {
-				// A lock row that holds no timestamp counts as expired, so a corrupt row never blocks the migrations.
-				$held = $this->rows->get( $this->get_lock_name() );
-				if ( ! \is_null( $held ) && ( \filter_var( $held->raw, \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE ) ?? 0 ) < $now - self::LOCK_TTL ) {
-					$this->lock      = $this->rows->replace( $held, $now );
-					$this->took_over = ! \is_null( $this->lock );
-				}
-			}
-		} catch ( RuntimeException $exception ) {
-			$this->lock = null;
-			$this->logger->warning( 'Could not take the data migration lock: {error}', array( 'error' => $exception->getMessage() ) );
-		}
-
-		return ! \is_null( $this->lock );
-	}
-
-	/**
-	 * Returns whether the lock row still holds this run's timestamp, and logs a warning when another run took it over.
+	 * Refreshes this run's hold on the lock and returns whether the run still holds it, logging a warning when another run took the lock over or the refresh failed.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -377,83 +393,43 @@ final class MigrationRunner implements ComponentInterface {
 	 */
 	protected function holds_lock( int $revision ): bool {
 		try {
-			$held = $this->rows->get( $this->get_lock_name() );
-		} catch ( RuntimeException ) {
-			$held = null;
-		}
+			if ( $this->lock->refresh( $this->owner ) ) {
+				return true;
+			}
 
-		if ( ! \is_null( $held ) && $held->raw === $this->lock?->raw ) {
-			return true;
+			$this->logger->warning( 'Another run took over the data migration lock, so this run stopped at revision {revision}.', array( 'revision' => $revision ) );
+		} catch ( RuntimeException $exception ) {
+			$this->logger->warning(
+				'Could not refresh the data migration lock, so this run stopped at revision {revision}: {error}',
+				array(
+					'revision'  => $revision,
+					'error'     => $exception->getMessage(),
+					'exception' => $exception,
+				)
+			);
 		}
-
-		$this->logger->warning( 'Another run took over the data migration lock, so this run stopped at revision {revision}.', array( 'revision' => $revision ) );
 
 		return false;
 	}
 
 	/**
-	 * Deletes the lock row only while it still holds this run's timestamp, so that a takeover's lock survives.
+	 * Releases this run's hold on the lock, and leaves a lock that another run took over in place.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 */
 	protected function unlock(): void {
 		try {
-			if ( ! \is_null( $this->lock ) ) {
-				$this->rows->delete( $this->lock );
-			}
+			$this->lock->release( $this->owner );
 		} catch ( RuntimeException $exception ) {
-			$this->logger->warning( 'Could not release the data migration lock, which expires in 10 minutes: {error}', array( 'error' => $exception->getMessage() ) );
+			$this->logger->warning(
+				'Could not release the data migration lock, which expires in 10 minutes: {error}',
+				array(
+					'error'     => $exception->getMessage(),
+					'exception' => $exception,
+				)
+			);
 		}
-
-		$this->lock = null;
-	}
-
-	/**
-	 * Releases the lock, then schedules the runner's hook, so that the continuation can take the lock this run held.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 */
-	protected function pause(): void {
-		$this->unlock();
-
-		// Inside its own hook the running invocation would satisfy enqueue(), so the continuation is a single invocation due now.
-		$hook      = new ScheduledHook( $this->get_hook() );
-		$scheduled = \doing_action( $this->get_hook() ) ? $this->scheduler->schedule_single( $hook, \time() ) : $this->scheduler->enqueue( $hook );
-		if ( true !== $scheduled ) {
-			$this->logger->warning( 'Could not schedule the next data migration run: {error}', array( 'error' => $scheduled->get_error_message() ) );
-		}
-	}
-
-	/**
-	 * Returns the stored revision read past the options cache, or null when no revision is stored.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @throws  RuntimeException Thrown when the read fails or the stored value is not a non-negative integer, so that neither counts as 0.
-	 *
-	 * @return  int<0, max>|null
-	 */
-	protected function read_revision(): ?int {
-		try {
-			$row = $this->rows->get( $this->option );
-		} catch ( RuntimeException $exception ) {
-			throw new RuntimeException( "Could not read the stored data revision: {$exception->getMessage()}", 0, $exception ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
-
-		if ( \is_null( $row ) ) {
-			return null;
-		}
-
-		$value    = $row->raw;
-		$revision = \filter_var( $value, \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE );
-		if ( \is_null( $revision ) || $revision < 0 ) {
-			throw new RuntimeException( "The stored data revision '$value' is not a non-negative integer." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
-
-		return $revision;
 	}
 
 	/**
@@ -473,38 +449,6 @@ final class MigrationRunner implements ComponentInterface {
 
 		if ( $revision > self::get_revision( "{$this->option}_high_water" ) ) {
 			\update_option( "{$this->option}_high_water", $revision, false );
-		}
-	}
-
-	/**
-	 * Records and logs a failure, then releases the lock and rethrows in a local or development environment.
-	 *
-	 * In production the lock stays for its lifetime, so a failing step runs again every 10 minutes.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   \Throwable $exception The failure.
-	 * @param   int|null   $revision  The revision whose step failed, or null for a failure before any step.
-	 *
-	 * @throws  \Throwable Thrown in a local or development environment.
-	 */
-	protected function fail( \Throwable $exception, ?int $revision ): void {
-		if ( $this->holds_lock( $revision ?? 0 ) ) {
-			$this->record_error( $exception->getMessage(), $revision );
-		}
-
-		$this->logger->error(
-			'Data migration failed: {message}',
-			array(
-				'message'   => $exception->getMessage(),
-				'exception' => $exception,
-			)
-		);
-
-		if ( PluginBoot::is_development_environment() ) {
-			$this->unlock(); // Releasing the lock lets the fixed step run again on the next request.
-			throw $exception;
 		}
 	}
 
@@ -530,18 +474,6 @@ final class MigrationRunner implements ComponentInterface {
 			),
 			false
 		);
-	}
-
-	/**
-	 * Deletes the error row once a step or batch succeeds, since the failure it records is no longer current.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 */
-	protected function clear_error(): void {
-		if ( false !== \get_option( "{$this->option}_error" ) ) {
-			\delete_option( "{$this->option}_error" );
-		}
 	}
 
 	/**
@@ -576,24 +508,6 @@ final class MigrationRunner implements ComponentInterface {
 	}
 
 	/**
-	 * Returns whether the request's time or memory budget is spent.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  bool
-	 */
-	protected function is_out_of_budget(): bool {
-		if ( \is_null( $this->deadline ) ) {
-			return false;
-		}
-
-		$memory_limit = \wp_convert_hr_to_bytes( (string) \ini_get( 'memory_limit' ) );
-
-		return $this->get_time() >= $this->deadline || ( 0 < $memory_limit && \memory_get_usage( true ) > 0.9 * $memory_limit );
-	}
-
-	/**
 	 * Returns the clock's time in seconds, with microseconds.
 	 *
 	 * @since   2.0.0
@@ -615,18 +529,6 @@ final class MigrationRunner implements ComponentInterface {
 	 */
 	protected function get_hook(): string {
 		return "{$this->option}_run";
-	}
-
-	/**
-	 * Returns the name of the lock row.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  string
-	 */
-	protected function get_lock_name(): string {
-		return "{$this->option}_lock";
 	}
 
 	// endregion

@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\Framework\Core\Storage;
 
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 
 \defined( 'ABSPATH' ) || exit;
@@ -29,16 +28,6 @@ final class OptionRows {
 	 */
 	protected const int MAX_NAME_LENGTH = 191;
 
-	/**
-	 * The database connection.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @var     \wpdb
-	 */
-	protected \wpdb $wpdb;
-
 	// endregion
 
 	// region MAGIC METHODS
@@ -48,16 +37,8 @@ final class OptionRows {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
-	 *
-	 * @param   \wpdb|null $wpdb Optional. The database connection. Default is WordPress's.
-	 *
-	 * @throws  LogicException Thrown when no connection is given and WordPress has none.
 	 */
-	public function __construct(
-		?\wpdb $wpdb = null
-	) {
-		$this->wpdb = $wpdb ?? Database::get_wpdb();
-	}
+	protected function __construct() {}
 
 	// endregion
 
@@ -69,6 +50,8 @@ final class OptionRows {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
 	 * @param   string $name    The option name.
 	 * @param   int    $site_id Optional. The site whose table to read, where 0 is the current site. Default 0.
 	 *
@@ -77,18 +60,19 @@ final class OptionRows {
 	 *
 	 * @return  OptionRow|null
 	 */
-	public function get( string $name, int $site_id = 0 ): ?OptionRow {
-		$wpdb    = $this->wpdb;
-		$site_id = $this->get_site_id( $site_id );
+	public static function get( string $name, int $site_id = 0 ): ?OptionRow {
+		global $wpdb;
+
+		$site_id = self::get_site_id( $site_id );
 		self::check_name( $name );
 
 		// A row rather than a single value, because wpdb::get_var() returns null for an empty string as it does for a missing row.
 		$wpdb->flush();
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $this->get_table( $site_id ), $name ) ?? '', ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- A cached value may predate another request's write.
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', self::get_table( $site_id ), $name ) ?? '', ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- A cached value may predate another request's write.
 		Database::check_query( $wpdb, "Could not read option '$name'" );
 
 		$raw = \is_array( $row ) ? ( $row['option_value'] ?? null ) : null;
-		return \is_string( $raw ) ? $this->make_row( $site_id, $name, $raw ) : null;
+		return \is_string( $raw ) ? self::make_row( $site_id, $name, $raw ) : null;
 	}
 
 	/**
@@ -96,6 +80,8 @@ final class OptionRows {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
 	 *
 	 * @param   string $prefix  The prefix, matched byte for byte.
 	 * @param   int    $site_id Optional. The site whose table to read, where 0 is the current site. Default 0.
@@ -105,13 +91,14 @@ final class OptionRows {
 	 *
 	 * @return  list<OptionRow>
 	 */
-	public function list( string $prefix, int $site_id = 0 ): array {
-		$wpdb    = $this->wpdb;
-		$site_id = $this->get_site_id( $site_id );
+	public static function list( string $prefix, int $site_id = 0 ): array {
+		global $wpdb;
+
+		$site_id = self::get_site_id( $site_id );
 		self::check_name( $prefix );
 
 		$wpdb->flush();
-		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT option_name, option_value FROM %i WHERE option_name LIKE %s ORDER BY option_name', $this->get_table( $site_id ), $wpdb->esc_like( $prefix ) . '%' ) ?? '', ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The options API cannot list options by prefix.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT option_name, option_value FROM %i WHERE option_name LIKE %s ORDER BY option_name', self::get_table( $site_id ), $wpdb->esc_like( $prefix ) . '%' ) ?? '', ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- The options API cannot list options by prefix.
 		Database::check_query( $wpdb, "Could not list the options under '$prefix'" );
 
 		$list = array();
@@ -121,7 +108,7 @@ final class OptionRows {
 
 			// The column's collation also matches names that differ from the prefix in letter case or accents.
 			if ( \is_string( $name ) && \is_string( $raw ) && \str_starts_with( $name, $prefix ) ) {
-				$list[] = $this->make_row( $site_id, $name, $raw );
+				$list[] = self::make_row( $site_id, $name, $raw );
 			}
 		}
 
@@ -134,6 +121,8 @@ final class OptionRows {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
 	 * @param   string $name    The option name.
 	 * @param   mixed  $value   The value: a scalar, null, or an array of them.
 	 * @param   int    $site_id Optional. The site whose table to write, where 0 is the current site. Default 0.
@@ -143,16 +132,17 @@ final class OptionRows {
 	 *
 	 * @return  OptionRow
 	 */
-	public function upsert( string $name, mixed $value, int $site_id = 0 ): OptionRow {
-		$wpdb    = $this->wpdb;
-		$site_id = $this->get_site_id( $site_id );
-		$raw     = $this->serialize( $name, $value );
+	public static function upsert( string $name, mixed $value, int $site_id = 0 ): OptionRow {
+		global $wpdb;
+
+		$site_id = self::get_site_id( $site_id );
+		$raw     = self::serialize( $name, $value );
 
 		// One statement, because add_option() refuses an existing option and update_option() writes nothing once the option disappears after its read.
-		$this->write( $wpdb->prepare( 'INSERT INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE option_value = VALUES(option_value), autoload = VALUES(autoload)', $this->get_table( $site_id ), $name, $raw, 'off' ) ?? '', "Could not write option '$name'" );
-		$this->forget( $site_id, $name );
+		self::write( $wpdb->prepare( 'INSERT INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE option_value = VALUES(option_value), autoload = VALUES(autoload)', self::get_table( $site_id ), $name, $raw, 'off' ) ?? '', "Could not write option '$name'" );
+		self::forget( $site_id, $name );
 
-		return $this->make_row( $site_id, $name, $raw );
+		return self::make_row( $site_id, $name, $raw );
 	}
 
 	/**
@@ -160,6 +150,8 @@ final class OptionRows {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
 	 *
 	 * @param   string $name    The option name.
 	 * @param   mixed  $value   The value: a scalar, null, or an array of them.
@@ -170,18 +162,19 @@ final class OptionRows {
 	 *
 	 * @return  OptionRow|null
 	 */
-	public function insert( string $name, mixed $value, int $site_id = 0 ): ?OptionRow {
-		$wpdb    = $this->wpdb;
-		$site_id = $this->get_site_id( $site_id );
-		$raw     = $this->serialize( $name, $value );
+	public static function insert( string $name, mixed $value, int $site_id = 0 ): ?OptionRow {
+		global $wpdb;
 
-		$inserted = $this->write( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', $this->get_table( $site_id ), $name, $raw, 'off' ) ?? '', "Could not insert option '$name'" );
+		$site_id = self::get_site_id( $site_id );
+		$raw     = self::serialize( $name, $value );
+
+		$inserted = self::write( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', self::get_table( $site_id ), $name, $raw, 'off' ) ?? '', "Could not insert option '$name'" );
 		if ( 0 === $inserted ) {
 			return null;
 		}
 
-		$this->forget( $site_id, $name );
-		return $this->make_row( $site_id, $name, $raw );
+		self::forget( $site_id, $name );
+		return self::make_row( $site_id, $name, $raw );
 	}
 
 	/**
@@ -189,6 +182,8 @@ final class OptionRows {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
 	 *
 	 * @param   OptionRow $observed The row as it was read.
 	 * @param   mixed     $value    The new value: a scalar, null, or an array of them, stored other than the observed one.
@@ -198,22 +193,23 @@ final class OptionRows {
 	 *
 	 * @return  OptionRow|null
 	 */
-	public function replace( OptionRow $observed, mixed $value ): ?OptionRow {
-		$wpdb    = $this->wpdb;
-		$site_id = $this->get_site_id( $observed->site_id );
+	public static function replace( OptionRow $observed, mixed $value ): ?OptionRow {
+		global $wpdb;
 
-		$raw = $this->serialize( $observed->name, $value );
+		$site_id = self::get_site_id( $observed->site_id );
+
+		$raw = self::serialize( $observed->name, $value );
 		if ( $raw === $observed->raw ) { // The database reports no affected row for an unchanged value, which would read as a lost race.
 			throw new InvalidArgumentException( "The new value of option '$observed->name' is stored as the observed one." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
-		$replaced = $this->write( $wpdb->prepare( 'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )', $this->get_table( $site_id ), $raw, 'off', $observed->name, $observed->raw ) ?? '', "Could not replace option '$observed->name'" );
+		$replaced = self::write( $wpdb->prepare( 'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )', self::get_table( $site_id ), $raw, 'off', $observed->name, $observed->raw ) ?? '', "Could not replace option '$observed->name'" );
 		if ( 0 === $replaced ) {
 			return null;
 		}
 
-		$this->forget( $site_id, $observed->name );
-		return $this->make_row( $site_id, $observed->name, $raw );
+		self::forget( $site_id, $observed->name );
+		return self::make_row( $site_id, $observed->name, $raw );
 	}
 
 	/**
@@ -222,6 +218,8 @@ final class OptionRows {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
 	 * @param   OptionRow $observed The row as it was read.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the row's site is invalid.
@@ -229,24 +227,27 @@ final class OptionRows {
 	 *
 	 * @return  bool
 	 */
-	public function delete( OptionRow $observed ): bool {
-		$wpdb    = $this->wpdb;
-		$site_id = $this->get_site_id( $observed->site_id );
+	public static function delete( OptionRow $observed ): bool {
+		global $wpdb;
 
-		$deleted = $this->write( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )', $this->get_table( $site_id ), $observed->name, $observed->raw ) ?? '', "Could not delete option '$observed->name'" );
+		$site_id = self::get_site_id( $observed->site_id );
+
+		$deleted = self::write( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )', self::get_table( $site_id ), $observed->name, $observed->raw ) ?? '', "Could not delete option '$observed->name'" );
 		if ( 0 === $deleted ) {
 			return false;
 		}
 
-		$this->forget( $site_id, $observed->name );
+		self::forget( $site_id, $observed->name );
 		return true;
 	}
 
 	/**
-	 * Deletes the option whatever it holds, through delete_option() and so on WordPress's own connection, which fires the option hooks and clears the option's caches.
+	 * Deletes the option whatever it holds, through delete_option(), which fires the option hooks and clears the option's caches.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
 	 *
 	 * @param   string $name    The option name.
 	 * @param   int    $site_id Optional. The site whose option to delete, where 0 is the current site. Default 0.
@@ -254,12 +255,12 @@ final class OptionRows {
 	 * @throws  InvalidArgumentException Thrown when the name or the site is invalid.
 	 * @throws  RuntimeException         Thrown when the delete fails.
 	 */
-	public function remove( string $name, int $site_id = 0 ): void {
-		self::check_name( $name );
-		$switched = self::switch_to_site( $this->get_site_id( $site_id ) );
-		try {
-			$wpdb = Database::get_wpdb();
+	public static function remove( string $name, int $site_id = 0 ): void {
+		global $wpdb;
 
+		self::check_name( $name );
+		$switched = self::switch_to_site( self::get_site_id( $site_id ) );
+		try {
 			// An absent option and a failed delete both make delete_option() return false, so only the error tells them apart.
 			$wpdb->flush();
 			\delete_option( $name );
@@ -306,7 +307,7 @@ final class OptionRows {
 	 *
 	 * @return  int
 	 */
-	protected function get_site_id( int $site_id ): int {
+	protected static function get_site_id( int $site_id ): int {
 		$current = \get_current_blog_id();
 		if ( 0 === $site_id || $current === $site_id ) {
 			return $current;
@@ -326,12 +327,16 @@ final class OptionRows {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
 	 * @param   int $site_id The blog id.
 	 *
 	 * @return  string
 	 */
-	protected function get_table( int $site_id ): string {
-		return $this->wpdb->get_blog_prefix( $site_id ) . 'options';
+	protected static function get_table( int $site_id ): string {
+		global $wpdb;
+
+		return $wpdb->get_blog_prefix( $site_id ) . 'options';
 	}
 
 	/**
@@ -347,7 +352,7 @@ final class OptionRows {
 	 *
 	 * @return  string
 	 */
-	protected function serialize( string $name, mixed $value ): string {
+	protected static function serialize( string $name, mixed $value ): string {
 		self::check_name( $name );
 
 		// A stored object's class name changes with each plugin's scoping prefix, so it would not read back.
@@ -371,7 +376,7 @@ final class OptionRows {
 	 *
 	 * @return  OptionRow
 	 */
-	protected function make_row( int $site_id, string $name, string $raw ): OptionRow {
+	protected static function make_row( int $site_id, string $name, string $raw ): OptionRow {
 		return new OptionRow( $site_id, $name, \maybe_unserialize( $raw ), $raw );
 	}
 
@@ -381,6 +386,8 @@ final class OptionRows {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
 	 * @param   string $query   The prepared statement.
 	 * @param   string $failure The message that opens the exception when the write fails.
 	 *
@@ -388,10 +395,12 @@ final class OptionRows {
 	 *
 	 * @return  int
 	 */
-	protected function write( string $query, string $failure ): int {
-		$changed = $this->wpdb->query( $query ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Prepared by the caller; the options API cannot write conditionally.
+	protected static function write( string $query, string $failure ): int {
+		global $wpdb;
+
+		$changed = $wpdb->query( $query ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- Prepared by the caller; the options API cannot write conditionally.
 		if ( false === $changed ) {
-			throw new RuntimeException( "$failure: {$this->wpdb->last_error}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+			throw new RuntimeException( "$failure: $wpdb->last_error" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
 		return \is_int( $changed ) ? $changed : 0;
@@ -406,7 +415,7 @@ final class OptionRows {
 	 * @param   int    $site_id The blog id.
 	 * @param   string $name    The option name.
 	 */
-	protected function forget( int $site_id, string $name ): void {
+	protected static function forget( int $site_id, string $name ): void {
 		$switched = self::switch_to_site( $site_id );
 		try {
 			\wp_cache_delete( $name, 'options' );

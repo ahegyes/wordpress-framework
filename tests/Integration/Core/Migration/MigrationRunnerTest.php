@@ -7,10 +7,11 @@ use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
-use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
-use DeepWebSolutions\Framework\Shared\Exception\LogicException;
+use DeepWebSolutions\Framework\Core\Storage\OptionRows;
+use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\SettableClock;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -31,21 +32,6 @@ final class FailingMigrationLogger extends PsrAbstractLogger {
 	#[\Override]
 	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
 		throw new \UnexpectedValueException( 'The log is not writable.' );
-	}
-}
-
-final class SettableClock implements PsrClockInterface {
-	public function __construct(
-		public \DateTimeImmutable $now
-	) {}
-
-	#[\Override]
-	public function now(): \DateTimeImmutable {
-		return $this->now;
-	}
-
-	public function advance( int $seconds ): void {
-		$this->now = $this->now->modify( "+$seconds seconds" );
 	}
 }
 
@@ -183,12 +169,19 @@ final class MigrationRunnerTest extends TestCase {
 	public function test_two_connections_contending_run_the_steps_once(): void {
 		$second = new \wpdb( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
 		$second->set_prefix( $GLOBALS['wpdb']->prefix );
-		$contender = $this->make_runner( array( $this->step( 'contender' ) ), $second );
+		$contender = $this->make_runner( array( $this->step( 'contender' ) ) );
 		$runner    = $this->make_runner(
 			array(
-				function () use ( $contender ): void {
+				function () use ( $contender, $second ): void {
 					$this->ran[] = 'holder';
-					$contender->run();
+					$first       = $GLOBALS['wpdb'];
+
+					$GLOBALS['wpdb'] = $second;
+					try {
+						$contender->run();
+					} finally {
+						$GLOBALS['wpdb'] = $first;
+					}
 				},
 			)
 		);
@@ -197,13 +190,14 @@ final class MigrationRunnerTest extends TestCase {
 
 		self::assertSame( array( 'holder' ), $this->ran );
 		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
+		self::assertGreaterThan( 0, $second->num_queries );
 	}
 
 	public function test_a_lock_older_than_ten_minutes_is_taken_over(): void {
 		$clock = new SettableClock( new \DateTimeImmutable( '@1800000000' ) );
 		$this->insert_lock( 1800000000 - 601 );
 
-		$this->make_runner( array( $this->step( 1 ) ), null, $clock )->run();
+		$this->make_runner( array( $this->step( 1 ) ), $clock )->run();
 
 		self::assertSame( array( array( 1, 0 ) ), $this->ran );
 		self::assertNull( $this->get_lock() );
@@ -213,13 +207,13 @@ final class MigrationRunnerTest extends TestCase {
 		$clock = new SettableClock( new \DateTimeImmutable( '@1800000000' ) );
 		$this->insert_lock( 1800000000 - 600 );
 
-		$this->make_runner( array( $this->step( 1 ) ), null, $clock )->run();
+		$this->make_runner( array( $this->step( 1 ) ), $clock )->run();
 
 		self::assertSame( array(), $this->ran );
-		self::assertSame( (string) ( 1800000000 - 600 ), $this->get_lock() );
+		self::assertSame( self::hold( 'acme-other', 1800000000 - 600 ), $this->get_lock() );
 	}
 
-	public function test_a_lock_row_without_a_timestamp_is_taken_over(): void {
+	public function test_a_lock_row_that_holds_no_lock_is_taken_over(): void {
 		\add_option( "{$this->option}_lock", 'acme', '', false );
 
 		$this->make_runner( array( $this->step( 1 ) ) )->run();
@@ -243,6 +237,7 @@ final class MigrationRunnerTest extends TestCase {
 
 		self::assertSame( array(), $this->ran );
 		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
+		self::assertInstanceOf( RuntimeException::class, $this->logger->records[0][2]['exception'] ?? null );
 	}
 
 	public function test_a_failed_unlock_logs_a_warning_and_leaves_the_lock_to_expire(): void {
@@ -260,6 +255,7 @@ final class MigrationRunnerTest extends TestCase {
 
 		self::assertSame( array( array( 1, 0 ) ), $this->ran );
 		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
+		self::assertInstanceOf( RuntimeException::class, $this->logger->records[0][2]['exception'] ?? null );
 		self::assertNotNull( $this->get_lock() );
 	}
 
@@ -335,6 +331,7 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( array( 'INSERT' ), $statements );
 		self::assertSame( array(), $this->ran );
 		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
+		self::assertInstanceOf( RuntimeException::class, $this->logger->records[0][2]['exception'] ?? null );
 	}
 
 	public static function malformed_revisions(): array {
@@ -441,8 +438,8 @@ final class MigrationRunnerTest extends TestCase {
 			},
 		);
 
-		$this->make_runner( $steps, null, $clock )->run();
-		$this->make_runner( $steps, null, $clock )->run();
+		$this->make_runner( $steps, $clock )->run();
+		$this->make_runner( $steps, $clock )->run();
 
 		self::assertSame( array( array( 1, 0 ) ), $this->ran, 'The second request skipped while the lock held.' );
 		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
@@ -459,7 +456,7 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertCount( 1, $this->logger->records );
 		self::assertSame( 'error', $this->logger->records[0][0] );
 		self::assertSame( $failure, $this->logger->records[0][2]['exception'] );
-		self::assertSame( '1800000000', $this->get_lock() );
+		self::assertSame( 1800000000, $this->get_lock()['time'] ?? null );
 	}
 
 	public function test_a_repeated_failure_keeps_the_time_of_the_first(): void {
@@ -470,9 +467,9 @@ final class MigrationRunnerTest extends TestCase {
 			},
 		);
 
-		$this->make_runner( $steps, null, $clock )->run();
+		$this->make_runner( $steps, $clock )->run();
 		$clock->advance( 700 );
-		$this->make_runner( $steps, null, $clock )->run();
+		$this->make_runner( $steps, $clock )->run();
 
 		$error = \get_option( "{$this->option}_error" );
 		self::assertIsArray( $error );
@@ -484,7 +481,7 @@ final class MigrationRunnerTest extends TestCase {
 
 	public function test_a_run_whose_lock_is_taken_over_stops_before_its_checkpoint_and_leaves_the_new_lock(): void {
 		$later    = new SettableClock( new \DateTimeImmutable( '@' . ( \time() + 700 ) ) );
-		$takeover = $this->make_runner( array( $this->step( 'takeover' ), $this->step( 'takeover' ) ), null, $later );
+		$takeover = $this->make_runner( array( $this->step( 'takeover' ), $this->step( 'takeover' ) ), $later );
 		$runner   = $this->make_runner(
 			array(
 				function () use ( $takeover ): void {
@@ -511,7 +508,6 @@ final class MigrationRunnerTest extends TestCase {
 					throw new \RuntimeException( 'The takeover failed and kept its lock.' );
 				},
 			),
-			null,
 			$later
 		);
 		$runner   = $this->make_runner(
@@ -524,7 +520,7 @@ final class MigrationRunnerTest extends TestCase {
 
 		$runner->run();
 
-		self::assertSame( (string) $later->now->getTimestamp(), $this->get_lock() );
+		self::assertSame( $later->now->getTimestamp(), $this->get_lock()['time'] ?? null );
 		self::assertSame( 0, MigrationRunner::get_revision( $this->option ) );
 	}
 
@@ -556,9 +552,7 @@ final class MigrationRunnerTest extends TestCase {
 		\add_action(
 			"update_option_{$this->option}",
 			function (): void {
-				global $wpdb;
-
-				$wpdb->update( $wpdb->options, array( 'option_value' => '1' ), array( 'option_name' => "{$this->option}_lock" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Stands in for another run taking the lock over.
+				OptionRows::upsert( "{$this->option}_lock", self::hold( 'acme-other', \time() ) ); // Stands in for another run taking the lock over.
 			}
 		);
 		\update_option( $this->option, 0 );
@@ -566,7 +560,7 @@ final class MigrationRunnerTest extends TestCase {
 		$this->make_runner( array( $this->step( 1 ), $this->step( 2 ) ) )->run();
 
 		self::assertSame( array( 1 ), \array_column( $this->ran, 0 ) );
-		self::assertSame( '1', $this->get_lock() );
+		self::assertSame( 'acme-other', $this->get_lock()['owner'] ?? null );
 	}
 
 	public function test_a_revision_above_the_code_is_left_alone_while_another_run_holds_the_lock(): void {
@@ -612,9 +606,9 @@ final class MigrationRunnerTest extends TestCase {
 	public function test_the_first_run_is_recorded_once_when_no_revision_is_stored(): void {
 		$clock = new SettableClock( new \DateTimeImmutable( '@1800000000' ) );
 
-		$this->make_runner( array( $this->step( 1 ) ), null, $clock )->run();
+		$this->make_runner( array( $this->step( 1 ) ), $clock )->run();
 		$clock->advance( 60 );
-		$this->make_runner( array( $this->step( 1 ), $this->step( 2 ) ), null, $clock )->run();
+		$this->make_runner( array( $this->step( 1 ), $this->step( 2 ) ), $clock )->run();
 
 		self::assertSame(
 			array(
@@ -642,7 +636,6 @@ final class MigrationRunnerTest extends TestCase {
 					throw new \RuntimeException( 'Step failed with a broken logger.' );
 				},
 			),
-			null,
 			null,
 			new FailingMigrationLogger()
 		);
@@ -674,7 +667,7 @@ final class MigrationRunnerTest extends TestCase {
 		$previous   = \ini_set( 'error_log', $log_file );
 
 		try {
-			$this->make_runner( array( $this->step( 1 ) ), null, null, new FailingMigrationLogger() )->run();
+			$this->make_runner( array( $this->step( 1 ) ), null, new FailingMigrationLogger() )->run();
 			$log = (string) \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
@@ -687,38 +680,13 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( array(), $this->ran );
 	}
 
-	public static function batch_time_limits(): array {
-		return array(
-			'zero'          => array( 0, false ),
-			'one-second'    => array( 1, true ),
-			'five-minutes'  => array( 300, true ),
-			'over-five-min' => array( 301, false ),
-		);
+	public function test_a_batch_time_limit_below_1_second_runs_one_step_per_request(): void {
+		$this->load_wordpress( new MigrationRunner( self::PLUGIN_FILE, $this->option, array( $this->step( 1 ), $this->step( 2 ) ), $this->logger, new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), 0 ) );
+
+		self::assertSame( array( array( 1, 0 ) ), $this->ran );
+		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
+		self::assertSame( 1, $this->count_pending_runs() );
 	}
-
-	#[DataProvider( 'batch_time_limits' )]
-	public function test_the_batch_time_limit_stays_between_1_and_300_seconds( int $limit, bool $valid ): void {
-		if ( ! $valid ) {
-			$this->expectException( InvalidArgumentException::class );
-		}
-
-		$runner = new MigrationRunner( self::PLUGIN_FILE, $this->option, array(), $this->logger, new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), $limit );
-
-		self::assertInstanceOf( MigrationRunner::class, $runner );
-	}
-
-	public function test_a_missing_database_handle_fails_at_construction(): void {
-		$wpdb            = $GLOBALS['wpdb'];
-		$GLOBALS['wpdb'] = null;
-
-		try {
-			$this->expectException( LogicException::class );
-			$this->make_runner( array() );
-		} finally {
-			$GLOBALS['wpdb'] = $wpdb;
-		}
-	}
-
 
 	public function test_a_request_outside_the_runner_hook_runs_plain_steps_but_no_batch_and_leaves_one_pending_run(): void {
 		$batches = new RecordedBatches( 3 );
@@ -745,7 +713,7 @@ final class MigrationRunnerTest extends TestCase {
 		);
 		\ActionScheduler::store()->log_execution( (int) $running[0] );
 
-		$this->load_wordpress( $this->make_runner( array( new RecordedBatches( 3 ) ), null, null, null, new Scheduler( 'acme' ) ) );
+		$this->load_wordpress( $this->make_runner( array( new RecordedBatches( 3 ) ), null, null, new Scheduler( 'acme' ) ) );
 
 		self::assertSame( 0, $this->count_pending_runs() );
 	}
@@ -766,7 +734,7 @@ final class MigrationRunnerTest extends TestCase {
 	public function test_a_spent_budget_releases_the_lock_before_it_enqueues_one_continuation(): void {
 		$clock   = new SettableClock( new \DateTimeImmutable( '@' . \time() ) );
 		$batches = new RecordedBatches( 5, static fn () => $clock->advance( 10 ) );
-		$this->make_runner( array( $batches ), null, $clock )->register_hooks();
+		$this->make_runner( array( $batches ), $clock )->register_hooks();
 		$locks = array();
 		\add_filter(
 			'schedule_event',
@@ -793,7 +761,7 @@ final class MigrationRunnerTest extends TestCase {
 
 		for ( $request = 1; $request <= 3; ++$request ) {
 			\remove_all_actions( "{$this->option}_run" );
-			$this->make_runner( array( $batches ), null, $clock )->register_hooks();
+			$this->make_runner( array( $batches ), $clock )->register_hooks();
 			\do_action( "{$this->option}_run" );
 			$revisions[] = array( $batches->processed, MigrationRunner::get_revision( $this->option ) );
 		}
@@ -811,7 +779,6 @@ final class MigrationRunnerTest extends TestCase {
 				},
 				$batches,
 			),
-			null,
 			$clock
 		);
 
@@ -830,7 +797,6 @@ final class MigrationRunnerTest extends TestCase {
 					throw new \RuntimeException( 'The takeover keeps its lock.' );
 				},
 			),
-			null,
 			$later
 		);
 		$batches  = new RecordedBatches( 3, static fn ( int $processed ) => 1 === $processed && $takeover->run() );
@@ -839,7 +805,7 @@ final class MigrationRunnerTest extends TestCase {
 		\do_action( "{$this->option}_run" );
 
 		self::assertSame( 1, $batches->processed );
-		self::assertSame( (string) $later->now->getTimestamp(), $this->get_lock() );
+		self::assertSame( $later->now->getTimestamp(), $this->get_lock()['time'] ?? null );
 		self::assertSame( 'The takeover keeps its lock.', \get_option( "{$this->option}_error" )['message'] );
 	}
 
@@ -851,7 +817,6 @@ final class MigrationRunnerTest extends TestCase {
 					throw new \RuntimeException( 'The takeover failed.' );
 				},
 			),
-			null,
 			$later
 		);
 		$runner   = $this->make_runner(
@@ -893,6 +858,16 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertNull( $this->get_lock() );
 	}
 
+	public function test_a_continuation_whose_scheduling_throws_is_logged_with_the_exception(): void {
+		$failure = new \UnexpectedValueException( 'The schedule is not writable.' );
+		\add_filter( 'pre_schedule_event', static fn (): never => throw $failure );
+
+		$this->load_wordpress( $this->make_runner( array( new RecordedBatches( 3 ) ) ) );
+
+		self::assertSame( array( 'warning' ), \array_column( $this->logger->records, 0 ) );
+		self::assertSame( $failure, $this->logger->records[0][2]['exception'] ?? null );
+	}
+
 	public function test_a_spent_budget_stops_between_plain_steps_without_an_error_row(): void {
 		$clock = new SettableClock( new \DateTimeImmutable( '@' . \time() ) );
 		$step  = function ( int $name ) use ( $clock ): \Closure {
@@ -902,7 +877,7 @@ final class MigrationRunnerTest extends TestCase {
 			};
 		};
 
-		$this->load_wordpress( $this->make_runner( array( $step( 1 ), $step( 2 ), $step( 3 ) ), null, $clock ) );
+		$this->load_wordpress( $this->make_runner( array( $step( 1 ), $step( 2 ), $step( 3 ) ), $clock ) );
 
 		self::assertSame( array( 1, 2 ), $this->ran );
 		self::assertSame( 2, MigrationRunner::get_revision( $this->option ) );
@@ -969,7 +944,7 @@ final class MigrationRunnerTest extends TestCase {
 	public function test_a_successful_batch_clears_the_error_of_an_earlier_failure(): void {
 		$clock   = new SettableClock( new \DateTimeImmutable( '@' . \time() ) );
 		$batches = new RecordedBatches( 5, static fn () => $clock->advance( 30 ) );
-		$this->make_runner( array( $batches ), null, $clock )->register_hooks();
+		$this->make_runner( array( $batches ), $clock )->register_hooks();
 		\update_option(
 			"{$this->option}_error",
 			array(
@@ -1000,12 +975,12 @@ final class MigrationRunnerTest extends TestCase {
 		$clock     = new SettableClock( new \DateTimeImmutable( '@' . \time() ) );
 		$batches   = new RecordedBatches( 5, static fn () => $clock->advance( 10 ) );
 		$scheduler = 'production' === $kind ? new Scheduler( 'acme' ) : new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) );
-		$this->load_wordpress( $this->make_runner( array( $batches ), null, $clock, null, $scheduler ) );
+		$this->load_wordpress( $this->make_runner( array( $batches ), $clock, null, $scheduler ) );
 
 		$dispatches = 0;
 		while ( 0 < $this->count_pending_runs() && $dispatches < 5 ) {
 			\remove_all_actions( "{$this->option}_run" );
-			$this->make_runner( array( $batches ), null, $clock, null, $scheduler )->register_hooks();
+			$this->make_runner( array( $batches ), $clock, null, $scheduler )->register_hooks();
 			'production' === $kind ? $this->run_due_actions() : $this->run_due_cron_events();
 			++$dispatches;
 		}
@@ -1155,8 +1130,8 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( 0, $batches->processed );
 	}
 
-	protected function make_runner( array $steps, ?\wpdb $wpdb = null, ?PsrClockInterface $clock = null, ?PsrLoggerInterface $logger = null, ?SchedulerInterface $scheduler = null ): MigrationRunner {
-		return new MigrationRunner( self::PLUGIN_FILE, $this->option, $steps, $logger ?? $this->logger, $scheduler ?? new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), 20, $wpdb, $clock );
+	protected function make_runner( array $steps, ?PsrClockInterface $clock = null, ?PsrLoggerInterface $logger = null, ?SchedulerInterface $scheduler = null ): MigrationRunner {
+		return new MigrationRunner( self::PLUGIN_FILE, $this->option, $steps, $logger ?? $this->logger, $scheduler ?? new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ), 20, $clock );
 	}
 
 	protected function step( int|string $name ): \Closure {
@@ -1184,14 +1159,20 @@ final class MigrationRunnerTest extends TestCase {
 		);
 	}
 
-	protected function insert_lock( int $timestamp ): void {
-		\add_option( "{$this->option}_lock", $timestamp, '', false );
+	protected function insert_lock( int $time ): void {
+		\add_option( "{$this->option}_lock", self::hold( 'acme-other', $time ), '', false );
 	}
 
 	protected function age_lock(): void {
-		global $wpdb;
+		OptionRows::upsert( "{$this->option}_lock", array( 'time' => \time() - 601 ) + $this->get_lock() );
+	}
 
-		$wpdb->update( $wpdb->options, array( 'option_value' => (string) ( \time() - 601 ) ), array( 'option_name' => "{$this->option}_lock" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Ages the lock row the runner wrote directly.
+	protected static function hold( string $owner, int $time ): array {
+		return array(
+			'owner' => $owner,
+			'time'  => $time,
+			'ttl'   => 600,
+		);
 	}
 
 	protected function render_admin_notices(): string {
@@ -1263,9 +1244,7 @@ final class MigrationRunnerTest extends TestCase {
 		}
 	}
 
-	protected function get_lock(): ?string {
-		global $wpdb;
-
-		return $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "{$this->option}_lock" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the lock row past the options cache.
+	protected function get_lock(): mixed {
+		return OptionRows::get( "{$this->option}_lock" )?->value;
 	}
 }
