@@ -5,6 +5,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Migration;
 use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
+use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -74,9 +75,12 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 	public function test_a_failure_after_its_lock_was_taken_over_leaves_the_new_lock(): void {
 		$steps = array(
 			function (): void {
-				global $wpdb;
-
-				$wpdb->update( $wpdb->options, array( 'option_value' => '1' ), array( 'option_name' => "{$this->option}_lock" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Stands in for another run taking the lock over.
+				$hold = array(
+					'owner' => 'acme-other',
+					'time'  => \time(),
+					'ttl'   => 600,
+				);
+				OptionRows::upsert( "{$this->option}_lock", $hold ); // Stands in for another run taking the lock over.
 				throw new \RuntimeException( 'Failed after a takeover.' );
 			},
 		);
@@ -89,16 +93,14 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 		}
 
 		self::assertNotNull( $caught );
-		self::assertSame( '1', $this->get_lock() );
+		self::assertSame( 'acme-other', $this->get_lock()['owner'] ?? null );
 	}
 
 	protected function make_runner( array $steps ): MigrationRunner {
 		return new MigrationRunner( __DIR__ . '/../../../Fixtures/Core/acme-boot.php', $this->option, $steps, new PsrNullLogger(), new Scheduler( 'acme', array( new WpCronBackend( 'acme' ) ) ) );
 	}
 
-	protected function get_lock(): ?string {
-		global $wpdb;
-
-		return $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "{$this->option}_lock" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the lock row past the options cache.
+	protected function get_lock(): mixed {
+		return OptionRows::get( "{$this->option}_lock" )?->value;
 	}
 }
