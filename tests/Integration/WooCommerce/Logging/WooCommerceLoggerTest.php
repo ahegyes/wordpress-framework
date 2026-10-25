@@ -156,6 +156,15 @@ final class WooCommerceLoggerTest extends TestCase {
 		self::assertStringContainsString( 'Stack trace:', $logged );
 	}
 
+	public function test_an_exception_context_value_that_is_not_a_throwable_reaches_woocommerce_unchanged_and_the_error_log_without_a_trace(): void {
+		$this->logger()->error( 'Warm-up failed.', array( 'exception' => null ) );
+		\update_option( 'woocommerce_logs_logging_enabled', 'no' );
+		$this->logger( null, 'acme', false )->error( 'Warm-up failed again.', array( 'exception' => 'Cache is cold.' ) );
+
+		self::assertSame( array( 'exception' => null ), \array_intersect_key( $this->handler->records[0][2], array( 'exception' => true ) ) );
+		self::assertStringEndsWith( '[acme.error] Warm-up failed again.' . \PHP_EOL, (string) \file_get_contents( $this->log_file ) );
+	}
+
 	public function test_a_context_value_that_cannot_be_encoded_reaches_woocommerces_file_format_as_its_type(): void {
 		$this->handler = new class() extends LogHandlerFileV2 {
 			public array $entries = array();
