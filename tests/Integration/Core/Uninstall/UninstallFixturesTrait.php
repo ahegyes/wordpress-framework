@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
+namespace DeepWebSolutions\Framework\Tests\Integration\Core\Uninstall;
 
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\After;
