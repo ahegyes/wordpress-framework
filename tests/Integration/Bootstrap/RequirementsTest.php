@@ -67,7 +67,7 @@ final class RequirementsTest extends TestCase {
 	public function test_a_plugin_below_a_header_is_refused_and_shows_core_message_only_to_users_who_can_activate_plugins( array $headers ): void {
 		$plugin_file = $this->write_plugin( \WP_PLUGIN_DIR, $headers );
 
-		self::assertFalse( Requirements::check( $plugin_file ) );
+		self::assertFalse( Requirements::check_floors( $plugin_file ) );
 
 		$error = \validate_plugin_requirements( \plugin_basename( $plugin_file ) );
 		self::assertInstanceOf( \WP_Error::class, $error );
@@ -86,7 +86,7 @@ final class RequirementsTest extends TestCase {
 	public function test_a_plugin_meeting_its_headers_passes_and_prints_nothing( array $headers ): void {
 		$plugin_file = $this->write_plugin( \WP_PLUGIN_DIR, $headers );
 
-		self::assertTrue( Requirements::check( $plugin_file ) );
+		self::assertTrue( Requirements::check_floors( $plugin_file ) );
 		self::assertSame( '', $this->render_notices_as( 'administrator' ) );
 	}
 
@@ -102,7 +102,7 @@ final class RequirementsTest extends TestCase {
 			}
 		);
 
-		Requirements::check( $plugin_file );
+		Requirements::check_floors( $plugin_file );
 		self::assertSame( 0, $translations );
 
 		$this->render_notices_as( 'administrator' );
@@ -111,7 +111,7 @@ final class RequirementsTest extends TestCase {
 
 	public function test_a_refused_plugin_outside_the_plugins_directory_prints_nothing(): void {
 		$plugin_file = $this->write_plugin( \untrailingslashit( \get_temp_dir() ), array( 'Requires PHP' => '99' ) );
-		self::assertFalse( Requirements::check( $plugin_file ) );
+		self::assertFalse( Requirements::check_floors( $plugin_file ) );
 
 		// Core reads the headers from the plugins directory, so it warns about the missing file and reports the requirements as met.
 		$warnings = array();

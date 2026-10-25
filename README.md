@@ -8,9 +8,9 @@ Monorepo publishing five Composer packages:
 
 | Package | Purpose |
 | --- | --- |
-| `ahegyes/wp-framework-bootstrap` | Requirements gate, GitHub release updater and uninstall engine, loaded by path before any autoloader. |
+| `ahegyes/wp-framework-bootstrap` | PHP and WordPress floor gate and GitHub release updater, loaded by path before any autoloader. |
 | `ahegyes/wp-framework-shared` | WordPress-free PHP primitives: framework exceptions, results, value objects and versions. |
-| `ahegyes/wp-framework-core` | Plugin kernel: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices, role capability grants and PSR-16 transient and object caches. |
+| `ahegyes/wp-framework-core` | Plugin kernel: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices, role capability grants, PSR-16 transient and object caches and an uninstall engine. |
 | `ahegyes/wp-framework-settings` | Options pages on the Settings API, form controls and value sanitization. |
 | `ahegyes/wp-framework-woocommerce` | WooCommerce settings tabs and sections, product data tabs, a requirement check, a PSR-3 logger and order meta cleanup. |
 

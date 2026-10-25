@@ -1,8 +1,9 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
+namespace DeepWebSolutions\Framework\Tests\Integration\Core\Uninstall;
 
-use DeepWebSolutions\Framework\Bootstrap\Uninstaller;
+use DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
+use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
@@ -26,11 +27,6 @@ final class UninstallerOnNetworkTest extends TestCase {
 	protected int $other_site;
 
 	protected int $user;
-
-	#[\Override]
-	public static function setUpBeforeClass(): void {
-		require_once \dirname( __DIR__, 3 ) . '/packages/bootstrap/uninstall.php';
-	}
 
 	#[\Override]
 	protected function setUp(): void {
@@ -115,13 +111,13 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$failure = null;
 		try {
 			Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
-		} catch ( \RuntimeException $exception ) {
+		} catch ( RuntimeException $exception ) {
 			$failure = $exception;
 		} finally {
 			\remove_filter( "option_{$this->prefix}_remove_data", $filter );
 		}
 
-		self::assertInstanceOf( \RuntimeException::class, $failure );
+		self::assertInstanceOf( RuntimeException::class, $failure );
 		self::assertStringContainsString( "site $this->main_site: The filter failed.", $failure->getMessage() );
 		self::assertSame( array( true, true, false, true ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->other_site ) );
@@ -137,11 +133,11 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$failure = null;
 		try {
 			Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( true ) );
-		} catch ( \RuntimeException $exception ) {
+		} catch ( RuntimeException $exception ) {
 			$failure = $exception;
 		}
 
-		self::assertInstanceOf( \RuntimeException::class, $failure );
+		self::assertInstanceOf( RuntimeException::class, $failure );
 		self::assertStringContainsString( '`wp plugin uninstall`', $failure->getMessage() );
 		self::assertSame( array( true, true, true, true ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( true, true, true, true ), $this->site_state( $this->other_site ) );

@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\Bootstrap;
+namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\Uninstall;
 
-use DeepWebSolutions\Framework\Tests\Integration\Bootstrap\UninstallFixturesTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Core\Uninstall\UninstallFixturesTrait;
 use PHPUnit\Framework\Attributes\After;
 
 trait OrderMetaFixturesTrait {

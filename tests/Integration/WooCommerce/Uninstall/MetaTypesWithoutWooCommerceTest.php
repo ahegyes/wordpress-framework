@@ -1,25 +1,19 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\Bootstrap;
+namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\Uninstall;
 
-use DeepWebSolutions\Framework\Bootstrap\Uninstaller;
+use DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
-use DeepWebSolutions\Framework\WooCommerce\Bootstrap\WooCommerceUninstaller;
+use DeepWebSolutions\Framework\WooCommerce\Uninstall\MetaTypes;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass( WooCommerceUninstaller::class )]
+#[CoversClass( MetaTypes::class )]
 #[Group( 'without-woocommerce' )]
-final class WooCommerceUninstallerWithoutWooCommerceTest extends TestCase {
+final class MetaTypesWithoutWooCommerceTest extends TestCase {
 	use IsolatesHooksTrait;
 	use OrderMetaFixturesTrait;
-
-	#[\Override]
-	public static function setUpBeforeClass(): void {
-		require_once \dirname( __DIR__, 4 ) . '/packages/bootstrap/uninstall.php';
-		require_once \dirname( __DIR__, 4 ) . '/packages/woocommerce/uninstall.php';
-	}
 
 	public function test_on_a_site_without_woocommerces_tables_a_consenting_uninstall_deletes_the_order_keys_from_post_meta(): void {
 		self::assertFalse( $this->table_exists( 'wc_orders_meta' ) );
@@ -32,7 +26,7 @@ final class WooCommerceUninstallerWithoutWooCommerceTest extends TestCase {
 			$this->order_footprint(),
 			array(
 				'consent'    => array( 'option' => "{$this->prefix}_remove_data" ),
-				'meta_types' => WooCommerceUninstaller::get_meta_types(),
+				'meta_types' => MetaTypes::DEFINITIONS,
 			)
 		);
 

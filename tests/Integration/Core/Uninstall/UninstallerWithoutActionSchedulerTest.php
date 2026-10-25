@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
+namespace DeepWebSolutions\Framework\Tests\Integration\Core\Uninstall;
 
-use DeepWebSolutions\Framework\Bootstrap\Uninstaller;
+use DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -13,11 +13,6 @@ use PHPUnit\Framework\TestCase;
 final class UninstallerWithoutActionSchedulerTest extends TestCase {
 	use IsolatesHooksTrait;
 	use UninstallFixturesTrait;
-
-	#[\Override]
-	public static function setUpBeforeClass(): void {
-		require_once \dirname( __DIR__, 3 ) . '/packages/bootstrap/uninstall.php';
-	}
 
 	public function test_a_consenting_run_without_action_scheduler_completes(): void {
 		self::assertFalse( \function_exists( 'as_unschedule_all_actions' ) );

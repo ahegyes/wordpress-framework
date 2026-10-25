@@ -35,7 +35,7 @@ final class Requirements {
 	 *
 	 * @return  bool
 	 */
-	public static function check( string $plugin_file ): bool {
+	public static function check_floors( string $plugin_file ): bool {
 		$headers = \get_file_data(
 			$plugin_file,
 			array(

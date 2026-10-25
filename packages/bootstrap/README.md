@@ -1,6 +1,6 @@
 # wp-framework-bootstrap
 
-Requirements gate, GitHub release updater and uninstall engine for WordPress plugins, loaded by path before any autoloader.
+PHP and WordPress floor gate and GitHub release updater for WordPress plugins, loaded by path before any autoloader.
 
 It requires no other framework package and runs on PHP 7.4.
 

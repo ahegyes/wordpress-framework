@@ -1,30 +1,24 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\Bootstrap;
+namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\Uninstall;
 
-use DeepWebSolutions\Framework\Bootstrap\Uninstaller;
+use DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
-use DeepWebSolutions\Framework\WooCommerce\Bootstrap\WooCommerceUninstaller;
+use DeepWebSolutions\Framework\WooCommerce\Uninstall\MetaTypes;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass( WooCommerceUninstaller::class )]
-final class WooCommerceUninstallerTest extends TestCase {
+#[CoversClass( MetaTypes::class )]
+final class MetaTypesTest extends TestCase {
 	use CreatesUsersTrait;
 	use IsolatesHooksTrait;
 	use OrderMetaFixturesTrait;
 	use RunsAdminRequestsTrait;
 
 	protected const string FIXTURE = __DIR__ . '/../../../Fixtures/WooCommerce/acme-uninstall.php';
-
-	#[\Override]
-	public static function setUpBeforeClass(): void {
-		require_once \dirname( __DIR__, 4 ) . '/packages/bootstrap/uninstall.php';
-		require_once \dirname( __DIR__, 4 ) . '/packages/woocommerce/uninstall.php';
-	}
 
 	public static function cache_groups(): array {
 		return array(
@@ -38,7 +32,7 @@ final class WooCommerceUninstallerTest extends TestCase {
 	}
 
 	public function test_the_meta_types_are_named_order_and_order_item(): void {
-		self::assertSame( array( 'order', 'order_item' ), \array_keys( WooCommerceUninstaller::get_meta_types() ) );
+		self::assertSame( array( 'order', 'order_item' ), \array_keys( MetaTypes::DEFINITIONS ) );
 	}
 
 	public function test_a_consenting_uninstall_deletes_exactly_the_order_keys_from_post_meta_and_both_order_tables(): void {
@@ -100,7 +94,7 @@ final class WooCommerceUninstallerTest extends TestCase {
 			$footprint,
 			array(
 				'consent'    => array( 'option' => "{$this->prefix}_remove_data" ),
-				'meta_types' => WooCommerceUninstaller::get_meta_types(),
+				'meta_types' => MetaTypes::DEFINITIONS,
 			)
 		);
 	}
