@@ -174,23 +174,24 @@ final class TransientCacheTest extends TestCase {
 		self::assertFalse( $cache->has( 'key' ) );
 	}
 
-	public function test_a_failed_delete_returns_false(): void {
+	public function test_a_failed_delete_returns_true_because_wordpress_reads_the_entry_as_absent(): void {
 		global $wpdb;
 
 		$cache = $this->cache();
 		$cache->set( 'key', 'Value.' );
 		$this->fail_queries( "DELETE FROM `$wpdb->options`" );
 
-		self::assertFalse( $cache->delete( 'key' ) );
+		self::assertTrue( $cache->delete( 'key' ) );
+		self::assertFalse( $cache->has( 'key' ) );
 	}
 
-	// A timeout row left behind would expire the next entry stored under the name, because set_transient() keeps an existing timeout.
-	public function test_a_delete_that_leaves_the_timeout_row_returns_false(): void {
+	public function test_a_delete_that_leaves_the_timeout_row_returns_true(): void {
 		$cache = $this->cache();
 		$cache->set( 'key', 'Value.' );
 		$this->fail_queries( "_transient_timeout_{$this->prefix}_" . \md5( 'key' ) );
 
-		self::assertFalse( $cache->delete( 'key' ) );
+		self::assertTrue( $cache->delete( 'key' ) );
+		self::assertFalse( $cache->has( 'key' ) );
 	}
 
 	public function test_behind_a_persistent_object_cache_the_same_results_hold(): void {
