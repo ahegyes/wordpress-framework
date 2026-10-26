@@ -50,9 +50,9 @@ final class ObjectForm {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @var     \WeakMap<ObjectFormHostInterface, ObjectForm>|null
+	 * @var     \WeakMap<ObjectFormHostInterface, ObjectForm>
 	 */
-	protected static ?\WeakMap $hosted = null;
+	protected static \WeakMap $hosted;
 
 	// endregion
 
@@ -80,6 +80,7 @@ final class ObjectForm {
 		protected ?ObjectStoreInterface $store = null
 	) {
 		Forms::check_helper_id( $id );
+		self::$hosted ??= new \WeakMap();
 	}
 
 	// endregion
@@ -125,8 +126,6 @@ final class ObjectForm {
 	 * @throws  LogicException Thrown when the host already serves another form.
 	 */
 	public function register_hooks(): void {
-		self::$hosted ??= new \WeakMap();
-
 		$hosted = self::$hosted[ $this->host ] ?? $this;
 		if ( $hosted !== $this ) {
 			throw new LogicException( "The host of object form '{$hosted->get_id()}' cannot also host '$this->id'." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
