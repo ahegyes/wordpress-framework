@@ -3,12 +3,8 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Settings\EditScreen;
 
 use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
-use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
-use DeepWebSolutions\Framework\Core\AdminNotice\NoticeContext;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
-use DeepWebSolutions\Framework\Core\AdminNotice\NoticeStoreInterface;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeType;
-use DeepWebSolutions\Framework\Core\AdminNotice\StoredNotice;
 use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
@@ -17,7 +13,6 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormHostInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
-use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
@@ -167,37 +162,31 @@ final class ObjectFormTest extends TestCase {
 
 		$this->rejecting_form( $notices )->save( $this->post_id );
 
-		$stored = $notices->get_notices( NoticeScope::User );
+		$stored = $notices->get_notices( NoticeScope::User, $this->author_id );
 		self::assertCount( 1, $stored );
-		self::assertSame( 'Note &amp; more was not saved, so it keeps its previous value. Use at most four characters.', $stored[0]->notice->message );
-		self::assertSame( NoticeType::Error, $stored[0]->notice->type );
-		self::assertFalse( $stored[0]->notice->persistent );
-		self::assertSame( $this->author_id, $stored[0]->context->owner );
+		self::assertSame( 'Note &amp; more was not saved, so it keeps its previous value. Use at most four characters.', $stored[0]->message );
+		self::assertSame( NoticeType::Error, $stored[0]->type );
+		self::assertFalse( $stored[0]->persistent );
 		self::assertSame( 'Saved.', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 	}
 
-	public function test_a_rejection_whose_notice_cannot_be_stored_keeps_the_accepted_values(): void {
+	public function test_a_rejection_whose_notice_cannot_be_stored_is_logged_and_keeps_the_accepted_values(): void {
 		\wp_set_current_user( $this->author_id );
 		$this->post_form( $this->post_id );
-		$failing = new class() implements NoticeStoreInterface {
-			public function save( Notice $notice, NoticeContext $context ): StoredNotice {
-				throw new RuntimeException( 'The notice store is unavailable.' );
-			}
+		\add_filter( 'update_user_metadata', static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) );
+		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
+		$previous = \ini_set( 'error_log', $log_file );
 
-			public function all( NoticeContext $context ): array {
-				return array();
-			}
-
-			public function consume( StoredNotice $observed ): bool {
-				return false;
-			}
-
-			public function remove( string $id, NoticeContext $context ): void {}
-		};
-
-		$this->rejecting_form( new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ), array( 'user' => $failing ) ) )->save( $this->post_id );
+		try {
+			$this->rejecting_form( new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->save( $this->post_id );
+			$log = (string) \file_get_contents( $log_file );
+		} finally {
+			\ini_set( 'error_log', (string) $previous );
+			\wp_delete_file( $log_file );
+		}
 
 		self::assertSame( 'Saved.', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
+		self::assertStringContainsString( '[acme.error] Could not add a user notice: The user meta is unavailable.', $log );
 	}
 
 	public function test_a_host_serves_one_form(): void {
