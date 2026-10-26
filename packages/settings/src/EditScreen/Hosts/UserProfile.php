@@ -96,6 +96,8 @@ final class UserProfile implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   \WP_User $user The profile's user.
+	 *
+	 * @return  void
 	 */
 	public function render_section( \WP_User $user ): void {
 		$this->form->render( $user->ID );
@@ -108,6 +110,8 @@ final class UserProfile implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   int $user_id The profile's user id.
+	 *
+	 * @return  void
 	 */
 	public function save_profile( int $user_id ): void {
 		$this->form->save( $user_id );

@@ -32,6 +32,8 @@ interface ObjectStoreInterface {
 	 *
 	 * @param   int                  $object_id The object's id.
 	 * @param   array<string, mixed> $values    The values, keyed by their keys.
+	 *
+	 * @return  void
 	 */
 	public function update_values( int $object_id, array $values ): void;
 }

@@ -124,6 +124,8 @@ final class ObjectForm {
 	 * @version 2.0.0
 	 *
 	 * @throws  LogicException Thrown when the host already serves another form.
+	 *
+	 * @return  void
 	 */
 	public function register_hooks(): void {
 		$hosted = self::$hosted[ $this->host ] ?? $this;
@@ -158,6 +160,8 @@ final class ObjectForm {
 	 * @version 2.0.0
 	 *
 	 * @param   int $object_id The object's id.
+	 *
+	 * @return  void
 	 */
 	public function render( int $object_id ): void {
 		if ( ! $this->can_render( $object_id ) ) {
@@ -190,6 +194,8 @@ final class ObjectForm {
 	 * @version 2.0.0
 	 *
 	 * @param   int $object_id The object's id.
+	 *
+	 * @return  void
 	 */
 	public function save( int $object_id ): void {
 		// Saves that carry no form for the object, such as REST, cron and quick edit, return before the definition is evaluated.

@@ -34,6 +34,8 @@ final class Updater {
 	 * @version 2.0.0
 	 *
 	 * @param   string $plugin_file The path to the plugin's entry file.
+	 *
+	 * @return  void
 	 */
 	public static function register( string $plugin_file ): void {
 		$basename = plugin_basename( $plugin_file );

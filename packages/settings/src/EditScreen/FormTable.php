@@ -37,6 +37,8 @@ final class FormTable {
 	 *
 	 * @param   string    $title The form's title, escaped.
 	 * @param   list<Row> $rows  The rows, one per field.
+	 *
+	 * @return  void
 	 */
 	public static function render_rows( string $title, array $rows ): void {
 		echo '<h2>' . $title . '</h2><table class="form-table" role="presentation">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes its title.

@@ -2,6 +2,11 @@
 <ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/squizlabs/php_codesniffer/phpcs.xsd">
 	<rule ref="./vendor/ahegyes/wordpress-configs/php/quality-assurance/phpcs.dist.xml"/>
 
+	<!-- WordPress-Docs excludes the code; a severity re-enables it, so a void function documents its return too. -->
+	<rule ref="Squiz.Commenting.FunctionComment.MissingReturn">
+		<severity>5</severity>
+	</rule>
+
 	<rule ref="WordPress.WP.I18n">
 		<properties>
 			<property name="text_domain" type="array">

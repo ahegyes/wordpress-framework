@@ -248,6 +248,8 @@ final class Forms {
 	 * @param   string $id The id.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the id is not a lowercase letter, after an optional underscore, followed by lowercase letters, digits, underscores and hyphens.
+	 *
+	 * @return  void
 	 */
 	public static function check_helper_id( string $id ): void {
 		if ( 1 !== \preg_match( '/\A_?[a-z][a-z0-9_-]*\z/', $id ) ) {

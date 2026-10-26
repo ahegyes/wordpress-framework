@@ -22,6 +22,8 @@ interface ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   ObjectForm $form The form the host serves.
+	 *
+	 * @return  void
 	 */
 	public function register_hooks( ObjectForm $form ): void;
 
@@ -55,6 +57,8 @@ interface ObjectFormHostInterface {
 	 *
 	 * @param   string    $title The form's title, escaped.
 	 * @param   list<Row> $rows  The rows, one per field.
+	 *
+	 * @return  void
 	 */
 	public function render_rows( string $title, array $rows ): void;
 }

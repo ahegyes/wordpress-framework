@@ -102,6 +102,8 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 *
 	 * @param   string    $title The form's title, escaped, which the box's own title shows instead.
 	 * @param   list<Row> $rows  The rows, one per field.
+	 *
+	 * @return  void
 	 */
 	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
@@ -123,6 +125,8 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 *
 	 * @param   string $post_type The edited object's post type.
 	 * @param   mixed  $post      The edited object, which is a comment on the comment edit screen.
+	 *
+	 * @return  void
 	 */
 	public function add_meta_box( string $post_type, mixed $post ): void {
 		if ( ! $post instanceof \WP_Post || ! \in_array( $post_type, $this->post_types, true ) || ! $this->form->can_render( $post->ID ) ) {
@@ -140,6 +144,8 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   \WP_Post $post The edited post.
+	 *
+	 * @return  void
 	 */
 	public function render_meta_box( \WP_Post $post ): void {
 		$this->form->render( $post->ID );
@@ -161,6 +167,8 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 *
 	 * @param   int      $post_id The saved post's id.
 	 * @param   \WP_Post $post    The saved post.
+	 *
+	 * @return  void
 	 */
 	public function save_meta_box( int $post_id, \WP_Post $post ): void {
 		if ( \in_array( $post->post_type, $this->post_types, true ) ) {

@@ -74,6 +74,8 @@ final class Requirements {
 	 * @param   string|\WP_Error     $message The message, as HTML, or the error whose message to print.
 	 * @param   array<string, mixed> $args    Optional. The notice's arguments, as wp_admin_notice() takes them. Default is an error notice.
 	 * @phpstan-param array{type?: string, dismissible?: bool, id?: string, additional_classes?: array<string>, attributes?: array<string>, paragraph_wrap?: bool} $args
+	 *
+	 * @return  void
 	 */
 	public static function print_admin_notice( $message, array $args = array( 'type' => 'error' ) ): void {
 		if ( is_wp_error( $message ) ) {

@@ -64,6 +64,8 @@ final class OptionsPage {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function register_hooks(): void {
 		add_action( 'admin_menu', array( $this, 'add_page' ) );
@@ -79,6 +81,8 @@ final class OptionsPage {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function add_page(): void {
 		$page = $this->get_page();
@@ -90,6 +94,8 @@ final class OptionsPage {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function register_settings(): void {
 		foreach ( \array_unique( \array_column( $this->get_page()['tabs'], 'option' ) ) as $option ) {
@@ -154,6 +160,8 @@ final class OptionsPage {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function render_page(): void {
 		$page = $this->get_page();
@@ -190,6 +198,8 @@ final class OptionsPage {
 	 * @version 2.0.0
 	 *
 	 * @param   FieldRow $args The field's row.
+	 *
+	 * @return  void
 	 */
 	public function render_field( array $args ): void {
 		echo Forms::render_control( $args['field'], $args['value'], $args['name'], $args['id'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control.
@@ -253,6 +263,8 @@ final class OptionsPage {
 	 * @version 2.0.0
 	 *
 	 * @param   Tab $tab The tab.
+	 *
+	 * @return  void
 	 */
 	protected function render_form( array $tab ): void {
 		$option = $tab['option'];
