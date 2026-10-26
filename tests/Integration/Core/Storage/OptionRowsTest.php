@@ -201,6 +201,12 @@ final class OptionRowsTest extends TestCase {
 		$call();
 	}
 
+	public function test_a_value_of_the_wrong_type_is_reported_before_an_invalid_name(): void {
+		$this->expectExceptionMessage( 'holds something other than scalars, null and arrays' );
+
+		OptionRows::insert( '', new \stdClass() );
+	}
+
 	#[Group( 'multisite' )]
 	public function test_inside_a_switch_rows_live_in_the_switched_sites_table_and_its_cache_reads_every_write(): void {
 		$site_id = $this->make_site( 'acme-storage' );

@@ -78,6 +78,12 @@ final class NoticeTest extends TestCase {
 		$make();
 	}
 
+	public function test_screens_of_the_wrong_type_are_reported_before_an_invalid_id(): void {
+		$this->expectExceptionMessage( 'are not a list of screen ids' );
+
+		new Notice( 'A', 'Hi', screens: array( 7 ) );
+	}
+
 	public function test_absent_optional_fields_take_their_defaults_and_unknown_keys_are_ignored(): void {
 		$notice = Notice::from_array(
 			array(
