@@ -156,7 +156,7 @@ final class OptionsPage {
 	}
 
 	/**
-	 * Prints the page with the form of the tab the request names.
+	 * Prints the page with the form of the tab the request names, or of its first tab.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -165,7 +165,8 @@ final class OptionsPage {
 	 */
 	public function render_page(): void {
 		$page = $this->get_page();
-		$tab  = $this->get_current_tab();
+		$slug = \is_string( $_GET['tab'] ?? null ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Selects the tab to show and changes nothing.
+		$tab  = \array_find( $page['tabs'], static fn ( array $tab ): bool => $slug === $tab['slug'] ) ?? $page['tabs'][0] ?? null;
 
 		echo '<div class="wrap"><h1>' . esc_html( $page['page_title'] ) . '</h1>';
 		// WordPress core prints the settings errors on the pages under Settings itself.
@@ -187,8 +188,19 @@ final class OptionsPage {
 			echo '</nav>';
 		}
 
-		$this->render_form( $tab );
-		echo '</div>';
+		$option = $tab['option'];
+		$stored = get_option( $option );
+		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
+			add_settings_field( $row['field']['id'] ?? '', esc_html( $row['field']['title'] ?? '' ), array( $this, 'render_field' ), $this->id, 'default', $row );
+		}
+
+		echo '<form action="options.php" method="post">';
+		settings_fields( $option );
+		echo '<table class="form-table" role="presentation">';
+		do_settings_fields( $this->id, 'default' );
+		echo '</table>';
+		submit_button();
+		echo '</form></div>';
 	}
 
 	/**
@@ -234,52 +246,6 @@ final class OptionsPage {
 		}
 
 		return $this->page;
-	}
-
-	/**
-	 * Returns the tab the request names, or the first tab when it names none of them, or null when the page has no tabs.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  Tab|null
-	 */
-	protected function get_current_tab(): ?array {
-		$tabs = $this->get_page()['tabs'];
-		$slug = \is_string( $_GET['tab'] ?? null ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Selects the tab to show and changes nothing.
-		foreach ( $tabs as $tab ) {
-			if ( $slug === $tab['slug'] ) {
-				return $tab;
-			}
-		}
-
-		return $tabs[0] ?? null;
-	}
-
-	/**
-	 * Prints the tab's form, with one Settings API row per field that has an id.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   Tab $tab The tab.
-	 *
-	 * @return  void
-	 */
-	protected function render_form( array $tab ): void {
-		$option = $tab['option'];
-		$stored = get_option( $option );
-		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
-			add_settings_field( $row['field']['id'] ?? '', esc_html( $row['field']['title'] ?? '' ), array( $this, 'render_field' ), $this->id, 'default', $row );
-		}
-
-		echo '<form action="options.php" method="post">';
-		settings_fields( $option );
-		echo '<table class="form-table" role="presentation">';
-		do_settings_fields( $this->id, 'default' );
-		echo '</table>';
-		submit_button();
-		echo '</form>';
 	}
 
 	// endregion
