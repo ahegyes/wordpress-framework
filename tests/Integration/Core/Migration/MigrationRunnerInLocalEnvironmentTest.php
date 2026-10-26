@@ -79,7 +79,7 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 					'time'  => \time(),
 					'ttl'   => 600,
 				);
-				OptionRows::upsert( "{$this->option}_lock", $hold ); // Stands in for another run taking the lock over.
+				\update_option( "{$this->option}_lock", $hold, false ); // Stands in for another run taking the lock over.
 				throw new \RuntimeException( 'Failed after a takeover.' );
 			},
 		);

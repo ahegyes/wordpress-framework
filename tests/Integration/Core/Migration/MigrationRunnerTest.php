@@ -553,7 +553,7 @@ final class MigrationRunnerTest extends TestCase {
 		\add_action(
 			"update_option_{$this->option}",
 			function (): void {
-				OptionRows::upsert( "{$this->option}_lock", self::hold( 'acme-other', \time() ) ); // Stands in for another run taking the lock over.
+				\update_option( "{$this->option}_lock", self::hold( 'acme-other', \time() ), false ); // Stands in for another run taking the lock over.
 			}
 		);
 		\update_option( $this->option, 0 );
@@ -1172,7 +1172,7 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	protected function age_lock(): void {
-		OptionRows::upsert( "{$this->option}_lock", array( 'time' => \time() - 601 ) + $this->get_lock() );
+		\update_option( "{$this->option}_lock", array( 'time' => \time() - 601 ) + $this->get_lock(), false );
 	}
 
 	protected static function hold( string $owner, int $time ): array {

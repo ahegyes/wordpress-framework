@@ -30,23 +30,12 @@ final class OptionRowsTest extends TestCase {
 		}
 	}
 
-	public function test_an_upserted_row_reads_back_unchanged_as_one_row_that_is_not_autoloaded(): void {
-		$written = OptionRows::upsert( "{$this->prefix}_one", array( 'message' => "Can't \\ \"save\"." ) );
+	public function test_an_inserted_row_reads_back_unchanged_as_one_row_that_is_not_autoloaded(): void {
+		$written = self::insert( "{$this->prefix}_one", array( 'message' => "Can't \\ \"save\"." ) );
 
 		self::assertEquals( $written, OptionRows::get( "{$this->prefix}_one" ) );
 		self::assertSame( array( 'message' => "Can't \\ \"save\"." ), $written->value );
-		self::assertSame( \get_current_blog_id(), $written->site_id );
 		self::assertSame( array( "{$this->prefix}_one" => array( \maybe_serialize( $written->value ), 'off' ) ), $this->stored() );
-	}
-
-	public function test_upserting_an_existing_name_replaces_its_value_and_an_unchanged_value_succeeds(): void {
-		OptionRows::upsert( "{$this->prefix}_one", 'One.' );
-
-		$again = OptionRows::upsert( "{$this->prefix}_one", 'Again.' );
-		$same  = OptionRows::upsert( "{$this->prefix}_one", 'Again.' );
-
-		self::assertEquals( $again, $same );
-		self::assertSame( array( "{$this->prefix}_one" => array( 'Again.', 'off' ) ), $this->stored() );
 	}
 
 	public function test_inserting_writes_only_a_name_that_is_absent(): void {
@@ -59,8 +48,8 @@ final class OptionRowsTest extends TestCase {
 	}
 
 	public function test_an_empty_or_null_value_is_a_row_and_a_missing_name_is_none(): void {
-		OptionRows::upsert( "{$this->prefix}_empty", '' );
-		OptionRows::upsert( "{$this->prefix}_null", null );
+		self::insert( "{$this->prefix}_empty", '' );
+		self::insert( "{$this->prefix}_null", null );
 
 		self::assertSame( '', OptionRows::get( "{$this->prefix}_empty" )?->raw );
 		self::assertSame( '', OptionRows::get( "{$this->prefix}_null" )?->raw );
@@ -68,7 +57,7 @@ final class OptionRowsTest extends TestCase {
 	}
 
 	public function test_replacing_the_observed_row_writes_the_new_value(): void {
-		$observed = OptionRows::upsert( "{$this->prefix}_state", 'Ready' );
+		$observed = self::insert( "{$this->prefix}_state", 'Ready' );
 
 		$replaced = OptionRows::replace( $observed, 'Done' );
 
@@ -78,7 +67,7 @@ final class OptionRowsTest extends TestCase {
 	}
 
 	public function test_deleting_the_observed_row_deletes_it_once(): void {
-		$observed = OptionRows::upsert( "{$this->prefix}_state", 'Ready' );
+		$observed = self::insert( "{$this->prefix}_state", 'Ready' );
 
 		self::assertTrue( OptionRows::delete( $observed ) );
 		self::assertFalse( OptionRows::delete( $observed ) );
@@ -97,11 +86,11 @@ final class OptionRowsTest extends TestCase {
 
 	#[DataProvider( 'changes' )]
 	public function test_a_row_changed_since_it_was_read_is_neither_replaced_nor_deleted( ?string $change ): void {
-		$observed = OptionRows::upsert( "{$this->prefix}_state", 'Ready' );
+		$observed = self::insert( "{$this->prefix}_state", 'Ready' );
 		if ( \is_null( $change ) ) {
-			OptionRows::remove( "{$this->prefix}_state" );
+			\delete_option( "{$this->prefix}_state" );
 		} else {
-			OptionRows::upsert( "{$this->prefix}_state", $change );
+			\update_option( "{$this->prefix}_state", $change );
 		}
 
 		self::assertNull( OptionRows::replace( $observed, 'Done' ) );
@@ -110,44 +99,21 @@ final class OptionRowsTest extends TestCase {
 	}
 
 	public function test_replacing_with_the_observed_value_is_rejected(): void {
-		$observed = OptionRows::upsert( "{$this->prefix}_state", 'Ready' );
+		$observed = self::insert( "{$this->prefix}_state", 'Ready' );
 
 		$this->expectException( InvalidArgumentException::class );
 
 		OptionRows::replace( $observed, 'Ready' );
 	}
 
-	public function test_removing_deletes_whatever_the_row_holds_and_an_unknown_name_changes_nothing(): void {
-		OptionRows::upsert( "{$this->prefix}_one", 'One.' );
-
-		OptionRows::remove( "{$this->prefix}_one" );
-		OptionRows::remove( "{$this->prefix}_unknown" );
-
-		self::assertSame( array(), $this->stored() );
-	}
-
-	public function test_listing_returns_the_rows_whose_names_start_with_the_prefix_byte_for_byte_ordered_by_name(): void {
-		$b = OptionRows::upsert( "{$this->prefix}_list_b", 'B.' );
-		$a = OptionRows::upsert( "{$this->prefix}_list_a", 'A.' );
-		OptionRows::upsert( "{$this->prefix}_listxc", 'Wildcard.' );
-		OptionRows::upsert( \strtoupper( "{$this->prefix}_list_" ) . 'D', 'Case.' );
-
-		self::assertEquals( array( $a, $b ), OptionRows::list( "{$this->prefix}_list_" ) );
-	}
-
 	public static function writes(): array {
 		$replace = static fn ( string $name ): mixed => OptionRows::replace( OptionRows::get( $name ) ?? throw new \LogicException( 'No row.' ), 'New.' );
 		$delete  = static fn ( string $name ): mixed => OptionRows::delete( OptionRows::get( $name ) ?? throw new \LogicException( 'No row.' ) );
-		$remove  = static fn ( string $name ): mixed => OptionRows::remove( $name );
 
 		return array(
-			'upsert-absent'      => array( null, static fn ( string $name ): mixed => OptionRows::upsert( $name, 'New.' ), 'New.' ),
 			'insert-absent'      => array( null, static fn ( string $name ): mixed => OptionRows::insert( $name, 'New.' ), 'New.' ),
-			'upsert-stored'      => array( false, static fn ( string $name ): mixed => OptionRows::upsert( $name, 'New.' ), 'New.' ),
 			'replace-stored'     => array( false, $replace, 'New.' ),
 			'delete-stored'      => array( false, $delete, false ),
-			'remove-stored'      => array( false, $remove, false ),
-			'upsert-autoloaded'  => array( true, static fn ( string $name ): mixed => OptionRows::upsert( $name, 'New.' ), 'New.' ),
 			'replace-autoloaded' => array( true, $replace, 'New.' ),
 			'delete-autoloaded'  => array( true, $delete, false ),
 		);
@@ -172,9 +138,9 @@ final class OptionRowsTest extends TestCase {
 		\get_option( $name );
 		\wp_load_alloptions();
 
-		OptionRows::upsert( $name, 'New.' );
+		self::insert( $name, 'New.' );
 		$notoptions = \wp_cache_get( 'notoptions', 'options' );
-		OptionRows::upsert( "{$this->prefix}_autoloaded", 'New.' );
+		OptionRows::replace( OptionRows::get( "{$this->prefix}_autoloaded" ) ?? throw new \LogicException( 'No row.' ), 'New.' );
 
 		self::assertFalse( $notoptions );
 		self::assertFalse( \wp_cache_get( 'alloptions', 'options' ) );
@@ -183,7 +149,7 @@ final class OptionRowsTest extends TestCase {
 	public function test_a_name_of_191_characters_is_kept_whole_in_multibyte_text(): void {
 		$name = \str_pad( "{$this->prefix}_", 181, 'a' ) . \str_repeat( 'é', 10 );
 
-		$written = OptionRows::upsert( $name, 'Whole.' );
+		$written = self::insert( $name, 'Whole.' );
 
 		self::assertSame( 191, \mb_strlen( $name ) );
 		self::assertEquals( $written, OptionRows::get( $name ) );
@@ -192,18 +158,15 @@ final class OptionRowsTest extends TestCase {
 	public static function failing_operations(): array {
 		return array(
 			'get'     => array( 'SELECT option_value FROM', static fn ( OptionRow $row ): mixed => OptionRows::get( $row->name ) ),
-			'list'    => array( "LIKE '", static fn ( OptionRow $row ): mixed => OptionRows::list( $row->name ) ),
-			'upsert'  => array( 'ON DUPLICATE KEY UPDATE', static fn ( OptionRow $row ): mixed => OptionRows::upsert( $row->name, 'Again.' ) ),
 			'insert'  => array( 'INSERT IGNORE', static fn ( OptionRow $row ): mixed => OptionRows::insert( "{$row->name}_other", 'Other.' ) ),
 			'replace' => array( 'SET option_value', static fn ( OptionRow $row ): mixed => OptionRows::replace( $row, 'Done.' ) ),
 			'delete'  => array( 'DELETE FROM', static fn ( OptionRow $row ): mixed => OptionRows::delete( $row ) ),
-			'remove'  => array( 'DELETE FROM', static fn ( OptionRow $row ): mixed => OptionRows::remove( $row->name ) ),
 		);
 	}
 
 	#[DataProvider( 'failing_operations' )]
 	public function test_a_failed_query_throws( string $needle, \Closure $operation ): void {
-		$row = OptionRows::upsert( "{$this->prefix}_one", 'One.' );
+		$row = self::insert( "{$this->prefix}_one", 'One.' );
 		$this->fail_queries( $needle );
 
 		$this->expectException( RuntimeException::class );
@@ -213,7 +176,7 @@ final class OptionRowsTest extends TestCase {
 
 	// A filter that empties a query makes wpdb return false before it clears the previous query's result.
 	public function test_a_read_whose_query_never_runs_returns_no_row_of_an_earlier_read(): void {
-		OptionRows::upsert( "{$this->prefix}_other", 'Other.' );
+		self::insert( "{$this->prefix}_other", 'Other.' );
 		OptionRows::get( "{$this->prefix}_other" );
 		\add_filter( 'query', fn ( string $query ): string => \str_contains( $query, "'{$this->prefix}_absent'" ) ? '' : $query );
 
@@ -223,48 +186,39 @@ final class OptionRowsTest extends TestCase {
 	public static function invalid_calls(): array {
 		return array(
 			'empty-name'       => array( static fn (): mixed => OptionRows::get( '' ) ),
-			'leading-space'    => array( static fn (): mixed => OptionRows::upsert( ' acme_name', 'One.' ) ),
-			'trailing-newline' => array( static fn (): mixed => OptionRows::remove( "acme_name\n" ) ),
-			'name-over-191'    => array( static fn (): mixed => OptionRows::upsert( \str_repeat( 'a', 192 ), 'One.' ) ),
-			'empty-prefix'     => array( static fn (): mixed => OptionRows::list( '' ) ),
-			'object'           => array( static fn (): mixed => OptionRows::upsert( 'acme_name', new \stdClass() ) ),
+			'leading-space'    => array( static fn (): mixed => OptionRows::insert( ' acme_name', 'One.' ) ),
+			'trailing-newline' => array( static fn (): mixed => OptionRows::get( "acme_name\n" ) ),
+			'name-over-191'    => array( static fn (): mixed => OptionRows::insert( \str_repeat( 'a', 192 ), 'One.' ) ),
+			'object'           => array( static fn (): mixed => OptionRows::insert( 'acme_name', new \stdClass() ) ),
 			'nested-object'    => array( static fn (): mixed => OptionRows::insert( 'acme_name', array( 'a' => array( new \stdClass() ) ) ) ),
-			'negative-site'    => array( static fn (): mixed => OptionRows::get( 'acme_name', -1 ) ),
 		);
 	}
 
 	#[DataProvider( 'invalid_calls' )]
-	public function test_an_invalid_name_value_or_site_is_rejected( \Closure $call ): void {
+	public function test_an_invalid_name_or_value_is_rejected( \Closure $call ): void {
 		$this->expectException( InvalidArgumentException::class );
 
 		$call();
 	}
 
-	public function test_on_a_single_site_another_site_is_rejected(): void {
-		$this->expectException( InvalidArgumentException::class );
-
-		OptionRows::get( "{$this->prefix}_one", 2 );
-	}
-
 	#[Group( 'multisite' )]
-	public function test_another_sites_rows_live_in_its_table_and_its_cache_reads_every_write(): void {
+	public function test_inside_a_switch_rows_live_in_the_switched_sites_table_and_its_cache_reads_every_write(): void {
 		$site_id = $this->make_site( 'acme-storage' );
 		\switch_to_blog( $site_id );
 		\get_option( "{$this->prefix}_one" );
-		\restore_current_blog();
-
-		$row = OptionRows::upsert( "{$this->prefix}_one", 'There.', $site_id );
-		\switch_to_blog( $site_id );
+		$row  = self::insert( "{$this->prefix}_one", 'There.' );
 		$seen = \get_option( "{$this->prefix}_one" );
 		\restore_current_blog();
 
 		self::assertSame( 'There.', $seen );
-		self::assertSame( $site_id, $row->site_id );
 		self::assertNull( OptionRows::get( "{$this->prefix}_one" ) );
-		self::assertEquals( array( $row ), OptionRows::list( "{$this->prefix}_", $site_id ) );
+		\switch_to_blog( $site_id );
 		self::assertTrue( OptionRows::delete( $row ) );
-		self::assertNull( OptionRows::get( "{$this->prefix}_one", $site_id ) );
-		self::assertSame( \get_main_site_id(), \get_current_blog_id() );
+		self::assertFalse( \get_option( "{$this->prefix}_one" ) );
+	}
+
+	protected static function insert( string $name, mixed $value ): OptionRow {
+		return OptionRows::insert( $name, $value ) ?? throw new \LogicException( "Option '$name' exists." );
 	}
 
 	protected function stored(): array {

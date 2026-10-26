@@ -21,7 +21,7 @@ wordpress-framework/
 │       ├── Migration/{MigrationRunner, BatchedMigrationStepInterface}
 │       ├── Permission/CapabilityGrants
 │       ├── Scheduling/{SchedulerInterface, Scheduler, ScheduledHook, Recurrence, Backends/ (@internal)}
-│       ├── Storage/{OptionRows, OptionRow, MetaRows, MetaRow, Lock, LockClaim, Database (@internal)}
+│       ├── Storage/{OptionRows, OptionRow, Lock, LockClaim}
 │       └── Uninstall/Uninstaller
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · core ^2.0
 │   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ · Forms (render_control, sanitize_value, sanitize_fields, is_disabled, is_group, get_title, get_rejection_message, check_helper_id, render_hidden_input, escape_attribute, get_rows (@internal))
