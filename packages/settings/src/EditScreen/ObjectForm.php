@@ -13,7 +13,7 @@ use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 /**
  * Adds a form of field arrays to the screen that edits an object, and stores the accepted fields as the object's data.
  *
- * Its host decides where the form shows and when it saves, and its store keeps the values, by default the host's own. The form shows only to a user who may edit the object and holds the definition's capability, carries a nonce bound to the object, and reports each rejection of a save as a one-shot notice for the user's next admin screen. Controls post under the form's id, so they never meet the screen's own inputs, and each field stores under its id.
+ * Its host decides where the form shows and when it saves, and its store keeps the values, by default the host's own. The form shows only to a user who may edit the object and holds the definition's capability, carries a nonce bound to the object, and reports each rejection of a save as a one-shot notice for the user, which replaces the notice of the field's earlier rejection. Controls post under the form's id, so they never meet the screen's own inputs, and each field stores under its id.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -211,7 +211,7 @@ final class ObjectForm {
 
 		foreach ( $fields as $field ) {
 			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
-				$this->notices->add( new Notice( 'rejection-' . \wp_generate_uuid4(), \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) ) );
+				$this->notices->add( new Notice( 'rejection-' . \md5( "$this->id|{$field['id']}" ), \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) ) );
 			}
 		}
 	}
