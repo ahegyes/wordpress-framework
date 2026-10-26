@@ -334,6 +334,7 @@ final class TransientCacheTest extends TestCase {
 		self::assertSame( $queries + 1, $wpdb->num_queries );
 	}
 
+	// Every query naming the entry fails, so delete_option() fails at its lookup, before it marks the entry absent, and the entry stays readable.
 	public function test_a_failed_write_or_delete_among_several_returns_false(): void {
 		$cache = $this->cache();
 		$cache->setMultiple( \array_fill_keys( array( 'a', 'b' ), 'Prior.' ) );
