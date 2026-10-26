@@ -256,6 +256,7 @@ final class UninstallerTest extends TestCase {
 			'an-option-delete' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings' ),
 			'a-prefix-read'    => array( static fn ( \wpdb $wpdb, string $prefix ): string => 'SELECT DISTINCT CAST( `option_name`', '_cache_', 'option_exists', '_cache_a' ),
 			'a-post-type-read' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "AS value FROM `$wpdb->posts`", '_type', 'post_type_has_posts', '_type' ),
+			'a-network-option' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_network_settings'", '_network_settings', 'network_option_exists', '_network_settings' ),
 		);
 	}
 

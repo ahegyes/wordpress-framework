@@ -34,6 +34,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$this->other_site = $this->make_site( 'acme-uninstall' );
 		$this->user       = $this->make_user( 'acme_uninstall_network_user', 'subscriber' );
 		\add_user_meta( $this->user, "{$this->prefix}_global_state", 'x' );
+		\update_network_option( null, "{$this->prefix}_network_settings", 'x' );
 	}
 
 	#[\Override]
@@ -60,6 +61,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		self::assertSame( array( true, true, false, false ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->other_site ) );
 		self::assertTrue( $this->user_meta_exists( "{$this->prefix}_global_state" ) );
+		self::assertTrue( $this->network_option_exists( "{$this->prefix}_network_settings" ) );
 		self::assertSame( array( "cleanup:site:$this->other_site" ), $this->summarize_calls() );
 	}
 
@@ -93,6 +95,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		}
 		self::assertSame( $expected, $this->summarize_calls() );
 		self::assertSame( ! $constant, $this->user_meta_exists( "{$this->prefix}_global_state" ) );
+		self::assertSame( ! $constant, $this->network_option_exists( "{$this->prefix}_network_settings" ) );
 	}
 
 	public function test_a_throw_on_one_site_leaves_the_other_sites_swept_and_is_thrown_after_the_rest(): void {
@@ -142,6 +145,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		self::assertSame( array( true, true, true, true ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( true, true, true, true ), $this->site_state( $this->other_site ) );
 		self::assertTrue( $this->user_meta_exists( "{$this->prefix}_global_state" ) );
+		self::assertTrue( $this->network_option_exists( "{$this->prefix}_network_settings" ) );
 		self::assertSame( array(), $this->calls );
 	}
 
@@ -184,6 +188,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 			'options'          => array( "{$this->prefix}_settings" ),
 			'user_meta_site'   => array( "{$this->prefix}_site_state" ),
 			'user_meta_global' => array( "{$this->prefix}_global_state" ),
+			'network_options'  => array( "{$this->prefix}_network_settings" ),
 			'cron_hooks'       => array( "{$this->prefix}_cron" ),
 		);
 	}

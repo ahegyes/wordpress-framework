@@ -37,6 +37,7 @@ trait UninstallFixturesTrait {
 			'user_meta_site_prefixes'   => array( "{$p}_site_" ),
 			'user_meta_global'          => array( "{$p}_global_state" ),
 			'user_meta_global_prefixes' => array( "{$p}_global_" ),
+			'network_options'           => array( "{$p}_network_settings" ),
 			'capabilities'              => array( "manage_$p" ),
 			'tables'                    => array( "{$p}_log" ),
 		);
@@ -51,6 +52,8 @@ trait UninstallFixturesTrait {
 		foreach ( array( "{$p}_settings", "{$p}_cache_a", "{$p}_cache_b", "{$p}_kept", "{$p}_cacheZz", \strtoupper( "{$p}_cache_x" ) ) as $option ) {
 			\update_option( $option, 'x' );
 		}
+		\update_network_option( null, "{$p}_network_settings", 'x' );
+		\update_network_option( null, "{$p}_network_kept", 'x' );
 		\set_transient( "{$p}_transient", 'x' );
 		\set_transient( "{$p}_kept_transient", 'x' );
 
@@ -116,6 +119,7 @@ trait UninstallFixturesTrait {
 			),
 			'comment'      => $this->comment_exists( $this->ids['note'] ),
 			'user_meta'    => \array_map( $this->user_meta_exists( ... ), array( "$blog_prefix{$p}_site_state", "$blog_prefix{$p}_site_a", "{$p}_global_state", "{$p}_global_a" ) ),
+			'network'      => $this->network_option_exists( "{$p}_network_settings" ),
 			'capabilities' => array( $this->role_has( 'administrator', "manage_$p" ), $this->role_has( 'editor', "manage_$p" ) ),
 			'table'        => $this->table_exists( "{$p}_log" ),
 		);
@@ -130,6 +134,7 @@ trait UninstallFixturesTrait {
 				'meta'         => array( true, true, true, true, true, true ),
 				'comment'      => true,
 				'user_meta'    => array( true, true, true, true ),
+				'network'      => true,
 				'capabilities' => array( true, true ),
 				'table'        => true,
 			),
@@ -146,6 +151,7 @@ trait UninstallFixturesTrait {
 				'meta'         => array( false, false, false, false, false, false ),
 				'comment'      => false,
 				'user_meta'    => array( false, false, false, false ),
+				'network'      => false,
 				'capabilities' => array( false, false ),
 				'table'        => false,
 			),
@@ -167,6 +173,7 @@ trait UninstallFixturesTrait {
 				'meta'         => array( true, true, true, true, true, true, true, true, true, true, true, true ),
 				'comment'      => array( true, true ),
 				'user_meta'    => array( true, true, true, true, true ),
+				'network'      => true,
 				'capabilities' => array( true, true ),
 				'table'        => true,
 			),
@@ -190,6 +197,7 @@ trait UninstallFixturesTrait {
 				),
 				'comment'      => array( $this->comment_exists( $this->ids['comment'] ), $this->comment_exists( $this->ids['upper_comment'] ) ),
 				'user_meta'    => \array_map( $this->user_meta_exists( ... ), array( "{$p}_site_state", "{$p}_kept", "$blog_prefix{$p}_kept", \strtoupper( "{$p}_global_state" ), \strtoupper( "$blog_prefix{$p}_site_a" ) ) ),
+				'network'      => $this->network_option_exists( "{$p}_network_kept" ),
 				'capabilities' => array( $this->role_has( 'administrator', 'manage_options' ), $this->role_has( 'editor', "edit_$p" ) ),
 				'table'        => $this->table_exists( "{$p}_kept" ),
 			)
@@ -225,6 +233,15 @@ trait UninstallFixturesTrait {
 		global $wpdb;
 
 		return '0' !== $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE BINARY option_name = %s', $wpdb->options, $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
+	}
+
+	// A single site keeps its network options in its options table.
+	protected function network_option_exists( string $name ): bool {
+		global $wpdb;
+
+		return \is_multisite()
+			? '0' !== $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE BINARY meta_key = %s', $wpdb->sitemeta, $name ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the network options cache.
+			: $this->option_exists( $name );
 	}
 
 	protected function user_meta_exists( string $key ): bool {
