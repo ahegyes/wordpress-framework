@@ -147,4 +147,12 @@ final class NoticeTest extends TestCase {
 	public function test_only_site_and_network_notices_that_are_not_per_viewer_are_shared( Notice $notice, bool $shared ): void {
 		self::assertSame( $shared, $notice->is_shared() );
 	}
+
+	public function test_notices_are_equal_when_every_field_is(): void {
+		$notice = new Notice( 'a', 'Hi', screens: array( 'plugins' ) );
+
+		self::assertTrue( $notice->equals( new Notice( 'a', 'Hi', screens: array( 'plugins' ) ) ) );
+		self::assertFalse( $notice->equals( new Notice( 'a', 'Hi', screens: array( 'dashboard' ) ) ) );
+		self::assertFalse( $notice->equals( new Notice( 'a', 'Hi', NoticeType::Info, screens: array( 'plugins' ) ) ) );
+	}
 }

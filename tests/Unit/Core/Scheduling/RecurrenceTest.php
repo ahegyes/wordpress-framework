@@ -18,4 +18,9 @@ final class RecurrenceTest extends TestCase {
 
 		Recurrence::from_interval( 59 );
 	}
+
+	public function test_recurrences_are_equal_when_their_intervals_are(): void {
+		self::assertTrue( Recurrence::from_interval( 60 )->equals( Recurrence::from_interval( 60 ) ) );
+		self::assertFalse( Recurrence::from_interval( 60 )->equals( Recurrence::from_interval( 120 ) ) );
+	}
 }
