@@ -420,6 +420,15 @@ final class AdminNoticesTest extends TestCase {
 		self::assertInstanceOf( \RuntimeException::class, $this->logger->records[0][2]['exception'] );
 	}
 
+	public function test_a_shared_notice_shows_without_reading_the_viewers_dismissals(): void {
+		$notices = $this->notices();
+		$notices->add( $this->notice( 'setup', NoticeScope::Site, persistent: true ) );
+		\add_filter( "get_user_option_{$this->prefix}_hidden_notices", static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) );
+
+		self::assertSame( array( $this->dom_id( 'site', 'setup' ) ), \array_keys( self::notices_in( $this->render( $this->admin, $notices ) ) ) );
+		self::assertSame( array(), $this->logger->records );
+	}
+
 	public function test_a_store_that_throws_on_acknowledgement_is_logged_and_the_notice_shows_again(): void {
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'saved' ), $this->admin );
