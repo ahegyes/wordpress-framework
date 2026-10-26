@@ -11,13 +11,13 @@ permissions:
 jobs:
   lint-php:
     name: Lint PHP
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@16169596e0fb3060f267ba13a9e10e32da026db7
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@2389745f0da45ecf37986de0bdf11fecc1d4a26d
     with:
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
 
   php-syntax:
     name: PHP syntax
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@16169596e0fb3060f267ba13a9e10e32da026db7
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@2389745f0da45ecf37986de0bdf11fecc1d4a26d
     with:
       php-versions: '["7.4"]'
       paths: '["packages/bootstrap"]'

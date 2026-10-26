@@ -12,7 +12,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/bootstrap",
-                "reference": "3a6d473259310a68ed2e8c3169219fa36581e500"
+                "reference": "549e875e34420ef69d260fc94a54772a5af31726"
             },
             "require": {
                 "php": ">=7.4"
@@ -27,7 +27,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "Requirements gate, GitHub release updater and uninstall engine for WordPress plugins, loaded by path before any autoloader.",
+            "description": "The code a WordPress plugin runs before its autoloader. It parses on PHP 7.4, so a site below the plugin's floors gets a notice instead of a fatal error and still receives the release that fixes it.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "b2357ece030234f3751d1f84d8023535d957b53d"
+                "reference": "01ee063cea1cc225ef19057a74c410aa897cafa6"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0",
@@ -68,7 +68,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "Plugin kernel for WordPress: a gated component tree on a PSR-11 container, a boot error boundary, migrations, background scheduling, option and meta rows with conditional writes, admin notices, role capability grants and PSR-16 transient and object caches.",
+            "description": "The plugin kernel. A plugin is composed of small components that load only where they apply, on WordPress's own APIs, with the infrastructure WordPress leaves every plugin to rebuild.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
@@ -81,7 +81,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/settings",
-                "reference": "bbc31253554faa168ec6417dde3af1eefe351d72"
+                "reference": "5b3c5a812ecee149477bca4f1e870960ae644f07"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0",
@@ -103,7 +103,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "Settings helpers for WordPress: options pages on the Settings API, form controls and value sanitization.",
+            "description": "Settings screens and edit-screen fields declared as data, so WordPress's own APIs render, validate and save them and a plugin never hand-writes form handling.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
@@ -116,7 +116,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "8a9edb3ab997a0b6f26d6af9a8cb2051946d686d"
+                "reference": "d73b27fac3415878627d2fc7c1229e94cb4c59fb"
             },
             "require": {
                 "php": ">=8.5"
@@ -135,7 +135,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "WordPress-free PHP primitives: framework exceptions, results, value objects and versions.",
+            "description": "The WordPress-free building blocks every framework package shares, kept portable enough to work unchanged in any PHP project.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
@@ -148,7 +148,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "d25be94f36ba2eab522dea01911ac1b9b241b6e6"
+                "reference": "e6b08a65c6cdd3cf1cbab2e7175c905d6712d8cb"
             },
             "require": {
                 "ahegyes/wp-framework-settings": "^2.0",
@@ -176,7 +176,7 @@
             "license": [
                 "GPL-2.0-or-later"
             ],
-            "description": "WooCommerce helpers: settings tabs and sections, product data tabs, a requirement check, a PSR-3 logger and order meta cleanup.",
+            "description": "The framework's settings, edit-screen and logging helpers carried onto WooCommerce's own screens and APIs, for plugins that extend WooCommerce.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
             "transport-options": {
                 "symlink": true,
@@ -393,12 +393,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "16169596e0fb3060f267ba13a9e10e32da026db7"
+                "reference": "2389745f0da45ecf37986de0bdf11fecc1d4a26d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/16169596e0fb3060f267ba13a9e10e32da026db7",
-                "reference": "16169596e0fb3060f267ba13a9e10e32da026db7",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/2389745f0da45ecf37986de0bdf11fecc1d4a26d",
+                "reference": "2389745f0da45ecf37986de0bdf11fecc1d4a26d",
                 "shasum": ""
             },
             "require": {
@@ -519,7 +519,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-10-25T11:09:04+00:00"
+            "time": "2026-10-26T17:59:43+00:00"
         },
         {
             "name": "composer/class-map-generator",
