@@ -206,6 +206,26 @@ final class ProductDataTabTest extends TestCase {
 		self::assertSame( array( array( 'render', "_{$this->prefix}_widget", 'stored', "_{$this->prefix}_widget", "_{$this->prefix}_widget" ) ), $request['records'] );
 	}
 
+	public static function group_types(): array {
+		return array(
+			'radio'      => array( 'radio' ),
+			'checkboxes' => array( 'checkboxes' ),
+		);
+	}
+
+	#[DataProvider( 'group_types' )]
+	public function test_a_render_callable_of_a_group_type_renders_in_a_fieldset_named_by_its_label( string $type ): void {
+		$product = $this->make_product( array( "_{$this->prefix}_widget" => 'stored' ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( $type, 'widget', array( 'render' => 'acme:render' ) ) ) ) ) );
+
+		$screen   = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
+		$fieldset = $screen->querySelector( "fieldset.form-field._{$this->prefix}_widget_field" );
+
+		self::assertSame( 'Widget', \trim( (string) $fieldset?->querySelector( 'legend' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'stored', $fieldset?->querySelector( 'input.acme-widget' )?->getAttribute( 'value' ) );
+		self::assertNull( $screen->querySelector( "label[for=\"_{$this->prefix}_widget\"]" ) );
+	}
+
 	public function test_a_checkboxes_group_renders_in_a_fieldset_named_by_its_label(): void {
 		$product = $this->make_product( array( "_{$this->prefix}_colors" => array( 'blue' ) ) );
 		$spec    = $this->spec(
