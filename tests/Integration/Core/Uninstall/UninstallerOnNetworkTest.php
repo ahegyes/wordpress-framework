@@ -98,6 +98,34 @@ final class UninstallerOnNetworkTest extends TestCase {
 		self::assertSame( ! $constant, $this->network_option_exists( "{$this->prefix}_network_settings" ) );
 	}
 
+	public function test_the_network_pass_keeps_a_network_option_that_differs_only_in_letter_case(): void {
+		global $wpdb;
+		$twin = \strtoupper( "{$this->prefix}_network_settings" );
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Writes a letter-case twin that the network options API would read as the same option.
+			$wpdb->sitemeta,
+			array(
+				'site_id'    => \get_current_network_id(),
+				'meta_key'   => $twin, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A test row.
+				'meta_value' => 'x', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- A test row.
+			)
+		);
+
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( true ) );
+
+		self::assertFalse( $this->network_option_exists( "{$this->prefix}_network_settings" ) );
+		self::assertTrue( $this->network_option_exists( $twin ) );
+	}
+
+	public function test_the_network_pass_clears_a_deleted_network_options_cached_value(): void {
+		$args = $this->args( true );
+		// The network cleanup runs just before the deletes, so it caches the value they must clear.
+		$args['cleanup'] = fn ( array $context ): mixed => \get_network_option( null, "{$this->prefix}_network_settings" );
+
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $args );
+
+		self::assertFalse( \get_network_option( null, "{$this->prefix}_network_settings" ) );
+	}
+
 	public function test_a_throw_on_one_site_leaves_the_other_sites_swept_and_is_thrown_after_the_rest(): void {
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
