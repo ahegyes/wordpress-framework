@@ -123,8 +123,8 @@ final class Forms {
 		}
 
 		return match ( $field['type'] ) {
-			'text'                      => self::is_text( $raw ) ? \sanitize_text_field( (string) $raw ) : self::reject( 'invalid_value' ),
-			'textarea'                  => self::is_text( $raw ) ? \sanitize_textarea_field( (string) $raw ) : self::reject( 'invalid_value' ),
+			'text'                      => self::is_text( $raw ) ? sanitize_text_field( (string) $raw ) : self::reject( 'invalid_value' ),
+			'textarea'                  => self::is_text( $raw ) ? sanitize_textarea_field( (string) $raw ) : self::reject( 'invalid_value' ),
 			'email'                     => self::sanitize_email( $raw ),
 			'url'                       => self::sanitize_url( $raw ),
 			'number'                    => self::sanitize_number( $raw ),
@@ -161,7 +161,7 @@ final class Forms {
 			}
 
 			$value = self::sanitize_value( $field, $submitted[ $id ] );
-			if ( \is_wp_error( $value ) ) {
+			if ( is_wp_error( $value ) ) {
 				$result['errors'][ $id ] = $value;
 			} else {
 				$result['values'][ $id ] = $value;
@@ -230,11 +230,11 @@ final class Forms {
 		$message = $error->get_error_message();
 		if ( '' === $message ) {
 			/* translators: %s: The field's title. */
-			return \sprintf( \__( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $title );
+			return \sprintf( __( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $title );
 		}
 
 		/* translators: 1: The field's title. 2: What to enter instead. */
-		return \sprintf( \__( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $title, $message );
+		return \sprintf( __( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $title, $message );
 	}
 
 	/**
@@ -289,7 +289,7 @@ final class Forms {
 	 * @return  string
 	 */
 	public static function escape_attribute( string $value ): string {
-		return \esc_attr( \str_replace( '&', '&amp;', $value ) );
+		return esc_attr( \str_replace( '&', '&amp;', $value ) );
 	}
 
 	/**
@@ -391,7 +391,7 @@ final class Forms {
 		);
 
 		// HTML parsing drops a newline right after the opening tag, so one is printed for it to drop instead of the value's own.
-		return '<textarea' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . ">\n" . \esc_textarea( self::to_string( $value ) ) . '</textarea>' . self::render_help( $help );
+		return '<textarea' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . ">\n" . esc_textarea( self::to_string( $value ) ) . '</textarea>' . self::render_help( $help );
 	}
 
 	/**
@@ -427,7 +427,7 @@ final class Forms {
 			return $control . self::render_help( $help );
 		}
 
-		return '<fieldset>' . self::render_legend( $field ) . '<label' . self::render_attributes( array( 'for' => $id ) ) . '>' . $control . ' ' . \wp_kses_post( $field['desc'] ) . '</label>' . self::render_help( $help ) . '</fieldset>';
+		return '<fieldset>' . self::render_legend( $field ) . '<label' . self::render_attributes( array( 'for' => $id ) ) . '>' . $control . ' ' . wp_kses_post( $field['desc'] ) . '</label>' . self::render_help( $help ) . '</fieldset>';
 	}
 
 	/**
@@ -456,7 +456,7 @@ final class Forms {
 					'value'    => (string) $key,
 					'selected' => \in_array( (string) $key, $chosen, true ),
 				)
-			) . '>' . \esc_html( $label ) . '</option>';
+			) . '>' . esc_html( $label ) . '</option>';
 		}
 
 		$attributes = array(
@@ -505,7 +505,7 @@ final class Forms {
 				'checked'  => \in_array( (string) $key, $chosen, true ),
 				'disabled' => $disabled || self::is_disabled_choice( $field, $key ),
 			);
-			$choices   .= '<label' . self::render_attributes( array( 'for' => "$id.$index" ) ) . '><input' . self::render_attributes( $attributes, $custom ) . ' /> ' . \esc_html( $label ) . '</label><br />';
+			$choices   .= '<label' . self::render_attributes( array( 'for' => "$id.$index" ) ) . '><input' . self::render_attributes( $attributes, $custom ) . ' /> ' . esc_html( $label ) . '</label><br />';
 			++$index;
 		}
 
@@ -523,7 +523,7 @@ final class Forms {
 	 * @return  string
 	 */
 	protected static function render_legend( array $field ): string {
-		return '' === ( $field['title'] ?? '' ) ? '' : '<legend class="screen-reader-text"><span>' . \esc_html( $field['title'] ) . '</span></legend>';
+		return '' === ( $field['title'] ?? '' ) ? '' : '<legend class="screen-reader-text"><span>' . esc_html( $field['title'] ) . '</span></legend>';
 	}
 
 	/**
@@ -544,7 +544,7 @@ final class Forms {
 					'class' => 'description',
 					'id'    => $help_id,
 				)
-			) . '>' . \wp_kses_post( $text ) . '</p>';
+			) . '>' . wp_kses_post( $text ) . '</p>';
 		}
 
 		return $html;
@@ -665,7 +665,7 @@ final class Forms {
 
 		$email = \trim( (string) $raw );
 
-		return '' === $email || ( \sanitize_email( $email ) === $email && false !== \is_email( $email ) ) ? $email : self::reject( 'invalid_email' );
+		return '' === $email || ( sanitize_email( $email ) === $email && false !== is_email( $email ) ) ? $email : self::reject( 'invalid_email' );
 	}
 
 	/**
@@ -688,7 +688,7 @@ final class Forms {
 			return '';
 		}
 
-		$safe = \esc_url_raw( $url );
+		$safe = esc_url_raw( $url );
 
 		return '' === $safe ? self::reject( 'invalid_url' ) : $safe;
 	}
@@ -837,13 +837,13 @@ final class Forms {
 		return new \WP_Error(
 			$code,
 			match ( $code ) {
-				'invalid_value'    => \__( 'Enter a valid value.', 'wp-framework' ),
-				'invalid_choice'   => \__( 'Choose one of the available options.', 'wp-framework' ),
-				'invalid_email'    => \__( 'Enter a valid email address, such as name@example.com.', 'wp-framework' ),
-				'invalid_url'      => \__( 'Enter a valid URL, such as https://example.com.', 'wp-framework' ),
-				'invalid_number'   => \__( 'Enter a number, such as 12 or 3.5.', 'wp-framework' ),
-				'unknown_type'     => \__( 'This field cannot be saved because its type is not supported.', 'wp-framework' ),
-				'missing_validate' => \__( 'This field cannot be saved because nothing validates its value.', 'wp-framework' ),
+				'invalid_value'    => __( 'Enter a valid value.', 'wp-framework' ),
+				'invalid_choice'   => __( 'Choose one of the available options.', 'wp-framework' ),
+				'invalid_email'    => __( 'Enter a valid email address, such as name@example.com.', 'wp-framework' ),
+				'invalid_url'      => __( 'Enter a valid URL, such as https://example.com.', 'wp-framework' ),
+				'invalid_number'   => __( 'Enter a number, such as 12 or 3.5.', 'wp-framework' ),
+				'unknown_type'     => __( 'This field cannot be saved because its type is not supported.', 'wp-framework' ),
+				'missing_validate' => __( 'This field cannot be saved because nothing validates its value.', 'wp-framework' ),
 			}
 		);
 	}

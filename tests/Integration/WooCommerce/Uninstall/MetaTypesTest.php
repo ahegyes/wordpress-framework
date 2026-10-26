@@ -48,25 +48,25 @@ final class MetaTypesTest extends TestCase {
 
 	public function test_a_deleted_post_meta_key_is_gone_from_the_posts_meta_cache(): void {
 		$this->seed_order_meta();
-		self::assertSame( 'x', \get_post_meta( $this->order_id, "_{$this->prefix}_flag", true ) );
+		self::assertSame( 'x', get_post_meta( $this->order_id, "_{$this->prefix}_flag", true ) );
 
 		$this->uninstall( $this->order_footprint() );
 
-		self::assertSame( '', \get_post_meta( $this->order_id, "_{$this->prefix}_flag", true ) );
+		self::assertSame( '', get_post_meta( $this->order_id, "_{$this->prefix}_flag", true ) );
 	}
 
 	#[DataProvider( 'cache_groups' )]
 	public function test_a_consenting_uninstall_flushes_the_cache_group_woocommerce_keeps_orders_and_items_in( string $group ): void {
-		\wp_cache_set( "{$this->prefix}_entry", 'x', $group );
+		wp_cache_set( "{$this->prefix}_entry", 'x', $group );
 
 		$this->uninstall( $this->order_footprint() );
 
-		self::assertFalse( \wp_cache_get( "{$this->prefix}_entry", $group ) );
+		self::assertFalse( wp_cache_get( "{$this->prefix}_entry", $group ) );
 	}
 
 	public function test_with_woocommerce_deactivated_a_consenting_uninstall_still_deletes_from_both_order_tables(): void {
 		$this->seed_order_meta();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
 
 		$request = $this->admin_request(
 			'GET',
@@ -87,7 +87,7 @@ final class MetaTypesTest extends TestCase {
 	}
 
 	protected function uninstall( array $footprint ): void {
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
 
 		Uninstaller::run(
 			self::PLUGIN_FILE,

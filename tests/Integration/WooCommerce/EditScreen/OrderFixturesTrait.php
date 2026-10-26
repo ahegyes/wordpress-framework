@@ -17,7 +17,7 @@ trait OrderFixturesTrait {
 	// The environment stores orders in WooCommerce's order tables; the filter moves this process to the posts table without update_option()'s sync guard.
 	protected function use_order_storage( string $storage ): void {
 		if ( 'posts' === $storage ) {
-			\add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', static fn (): string => 'no' );
+			add_filter( 'pre_option_woocommerce_custom_orders_table_enabled', static fn (): string => 'no' );
 		}
 	}
 
@@ -33,8 +33,8 @@ trait OrderFixturesTrait {
 	}
 
 	protected function order_meta( int $order_id, string $key ): array {
-		\wp_cache_flush();
-		$order = \wc_get_order( $order_id );
+		wp_cache_flush();
+		$order = wc_get_order( $order_id );
 		self::assertInstanceOf( \WC_Order::class, $order );
 
 		return \array_values( \array_map( static fn ( \WC_Meta_Data $meta ): mixed => $meta->value, $order->get_meta( $key, false, 'edit' ) ) );
@@ -46,6 +46,6 @@ trait OrderFixturesTrait {
 		foreach ( $this->orders as $order ) {
 			$order->delete( true );
 		}
-		\wp_cache_flush();
+		wp_cache_flush();
 	}
 }

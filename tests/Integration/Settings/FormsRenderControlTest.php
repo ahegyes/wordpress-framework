@@ -458,7 +458,7 @@ final class FormsRenderControlTest extends TestCase {
 			'type'   => 'acme_color',
 			'render' => static function ( array $field, mixed $value, string $name, string $id ) use ( &$calls ): string {
 				$calls[] = array( $field['type'], $value, $name, $id );
-				return '<input type="color" id="' . \esc_attr( $id ) . '">';
+				return '<input type="color" id="' . esc_attr( $id ) . '">';
 			},
 		);
 

@@ -89,7 +89,7 @@ final class PostMetaBoxTest extends TestCase {
 		$form = new ObjectForm( $id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 		$form->register_hooks();
 
-		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
+		self::assertSame( 10, has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_a_screen_needs_it(): void {
@@ -437,7 +437,7 @@ final class PostMetaBoxTest extends TestCase {
 		$this->post_ids[] = $post_id;
 		$this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
 
-		self::assertSame( 'publish', \get_post_status( $post_id ) );
+		self::assertSame( 'publish', get_post_status( $post_id ) );
 		self::assertSame( array( 'fresh' ), $this->meta( $post_id, 'name' ) );
 		self::assertSame( array( 'yes' ), $this->meta( $post_id, 'flag' ) );
 	}
@@ -489,7 +489,7 @@ final class PostMetaBoxTest extends TestCase {
 			)
 		);
 
-		self::assertSame( 'Quickly edited', \get_the_title( $post_id ) );
+		self::assertSame( 'Quickly edited', get_the_title( $post_id ) );
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
 	}
 
@@ -516,7 +516,7 @@ final class PostMetaBoxTest extends TestCase {
 		);
 
 		self::assertIsString( $bulk['location'] );
-		self::assertSame( 'private', \get_post_status( $post_id ) );
+		self::assertSame( 'private', get_post_status( $post_id ) );
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
 	}
 
@@ -535,11 +535,11 @@ final class PostMetaBoxTest extends TestCase {
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$_POST[ $this->id ] = array( "_{$this->prefix}_name" => 'programmatic' );
 
 		try {
-			\wp_update_post(
+			wp_update_post(
 				array(
 					'ID'         => $post_id,
 					'post_title' => 'Updated in code',
@@ -547,10 +547,10 @@ final class PostMetaBoxTest extends TestCase {
 			);
 		} finally {
 			unset( $_POST[ $this->id ] );
-			\wp_set_current_user( 0 );
+			wp_set_current_user( 0 );
 		}
 
-		self::assertSame( 'Updated in code', \get_the_title( $post_id ) );
+		self::assertSame( 'Updated in code', get_the_title( $post_id ) );
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
 	}
 
@@ -566,7 +566,7 @@ final class PostMetaBoxTest extends TestCase {
 		$this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
 
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
-		self::assertNotFalse( \wp_get_post_autosave( $post_id, $this->admin ) );
+		self::assertNotFalse( wp_get_post_autosave( $post_id, $this->admin ) );
 	}
 
 	public function test_a_drafts_heartbeat_autosave_stores_nothing(): void {
@@ -600,7 +600,7 @@ final class PostMetaBoxTest extends TestCase {
 			)
 		);
 
-		self::assertSame( 'Autosaved', \get_the_title( $post_id ) );
+		self::assertSame( 'Autosaved', get_the_title( $post_id ) );
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'name' ) );
 	}
 
@@ -667,7 +667,7 @@ final class PostMetaBoxTest extends TestCase {
 
 		$saved      = $this->block_editor_save( $spec, $post_id, array( $this->control_name( 'note' ) => 'too long' ) );
 		$redirected = $this->follow( $spec, $saved );
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$delivered = ( new AdminNotices( $this->id, new ErrorLogLogger( 'acme' ) ) )->rest_deliver();
 		$list      = $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec );
 
@@ -765,7 +765,7 @@ final class PostMetaBoxTest extends TestCase {
 	}
 
 	protected function meta( int $post_id, string $name ): array {
-		return \get_post_meta( $post_id, "_{$this->prefix}_$name", false );
+		return get_post_meta( $post_id, "_{$this->prefix}_$name", false );
 	}
 
 	protected function records( array $request, string $kind ): array {
@@ -829,7 +829,7 @@ final class PostMetaBoxTest extends TestCase {
 	}
 
 	protected function make_post( array $meta = array(), string $type = 'post', string $status = 'publish' ): int {
-		$post_id = \wp_insert_post(
+		$post_id = wp_insert_post(
 			array(
 				'post_type'   => $type,
 				'post_title'  => 'Acme post',
@@ -839,7 +839,7 @@ final class PostMetaBoxTest extends TestCase {
 		);
 		self::assertIsInt( $post_id );
 		foreach ( $meta as $key => $value ) {
-			\add_post_meta( $post_id, $key, \wp_slash( $value ) );
+			add_post_meta( $post_id, $key, wp_slash( $value ) );
 		}
 		$this->post_ids[] = $post_id;
 
@@ -876,7 +876,7 @@ final class PostMetaBoxTest extends TestCase {
 	#[After]
 	protected function delete_posts(): void {
 		foreach ( $this->post_ids as $post_id ) {
-			\wp_delete_post( $post_id, true );
+			wp_delete_post( $post_id, true );
 		}
 	}
 }

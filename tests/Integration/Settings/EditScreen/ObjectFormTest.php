@@ -39,7 +39,7 @@ final class ObjectFormTest extends TestCase {
 	protected function setUp(): void {
 		$this->post_backup = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Backs up the request that tearDown() restores.
 		$this->author_id   = $this->make_user( 'acme-object-form-author', 'author' );
-		$this->post_id     = (int) \wp_insert_post(
+		$this->post_id     = (int) wp_insert_post(
 			array(
 				'post_title'  => 'Acme',
 				'post_status' => 'publish',
@@ -51,32 +51,32 @@ final class ObjectFormTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		$_POST = $this->post_backup;
-		\wp_delete_post( $this->post_id, true );
-		\wp_set_current_user( 0 );
+		wp_delete_post( $this->post_id, true );
+		wp_set_current_user( 0 );
 	}
 
 	public static function foreign_nonces(): array {
 		return array(
-			'another-object' => array( static fn ( string $form_id, int $object_id ): mixed => \wp_create_nonce( "{$form_id}_nonce_" . ( $object_id + 1 ) ) ),
-			'no-object'      => array( static fn ( string $form_id, int $object_id ): mixed => \wp_create_nonce( "{$form_id}_nonce" ) ),
-			'another-form'   => array( static fn ( string $form_id, int $object_id ): mixed => \wp_create_nonce( "{$form_id}_other_nonce_$object_id" ) ),
-			'not-a-string'   => array( static fn ( string $form_id, int $object_id ): mixed => array( \wp_create_nonce( "{$form_id}_nonce_$object_id" ) ) ),
+			'another-object' => array( static fn ( string $form_id, int $object_id ): mixed => wp_create_nonce( "{$form_id}_nonce_" . ( $object_id + 1 ) ) ),
+			'no-object'      => array( static fn ( string $form_id, int $object_id ): mixed => wp_create_nonce( "{$form_id}_nonce" ) ),
+			'another-form'   => array( static fn ( string $form_id, int $object_id ): mixed => wp_create_nonce( "{$form_id}_other_nonce_$object_id" ) ),
+			'not-a-string'   => array( static fn ( string $form_id, int $object_id ): mixed => array( wp_create_nonce( "{$form_id}_nonce_$object_id" ) ) ),
 		);
 	}
 
 	public function test_a_valid_nonce_with_both_capabilities_stores_the_fields(): void {
-		\wp_set_current_user( $this->author_id );
+		wp_set_current_user( $this->author_id );
 		$this->post_form( $this->post_id );
 
 		$this->form( new PostMetaBox( array( 'post' ) ) )->save( $this->post_id );
 
-		self::assertSame( 'Saved.', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( 'Saved.', get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 		self::assertSame( array( array( "{$this->prefix}_details", $this->post_id ) ), $this->definition->calls );
 	}
 
 	public function test_the_definition_receives_the_forms_id_and_each_object_once(): void {
-		\wp_set_current_user( $this->author_id );
-		$other_id = (int) \wp_insert_post(
+		wp_set_current_user( $this->author_id );
+		$other_id = (int) wp_insert_post(
 			array(
 				'post_title'  => 'Acme',
 				'post_status' => 'publish',
@@ -88,75 +88,75 @@ final class ObjectFormTest extends TestCase {
 		$form->can_render( $this->post_id );
 		$form->can_render( $other_id );
 		$form->can_render( $this->post_id );
-		\wp_delete_post( $other_id, true );
+		wp_delete_post( $other_id, true );
 
 		self::assertSame( array( array( "{$this->prefix}_details", $this->post_id ), array( "{$this->prefix}_details", $other_id ) ), $this->definition->calls );
 	}
 
 	public function test_a_user_editing_their_own_profile_with_the_forms_capability_stores_the_fields(): void {
 		$subscriber_id = $this->make_user( 'acme-object-form-subscriber', 'subscriber' );
-		\wp_set_current_user( $subscriber_id );
+		wp_set_current_user( $subscriber_id );
 		$this->post_form( $subscriber_id );
 
 		$this->form( new UserProfile(), 'read' )->save( $subscriber_id );
 
-		self::assertSame( 'Saved.', \get_user_meta( $subscriber_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( 'Saved.', get_user_meta( $subscriber_id, "_{$this->prefix}_name", true ) );
 	}
 
 	public function test_a_user_without_the_object_capability_stores_nothing_on_another_authors_post(): void {
-		\wp_set_current_user( $this->make_user( 'acme-object-form-other-author', 'author' ) );
+		wp_set_current_user( $this->make_user( 'acme-object-form-other-author', 'author' ) );
 		$this->post_form( $this->post_id );
 
 		$this->form( new PostMetaBox( array( 'post' ) ) )->save( $this->post_id );
 
-		self::assertSame( '', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( '', get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 	}
 
 	public function test_a_user_without_the_object_capability_stores_nothing_on_another_users_profile(): void {
-		\wp_set_current_user( $this->make_user( 'acme-object-form-subscriber', 'subscriber' ) );
+		wp_set_current_user( $this->make_user( 'acme-object-form-subscriber', 'subscriber' ) );
 		$this->post_form( $this->author_id );
 
 		$this->form( new UserProfile(), 'read' )->save( $this->author_id );
 
-		self::assertSame( '', \get_user_meta( $this->author_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( '', get_user_meta( $this->author_id, "_{$this->prefix}_name", true ) );
 	}
 
 	public function test_a_user_editing_their_own_profile_without_the_forms_capability_stores_nothing(): void {
 		$subscriber_id = $this->make_user( 'acme-object-form-subscriber', 'subscriber' );
-		\wp_set_current_user( $subscriber_id );
+		wp_set_current_user( $subscriber_id );
 		$this->post_form( $subscriber_id );
 
 		$this->form( new UserProfile(), 'list_users' )->save( $subscriber_id );
 
-		self::assertTrue( \current_user_can( 'edit_user', $subscriber_id ) );
-		self::assertSame( '', \get_user_meta( $subscriber_id, "_{$this->prefix}_name", true ) );
+		self::assertTrue( current_user_can( 'edit_user', $subscriber_id ) );
+		self::assertSame( '', get_user_meta( $subscriber_id, "_{$this->prefix}_name", true ) );
 	}
 
 	#[DataProvider( 'foreign_nonces' )]
 	public function test_a_nonce_minted_for_anything_but_the_form_and_object_stores_nothing_and_evaluates_no_definition( \Closure $nonce ): void {
-		\wp_set_current_user( $this->author_id );
+		wp_set_current_user( $this->author_id );
 		$this->post_form( $this->post_id );
-		$_POST[ "{$this->prefix}_details_nonce" ] = \wp_slash( $nonce( "{$this->prefix}_details", $this->post_id ) );
+		$_POST[ "{$this->prefix}_details_nonce" ] = wp_slash( $nonce( "{$this->prefix}_details", $this->post_id ) );
 
 		$this->form( new PostMetaBox( array( 'post' ) ) )->save( $this->post_id );
 
 		self::assertSame( array(), $this->definition->calls );
-		self::assertSame( '', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( '', get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 	}
 
 	public function test_a_save_without_the_forms_nonce_stores_nothing_and_evaluates_no_definition(): void {
-		\wp_set_current_user( $this->author_id );
+		wp_set_current_user( $this->author_id );
 		$this->post_form( $this->post_id );
 		unset( $_POST[ "{$this->prefix}_details_nonce" ] );
 
 		$this->form( new PostMetaBox( array( 'post' ) ) )->save( $this->post_id );
 
 		self::assertSame( array(), $this->definition->calls );
-		self::assertSame( '', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( '', get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 	}
 
 	public function test_each_rejection_becomes_a_one_shot_error_notice_for_the_user_who_saved(): void {
-		\wp_set_current_user( $this->author_id );
+		wp_set_current_user( $this->author_id );
 		$this->post_form( $this->post_id );
 		$notices = new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
 
@@ -167,11 +167,11 @@ final class ObjectFormTest extends TestCase {
 		self::assertSame( 'Note &amp; more was not saved, so it keeps its previous value. Use at most four characters.', $stored[0]->message );
 		self::assertSame( NoticeType::Error, $stored[0]->type );
 		self::assertFalse( $stored[0]->persistent );
-		self::assertSame( 'Saved.', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( 'Saved.', get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 	}
 
 	public function test_a_second_rejection_of_a_field_replaces_the_first(): void {
-		\wp_set_current_user( $this->author_id );
+		wp_set_current_user( $this->author_id );
 		$notices = new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
 
 		$this->post_form( $this->post_id );
@@ -186,9 +186,9 @@ final class ObjectFormTest extends TestCase {
 	}
 
 	public function test_a_rejection_whose_notice_cannot_be_stored_is_logged_and_keeps_the_accepted_values(): void {
-		\wp_set_current_user( $this->author_id );
+		wp_set_current_user( $this->author_id );
 		$this->post_form( $this->post_id );
-		\add_filter( 'update_user_metadata', static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) );
+		add_filter( 'update_user_metadata', static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) );
 		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
 		$previous = \ini_set( 'error_log', $log_file );
 
@@ -197,10 +197,10 @@ final class ObjectFormTest extends TestCase {
 			$log = (string) \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
-			\wp_delete_file( $log_file );
+			wp_delete_file( $log_file );
 		}
 
-		self::assertSame( 'Saved.', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
+		self::assertSame( 'Saved.', get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 		self::assertStringContainsString( '[acme.error] Could not add a user notice: The user meta is unavailable.', $log );
 	}
 
@@ -288,7 +288,7 @@ final class ObjectFormTest extends TestCase {
 
 	protected function post_form( int $object_id ): void {
 		$_POST = array(
-			"{$this->prefix}_details_nonce" => \wp_slash( \wp_create_nonce( "{$this->prefix}_details_nonce_$object_id" ) ),
+			"{$this->prefix}_details_nonce" => wp_slash( wp_create_nonce( "{$this->prefix}_details_nonce_$object_id" ) ),
 			"{$this->prefix}_details"       => array( "_{$this->prefix}_name" => 'Saved.' ),
 		);
 	}

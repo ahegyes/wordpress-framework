@@ -41,7 +41,7 @@ final class UninstallerTest extends TestCase {
 			'constant-true'           => array( self::defined_consent( true ) ),
 			'constant-over-stored-no' => array(
 				static function ( string $prefix ): array {
-					\update_option( "{$prefix}_remove_data", 'no' );
+					update_option( "{$prefix}_remove_data", 'no' );
 
 					return array(
 						'consent' => array(
@@ -69,7 +69,7 @@ final class UninstallerTest extends TestCase {
 
 	#[DataProvider( 'consents' )]
 	public function test_a_consenting_run_without_a_current_user_deletes_exactly_the_footprint( \Closure $consent ): void {
-		\wp_set_current_user( 0 ); // WP-CLI uninstalls a plugin with no current user.
+		wp_set_current_user( 0 ); // WP-CLI uninstalls a plugin with no current user.
 		$this->seed_footprint();
 
 		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $consent( $this->prefix ) );
@@ -81,8 +81,8 @@ final class UninstallerTest extends TestCase {
 
 	public function test_the_cleanup_runs_first_while_the_footprint_and_the_consent_row_are_stored(): void {
 		$consent_option = "{$this->prefix}_cache_remove_data";
-		\update_option( $consent_option, 'yes' );
-		\update_option( "{$this->prefix}_cache_a", 'a' );
+		update_option( $consent_option, 'yes' );
+		update_option( "{$this->prefix}_cache_a", 'a' );
 		$seen = array();
 
 		Uninstaller::run(
@@ -105,8 +105,8 @@ final class UninstallerTest extends TestCase {
 	}
 
 	public function test_the_cleanup_runs_once_with_the_site_context(): void {
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		\update_option( "{$this->prefix}_settings", 'x' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_settings", 'x' );
 
 		$log = $this->capture_error_log(
 			fn () => Uninstaller::run(
@@ -119,7 +119,7 @@ final class UninstallerTest extends TestCase {
 		self::assertSame( array(), $log );
 		$context = array(
 			'scope'       => 'site',
-			'site_id'     => \get_current_blog_id(),
+			'site_id'     => get_current_blog_id(),
 			'plugin_file' => self::PLUGIN_FILE,
 		);
 		self::assertSame( array( array( 'cleanup', $context ) ), $this->calls );
@@ -127,7 +127,7 @@ final class UninstallerTest extends TestCase {
 
 	public function test_a_kind_keeps_its_non_empty_strings_and_skips_every_other_entry(): void {
 		$this->seed_footprint();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
 
 		Uninstaller::run(
 			self::PLUGIN_FILE,
@@ -141,13 +141,13 @@ final class UninstallerTest extends TestCase {
 
 		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_cache_a" ) );
-		self::assertSame( 'x', \get_transient( "{$this->prefix}_transient" ) );
+		self::assertSame( 'x', get_transient( "{$this->prefix}_transient" ) );
 		$this->assert_foreign_rows_kept();
 	}
 
 	public function test_a_meta_kind_skips_the_names_of_unknown_meta_types_and_cleans_the_rest(): void {
 		$this->seed_footprint();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
 
 		Uninstaller::run(
 			self::PLUGIN_FILE,
@@ -176,9 +176,9 @@ final class UninstallerTest extends TestCase {
 
 	public function test_a_job_wordpress_refuses_to_unschedule_is_logged_without_holding_the_uninstall_back(): void {
 		$this->seed_footprint();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
-		\add_filter( 'pre_unschedule_hook', '__return_false' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
+		wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
+		add_filter( 'pre_unschedule_hook', '__return_false' );
 		try {
 			$log = $this->capture_error_log(
 				fn () => Uninstaller::run(
@@ -188,7 +188,7 @@ final class UninstallerTest extends TestCase {
 				)
 			);
 		} finally {
-			\remove_filter( 'pre_unschedule_hook', '__return_false' ); // The fixtures' own unscheduling must not be refused.
+			remove_filter( 'pre_unschedule_hook', '__return_false' ); // The fixtures' own unscheduling must not be refused.
 		}
 
 		self::assertCount( 1, $log );
@@ -199,25 +199,25 @@ final class UninstallerTest extends TestCase {
 
 	#[DataProvider( 'retaining_and_consenting' )]
 	public function test_cron_hooks_are_unscheduled_with_every_argument_variant_whatever_the_consent( bool $consenting ): void {
-		\update_option( "{$this->prefix}_remove_data", $consenting ? 'yes' : 'no' );
-		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron", array( 1 ) );
-		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron", array( 2 ) );
-		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_foreign_cron" );
+		update_option( "{$this->prefix}_remove_data", $consenting ? 'yes' : 'no' );
+		wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron", array( 1 ) );
+		wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron", array( 2 ) );
+		wp_schedule_single_event( \time() + 3600, "{$this->prefix}_foreign_cron" );
 
 		Uninstaller::run( self::PLUGIN_FILE, array( 'cron_hooks' => array( "{$this->prefix}_cron" ) ), array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) );
 
-		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron", array( 1 ) ) );
-		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron", array( 2 ) ) );
-		self::assertIsInt( \wp_next_scheduled( "{$this->prefix}_foreign_cron" ) );
+		self::assertFalse( wp_next_scheduled( "{$this->prefix}_cron", array( 1 ) ) );
+		self::assertFalse( wp_next_scheduled( "{$this->prefix}_cron", array( 2 ) ) );
+		self::assertIsInt( wp_next_scheduled( "{$this->prefix}_foreign_cron" ) );
 	}
 
 	#[DataProvider( 'retaining_and_consenting' )]
 	public function test_action_scheduler_actions_are_unscheduled_by_hook_and_by_group_whatever_the_consent( bool $consenting ): void {
-		\update_option( "{$this->prefix}_remove_data", $consenting ? 'yes' : 'no' );
-		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_as", array( 1 ) );
-		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_as", array( 2 ) );
-		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_grouped", array(), "$this->prefix-group" );
-		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_foreign_as" );
+		update_option( "{$this->prefix}_remove_data", $consenting ? 'yes' : 'no' );
+		as_schedule_single_action( \time() + 3600, "{$this->prefix}_as", array( 1 ) );
+		as_schedule_single_action( \time() + 3600, "{$this->prefix}_as", array( 2 ) );
+		as_schedule_single_action( \time() + 3600, "{$this->prefix}_grouped", array(), "$this->prefix-group" );
+		as_schedule_single_action( \time() + 3600, "{$this->prefix}_foreign_as" );
 
 		Uninstaller::run(
 			self::PLUGIN_FILE,
@@ -228,15 +228,15 @@ final class UninstallerTest extends TestCase {
 			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
 		);
 
-		self::assertFalse( \as_has_scheduled_action( "{$this->prefix}_as" ) );
-		self::assertFalse( \as_has_scheduled_action( "{$this->prefix}_grouped" ) );
-		self::assertTrue( \as_has_scheduled_action( "{$this->prefix}_foreign_as" ) );
+		self::assertFalse( as_has_scheduled_action( "{$this->prefix}_as" ) );
+		self::assertFalse( as_has_scheduled_action( "{$this->prefix}_grouped" ) );
+		self::assertTrue( as_has_scheduled_action( "{$this->prefix}_foreign_as" ) );
 	}
 
 	public function test_an_action_scheduler_hook_or_group_named_0_cancels_no_other_action(): void {
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_foreign_as" );
-		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_grouped", array(), "$this->prefix-group" );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
+		as_schedule_single_action( \time() + 3600, "{$this->prefix}_foreign_as" );
+		as_schedule_single_action( \time() + 3600, "{$this->prefix}_grouped", array(), "$this->prefix-group" );
 
 		Uninstaller::run(
 			self::PLUGIN_FILE,
@@ -247,8 +247,8 @@ final class UninstallerTest extends TestCase {
 			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) )
 		);
 
-		self::assertTrue( \as_has_scheduled_action( "{$this->prefix}_foreign_as" ) );
-		self::assertTrue( \as_has_scheduled_action( "{$this->prefix}_grouped" ) );
+		self::assertTrue( as_has_scheduled_action( "{$this->prefix}_foreign_as" ) );
+		self::assertTrue( as_has_scheduled_action( "{$this->prefix}_grouped" ) );
 	}
 
 	public static function failing_statements(): array {
@@ -265,7 +265,7 @@ final class UninstallerTest extends TestCase {
 		global $wpdb;
 
 		$this->seed_footprint();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
 		$args = array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_cleanup();
 		$this->fail_queries( $needle( $wpdb, $this->prefix ) );
 
@@ -283,7 +283,7 @@ final class UninstallerTest extends TestCase {
 		self::assertSame( array( 'cleanup' ), \array_column( $this->calls, 0 ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
 
-		\remove_all_filters( 'query' );
+		remove_all_filters( 'query' );
 		$this->restore_query_errors();
 		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $args );
 
@@ -301,9 +301,9 @@ final class UninstallerTest extends TestCase {
 	#[DataProvider( 'refused_deletes' )]
 	public function test_a_delete_wordpress_refuses_is_thrown_after_the_rest_and_a_retry_completes( string $filter, string $subject ): void {
 		$this->seed_footprint();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
-		\add_filter( $filter, '__return_false' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
+		wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
+		add_filter( $filter, '__return_false' );
 
 		$failure = null;
 		try {
@@ -315,7 +315,7 @@ final class UninstallerTest extends TestCase {
 		} catch ( RuntimeException $exception ) {
 			$failure = $exception;
 		} finally {
-			\remove_filter( $filter, '__return_false' ); // The fixtures' own deletes must not be refused.
+			remove_filter( $filter, '__return_false' ); // The fixtures' own deletes must not be refused.
 		}
 
 		self::assertInstanceOf( RuntimeException::class, $failure );
@@ -330,13 +330,13 @@ final class UninstallerTest extends TestCase {
 		);
 
 		$this->assert_footprint_deleted();
-		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron" ) );
+		self::assertFalse( wp_next_scheduled( "{$this->prefix}_cron" ) );
 	}
 
 	public function test_a_failing_cleanup_keeps_that_sites_footprint_and_consent_row_and_throws_after_the_rest(): void {
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		\update_option( "{$this->prefix}_settings", 'x' );
-		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_settings", 'x' );
+		wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
 
 		$failure = null;
 		try {
@@ -354,21 +354,21 @@ final class UninstallerTest extends TestCase {
 
 		self::assertInstanceOf( RuntimeException::class, $failure );
 		self::assertStringContainsString( 'cleanup: The cleanup failed.', $failure->getMessage() );
-		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron" ) );
+		self::assertFalse( wp_next_scheduled( "{$this->prefix}_cron" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 
 	public function test_a_throw_from_another_plugins_delete_hook_ends_the_sites_pass_and_a_retry_without_it_completes(): void {
 		$this->seed_footprint();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
 		$settings = "{$this->prefix}_settings";
 		$listener = static function ( string $option ) use ( $settings ): void {
 			if ( $settings === $option ) {
 				throw new \LogicException( 'The listener failed.' );
 			}
 		};
-		\add_action( 'delete_option', $listener );
+		add_action( 'delete_option', $listener );
 
 		$failure = null;
 		try {
@@ -376,7 +376,7 @@ final class UninstallerTest extends TestCase {
 		} catch ( RuntimeException $exception ) {
 			$failure = $exception;
 		} finally {
-			\remove_action( 'delete_option', $listener );
+			remove_action( 'delete_option', $listener );
 		}
 
 		self::assertInstanceOf( RuntimeException::class, $failure );
@@ -393,12 +393,12 @@ final class UninstallerTest extends TestCase {
 
 	public function test_an_action_scheduler_cancel_that_throws_is_logged_without_holding_the_uninstall_back(): void {
 		$this->seed_footprint();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		\as_schedule_single_action( \time() + 3600, "{$this->prefix}_as" );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
+		as_schedule_single_action( \time() + 3600, "{$this->prefix}_as" );
 		$listener = static function (): void {
 			throw new \LogicException( 'The cancel failed.' );
 		};
-		\add_action( 'action_scheduler_bulk_cancel_actions', $listener );
+		add_action( 'action_scheduler_bulk_cancel_actions', $listener );
 		try {
 			$log = $this->capture_error_log(
 				fn () => Uninstaller::run(
@@ -408,7 +408,7 @@ final class UninstallerTest extends TestCase {
 				)
 			);
 		} finally {
-			\remove_action( 'action_scheduler_bulk_cancel_actions', $listener );
+			remove_action( 'action_scheduler_bulk_cancel_actions', $listener );
 		}
 
 		self::assertCount( 1, $log );
@@ -426,7 +426,7 @@ final class UninstallerTest extends TestCase {
 
 	protected static function stored_consent( mixed $value, string $key = '' ): \Closure {
 		return static function ( string $prefix ) use ( $value, $key ): array {
-			\update_option( "{$prefix}_remove_data", $value );
+			update_option( "{$prefix}_remove_data", $value );
 
 			return array( 'consent' => array( 'option' => "{$prefix}_remove_data" ) + ( '' === $key ? array() : array( 'key' => $key ) ) );
 		};

@@ -27,6 +27,6 @@ final class FormsEscapeAttributeTest extends TestCase {
 	public function test_woocommerces_own_escape_leaves_an_escaped_value_unchanged(): void {
 		$escaped = Forms::escape_attribute( 'R&amp;D "quoted"' );
 
-		self::assertSame( $escaped, \esc_attr( $escaped ) );
+		self::assertSame( $escaped, esc_attr( $escaped ) );
 	}
 }

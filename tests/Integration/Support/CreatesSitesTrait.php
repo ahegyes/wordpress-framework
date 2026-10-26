@@ -4,7 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 
 trait CreatesSitesTrait {
 	protected function make_site( string $slug ): int {
-		$existing = \get_sites(
+		$existing = get_sites(
 			array(
 				'path'   => "/$slug/",
 				'fields' => 'ids',
@@ -14,9 +14,9 @@ trait CreatesSitesTrait {
 			return (int) $existing[0];
 		}
 
-		$site_id = \wp_insert_site(
+		$site_id = wp_insert_site(
 			array(
-				'domain' => \get_network()->domain,
+				'domain' => get_network()->domain,
 				'path'   => "/$slug/",
 			)
 		);

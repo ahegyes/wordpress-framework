@@ -25,8 +25,8 @@ final class OptionRowsTest extends TestCase {
 
 	#[\Override]
 	protected function tearDown(): void {
-		while ( \is_multisite() && \ms_is_switched() ) {
-			\restore_current_blog();
+		while ( is_multisite() && ms_is_switched() ) {
+			restore_current_blog();
 		}
 	}
 
@@ -35,7 +35,7 @@ final class OptionRowsTest extends TestCase {
 
 		self::assertEquals( $written, OptionRows::get( "{$this->prefix}_one" ) );
 		self::assertSame( array( 'message' => "Can't \\ \"save\"." ), $written->value );
-		self::assertSame( array( "{$this->prefix}_one" => array( \maybe_serialize( $written->value ), 'off' ) ), $this->stored() );
+		self::assertSame( array( "{$this->prefix}_one" => array( maybe_serialize( $written->value ), 'off' ) ), $this->stored() );
 	}
 
 	public function test_inserting_writes_only_a_name_that_is_absent(): void {
@@ -88,9 +88,9 @@ final class OptionRowsTest extends TestCase {
 	public function test_a_row_changed_since_it_was_read_is_neither_replaced_nor_deleted( ?string $change ): void {
 		$observed = self::insert( "{$this->prefix}_state", 'Ready' );
 		if ( \is_null( $change ) ) {
-			\delete_option( "{$this->prefix}_state" );
+			delete_option( "{$this->prefix}_state" );
 		} else {
-			\update_option( "{$this->prefix}_state", $change );
+			update_option( "{$this->prefix}_state", $change );
 		}
 
 		self::assertNull( OptionRows::replace( $observed, 'Done' ) );
@@ -123,27 +123,27 @@ final class OptionRowsTest extends TestCase {
 	public function test_get_option_reads_every_write( ?bool $autoloaded, \Closure $write, mixed $expected ): void {
 		$name = "{$this->prefix}_cached";
 		if ( ! \is_null( $autoloaded ) ) {
-			\add_option( $name, 'Old.', '', $autoloaded );
+			add_option( $name, 'Old.', '', $autoloaded );
 		}
-		\get_option( $name );
+		get_option( $name );
 
 		$write( $name );
 
-		self::assertSame( $expected, \get_option( $name ) );
+		self::assertSame( $expected, get_option( $name ) );
 	}
 
 	public function test_a_write_drops_the_cached_option_lists_that_name_the_option(): void {
 		$name = "{$this->prefix}_listed";
-		\add_option( "{$this->prefix}_autoloaded", 'Old.', '', true );
-		\get_option( $name );
-		\wp_load_alloptions();
+		add_option( "{$this->prefix}_autoloaded", 'Old.', '', true );
+		get_option( $name );
+		wp_load_alloptions();
 
 		self::insert( $name, 'New.' );
-		$notoptions = \wp_cache_get( 'notoptions', 'options' );
+		$notoptions = wp_cache_get( 'notoptions', 'options' );
 		OptionRows::replace( OptionRows::get( "{$this->prefix}_autoloaded" ) ?? throw new \LogicException( 'No row.' ), 'New.' );
 
 		self::assertFalse( $notoptions );
-		self::assertFalse( \wp_cache_get( 'alloptions', 'options' ) );
+		self::assertFalse( wp_cache_get( 'alloptions', 'options' ) );
 	}
 
 	public function test_a_name_of_191_characters_is_kept_whole_in_multibyte_text(): void {
@@ -178,7 +178,7 @@ final class OptionRowsTest extends TestCase {
 	public function test_a_read_whose_query_never_runs_returns_no_row_of_an_earlier_read(): void {
 		self::insert( "{$this->prefix}_other", 'Other.' );
 		OptionRows::get( "{$this->prefix}_other" );
-		\add_filter( 'query', fn ( string $query ): string => \str_contains( $query, "'{$this->prefix}_absent'" ) ? '' : $query );
+		add_filter( 'query', fn ( string $query ): string => \str_contains( $query, "'{$this->prefix}_absent'" ) ? '' : $query );
 
 		self::assertNull( OptionRows::get( "{$this->prefix}_absent" ) );
 	}
@@ -204,17 +204,17 @@ final class OptionRowsTest extends TestCase {
 	#[Group( 'multisite' )]
 	public function test_inside_a_switch_rows_live_in_the_switched_sites_table_and_its_cache_reads_every_write(): void {
 		$site_id = $this->make_site( 'acme-storage' );
-		\switch_to_blog( $site_id );
-		\get_option( "{$this->prefix}_one" );
+		switch_to_blog( $site_id );
+		get_option( "{$this->prefix}_one" );
 		$row  = self::insert( "{$this->prefix}_one", 'There.' );
-		$seen = \get_option( "{$this->prefix}_one" );
-		\restore_current_blog();
+		$seen = get_option( "{$this->prefix}_one" );
+		restore_current_blog();
 
 		self::assertSame( 'There.', $seen );
 		self::assertNull( OptionRows::get( "{$this->prefix}_one" ) );
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		self::assertTrue( OptionRows::delete( $row ) );
-		self::assertFalse( \get_option( "{$this->prefix}_one" ) );
+		self::assertFalse( get_option( "{$this->prefix}_one" ) );
 	}
 
 	protected static function insert( string $name, mixed $value ): OptionRow {

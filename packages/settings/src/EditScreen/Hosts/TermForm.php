@@ -63,8 +63,8 @@ final class TermForm implements ObjectFormHostInterface {
 	public function register_hooks( ObjectForm $form ): void {
 		$this->form = $form;
 		foreach ( $this->taxonomies as $taxonomy ) {
-			\add_action( "{$taxonomy}_edit_form", array( $this, 'render_section' ) );
-			\add_action( "edited_$taxonomy", array( $this, 'save_term' ) );
+			add_action( "{$taxonomy}_edit_form", array( $this, 'render_section' ) );
+			add_action( "edited_$taxonomy", array( $this, 'save_term' ) );
 		}
 	}
 

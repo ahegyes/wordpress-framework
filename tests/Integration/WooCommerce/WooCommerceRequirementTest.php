@@ -24,7 +24,7 @@ final class WooCommerceRequirementTest extends TestCase {
 
 	#[DataProvider( 'met_floors' )]
 	public function test_woocommerce_meeting_the_floor_passes_and_nobody_sees_a_notice( ?string $floor ): void {
-		$headers     = \is_null( $floor ) ? array() : array( 'WC requires at least' => 'installed' === $floor ? \WC_VERSION : $floor );
+		$headers     = \is_null( $floor ) ? array() : array( 'WC requires at least' => 'installed' === $floor ? WC_VERSION : $floor );
 		$requirement = new WooCommerceRequirement( $this->write_plugin( $headers + array( 'Requires Plugins' => 'woocommerce' ) ) );
 
 		self::assertTrue( $requirement->check() );
@@ -71,7 +71,7 @@ final class WooCommerceRequirementTest extends TestCase {
 	public function test_a_failed_check_reads_translations_only_when_the_notice_renders(): void {
 		$requirement  = new WooCommerceRequirement( $this->write_plugin( array( 'WC requires at least' => '99.1' ) ) );
 		$translations = 0;
-		\add_filter(
+		add_filter(
 			'gettext_wp-framework',
 			static function ( string $translation ) use ( &$translations ): string {
 				++$translations;

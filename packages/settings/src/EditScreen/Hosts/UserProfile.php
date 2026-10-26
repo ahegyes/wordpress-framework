@@ -46,10 +46,10 @@ final class UserProfile implements ObjectFormHostInterface {
 	#[\Override]
 	public function register_hooks( ObjectForm $form ): void {
 		$this->form = $form;
-		\add_action( 'show_user_profile', array( $this, 'render_section' ) );
-		\add_action( 'edit_user_profile', array( $this, 'render_section' ) );
-		\add_action( 'personal_options_update', array( $this, 'save_profile' ) );
-		\add_action( 'edit_user_profile_update', array( $this, 'save_profile' ) );
+		add_action( 'show_user_profile', array( $this, 'render_section' ) );
+		add_action( 'edit_user_profile', array( $this, 'render_section' ) );
+		add_action( 'personal_options_update', array( $this, 'save_profile' ) );
+		add_action( 'edit_user_profile_update', array( $this, 'save_profile' ) );
 	}
 
 	/**

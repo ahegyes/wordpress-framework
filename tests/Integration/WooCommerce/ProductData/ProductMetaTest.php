@@ -35,12 +35,12 @@ final class ProductMetaTest extends TestCase {
 	public function test_a_stored_value_reads_as_stored_never_as_the_fallback( mixed $stored ): void {
 		$product = $this->make_product( array( "_{$this->prefix}_key" => $stored ) );
 
-		self::assertSame( $stored, ProductMeta::get_value( \wc_get_product( $product->get_id() ), "_{$this->prefix}_key", 'fallback' ) );
+		self::assertSame( $stored, ProductMeta::get_value( wc_get_product( $product->get_id() ), "_{$this->prefix}_key", 'fallback' ) );
 	}
 
 	public function test_the_view_context_applies_woocommerces_meta_filter_and_the_edit_context_does_not(): void {
 		$product = $this->make_product( array( "_{$this->prefix}_key" => 'stored' ) );
-		\add_filter( "woocommerce_product_get__{$this->prefix}_key", static fn (): string => 'filtered' );
+		add_filter( "woocommerce_product_get__{$this->prefix}_key", static fn (): string => 'filtered' );
 
 		self::assertSame( 'filtered', ProductMeta::get_value( $product, "_{$this->prefix}_key" ) );
 		self::assertSame( 'stored', ProductMeta::get_value( $product, "_{$this->prefix}_key", '', 'edit' ) );

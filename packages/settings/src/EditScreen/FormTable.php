@@ -41,7 +41,7 @@ final class FormTable {
 	public static function render_rows( string $title, array $rows ): void {
 		echo '<h2>' . $title . '</h2><table class="form-table" role="presentation">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes its title.
 		foreach ( $rows as $row ) {
-			$heading = \is_null( $row['label_for'] ) ? $row['title'] : '<label for="' . \esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label>';
+			$heading = \is_null( $row['label_for'] ) ? $row['title'] : '<label for="' . esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label>';
 			echo '<tr><th scope="row">' . $heading . '</th><td>' . $row['control'] . '</td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
 		}
 		echo '</table>';

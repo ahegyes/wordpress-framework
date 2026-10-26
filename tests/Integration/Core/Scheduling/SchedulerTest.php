@@ -36,26 +36,26 @@ final class SchedulerTest extends TestCase {
 	#[\Override]
 	protected function setUp(): void {
 		$this->hook = 'acme_scheduling_' . \bin2hex( \random_bytes( 4 ) );
-		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		\add_action(
+		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		add_action(
 			'doing_it_wrong_run',
 			function ( string $function_name ): void {
 				$this->doing_it_wrong[] = $function_name;
 			}
 		);
-		\add_action(
+		add_action(
 			'action_scheduler_stored_action',
 			function ( int $action_id ): void {
 				$this->writes[] = "stored $action_id";
 			}
 		);
-		\add_action(
+		add_action(
 			'action_scheduler_canceled_action',
 			function ( int $action_id ): void {
 				$this->writes[] = "canceled $action_id";
 			}
 		);
-		\add_filter(
+		add_filter(
 			'pre_update_option_cron',
 			function ( mixed $value, mixed $old_value ): mixed {
 				if ( $value !== $old_value ) {
@@ -73,7 +73,7 @@ final class SchedulerTest extends TestCase {
 	protected function tearDown(): void {
 		global $wpdb;
 
-		\wp_unschedule_hook( $this->hook );
+		wp_unschedule_hook( $this->hook );
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE hook LIKE %s', $wpdb->actionscheduler_actions, $wpdb->esc_like( $this->hook ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the rows the test created.
 	}
 
@@ -95,7 +95,7 @@ final class SchedulerTest extends TestCase {
 		self::assertSame( 'production' === $kind ? 1 : 0, \count( $this->pending_action_ids() ) );
 		self::assertSame( 'production' === $kind ? 0 : 1, \count( $this->cron_events() ) );
 		$ran = array();
-		\add_action(
+		add_action(
 			$this->hook,
 			static function ( int $arg ) use ( &$ran ): void {
 				$ran[] = $arg;
@@ -119,7 +119,7 @@ final class SchedulerTest extends TestCase {
 		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
 		$scheduler->enqueue( $hook );
-		\add_action(
+		add_action(
 			$this->hook,
 			function () use ( $scheduler, $hook ): void {
 				$this->writes  = array();
@@ -140,7 +140,7 @@ final class SchedulerTest extends TestCase {
 		$scheduler->enqueue( $hook );
 		$running = $this->pending_action_ids();
 		$unique  = array();
-		\add_filter(
+		add_filter(
 			'pre_as_schedule_single_action',
 			static function ( mixed $pre, int $timestamp, string $name, array $args, string $group, int $priority, bool $is_unique ) use ( &$unique ): mixed {
 				$unique[] = $is_unique;
@@ -150,7 +150,7 @@ final class SchedulerTest extends TestCase {
 			10,
 			7
 		);
-		\add_action(
+		add_action(
 			$this->hook,
 			function () use ( $scheduler, $hook ): void {
 				$this->calls[] = $scheduler->schedule_single( $hook, \time() );
@@ -170,10 +170,10 @@ final class SchedulerTest extends TestCase {
 		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
 		$scheduler->enqueue( $hook );
-		\add_action(
+		add_action(
 			$this->hook,
 			function () use ( $scheduler, $hook ): void {
-				\add_filter( 'pre_as_schedule_single_action', '__return_zero' );
+				add_filter( 'pre_as_schedule_single_action', '__return_zero' );
 				$this->calls[] = $scheduler->schedule_single( $hook, \time() );
 			}
 		);
@@ -201,12 +201,12 @@ final class SchedulerTest extends TestCase {
 	public function test_an_enqueue_that_races_another_request_adds_no_duplicate_on_action_scheduler(): void {
 		$hook = $this->hook;
 		$race = static function ( mixed $pre ) use ( $hook, &$race ): mixed {
-			\remove_filter( 'pre_as_enqueue_async_action', $race );
-			\as_enqueue_async_action( $hook, array(), self::GROUP );
+			remove_filter( 'pre_as_enqueue_async_action', $race );
+			as_enqueue_async_action( $hook, array(), self::GROUP );
 
 			return $pre;
 		};
-		\add_filter( 'pre_as_enqueue_async_action', $race );
+		add_filter( 'pre_as_enqueue_async_action', $race );
 
 		self::assertTrue( $this->make_scheduler( 'production' )->enqueue( new ScheduledHook( $this->hook ) ) );
 
@@ -214,7 +214,7 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_an_action_scheduler_store_failure_is_an_error(): void {
-		\add_filter( 'pre_as_enqueue_async_action', '__return_zero' );
+		add_filter( 'pre_as_enqueue_async_action', '__return_zero' );
 
 		$result = $this->make_scheduler( 'production' )->enqueue( new ScheduledHook( $this->hook ) );
 
@@ -222,7 +222,7 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_a_throwing_scheduler_is_an_error(): void {
-		\add_filter(
+		add_filter(
 			'pre_as_enqueue_async_action',
 			static function (): never {
 				throw new \RuntimeException( 'Store unavailable.' );
@@ -359,7 +359,7 @@ final class SchedulerTest extends TestCase {
 	public function test_ensuring_with_a_chain_on_each_scheduler_leaves_one_on_action_scheduler(): void {
 		$hook = new ScheduledHook( $this->hook );
 		$this->make_scheduler( 'wp-cron' )->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) );
-		\as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
+		as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
 
 		self::assertTrue( $this->make_scheduler( 'production' )->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) ) );
 
@@ -371,9 +371,9 @@ final class SchedulerTest extends TestCase {
 		$hook = new ScheduledHook( $this->hook );
 		$this->make_scheduler( 'wp-cron' )->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) );
 		$scheduler = $this->make_scheduler( 'production' );
-		\as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
-		\as_schedule_recurring_action( \time() + 3600, 3600, $this->hook, array(), self::GROUP );
-		\add_action(
+		as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
+		as_schedule_recurring_action( \time() + 3600, 3600, $this->hook, array(), self::GROUP );
+		add_action(
 			$this->hook,
 			function () use ( $scheduler, $hook ): void {
 				$this->writes  = array();
@@ -399,10 +399,10 @@ final class SchedulerTest extends TestCase {
 
 	public function test_a_new_wp_cron_interval_survives_a_cron_run_in_a_later_request(): void {
 		self::assertTrue( $this->make_scheduler( 'wp-cron' )->ensure_recurring( new ScheduledHook( $this->hook ), Recurrence::from_interval( 3700 ) ) );
-		\remove_all_filters( 'cron_schedules' ); // A later request starts without the schedules this request added.
+		remove_all_filters( 'cron_schedules' ); // A later request starts without the schedules this request added.
 		$this->make_scheduler( 'wp-cron' );
 		$ran = 0;
-		\add_action(
+		add_action(
 			$this->hook,
 			static function () use ( &$ran ): void {
 				++$ran;
@@ -421,13 +421,13 @@ final class SchedulerTest extends TestCase {
 
 	public function test_clearing_a_scheduled_hook_removes_every_pending_occurrence_of_the_identity_in_the_group_only(): void {
 		$hook = new ScheduledHook( $this->hook, array( 1 ) );
-		\as_enqueue_async_action( $this->hook, array( 1 ), self::GROUP );
-		\as_schedule_single_action( \time() + 3600, $this->hook, array( 1 ), self::GROUP );
-		\as_enqueue_async_action( $this->hook, array( 2 ), self::GROUP );
-		\as_enqueue_async_action( $this->hook, array( 1 ) );
-		\wp_schedule_single_event( \time() + 3600, $this->hook, array( 1 ) );
-		\wp_schedule_single_event( \time() + 7200, $this->hook, array( 1 ) );
-		\wp_schedule_single_event( \time() + 3600, $this->hook, array( 2 ) );
+		as_enqueue_async_action( $this->hook, array( 1 ), self::GROUP );
+		as_schedule_single_action( \time() + 3600, $this->hook, array( 1 ), self::GROUP );
+		as_enqueue_async_action( $this->hook, array( 2 ), self::GROUP );
+		as_enqueue_async_action( $this->hook, array( 1 ) );
+		wp_schedule_single_event( \time() + 3600, $this->hook, array( 1 ) );
+		wp_schedule_single_event( \time() + 7200, $this->hook, array( 1 ) );
+		wp_schedule_single_event( \time() + 3600, $this->hook, array( 2 ) );
 
 		self::assertTrue( $this->make_scheduler( 'production' )->clear_scheduled_hook( $hook ) );
 
@@ -440,7 +440,7 @@ final class SchedulerTest extends TestCase {
 		$scheduler = $this->make_scheduler( 'wp-cron' );
 		$hook      = new ScheduledHook( $this->hook );
 		$scheduler->enqueue( $hook );
-		\add_filter( 'pre_clear_scheduled_hook', '__return_zero' );
+		add_filter( 'pre_clear_scheduled_hook', '__return_zero' );
 
 		self::assert_wp_error( $scheduler->clear_scheduled_hook( $hook ), 'scheduler_failed' );
 	}
@@ -448,8 +448,8 @@ final class SchedulerTest extends TestCase {
 	public function test_a_failed_clear_is_returned_by_clearing_a_scheduled_hook(): void {
 		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
-		\wp_schedule_single_event( \time() + 3600, $this->hook );
-		\add_filter( 'pre_clear_scheduled_hook', static fn (): \WP_Error => new \WP_Error( 'acme_clear_failed' ) );
+		wp_schedule_single_event( \time() + 3600, $this->hook );
+		add_filter( 'pre_clear_scheduled_hook', static fn (): \WP_Error => new \WP_Error( 'acme_clear_failed' ) );
 
 		self::assert_wp_error( $scheduler->clear_scheduled_hook( $hook ), 'acme_clear_failed' );
 	}
@@ -457,8 +457,8 @@ final class SchedulerTest extends TestCase {
 	public function test_a_failed_clear_stops_collapsing_duplicate_chains(): void {
 		$hook = new ScheduledHook( $this->hook );
 		$this->make_scheduler( 'wp-cron' )->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) );
-		\as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
-		\add_filter( 'pre_clear_scheduled_hook', static fn (): \WP_Error => new \WP_Error( 'acme_clear_failed' ) );
+		as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
+		add_filter( 'pre_clear_scheduled_hook', static fn (): \WP_Error => new \WP_Error( 'acme_clear_failed' ) );
 		$this->writes = array();
 
 		$result = $this->make_scheduler( 'production' )->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) );
@@ -470,8 +470,8 @@ final class SchedulerTest extends TestCase {
 	public function test_a_clear_that_leaves_a_chain_stops_collapsing_duplicate_chains(): void {
 		$hook = new ScheduledHook( $this->hook );
 		$this->make_scheduler( 'wp-cron' )->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) );
-		\as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
-		\add_filter( 'pre_clear_scheduled_hook', '__return_zero' );
+		as_schedule_recurring_action( \time(), 3600, $this->hook, array(), self::GROUP );
+		add_filter( 'pre_clear_scheduled_hook', '__return_zero' );
 		$this->writes = array();
 
 		$result = $this->make_scheduler( 'production' )->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) );
@@ -481,18 +481,18 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_a_failed_clear_is_returned_by_unscheduling_a_hook(): void {
-		\add_filter( 'pre_unschedule_hook', static fn (): \WP_Error => new \WP_Error( 'acme_clear_failed' ) );
+		add_filter( 'pre_unschedule_hook', static fn (): \WP_Error => new \WP_Error( 'acme_clear_failed' ) );
 
 		self::assert_wp_error( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ), 'acme_clear_failed' );
 	}
 
 	public function test_unscheduling_a_hook_on_action_scheduler_is_best_effort(): void {
-		\as_enqueue_async_action( $this->hook );
+		as_enqueue_async_action( $this->hook );
 		$this->fail_queries( "a.hook='$this->hook'" );
 
 		self::assertTrue( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ) );
 
-		\remove_all_filters( 'query' );
+		remove_all_filters( 'query' );
 		self::assertCount( 1, $this->pending_action_ids() );
 	}
 
@@ -510,7 +510,7 @@ final class SchedulerTest extends TestCase {
 		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
 		$scheduler->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) );
-		\add_action(
+		add_action(
 			$this->hook,
 			function () use ( $scheduler, $hook ): void {
 				$this->calls[] = $scheduler->clear_scheduled_hook( $hook );
@@ -527,7 +527,7 @@ final class SchedulerTest extends TestCase {
 		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
 		$scheduler->enqueue( $hook );
-		\add_action(
+		add_action(
 			$this->hook,
 			function () use ( $scheduler, $hook ): void {
 				$this->calls[] = $scheduler->clear_scheduled_hook( $hook );
@@ -540,12 +540,12 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_unscheduling_a_hook_removes_every_argument_variant_in_every_group(): void {
-		\as_enqueue_async_action( $this->hook, array(), self::GROUP );
-		\as_enqueue_async_action( $this->hook, array( 1 ), self::GROUP );
-		\as_enqueue_async_action( $this->hook, array( 'x' ) );
-		\as_enqueue_async_action( "{$this->hook}_other", array(), self::GROUP );
-		\wp_schedule_single_event( \time() + 3600, $this->hook );
-		\wp_schedule_single_event( \time() + 3600, $this->hook, array( 1 ) );
+		as_enqueue_async_action( $this->hook, array(), self::GROUP );
+		as_enqueue_async_action( $this->hook, array( 1 ), self::GROUP );
+		as_enqueue_async_action( $this->hook, array( 'x' ) );
+		as_enqueue_async_action( "{$this->hook}_other", array(), self::GROUP );
+		wp_schedule_single_event( \time() + 3600, $this->hook );
+		wp_schedule_single_event( \time() + 3600, $this->hook, array( 1 ) );
 
 		self::assertTrue( $this->make_scheduler( 'production' )->unschedule_hook( $this->hook ) );
 
@@ -555,15 +555,15 @@ final class SchedulerTest extends TestCase {
 			'hook'   => "{$this->hook}_other",
 			'status' => \ActionScheduler_Store::STATUS_PENDING,
 		);
-		self::assertCount( 1, \as_get_scheduled_actions( $other, 'ids' ) );
+		self::assertCount( 1, as_get_scheduled_actions( $other, 'ids' ) );
 	}
 
 	public function test_is_scheduled_sees_a_pending_invocation_on_either_scheduler(): void {
 		$scheduler = $this->make_scheduler( 'production' );
 		$on_cron   = new ScheduledHook( $this->hook, array( 'cron' ) );
 		$on_queue  = new ScheduledHook( $this->hook, array( 'queue' ) );
-		\wp_schedule_single_event( \time() + 3600, $this->hook, array( 'cron' ) );
-		\as_schedule_single_action( \time() + 3600, $this->hook, array( 'queue' ), self::GROUP );
+		wp_schedule_single_event( \time() + 3600, $this->hook, array( 'cron' ) );
+		as_schedule_single_action( \time() + 3600, $this->hook, array( 'queue' ), self::GROUP );
 
 		self::assertTrue( $scheduler->is_scheduled( $on_cron ) );
 		self::assertTrue( $scheduler->is_scheduled( $on_queue ) );
@@ -572,7 +572,7 @@ final class SchedulerTest extends TestCase {
 
 	public function test_is_scheduled_is_false_with_a_notice_before_action_scheduler_initializes(): void {
 		$scheduler = $this->make_scheduler( 'production' );
-		\wp_schedule_single_event( \time() + 3600, $this->hook );
+		wp_schedule_single_event( \time() + 3600, $this->hook );
 		unset( $GLOBALS['wp_actions']['action_scheduler_init'] );
 
 		self::assertFalse( $scheduler->is_scheduled( new ScheduledHook( $this->hook ) ) );
@@ -628,7 +628,7 @@ final class SchedulerTest extends TestCase {
 	#[DataProvider( 'schedulers' )]
 	public function test_an_invocation_scheduled_in_the_past_runs_at_the_next_dispatch( string $kind ): void {
 		$ran = 0;
-		\add_action(
+		add_action(
 			$this->hook,
 			static function () use ( &$ran ): void {
 				++$ran;
@@ -697,7 +697,7 @@ final class SchedulerTest extends TestCase {
 	}
 
 	public function test_enqueueing_counts_a_running_invocation_on_action_scheduler_below_the_floor(): void {
-		\as_enqueue_async_action( $this->hook, array(), self::GROUP );
+		as_enqueue_async_action( $this->hook, array(), self::GROUP );
 		\ActionScheduler::store()->log_execution( $this->pending_action_ids()[0] );
 		$scheduler = $this->make_scheduler( 'production' );
 		$this->report_action_scheduler_versions( array( '4.0.0' ) );
@@ -710,7 +710,7 @@ final class SchedulerTest extends TestCase {
 	public function test_action_scheduler_below_the_floor_is_still_read_and_cleared(): void {
 		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
-		\as_schedule_single_action( \time() + 3600, $this->hook, array(), self::GROUP );
+		as_schedule_single_action( \time() + 3600, $this->hook, array(), self::GROUP );
 		$this->report_action_scheduler_versions( array( '4.0.0' ) );
 
 		self::assertTrue( $scheduler->is_scheduled( $hook ) );
@@ -747,7 +747,7 @@ final class SchedulerTest extends TestCase {
 		$scheduler = $this->make_scheduler( $kind );
 		$hook      = new ScheduledHook( $this->hook, $args );
 		$received  = array();
-		\add_action(
+		add_action(
 			$this->hook,
 			static function ( mixed ...$passed ) use ( &$received ): void {
 				$received[] = $passed;
@@ -788,12 +788,12 @@ final class SchedulerTest extends TestCase {
 			$query['args'] = $args;
 		}
 
-		return \array_map( 'intval', \as_get_scheduled_actions( $query, 'ids' ) );
+		return \array_map( 'intval', as_get_scheduled_actions( $query, 'ids' ) );
 	}
 
 	protected function cron_events(): array {
 		$events = array();
-		foreach ( \_get_cron_array() as $timestamp => $hooks ) {
+		foreach ( _get_cron_array() as $timestamp => $hooks ) {
 			foreach ( $hooks[ $this->hook ] ?? array() as $event ) {
 				$events[] = array( $timestamp, $event );
 			}
@@ -817,17 +817,17 @@ final class SchedulerTest extends TestCase {
 	// Mirrors one wp-cron.php run.
 	protected function run_due_cron_events(): array {
 		$rescheduled = array();
-		foreach ( \_get_cron_array() as $timestamp => $hooks ) {
+		foreach ( _get_cron_array() as $timestamp => $hooks ) {
 			if ( $timestamp > \time() ) {
 				break;
 			}
 
 			foreach ( $hooks[ $this->hook ] ?? array() as $event ) {
 				if ( false !== $event['schedule'] ) {
-					$rescheduled[] = \wp_reschedule_event( $timestamp, $event['schedule'], $this->hook, $event['args'], true );
+					$rescheduled[] = wp_reschedule_event( $timestamp, $event['schedule'], $this->hook, $event['args'], true );
 				}
-				\wp_unschedule_event( $timestamp, $this->hook, $event['args'], true );
-				\do_action_ref_array( $this->hook, $event['args'] );
+				wp_unschedule_event( $timestamp, $this->hook, $event['args'], true );
+				do_action_ref_array( $this->hook, $event['args'] );
 			}
 		}
 

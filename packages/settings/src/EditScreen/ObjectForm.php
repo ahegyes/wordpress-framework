@@ -170,15 +170,15 @@ final class ObjectForm {
 			$control = Forms::render_control( $row['field'], $row['value'], $row['name'], $row['id'] );
 			if ( '' !== $control ) {
 				$rows[] = array(
-					'title'     => \esc_html( $row['field']['title'] ?? '' ),
+					'title'     => esc_html( $row['field']['title'] ?? '' ),
 					'label_for' => $row['label_for'] ?? null,
 					'control'   => $control,
 				);
 			}
 		}
 
-		\wp_nonce_field( $this->get_nonce_action( $object_id ), $this->get_nonce_name(), false );
-		$this->host->render_rows( \esc_html( $this->get_title( $object_id ) ), $rows );
+		wp_nonce_field( $this->get_nonce_action( $object_id ), $this->get_nonce_name(), false );
+		$this->host->render_rows( esc_html( $this->get_title( $object_id ) ), $rows );
 	}
 
 	/**
@@ -193,14 +193,14 @@ final class ObjectForm {
 	 */
 	public function save( int $object_id ): void {
 		// Saves that carry no form for the object, such as REST, cron and quick edit, return before the definition is evaluated.
-		$nonce = \is_string( $_POST[ $this->get_nonce_name() ] ?? null ) ? \sanitize_text_field( \wp_unslash( $_POST[ $this->get_nonce_name() ] ) ) : '';
-		if ( \in_array( $object_id, $this->saved, true ) || false === \wp_verify_nonce( $nonce, $this->get_nonce_action( $object_id ) ) || ! $this->can_edit( $object_id ) ) {
+		$nonce = \is_string( $_POST[ $this->get_nonce_name() ] ?? null ) ? sanitize_text_field( wp_unslash( $_POST[ $this->get_nonce_name() ] ) ) : '';
+		if ( \in_array( $object_id, $this->saved, true ) || false === wp_verify_nonce( $nonce, $this->get_nonce_action( $object_id ) ) || ! $this->can_edit( $object_id ) ) {
 			return;
 		}
 
 		$this->saved[] = $object_id;
 
-		$submitted = \is_array( $_POST[ $this->id ] ?? null ) ? \wp_unslash( $_POST[ $this->id ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Forms::sanitize_fields() sanitizes each field.
+		$submitted = \is_array( $_POST[ $this->id ] ?? null ) ? wp_unslash( $_POST[ $this->id ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Forms::sanitize_fields() sanitizes each field.
 		$fields    = $this->get_form( $object_id )['fields'];
 
 		$result = Forms::sanitize_fields( $fields, $submitted );
@@ -210,7 +210,7 @@ final class ObjectForm {
 
 		foreach ( $fields as $field ) {
 			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
-				$this->notices->add( new Notice( 'rejection-' . \md5( "$this->id|{$field['id']}" ), \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) ) );
+				$this->notices->add( new Notice( 'rejection-' . \md5( "$this->id|{$field['id']}" ), esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) ) );
 			}
 		}
 	}
@@ -226,7 +226,7 @@ final class ObjectForm {
 	 * @return  array<string, string>
 	 */
 	public function get_refreshed_nonces( int $object_id ): array {
-		return $this->can_edit( $object_id ) ? array( $this->get_nonce_name() => \wp_create_nonce( $this->get_nonce_action( $object_id ) ) ) : array();
+		return $this->can_edit( $object_id ) ? array( $this->get_nonce_name() => wp_create_nonce( $this->get_nonce_action( $object_id ) ) ) : array();
 	}
 
 	// endregion
@@ -256,7 +256,7 @@ final class ObjectForm {
 			 * @param   list<Field> $fields    The form's fields for the object.
 			 * @param   int         $object_id The id of the object being edited or saved.
 			 */
-			$form['fields'] = \apply_filters( "{$this->id}_fields", $form['fields'], $object_id );
+			$form['fields'] = apply_filters( "{$this->id}_fields", $form['fields'], $object_id );
 
 			$this->forms[ $object_id ] = $form;
 		}
@@ -289,7 +289,7 @@ final class ObjectForm {
 	 * @return  bool
 	 */
 	protected function can_edit( int $object_id ): bool {
-		return \current_user_can( $this->host->get_object_capability(), $object_id ) && \current_user_can( $this->get_form( $object_id )['capability'] );
+		return current_user_can( $this->host->get_object_capability(), $object_id ) && current_user_can( $this->get_form( $object_id )['capability'] );
 	}
 
 	/**

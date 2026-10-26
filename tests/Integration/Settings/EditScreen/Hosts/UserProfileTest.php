@@ -63,10 +63,10 @@ final class UserProfileTest extends TestCase {
 		$host = new UserProfile();
 		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
-		self::assertSame( 10, \has_action( 'show_user_profile', array( $host, 'render_section' ) ) );
-		self::assertSame( 10, \has_action( 'edit_user_profile', array( $host, 'render_section' ) ) );
-		self::assertSame( 10, \has_action( 'personal_options_update', array( $host, 'save_profile' ) ) );
-		self::assertSame( 10, \has_action( 'edit_user_profile_update', array( $host, 'save_profile' ) ) );
+		self::assertSame( 10, has_action( 'show_user_profile', array( $host, 'render_section' ) ) );
+		self::assertSame( 10, has_action( 'edit_user_profile', array( $host, 'render_section' ) ) );
+		self::assertSame( 10, has_action( 'personal_options_update', array( $host, 'save_profile' ) ) );
+		self::assertSame( 10, has_action( 'edit_user_profile_update', array( $host, 'save_profile' ) ) );
 	}
 
 	#[DataProvider( 'screens' )]
@@ -87,8 +87,8 @@ final class UserProfileTest extends TestCase {
 	}
 
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
-		\add_user_meta( $this->subscriber, "_{$this->prefix}_name", 'stored' );
-		\add_user_meta( $this->subscriber, "_{$this->prefix}_empty", '' );
+		add_user_meta( $this->subscriber, "_{$this->prefix}_name", 'stored' );
+		add_user_meta( $this->subscriber, "_{$this->prefix}_empty", '' );
 		$spec = $this->spec(
 			array(
 				$this->field( 'text', 'name', array( 'default' => 'fresh' ) ),
@@ -107,7 +107,7 @@ final class UserProfileTest extends TestCase {
 	#[DataProvider( 'screens' )]
 	public function test_both_screens_save_the_accepted_fields_and_show_a_rejection_after_the_redirect( string $screen ): void {
 		$user_id = 'own' === $screen ? $this->admin : $this->subscriber;
-		\add_user_meta( $user_id, "_{$this->prefix}_note", 'kept' );
+		add_user_meta( $user_id, "_{$this->prefix}_note", 'kept' );
 		$spec = $this->spec(
 			array(
 				$this->field( 'text', 'name' ),
@@ -139,14 +139,14 @@ final class UserProfileTest extends TestCase {
 	#[DataProvider( 'multisite_profiles' )]
 	public function test_a_rejection_on_a_multisite_profile_shows_after_the_redirect_within_the_same_admin( string $path ): void {
 		$spec = $this->spec( array( $this->field( 'text', 'name' ), $this->field( 'text', 'note', array( 'validate' => 'acme:reject' ) ) ) );
-		\grant_super_admin( $this->admin );
+		grant_super_admin( $this->admin );
 
 		try {
 			$data  = self::serialize_form( $this->admin_request( 'GET', $path, $this->admin, self::FIXTURE, $spec )['body'], 'form#your-profile', array( $this->control_name( 'note' ) => 'too long' ) );
 			$saved = $this->admin_request( 'POST', $path, $this->admin, self::FIXTURE, $spec, $data );
 			$next  = $this->follow( $spec, $saved );
 		} finally {
-			\revoke_super_admin( $this->admin );
+			revoke_super_admin( $this->admin );
 		}
 
 		self::assertStringStartsWith( \explode( '/', $path )[0] . '/profile.php', \explode( '/wp-admin/', (string) $saved['location'], 2 )[1] );
@@ -174,7 +174,7 @@ final class UserProfileTest extends TestCase {
 
 	public function test_a_user_editing_themself_without_the_forms_capability_gets_no_section_and_stores_nothing(): void {
 		$contributor = $this->make_profile_user( 'acme_object_forms_contributor', 'contributor' );
-		\add_user_meta( $contributor, "_{$this->prefix}_name", 'kept' );
+		add_user_meta( $contributor, "_{$this->prefix}_name", 'kept' );
 		$open   = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'read' ) );
 		$closed = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'edit_users' ) );
 
@@ -189,7 +189,7 @@ final class UserProfileTest extends TestCase {
 	}
 
 	public function test_an_update_in_code_stores_nothing(): void {
-		\add_user_meta( $this->subscriber, "_{$this->prefix}_name", 'kept' );
+		add_user_meta( $this->subscriber, "_{$this->prefix}_name", 'kept' );
 		$form = new ObjectForm(
 			$this->id,
 			new RecordedDefinition(
@@ -203,11 +203,11 @@ final class UserProfileTest extends TestCase {
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$_POST[ $this->id ] = array( "_{$this->prefix}_name" => 'programmatic' );
 
 		try {
-			\wp_update_user(
+			wp_update_user(
 				array(
 					'ID'           => $this->subscriber,
 					'display_name' => 'Updated in code',
@@ -215,16 +215,16 @@ final class UserProfileTest extends TestCase {
 			);
 		} finally {
 			unset( $_POST[ $this->id ] );
-			\wp_set_current_user( 0 );
+			wp_set_current_user( 0 );
 		}
 
-		self::assertSame( 'Updated in code', \get_userdata( $this->subscriber )->display_name );
+		self::assertSame( 'Updated in code', get_userdata( $this->subscriber )->display_name );
 		self::assertSame( array( 'kept' ), $this->meta( $this->subscriber, 'name' ) );
 	}
 
 	protected function make_profile_user( string $login, string $role ): int {
 		$user_id = $this->make_user( $login, $role );
-		\wp_update_user(
+		wp_update_user(
 			array(
 				'ID'         => $user_id,
 				'user_email' => "$login@example.com",
@@ -275,7 +275,7 @@ final class UserProfileTest extends TestCase {
 	}
 
 	protected function meta( int $user_id, string $name ): array {
-		return \get_user_meta( $user_id, "_{$this->prefix}_$name", false );
+		return get_user_meta( $user_id, "_{$this->prefix}_$name", false );
 	}
 
 	protected function control( \Dom\HTMLDocument $screen, string $name ): \Dom\Element {

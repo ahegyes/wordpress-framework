@@ -36,23 +36,23 @@ final class Requirements {
 	 * @return  bool
 	 */
 	public static function check_floors( string $plugin_file ): bool {
-		$headers = \get_file_data(
+		$headers = get_file_data(
 			$plugin_file,
 			array(
 				'php'       => 'Requires PHP',
 				'wordpress' => 'Requires at least',
 			)
 		);
-		if ( \is_php_version_compatible( $headers['php'] ) && \is_wp_version_compatible( $headers['wordpress'] ) ) {
+		if ( is_php_version_compatible( $headers['php'] ) && is_wp_version_compatible( $headers['wordpress'] ) ) {
 			return true;
 		}
 
-		\add_action(
+		add_action(
 			'all_admin_notices',
 			static function () use ( $plugin_file ): void {
 				// Core translates the plugin's headers while it builds the message, so the message waits until the notice renders.
-				$requirements = \validate_plugin_requirements( \plugin_basename( $plugin_file ) );
-				if ( ! \is_wp_error( $requirements ) ) {
+				$requirements = validate_plugin_requirements( plugin_basename( $plugin_file ) );
+				if ( ! is_wp_error( $requirements ) ) {
 					return; // Core reads the headers from the plugins directory, so a plugin loaded from elsewhere reads as compatible.
 				}
 
@@ -76,22 +76,22 @@ final class Requirements {
 	 * @phpstan-param array{type?: string, dismissible?: bool, id?: string, additional_classes?: array<string>, attributes?: array<string>, paragraph_wrap?: bool} $args
 	 */
 	public static function print_admin_notice( $message, array $args = array( 'type' => 'error' ) ): void {
-		if ( \is_wp_error( $message ) ) {
+		if ( is_wp_error( $message ) ) {
 			$message = $message->get_error_message();
 			$args   += array( 'paragraph_wrap' => false );
 		}
 
-		if ( ! \is_string( $message ) || ! \current_user_can( 'activate_plugins' ) ) {
+		if ( ! \is_string( $message ) || ! current_user_can( 'activate_plugins' ) ) {
 			return;
 		}
 
 		if ( \function_exists( 'wp_admin_notice' ) ) {
-			\wp_admin_notice( $message, $args );
+			wp_admin_notice( $message, $args );
 			return;
 		}
 
 		$type = isset( $args['type'] ) && '' !== $args['type'] ? " notice-{$args['type']}" : '';
-		echo \wp_kses_post( '<div class="notice' . \esc_attr( $type ) . '">' . ( false === ( $args['paragraph_wrap'] ?? true ) ? $message : "<p>$message</p>" ) . '</div>' );
+		echo wp_kses_post( '<div class="notice' . esc_attr( $type ) . '">' . ( false === ( $args['paragraph_wrap'] ?? true ) ? $message : "<p>$message</p>" ) . '</div>' );
 	}
 
 	// endregion

@@ -42,7 +42,7 @@ final class MetadataStore implements ObjectStoreInterface {
 		$values = array();
 		foreach ( $keys as $key ) {
 			// A NULL row reads as absent, as the metadata API reads it, where get_metadata() would return the registered default.
-			$value = \get_metadata_raw( $this->meta_type, $object_id, $key, true );
+			$value = get_metadata_raw( $this->meta_type, $object_id, $key, true );
 			if ( ! \is_null( $value ) ) {
 				$values[ $key ] = $value;
 			}
@@ -61,7 +61,7 @@ final class MetadataStore implements ObjectStoreInterface {
 	public function update_values( int $object_id, array $values ): void {
 		foreach ( $values as $key => $value ) {
 			// The metadata API unslashes what it is given, which would strip a value's own backslashes.
-			\update_metadata( $this->meta_type, $object_id, $key, \wp_slash( $value ) );
+			update_metadata( $this->meta_type, $object_id, $key, wp_slash( $value ) );
 		}
 	}
 

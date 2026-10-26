@@ -10,7 +10,7 @@ trait InterceptsQueriesTrait {
 	// Simulates a concurrent request at the first query that contains the needle.
 	protected function before_query( string $needle, \Closure $callback ): void {
 		$done = false;
-		\add_filter(
+		add_filter(
 			'query',
 			static function ( string $query ) use ( $needle, $callback, &$done ): string {
 				if ( ! $done && \str_contains( $query, $needle ) ) {
@@ -28,7 +28,7 @@ trait InterceptsQueriesTrait {
 		global $wpdb;
 
 		$this->suppressed_errors ??= $wpdb->suppress_errors();
-		\add_filter( 'query', static fn ( string $query ): string => \str_contains( $query, $needle ) ? 'SELECT acme_missing_column' : $query );
+		add_filter( 'query', static fn ( string $query ): string => \str_contains( $query, $needle ) ? 'SELECT acme_missing_column' : $query );
 	}
 
 	#[After]

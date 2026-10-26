@@ -73,7 +73,7 @@ final class ProductDataTabTest extends TestCase {
 		$tab = new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
 		$tab->register_hooks();
 
-		self::assertSame( 10, \has_filter( 'woocommerce_product_data_tabs', array( $tab, 'add_tab' ) ) );
+		self::assertSame( 10, has_filter( 'woocommerce_product_data_tabs', array( $tab, 'add_tab' ) ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_the_edit_screen_needs_it(): void {
@@ -83,8 +83,8 @@ final class ProductDataTabTest extends TestCase {
 		$tab->register_hooks();
 
 		self::assertSame( array(), $definition->calls );
-		self::assertSame( 10, \has_filter( 'woocommerce_product_data_tabs', array( $tab, 'add_tab' ) ) );
-		self::assertSame( 10, \has_action( 'woocommerce_product_data_panels', array( $tab, 'render_panel' ) ) );
+		self::assertSame( 10, has_filter( 'woocommerce_product_data_tabs', array( $tab, 'add_tab' ) ) );
+		self::assertSame( 10, has_action( 'woocommerce_product_data_panels', array( $tab, 'render_panel' ) ) );
 	}
 
 	public function test_the_tab_and_its_panel_render_on_the_product_edit_screen(): void {
@@ -410,7 +410,7 @@ final class ProductDataTabTest extends TestCase {
 
 		$tab->register_hooks();
 
-		self::assertSame( 10, \has_action( 'woocommerce_admin_process_product_object', array( $tab, 'save_fields' ) ) );
+		self::assertSame( 10, has_action( 'woocommerce_admin_process_product_object', array( $tab, 'save_fields' ) ) );
 	}
 
 	public function test_an_unchanged_save_stores_the_defaults_of_a_product_predating_its_fields(): void {
@@ -688,10 +688,10 @@ final class ProductDataTabTest extends TestCase {
 		);
 
 		$this->save( $spec, $product->get_id() );
-		self::assertSame( array( 'limited' ), \get_post_meta( $product->get_id(), $key, false ) );
+		self::assertSame( array( 'limited' ), get_post_meta( $product->get_id(), $key, false ) );
 
 		$this->save( $spec, $product->get_id(), array( $key => 'lifetime' ) );
-		self::assertSame( array( 'lifetime' ), \get_post_meta( $product->get_id(), $key, false ) );
+		self::assertSame( array( 'lifetime' ), get_post_meta( $product->get_id(), $key, false ) );
 	}
 
 	public function test_saving_the_tabs_fields_adds_no_product_save_to_woocommerces_own(): void {
@@ -756,9 +756,9 @@ final class ProductDataTabTest extends TestCase {
 		$product_id = (int) $data['post_ID'];
 		$this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
 
-		self::assertSame( 'publish', \get_post_status( $product_id ) );
-		self::assertSame( array( 'fresh' ), \get_post_meta( $product_id, "_{$this->prefix}_name", false ) );
-		self::assertSame( array( 'yes' ), \get_post_meta( $product_id, "_{$this->prefix}_flag", false ) );
+		self::assertSame( 'publish', get_post_status( $product_id ) );
+		self::assertSame( array( 'fresh' ), get_post_meta( $product_id, "_{$this->prefix}_name", false ) );
+		self::assertSame( array( 'yes' ), get_post_meta( $product_id, "_{$this->prefix}_flag", false ) );
 	}
 
 	protected function spec( array $groups, array $extra = array() ): array {
@@ -808,7 +808,7 @@ final class ProductDataTabTest extends TestCase {
 	}
 
 	protected function meta( \WC_Product $product, string $name ): array {
-		return \get_post_meta( $product->get_id(), "_{$this->prefix}_$name", false );
+		return get_post_meta( $product->get_id(), "_{$this->prefix}_$name", false );
 	}
 
 	// WooCommerce shows the errors a save stored on the next admin page.

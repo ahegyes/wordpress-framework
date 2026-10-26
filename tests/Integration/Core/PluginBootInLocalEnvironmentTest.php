@@ -31,7 +31,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 
 	#[\Override]
 	protected function setUp(): void {
-		\add_action(
+		add_action(
 			'acme_initialized',
 			function (): void {
 				$this->fired[] = 'acme_initialized';
@@ -39,7 +39,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 			10,
 			0
 		);
-		\add_action(
+		add_action(
 			'acme_initialization_failure',
 			function ( \Throwable $failure ): void {
 				$this->fired[]    = 'acme_initialization_failure';
@@ -50,11 +50,11 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 
 	#[\Override]
 	protected function tearDown(): void {
-		\delete_transient( 'acme_boot_failure_' . \md5( 'composition failed' ) );
+		delete_transient( 'acme_boot_failure_' . \md5( 'composition failed' ) );
 	}
 
 	public function test_a_failing_composition_is_rethrown_after_the_failure_action(): void {
-		self::assertSame( 'local', \wp_get_environment_type() );
+		self::assertSame( 'local', wp_get_environment_type() );
 		$failure = new \RuntimeException( 'composition failed' );
 		$boot    = new PluginBoot( __DIR__ . '/../../Fixtures/Core/acme-boot.php', 'acme', new PsrNullLogger() );
 

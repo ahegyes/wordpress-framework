@@ -29,20 +29,20 @@ final class UpdaterTest extends TestCase {
 	#[\Override]
 	protected function setUp(): void {
 		$this->slug = 'acme-updater-' . \bin2hex( \random_bytes( 3 ) );
-		\add_filter( 'pre_http_request', array( $this, 'answer_request' ), 10, 3 );
+		add_filter( 'pre_http_request', array( $this, 'answer_request' ), 10, 3 );
 	}
 
 	#[\Override]
 	protected function tearDown(): void {
 		foreach ( $this->plugin_files as $plugin_file ) {
 			$slug = \basename( $plugin_file, '.php' );
-			\delete_transient( "{$slug}_github_release_stable" );
-			\delete_transient( "{$slug}_github_release_prerelease" );
-			\wp_delete_file( $plugin_file );
+			delete_transient( "{$slug}_github_release_stable" );
+			delete_transient( "{$slug}_github_release_prerelease" );
+			wp_delete_file( $plugin_file );
 			\rmdir( \dirname( $plugin_file ) );
 		}
-		\delete_site_transient( 'update_plugins' );
-		\wp_clean_plugins_cache( false );
+		delete_site_transient( 'update_plugins' );
+		wp_clean_plugins_cache( false );
 	}
 
 	public static function unusable_releases(): array {
@@ -140,8 +140,8 @@ final class UpdaterTest extends TestCase {
 		self::assertSame( $this->api_url( 'releases?per_page=10' ), $this->requests[0] );
 		self::assertIsObject( $offer );
 		self::assertSame( '1.2.0-beta.1', $offer->new_version );
-		self::assertIsArray( \get_transient( "{$this->slug}_github_release_prerelease" ) );
-		self::assertFalse( \get_transient( "{$this->slug}_github_release_stable" ) );
+		self::assertIsArray( get_transient( "{$this->slug}_github_release_prerelease" ) );
+		self::assertFalse( get_transient( "{$this->slug}_github_release_stable" ) );
 	}
 
 	#[DataProvider( 'prerelease_lists' )]
@@ -164,7 +164,7 @@ final class UpdaterTest extends TestCase {
 
 		self::assertArrayNotHasKey( $this->basename(), $updates->response );
 		self::assertSame( '2.0.0', $updates->no_update[ $this->basename() ]->new_version ?? null );
-		self::assertEqualsWithDelta( \HOUR_IN_SECONDS, $this->cache_lifetime( 'stable' ), 5 );
+		self::assertEqualsWithDelta( HOUR_IN_SECONDS, $this->cache_lifetime( 'stable' ), 5 );
 	}
 
 	#[DataProvider( 'unusable_releases' )]
@@ -178,26 +178,26 @@ final class UpdaterTest extends TestCase {
 		self::assertNotEmpty( $requests );
 		self::assertArrayNotHasKey( $this->basename(), $updates->response );
 		self::assertArrayNotHasKey( $this->basename(), $updates->no_update );
-		self::assertSame( array(), \get_transient( "{$this->slug}_github_release_stable" ) );
-		self::assertEqualsWithDelta( 5 * \MINUTE_IN_SECONDS, $this->cache_lifetime( 'stable' ), 5 );
+		self::assertSame( array(), get_transient( "{$this->slug}_github_release_stable" ) );
+		self::assertEqualsWithDelta( 5 * MINUTE_IN_SECONDS, $this->cache_lifetime( 'stable' ), 5 );
 
 		$this->check_for_updates();
 		self::assertSame( $requests, $this->requests );
 
-		\update_option( "_transient_timeout_{$this->slug}_github_release_stable", \time() - 1 );
+		update_option( "_transient_timeout_{$this->slug}_github_release_stable", \time() - 1 );
 		$this->check_for_updates();
 		self::assertSame( \array_merge( $requests, $requests ), $this->requests );
 	}
 
 	public function test_a_cached_record_without_a_package_is_fetched_again(): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
-		\set_transient( "{$this->slug}_github_release_stable", array( 'version' => '9.0.0' ), \HOUR_IN_SECONDS );
+		set_transient( "{$this->slug}_github_release_stable", array( 'version' => '9.0.0' ), HOUR_IN_SECONDS );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
 		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
 
 		self::assertSame( '2.0.0', $offer->new_version ?? null );
-		self::assertSame( $this->asset_url( 'v2.0.0' ), \get_transient( "{$this->slug}_github_release_stable" )['package'] ?? null );
+		self::assertSame( $this->asset_url( 'v2.0.0' ), get_transient( "{$this->slug}_github_release_stable" )['package'] ?? null );
 	}
 
 	public function test_another_plugins_check_passes_through_without_a_request(): void {
@@ -215,7 +215,7 @@ final class UpdaterTest extends TestCase {
 	public function test_a_check_an_earlier_filter_answered_passes_through_without_a_request(): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
 		$basename = $this->basename();
-		\add_filter(
+		add_filter(
 			'update_plugins_github.com',
 			static fn ( $update, array $plugin_data, string $plugin_file ): mixed => $basename === $plugin_file ? array( 'version' => '9.9.9' ) : $update,
 			9,
@@ -266,7 +266,7 @@ final class UpdaterTest extends TestCase {
 		$this->stage_latest( array( 'body' => "Fixes <b>the</b> widget.\nAdds a setting." ) + $this->release( 'v2.0.0' ), '', $requirements );
 		$this->check_for_updates();
 
-		$details = \plugins_api( 'plugin_information', array( 'slug' => $this->slug ) );
+		$details = plugins_api( 'plugin_information', array( 'slug' => $this->slug ) );
 
 		self::assertIsObject( $details );
 		self::assertSame( 'Acme Updater', $details->name );
@@ -284,7 +284,7 @@ final class UpdaterTest extends TestCase {
 		Updater::register( $this->write_plugin( $this->slug ) );
 		$this->stage( $this->api_url( 'releases/latest' ), 500, '' );
 
-		$details = \plugins_api( 'plugin_information', array( 'slug' => $this->slug ) );
+		$details = plugins_api( 'plugin_information', array( 'slug' => $this->slug ) );
 
 		self::assertIsObject( $details );
 		self::assertSame( 'Acme Updater', $details->name );
@@ -299,7 +299,7 @@ final class UpdaterTest extends TestCase {
 	public function test_other_details_requests_pass_through_without_a_request( mixed $result, string $action, ?string $slug ): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
 
-		$details = \apply_filters( 'plugins_api', $result, $action, (object) array( 'slug' => $slug ?? $this->slug ) );
+		$details = apply_filters( 'plugins_api', $result, $action, (object) array( 'slug' => $slug ?? $this->slug ) );
 
 		self::assertSame( $result, $details );
 		self::assertSame( array(), $this->requests );
@@ -317,15 +317,15 @@ final class UpdaterTest extends TestCase {
 	}
 
 	public function test_a_plugin_file_outside_a_folder_and_without_a_text_domain_gets_no_updates(): void {
-		$plugin_file = \WP_PLUGIN_DIR . "/$this->slug.php";
+		$plugin_file = WP_PLUGIN_DIR . "/$this->slug.php";
 		\file_put_contents( $plugin_file, "<?php\n/**\n * Plugin Name: Acme Updater\n * Version: 1.0.0\n * Update URI: https://github.com/acme/$this->slug\n */\n" );
 		try {
 			Updater::register( $plugin_file );
 
-			self::assertFalse( \apply_filters( 'update_plugins_github.com', false, array(), "$this->slug.php", array() ) );
+			self::assertFalse( apply_filters( 'update_plugins_github.com', false, array(), "$this->slug.php", array() ) );
 			self::assertSame( array(), $this->requests );
 		} finally {
-			\wp_delete_file( $plugin_file );
+			wp_delete_file( $plugin_file );
 		}
 	}
 
@@ -335,8 +335,8 @@ final class UpdaterTest extends TestCase {
 
 		Updater::register( $plugin_file );
 
-		self::assertFalse( \apply_filters( 'update_plugins_github.com', false, \get_plugin_data( $plugin_file, false, false ), $this->basename(), array() ) );
-		self::assertFalse( \apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => $this->slug ) ) );
+		self::assertFalse( apply_filters( 'update_plugins_github.com', false, get_plugin_data( $plugin_file, false, false ), $this->basename(), array() ) );
+		self::assertFalse( apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => $this->slug ) ) );
 		self::assertSame( array(), $this->requests );
 	}
 
@@ -344,7 +344,7 @@ final class UpdaterTest extends TestCase {
 		Updater::register( $this->write_plugin( $this->slug ) );
 		$this->write_plugin( $this->slug, array( 'Update URI' => "https://gitlab.com/acme/$this->slug" ) );
 
-		self::assertFalse( \apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => $this->slug ) ) );
+		self::assertFalse( apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => $this->slug ) ) );
 		self::assertSame( array(), $this->requests );
 	}
 
@@ -371,13 +371,13 @@ final class UpdaterTest extends TestCase {
 
 		self::assertArrayNotHasKey( $this->basename(), $updates->response );
 		self::assertArrayNotHasKey( $this->basename(), $updates->no_update );
-		self::assertEqualsWithDelta( \HOUR_IN_SECONDS, $this->cache_lifetime( 'stable' ), 5 );
+		self::assertEqualsWithDelta( HOUR_IN_SECONDS, $this->cache_lifetime( 'stable' ), 5 );
 	}
 
 	public function test_the_configuration_filter_runs_at_check_time_with_the_defaults_and_the_basename(): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
 		$calls = array();
-		\add_filter(
+		add_filter(
 			"dws_github_updater_config_$this->slug",
 			static function ( array $config, string $plugin_basename ) use ( &$calls ): array {
 				$calls[] = array( $config, $plugin_basename );
@@ -390,7 +390,7 @@ final class UpdaterTest extends TestCase {
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
 		$this->check_for_updates();
-		\plugins_api( 'plugin_information', array( 'slug' => $this->slug ) );
+		plugins_api( 'plugin_information', array( 'slug' => $this->slug ) );
 
 		$defaults = array(
 			'enabled'    => true,
@@ -404,20 +404,20 @@ final class UpdaterTest extends TestCase {
 	#[DataProvider( 'unusable_configurations' )]
 	public function test_a_disabled_or_unusable_configuration_offers_nothing_and_leaves_details_to_wordpress( \Closure $filter ): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
-		\add_filter( "dws_github_updater_config_$this->slug", $filter );
+		add_filter( "dws_github_updater_config_$this->slug", $filter );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
 		$updates = $this->check_for_updates();
 
 		self::assertArrayNotHasKey( $this->basename(), $updates->response );
 		self::assertArrayNotHasKey( $this->basename(), $updates->no_update );
-		self::assertFalse( \apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => $this->slug ) ) );
+		self::assertFalse( apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => $this->slug ) ) );
 		self::assertSame( array(), $this->requests );
 	}
 
 	public function test_a_filtered_repository_asset_and_channel_drive_the_request_the_package_and_the_cache(): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
-		\add_filter(
+		add_filter(
 			"dws_github_updater_config_$this->slug",
 			static fn (): array => array(
 				'repository' => 'acme/elsewhere',
@@ -432,15 +432,15 @@ final class UpdaterTest extends TestCase {
 				'browser_download_url' => 'https://github.com/acme/elsewhere/releases/download/v2.0.0-beta.1/bundle.zip',
 			),
 		) + $release['assets'];
-		$this->stage( 'https://api.github.com/repos/acme/elsewhere/releases?per_page=10', 200, (string) \wp_json_encode( array( $release ) ) );
+		$this->stage( 'https://api.github.com/repos/acme/elsewhere/releases?per_page=10', 200, (string) wp_json_encode( array( $release ) ) );
 		$this->stage( "https://raw.githubusercontent.com/acme/elsewhere/v2.0.0-beta.1/$this->slug.php", 200, "<?php\n" );
 
 		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
 
 		self::assertSame( 'https://api.github.com/repos/acme/elsewhere/releases?per_page=10', $this->requests[0] );
 		self::assertSame( 'https://github.com/acme/elsewhere/releases/download/v2.0.0-beta.1/bundle.zip', $offer->package ?? null );
-		self::assertIsArray( \get_transient( "{$this->slug}_github_release_prerelease" ) );
-		self::assertFalse( \get_transient( "{$this->slug}_github_release_stable" ) );
+		self::assertIsArray( get_transient( "{$this->slug}_github_release_prerelease" ) );
+		self::assertFalse( get_transient( "{$this->slug}_github_release_stable" ) );
 	}
 
 	public function answer_request( mixed $preempt, array $args, string $url ): mixed {
@@ -451,10 +451,10 @@ final class UpdaterTest extends TestCase {
 				'no_update'    => array(),
 			);
 
-			return self::response( 200, (string) \wp_json_encode( $body ) );
+			return self::response( 200, (string) wp_json_encode( $body ) );
 		}
 
-		if ( \in_array( \wp_parse_url( $url, \PHP_URL_HOST ), array( 'api.github.com', 'raw.githubusercontent.com' ), true ) ) {
+		if ( \in_array( wp_parse_url( $url, \PHP_URL_HOST ), array( 'api.github.com', 'raw.githubusercontent.com' ), true ) ) {
 			$this->requests[] = $url;
 		}
 
@@ -487,7 +487,7 @@ final class UpdaterTest extends TestCase {
 	}
 
 	public function stage_latest( array $release, string $slug = '', array $requirements = array() ): void {
-		$this->stage( $this->api_url( 'releases/latest', $slug ), 200, (string) \wp_json_encode( $release ) );
+		$this->stage( $this->api_url( 'releases/latest', $slug ), 200, (string) wp_json_encode( $release ) );
 		$this->stage_entry_file( $release['tag_name'], $slug, $requirements );
 	}
 
@@ -502,14 +502,14 @@ final class UpdaterTest extends TestCase {
 	}
 
 	protected function stage_list( array $releases ): void {
-		$this->stage( $this->api_url( 'releases?per_page=10' ), 200, (string) \wp_json_encode( $releases ) );
+		$this->stage( $this->api_url( 'releases?per_page=10' ), 200, (string) wp_json_encode( $releases ) );
 		foreach ( $releases as $release ) {
 			$this->stage_entry_file( $release['tag_name'] );
 		}
 	}
 
 	protected function stage_release_at( string $path, array $release ): void {
-		$this->stage( $this->api_url( $path ), 200, (string) \wp_json_encode( 'releases/latest' === $path ? $release : array( $release ) ) );
+		$this->stage( $this->api_url( $path ), 200, (string) wp_json_encode( 'releases/latest' === $path ? $release : array( $release ) ) );
 		$this->stage_entry_file( $release['tag_name'] );
 	}
 
@@ -546,29 +546,29 @@ final class UpdaterTest extends TestCase {
 			$lines[] = "$name: $value";
 		}
 
-		$plugin_file = \WP_PLUGIN_DIR . "/$slug/$slug.php";
-		\wp_mkdir_p( \dirname( $plugin_file ) );
+		$plugin_file = WP_PLUGIN_DIR . "/$slug/$slug.php";
+		wp_mkdir_p( \dirname( $plugin_file ) );
 		\file_put_contents( $plugin_file, "<?php\n/**\n * " . \implode( "\n * ", $lines ) . "\n */\n" );
 		if ( ! \in_array( $plugin_file, $this->plugin_files, true ) ) {
 			$this->plugin_files[] = $plugin_file;
 		}
-		\wp_clean_plugins_cache( false );
+		wp_clean_plugins_cache( false );
 
 		return $plugin_file;
 	}
 
 	protected function check_for_updates(): object {
-		\delete_site_transient( 'update_plugins' );
-		\wp_update_plugins();
+		delete_site_transient( 'update_plugins' );
+		wp_update_plugins();
 
-		$updates = \get_site_transient( 'update_plugins' );
+		$updates = get_site_transient( 'update_plugins' );
 		self::assertIsObject( $updates );
 
 		return $updates;
 	}
 
 	protected function cache_lifetime( string $channel ): int {
-		return (int) \get_option( "_transient_timeout_{$this->slug}_github_release_$channel" ) - \time();
+		return (int) get_option( "_transient_timeout_{$this->slug}_github_release_$channel" ) - \time();
 	}
 
 	protected static function response( int $code, string $body ): array {

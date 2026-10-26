@@ -52,8 +52,8 @@ final class AdminNoticesTest extends TestCase {
 
 	#[\Override]
 	protected function tearDown(): void {
-		while ( \is_multisite() && \ms_is_switched() ) {
-			\restore_current_blog();
+		while ( is_multisite() && ms_is_switched() ) {
+			restore_current_blog();
 		}
 	}
 
@@ -97,7 +97,7 @@ final class AdminNoticesTest extends TestCase {
 
 	#[DataProvider( 'scopes' )]
 	public function test_added_notices_are_listed_and_removed_in_their_scope( NoticeScope $scope ): void {
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notice  = $this->notice( 'saved', $scope );
 
@@ -110,7 +110,7 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	public function test_a_user_notice_can_be_added_for_another_user(): void {
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 
 		$notices->add( $this->notice( 'saved' ), $this->editor );
@@ -138,19 +138,19 @@ final class AdminNoticesTest extends TestCase {
 
 	public function test_a_request_notice_added_after_the_notices_showed_is_reported(): void {
 		$reported = array();
-		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		\add_action(
+		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		add_action(
 			'doing_it_wrong_run',
 			static function ( string $function_name ) use ( &$reported ): void {
 				$reported[] = $function_name;
 			}
 		);
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'before', NoticeScope::Request ) );
 		self::assertSame( array(), $reported );
 
-		\do_action( 'all_admin_notices' );
+		do_action( 'all_admin_notices' );
 		$notices->add( $this->notice( 'user' ) );
 		$notices->add( $this->notice( 'after', NoticeScope::Request ) );
 
@@ -159,7 +159,7 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	public function test_a_store_that_throws_on_add_is_logged_and_the_notice_is_lost(): void {
-		\add_filter( "pre_update_option_{$this->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) );
+		add_filter( "pre_update_option_{$this->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) );
 		$notices = $this->notices();
 
 		$notices->add( $this->notice( 'saved', NoticeScope::Site ) );
@@ -188,7 +188,7 @@ final class AdminNoticesTest extends TestCase {
 		self::assertSame( array( $this->dom_id( 'site', 'migrated' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
 		self::assertSame( array(), self::notices_in( $this->render( $this->other_admin ) ) );
 		self::assertSame( array(), $this->notices()->get_notices( NoticeScope::Site ) );
-		self::assertFalse( \get_user_option( "{$this->prefix}_hidden_notices", $this->admin ) );
+		self::assertFalse( get_user_option( "{$this->prefix}_hidden_notices", $this->admin ) );
 	}
 
 	public function test_a_per_viewer_site_one_shot_shows_once_to_each_capable_user_and_records_each_delivery(): void {
@@ -198,7 +198,7 @@ final class AdminNoticesTest extends TestCase {
 		foreach ( array( $this->admin, $this->other_admin ) as $user_id ) {
 			self::assertSame( array( $this->dom_id( 'site', 'news' ) ), \array_keys( self::notices_in( $this->render( $user_id ) ) ) );
 			self::assertSame( array(), self::notices_in( $this->render( $user_id ) ) );
-			self::assertSame( 'delivered', \get_user_option( "{$this->prefix}_hidden_notices", $user_id )['site:news']['state'] ?? null );
+			self::assertSame( 'delivered', get_user_option( "{$this->prefix}_hidden_notices", $user_id )['site:news']['state'] ?? null );
 		}
 		self::assertCount( 1, $this->notices()->get_notices( NoticeScope::Site ) );
 	}
@@ -219,7 +219,7 @@ final class AdminNoticesTest extends TestCase {
 
 	public function test_a_damaged_hidden_state_hides_nothing(): void {
 		$this->notices()->add( $this->notice( 'news', NoticeScope::Site, per_viewer: true ) );
-		\update_user_option( $this->admin, "{$this->prefix}_hidden_notices", array( 'site:news' => 'dismissed' ) );
+		update_user_option( $this->admin, "{$this->prefix}_hidden_notices", array( 'site:news' => 'dismissed' ) );
 
 		self::assertSame( array( $this->dom_id( 'site', 'news' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
 	}
@@ -234,7 +234,7 @@ final class AdminNoticesTest extends TestCase {
 
 	#[DataProvider( 'surfaces' )]
 	public function test_each_surface_shows_its_scopes_in_order_and_consumes_only_what_it_shows( string $screen, array $shown ): void {
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		foreach ( array( NoticeScope::Request, NoticeScope::User, NoticeScope::Site, NoticeScope::Network ) as $scope ) {
 			$notices->add( $this->notice( 'x', $scope ) );
@@ -249,7 +249,7 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	public function test_nothing_shows_outside_the_admin_or_to_nobody(): void {
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'x', NoticeScope::Request ) );
 		$notices->add( $this->notice( 'x', NoticeScope::Site, capability: 'exist' ) );
@@ -296,7 +296,7 @@ final class AdminNoticesTest extends TestCase {
 
 	public function test_the_visibility_filter_hides_a_notice_without_consuming_it_unless_it_returns_true(): void {
 		$calls = array();
-		\add_filter(
+		add_filter(
 			"{$this->prefix}_notice_visible",
 			static function ( mixed $visible, string $id, string $scope ) use ( &$calls ): mixed {
 				$calls[] = array( $visible, $id, $scope );
@@ -321,7 +321,7 @@ final class AdminNoticesTest extends TestCase {
 
 	public function test_the_message_filter_replaces_the_printed_message_unless_it_returns_no_string(): void {
 		$calls = array();
-		\add_filter(
+		add_filter(
 			"{$this->prefix}_notice_message",
 			static function ( string $message, string $id, string $scope ) use ( &$calls ): ?string {
 				$calls[] = array( $message, $id, $scope );
@@ -343,7 +343,7 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	public function test_the_markup_names_each_scopes_notice_apart_and_gives_only_persistent_dismissible_notices_a_nonce(): void {
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'x', NoticeScope::Request, type: NoticeType::Warning, persistent: true ) );
 		$notices->add( $this->notice( 'x', NoticeScope::Site, persistent: true, dismissible: false ) );
@@ -356,8 +356,8 @@ final class AdminNoticesTest extends TestCase {
 		$request = $shown[ $this->dom_id( 'request', 'x' ) ];
 		self::assertSame( 'notice notice-warning is-dismissible', $request['class'] );
 		self::assertSame( array( $this->prefix, 'request', 'x' ), array( $request['data-notices'], $request['data-notice-scope'], $request['data-notice-id'] ) );
-		self::assertSame( 1, \wp_verify_nonce( $request['data-notice-nonce'], "{$this->prefix}_dismiss|" . \get_current_blog_id() . ':request:x' ) );
-		self::assertSame( 1, \wp_verify_nonce( $shown[ $this->dom_id( 'user', 'kept' ) ]['data-notice-nonce'], "{$this->prefix}_dismiss|" . \get_current_blog_id() . ':user:kept' ) );
+		self::assertSame( 1, wp_verify_nonce( $request['data-notice-nonce'], "{$this->prefix}_dismiss|" . get_current_blog_id() . ':request:x' ) );
+		self::assertSame( 1, wp_verify_nonce( $shown[ $this->dom_id( 'user', 'kept' ) ]['data-notice-nonce'], "{$this->prefix}_dismiss|" . get_current_blog_id() . ':user:kept' ) );
 		self::assertSame( 'notice notice-error', $shown[ $this->dom_id( 'site', 'x' ) ]['class'] );
 		self::assertArrayNotHasKey( 'data-notice-nonce', $shown[ $this->dom_id( 'site', 'x' ) ] );
 		self::assertSame( 'notice notice-error is-dismissible', $shown[ $this->dom_id( 'user', 'once' ) ]['class'] );
@@ -365,20 +365,20 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	public function test_the_dismiss_script_loads_on_wp_api_fetch_only_after_a_persistent_dismissible_notice_and_targets_this_plugins_notices(): void {
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'once', NoticeScope::Request ) );
 		$this->render( $this->admin, $notices );
 		$notices->enqueue_dismiss_script();
-		self::assertFalse( \wp_script_is( $this->script_handle(), 'registered' ) );
+		self::assertFalse( wp_script_is( $this->script_handle(), 'registered' ) );
 
 		$notices->add( $this->notice( 'kept', NoticeScope::Request, persistent: true ) );
 		$this->render( $this->admin, $notices );
 		$notices->enqueue_dismiss_script();
-		$script = \implode( "\n", \wp_scripts()->get_data( $this->script_handle(), 'after' ) );
+		$script = \implode( "\n", wp_scripts()->get_data( $this->script_handle(), 'after' ) );
 
-		self::assertTrue( \wp_script_is( $this->script_handle() ) );
-		self::assertSame( array( 'wp-api-fetch' ), \wp_scripts()->registered[ $this->script_handle() ]->deps );
+		self::assertTrue( wp_script_is( $this->script_handle() ) );
+		self::assertSame( array( 'wp-api-fetch' ), wp_scripts()->registered[ $this->script_handle() ]->deps );
 		self::assertSame( 1, \preg_match( '/\}\s*\)\(\s*(\{.*\})\s*\);/s', $script, $matches ) );
 		self::assertSame(
 			array(
@@ -399,20 +399,20 @@ final class AdminNoticesTest extends TestCase {
 		$this->view_as( $this->admin );
 
 		\ob_start();
-		\do_action( 'all_admin_notices' );
-		\do_action( 'admin_footer' );
+		do_action( 'all_admin_notices' );
+		do_action( 'admin_footer' );
 		$html = (string) \ob_get_clean();
 
 		self::assertSame( array( $this->dom_id( 'site', 'kept' ) ), \array_keys( self::notices_in( $html ) ) );
-		self::assertTrue( \wp_script_is( $this->script_handle() ) );
-		self::assertSame( 10, \has_action( 'rest_api_init', array( $notices, 'register_rest_routes' ) ) );
+		self::assertTrue( wp_script_is( $this->script_handle() ) );
+		self::assertSame( 10, has_action( 'rest_api_init', array( $notices, 'register_rest_routes' ) ) );
 	}
 
 	public function test_a_store_that_throws_on_read_is_logged_and_the_other_scopes_still_show(): void {
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'shared', NoticeScope::Site ) );
 		$notices->add( $this->notice( 'saved' ), $this->admin );
-		\add_filter( "pre_option_{$this->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) );
+		add_filter( "pre_option_{$this->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) );
 
 		self::assertSame( array( $this->dom_id( 'user', 'saved' ) ), \array_keys( self::notices_in( $this->render( $this->admin, $notices ) ) ) );
 		self::assertCount( 1, $this->logger->records );
@@ -423,7 +423,7 @@ final class AdminNoticesTest extends TestCase {
 	public function test_a_shared_notice_shows_without_reading_the_viewers_dismissals(): void {
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'setup', NoticeScope::Site, persistent: true ) );
-		\add_filter( "get_user_option_{$this->prefix}_hidden_notices", static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) );
+		add_filter( "get_user_option_{$this->prefix}_hidden_notices", static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) );
 
 		self::assertSame( array( $this->dom_id( 'site', 'setup' ) ), \array_keys( self::notices_in( $this->render( $this->admin, $notices ) ) ) );
 		self::assertSame( array(), $this->logger->records );
@@ -432,7 +432,7 @@ final class AdminNoticesTest extends TestCase {
 	public function test_a_store_that_throws_on_acknowledgement_is_logged_and_the_notice_shows_again(): void {
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'saved' ), $this->admin );
-		\add_filter( 'update_user_metadata', static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) );
+		add_filter( 'update_user_metadata', static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) );
 
 		self::assertCount( 1, self::notices_in( $this->render( $this->admin, $notices ) ) );
 		self::assertSame( array( 'error', 'Could not acknowledge a {scope} notice: {message}', 'user' ), array( $this->logger->records[0][0], $this->logger->records[0][1], $this->logger->records[0][2]['scope'] ) );
@@ -442,36 +442,36 @@ final class AdminNoticesTest extends TestCase {
 	#[Group( 'multisite' )]
 	public function test_a_user_notice_shows_only_on_its_site(): void {
 		$site_id = $this->make_site( 'acme-notices' );
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		$this->notices()->add( $this->notice( 'saved' ), $this->admin );
-		\restore_current_blog();
+		restore_current_blog();
 
 		self::assertSame( array(), self::notices_in( $this->render( $this->admin ) ) );
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		self::assertSame( array( $this->dom_id( 'user', 'saved' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
 	}
 
 	#[Group( 'multisite' )]
 	public function test_a_site_notice_shows_only_on_its_site(): void {
 		$site_id = $this->make_site( 'acme-notices' );
-		\add_user_to_blog( $site_id, $this->admin, 'administrator' );
-		\switch_to_blog( $site_id );
+		add_user_to_blog( $site_id, $this->admin, 'administrator' );
+		switch_to_blog( $site_id );
 		$this->notices()->add( $this->notice( 'x', NoticeScope::Site, persistent: true ) );
-		\restore_current_blog();
+		restore_current_blog();
 
 		self::assertSame( array(), self::notices_in( $this->render( $this->admin ) ) );
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		self::assertSame( array( $this->dom_id( 'site', 'x' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
 	}
 
 	#[Group( 'multisite' )]
 	public function test_a_network_notice_shows_on_every_site_and_in_the_network_admin(): void {
 		$site_id = $this->make_site( 'acme-notices' );
-		\add_user_to_blog( $site_id, $this->admin, 'administrator' );
-		\switch_to_blog( $site_id );
+		add_user_to_blog( $site_id, $this->admin, 'administrator' );
+		switch_to_blog( $site_id );
 		$this->notices()->add( $this->notice( 'x', NoticeScope::Network, persistent: true, capability: 'read' ) );
 		self::assertSame( array( $this->dom_id( 'network', 'x' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
-		\restore_current_blog();
+		restore_current_blog();
 
 		self::assertSame( array( $this->dom_id( 'network', 'x' ) ), \array_keys( self::notices_in( $this->render( $this->admin ) ) ) );
 		self::assertSame( array( $this->dom_id( 'network', 'x' ) ), \array_keys( self::notices_in( $this->render( $this->admin, screen: 'dashboard-network' ) ) ) );
@@ -491,7 +491,7 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	protected function hide( int $user_id, string $key, string $state ): void {
-		\update_user_option(
+		update_user_option(
 			$user_id,
 			"{$this->prefix}_hidden_notices",
 			array(
@@ -509,8 +509,8 @@ final class AdminNoticesTest extends TestCase {
 
 	#[After]
 	protected function remove_the_script(): void {
-		\wp_dequeue_script( $this->script_handle() );
-		\wp_deregister_script( $this->script_handle() );
+		wp_dequeue_script( $this->script_handle() );
+		wp_deregister_script( $this->script_handle() );
 	}
 
 	protected function notice( string $id, NoticeScope $scope = NoticeScope::User, string $message = '', mixed ...$arguments ): Notice {

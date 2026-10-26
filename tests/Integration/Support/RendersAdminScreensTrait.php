@@ -9,9 +9,9 @@ trait RendersAdminScreensTrait {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
 
-		\wp_set_current_user( $user_id );
-		\set_current_screen( $screen_id );
-		\get_current_screen()?->is_block_editor( $block_editor );
+		wp_set_current_user( $user_id );
+		set_current_screen( $screen_id );
+		get_current_screen()?->is_block_editor( $block_editor );
 	}
 
 	protected static function notices_in( string $html ): array {
@@ -31,6 +31,6 @@ trait RendersAdminScreensTrait {
 	#[After]
 	protected function leave_admin_screen(): void {
 		$GLOBALS['current_screen'] = null;
-		\wp_set_current_user( 0 );
+		wp_set_current_user( 0 );
 	}
 }

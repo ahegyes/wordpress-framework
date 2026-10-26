@@ -53,7 +53,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$this->other_admin = $this->make_user( 'acme_notices_other_admin', 'administrator' );
 		$this->logger      = new DismissalLogger();
 		$this->notices     = new AdminNotices( $this->prefix, $this->logger );
-		\add_action(
+		add_action(
 			"{$this->prefix}_notice_dismissed",
 			function ( mixed ...$arguments ): void {
 				$this->dismissed[] = $arguments;
@@ -65,10 +65,10 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$this->saved_request = array( $_SERVER, $_POST, $_COOKIE ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Saves the request globals the HTTP-path test replaces.
 
 		// A server holding only this route keeps every core and WooCommerce controller out of the run's memory.
-		\remove_all_actions( 'rest_api_init' );
+		remove_all_actions( 'rest_api_init' );
 		$this->notices->register_hooks();
 		$GLOBALS['wp_rest_server'] = null;
-		\rest_get_server();
+		rest_get_server();
 	}
 
 	#[\Override]
@@ -76,8 +76,8 @@ final class AdminNoticesDismissalTest extends TestCase {
 		list( $_SERVER, $_POST, $_COOKIE ) = $this->saved_request;
 		$GLOBALS['wp_rest_server']         = null;
 		$GLOBALS['wp_rest_auth_cookie']    = null;
-		while ( \is_multisite() && \ms_is_switched() ) {
-			\restore_current_blog();
+		while ( is_multisite() && ms_is_switched() ) {
+			restore_current_blog();
 		}
 	}
 
@@ -100,7 +100,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 		self::assertSame( array(), $this->render( $this->other_admin ) );
 		self::assertSame( array(), $this->notices->get_notices( NoticeScope::Site ) );
-		self::assertFalse( \get_user_option( "{$this->prefix}_hidden_notices", $this->admin ) );
+		self::assertFalse( get_user_option( "{$this->prefix}_hidden_notices", $this->admin ) );
 		$this->notices->add( $this->notice( 'setup', NoticeScope::Site ) );
 		self::assertSame( array( $this->dom_id( 'site', 'setup' ) ), \array_keys( $this->render( $this->admin ) ) );
 	}
@@ -112,7 +112,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 		self::assertSame( array(), $this->render( $this->admin ) );
 		self::assertSame( array( $this->dom_id( 'site', 'news' ) ), \array_keys( $this->render( $this->other_admin ) ) );
-		self::assertSame( 'dismissed', \get_user_option( "{$this->prefix}_hidden_notices", $this->admin )['site:news']['state'] ?? null );
+		self::assertSame( 'dismissed', get_user_option( "{$this->prefix}_hidden_notices", $this->admin )['site:news']['state'] ?? null );
 	}
 
 	public function test_dismissing_a_request_notice_records_only_the_callers_state_and_leaves_a_site_notice_of_the_same_id(): void {
@@ -143,8 +143,8 @@ final class AdminNoticesDismissalTest extends TestCase {
 		self::assertSame( array( 200, array( 'changed' => false ) ), array( $again->get_status(), $again->get_data() ) );
 		self::assertSame(
 			array(
-				array( 'setup', 'site', $this->admin, \get_current_blog_id() ),
-				array( 'news', 'site', $this->admin, \get_current_blog_id() ),
+				array( 'setup', 'site', $this->admin, get_current_blog_id() ),
+				array( 'news', 'site', $this->admin, get_current_blog_id() ),
 				array( 'mine', 'user', $this->admin, $this->admin ),
 			),
 			$this->dismissed
@@ -163,14 +163,14 @@ final class AdminNoticesDismissalTest extends TestCase {
 			'another-users-nonce' => array(
 				static function ( self $test ): array {
 					$shown = $test->shown( $test->other_admin, 'site', 'x' );
-					\wp_set_current_user( $test->admin );
+					wp_set_current_user( $test->admin );
 					return array( $shown, 403 );
 				},
 			),
 			'logged-out'          => array(
 				static function ( self $test ): array {
 					$shown = $test->shown( $test->admin, 'site', 'x' );
-					\wp_set_current_user( 0 );
+					wp_set_current_user( 0 );
 					return array( $shown, 401 );
 				},
 			),
@@ -208,7 +208,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 	#[DataProvider( 'refusals' )]
 	public function test_a_dismissal_without_a_matching_nonce_audience_or_record_changes_nothing( \Closure $arrange ): void {
 		$this->notices->add( $this->notice( 'x', NoticeScope::Site ) );
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		list( $params, $status ) = $arrange( $this );
 		$stored                  = $this->notices->get_notices( NoticeScope::Site );
 
@@ -228,7 +228,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	#[DataProvider( 'invalid_parameters' )]
 	public function test_invalid_parameters_are_rejected( array $params ): void {
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$valid = array(
 			'scope' => 'site',
 			'id'    => 'x',
@@ -256,7 +256,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	#[DataProvider( 'unchecked_parameters' )]
 	public function test_the_callback_rejects_invalid_parameters_without_the_routes_schema( array $params ): void {
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_body_params( $params );
 
@@ -268,8 +268,8 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	public static function failing_stores(): array {
 		return array(
-			'per-viewer-state' => array( true, static fn ( self $test ) => \add_filter( 'update_user_metadata', static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) ) ),
-			'shared-notice'    => array( false, static fn ( self $test ) => \add_filter( "pre_update_option_{$test->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) ) ),
+			'per-viewer-state' => array( true, static fn ( self $test ) => add_filter( 'update_user_metadata', static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) ) ),
+			'shared-notice'    => array( false, static fn ( self $test ) => add_filter( "pre_update_option_{$test->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) ) ),
 		);
 	}
 
@@ -291,7 +291,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$notices->add( $this->notice( 'x', NoticeScope::Site ) );
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_body_params( $this->shown( $this->admin, 'site', 'x' ) );
-		\add_filter( "pre_update_option_{$this->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) );
+		add_filter( "pre_update_option_{$this->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) );
 		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
 		$previous = \ini_set( 'error_log', $log_file );
 
@@ -300,7 +300,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 			$log      = (string) \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
-			\wp_delete_file( $log_file );
+			wp_delete_file( $log_file );
 		}
 
 		self::assertInstanceOf( \WP_Error::class, $response );
@@ -311,12 +311,12 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	public function test_the_http_path_with_cookie_authentication_needs_the_rest_nonce(): void {
 		$this->notices->add( $this->notice( 'setup', NoticeScope::Site ) );
-		$_SERVER['REQUEST_METHOD']    = 'GET';
-		$expiration                   = \time() + \DAY_IN_SECONDS;
-		$token                        = \WP_Session_Tokens::get_instance( $this->admin )->create( $expiration );
-		$_COOKIE[ \LOGGED_IN_COOKIE ] = \wp_generate_auth_cookie( $this->admin, $expiration, 'logged_in', $token );
-		$params                       = $this->shown( $this->admin, 'site', 'setup' );
-		$rest_nonce                   = \wp_create_nonce( 'wp_rest' );
+		$_SERVER['REQUEST_METHOD']   = 'GET';
+		$expiration                  = \time() + DAY_IN_SECONDS;
+		$token                       = \WP_Session_Tokens::get_instance( $this->admin )->create( $expiration );
+		$_COOKIE[ LOGGED_IN_COOKIE ] = wp_generate_auth_cookie( $this->admin, $expiration, 'logged_in', $token );
+		$params                      = $this->shown( $this->admin, 'site', 'setup' );
+		$rest_nonce                  = wp_create_nonce( 'wp_rest' );
 
 		self::assertSame( 'rest_forbidden', $this->serve( $params, null )['code'] );
 		self::assertCount( 1, $this->notices->get_notices( NoticeScope::Site ) );
@@ -328,32 +328,32 @@ final class AdminNoticesDismissalTest extends TestCase {
 	#[Group( 'multisite' )]
 	public function test_a_shared_network_notice_dismissed_on_one_site_is_deleted_for_the_network(): void {
 		$site_id = $this->make_site( 'acme-notices' );
-		\add_user_to_blog( $site_id, $this->admin, 'administrator' );
+		add_user_to_blog( $site_id, $this->admin, 'administrator' );
 		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read' ) );
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 
 		self::assertSame( 200, $this->dismiss( $this->shown( $this->admin, 'network', 'x' ) )->get_status() );
 
-		\restore_current_blog();
+		restore_current_blog();
 		self::assertSame( array(), $this->render( $this->admin, 'dashboard-network' ) );
-		self::assertSame( array(), \get_network_option( null, "{$this->prefix}_network_notices" ) );
-		self::assertSame( array(), \get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", false ) );
+		self::assertSame( array(), get_network_option( null, "{$this->prefix}_network_notices" ) );
+		self::assertSame( array(), get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", false ) );
 	}
 
 	#[Group( 'multisite' )]
 	public function test_a_per_viewer_network_notice_dismissed_on_one_site_stays_hidden_on_every_site_and_in_the_network_admin(): void {
 		$site_id = $this->make_site( 'acme-notices' );
-		\add_user_to_blog( $site_id, $this->admin, 'administrator' );
+		add_user_to_blog( $site_id, $this->admin, 'administrator' );
 		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true ) );
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 
 		self::assertSame( 200, $this->dismiss( $this->shown( $this->admin, 'network', 'x' ) )->get_status() );
 
 		self::assertSame( array(), $this->render( $this->admin ) );
-		\restore_current_blog();
+		restore_current_blog();
 		self::assertSame( array(), $this->render( $this->admin ) );
 		self::assertSame( array(), $this->render( $this->admin, 'dashboard-network' ) );
-		self::assertSame( array( 'network:x' ), \array_keys( \get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", true ) ) );
+		self::assertSame( array( 'network:x' ), \array_keys( get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", true ) ) );
 	}
 
 	protected function notice( string $id, NoticeScope $scope, mixed ...$arguments ): Notice {
@@ -387,7 +387,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$request = new \WP_REST_Request( 'POST', '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' );
 		$request->set_body_params( \array_filter( $params, static fn ( mixed $value ): bool => null !== $value ) );
 
-		return \rest_do_request( $request );
+		return rest_do_request( $request );
 	}
 
 	// The REST nonce is checked only when the login cookie, not the test, sets the user.
@@ -395,7 +395,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$GLOBALS['current_screen']      = null;
 		$GLOBALS['current_user']        = null;
 		$GLOBALS['wp_rest_auth_cookie'] = null;
-		\wp_get_current_user();
+		wp_get_current_user();
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		unset( $_SERVER['HTTP_X_WP_NONCE'] );
 		if ( null !== $rest_nonce ) {
@@ -404,7 +404,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$_POST = $params;
 
 		\ob_start();
-		\rest_get_server()->serve_request( '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' );
+		rest_get_server()->serve_request( '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' );
 
 		return \json_decode( (string) \ob_get_clean(), true );
 	}

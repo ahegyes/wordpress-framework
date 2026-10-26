@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\After;
 trait UninstallFixturesTrait {
 	use IsolatesStorageTrait;
 
-	protected const string PLUGIN_FILE = \WP_PLUGIN_DIR . '/acme-uninstall/acme-uninstall.php';
+	protected const string PLUGIN_FILE = WP_PLUGIN_DIR . '/acme-uninstall/acme-uninstall.php';
 
 	protected array $calls = array();
 
@@ -50,19 +50,19 @@ trait UninstallFixturesTrait {
 		$blog_prefix = $wpdb->get_blog_prefix();
 
 		foreach ( array( "{$p}_settings", "{$p}_cache_a", "{$p}_cache_b", "{$p}_kept", "{$p}_cacheZz", \strtoupper( "{$p}_cache_x" ) ) as $option ) {
-			\update_option( $option, 'x' );
+			update_option( $option, 'x' );
 		}
-		\update_network_option( null, "{$p}_network_settings", 'x' );
-		\update_network_option( null, "{$p}_network_kept", 'x' );
-		\set_transient( "{$p}_transient", 'x' );
-		\set_transient( "{$p}_kept_transient", 'x' );
+		update_network_option( null, "{$p}_network_settings", 'x' );
+		update_network_option( null, "{$p}_network_kept", 'x' );
+		set_transient( "{$p}_transient", 'x' );
+		set_transient( "{$p}_kept_transient", 'x' );
 
 		foreach ( array( 'publish', 'trash', 'auto-draft' ) as $status ) {
 			$this->ids['type'][] = $this->make_post( "{$p}_type", $status );
 		}
 		$this->ids['foreign_post'] = $this->make_post( "{$p}_other", 'publish' );
 
-		$term = \wp_insert_term( "$p-term", 'category' );
+		$term = wp_insert_term( "$p-term", 'category' );
 		self::assertIsArray( $term );
 		$this->ids['term'] = (int) $term['term_id'];
 
@@ -81,18 +81,18 @@ trait UninstallFixturesTrait {
 		);
 		foreach ( $meta_objects as $type => $object_id ) {
 			foreach ( array( \strtoupper( "{$p}_flag" ), \strtoupper( "{$p}_{$type}_a" ), "{$p}_flag", "{$p}_{$type}_a", "{$p}_kept", "{$p}_{$type}Za" ) as $key ) {
-				\add_metadata( $type, $object_id, $key, 'x' );
+				add_metadata( $type, $object_id, $key, 'x' );
 			}
 		}
 
 		$this->ids['user'] = $this->make_user( 'acme_uninstall_user', 'subscriber' );
 		foreach ( array( \strtoupper( "{$p}_global_state" ), \strtoupper( "$blog_prefix{$p}_site_a" ), "$blog_prefix{$p}_site_state", "$blog_prefix{$p}_site_a", "{$p}_global_state", "{$p}_global_a", "{$p}_site_state", "{$p}_kept", "$blog_prefix{$p}_kept" ) as $key ) {
-			\add_user_meta( $this->ids['user'], $key, 'x' );
+			add_user_meta( $this->ids['user'], $key, 'x' );
 		}
 
-		\get_role( 'administrator' )->add_cap( "manage_$p" );
-		\get_role( 'editor' )->add_cap( "manage_$p" );
-		\get_role( 'editor' )->add_cap( "edit_$p" );
+		get_role( 'administrator' )->add_cap( "manage_$p" );
+		get_role( 'editor' )->add_cap( "manage_$p" );
+		get_role( 'editor' )->add_cap( "edit_$p" );
 
 		foreach ( array( "{$p}_log", "{$p}_kept" ) as $table ) {
 			$wpdb->query( "CREATE TABLE `$wpdb->prefix$table` ( id INT )" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Creates the test's own tables.
@@ -107,7 +107,7 @@ trait UninstallFixturesTrait {
 
 		return array(
 			'options'      => \array_map( $this->option_exists( ... ), array( "{$p}_settings", "{$p}_cache_a", "{$p}_cache_b" ) ),
-			'transient'    => false !== \get_transient( "{$p}_transient" ),
+			'transient'    => false !== get_transient( "{$p}_transient" ),
 			'posts'        => \count( $this->get_posts_of_type( "{$p}_type" ) ),
 			'meta'         => array(
 				$this->meta_exists( 'post', "{$p}_flag" ),
@@ -179,7 +179,7 @@ trait UninstallFixturesTrait {
 			),
 			array(
 				'options'      => \array_map( $this->option_exists( ... ), array( "{$p}_kept", "{$p}_cacheZz", \strtoupper( "{$p}_cache_x" ) ) ),
-				'transient'    => false !== \get_transient( "{$p}_kept_transient" ),
+				'transient'    => false !== get_transient( "{$p}_kept_transient" ),
 				'posts'        => array( $this->post_exists( $this->ids['foreign_post'] ), $this->post_exists( $this->ids['upper_post'] ) ),
 				'meta'         => array(
 					$this->meta_exists( 'post', "{$p}_kept" ),
@@ -223,7 +223,7 @@ trait UninstallFixturesTrait {
 			$lines = \file( $log_file, \FILE_IGNORE_NEW_LINES );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
-			\wp_delete_file( $log_file );
+			wp_delete_file( $log_file );
 		}
 
 		return (array) $lines;
@@ -239,7 +239,7 @@ trait UninstallFixturesTrait {
 	protected function network_option_exists( string $name ): bool {
 		global $wpdb;
 
-		return \is_multisite()
+		return is_multisite()
 			? '0' !== $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE BINARY meta_key = %s', $wpdb->sitemeta, $name ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the network options cache.
 			: $this->option_exists( $name );
 	}
@@ -253,7 +253,7 @@ trait UninstallFixturesTrait {
 	protected function meta_exists( string $type, string $key ): bool {
 		global $wpdb;
 
-		return '0' !== $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE BINARY meta_key = %s', \_get_meta_table( $type ), $key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the meta cache.
+		return '0' !== $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE BINARY meta_key = %s', _get_meta_table( $type ), $key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the meta cache.
 	}
 
 	protected function post_exists( int $id ): bool {
@@ -287,13 +287,13 @@ trait UninstallFixturesTrait {
 	protected function role_has( string $role, string $capability ): bool {
 		global $wpdb;
 
-		$roles = \get_option( $wpdb->get_blog_prefix() . 'user_roles' );
+		$roles = get_option( $wpdb->get_blog_prefix() . 'user_roles' );
 
 		return ! empty( $roles[ $role ]['capabilities'][ $capability ] );
 	}
 
 	protected function make_post( string $type, string $status ): int {
-		$id = \wp_insert_post(
+		$id = wp_insert_post(
 			array(
 				'post_type'   => $type,
 				'post_status' => $status,
@@ -307,7 +307,7 @@ trait UninstallFixturesTrait {
 	}
 
 	protected function make_comment( string $type ): int {
-		$id = \wp_insert_comment(
+		$id = wp_insert_comment(
 			array(
 				'comment_post_ID' => $this->ids['foreign_post'],
 				'comment_type'    => $type,
@@ -326,27 +326,27 @@ trait UninstallFixturesTrait {
 		$p = $this->prefix;
 		foreach ( \array_merge( $this->ids['type'] ?? array(), array( $this->ids['foreign_post'] ?? 0, $this->ids['upper_post'] ?? 0 ) ) as $id ) {
 			if ( 0 < $id ) {
-				\wp_delete_post( $id, true );
+				wp_delete_post( $id, true );
 			}
 		}
 		if ( isset( $this->ids['term'] ) ) {
-			\wp_delete_term( $this->ids['term'], 'category' );
+			wp_delete_term( $this->ids['term'], 'category' );
 		}
 		foreach ( array( 'administrator', 'editor' ) as $role ) {
-			\get_role( $role )->remove_cap( "manage_$p" );
-			\get_role( $role )->remove_cap( "edit_$p" );
+			get_role( $role )->remove_cap( "manage_$p" );
+			get_role( $role )->remove_cap( "edit_$p" );
 		}
 		foreach ( array( "{$p}_log", "{$p}_kept" ) as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS `$wpdb->prefix$table`" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Drops the test's own tables.
 		}
-		\delete_transient( "{$p}_transient" );
-		\delete_transient( "{$p}_kept_transient" );
+		delete_transient( "{$p}_transient" );
+		delete_transient( "{$p}_kept_transient" );
 		foreach ( array( "{$p}_cron", "{$p}_foreign_cron" ) as $hook ) {
-			\wp_unschedule_hook( $hook );
+			wp_unschedule_hook( $hook );
 		}
 		if ( \function_exists( 'as_unschedule_all_actions' ) ) {
 			foreach ( array( "{$p}_as", "{$p}_grouped", "{$p}_foreign_as" ) as $hook ) {
-				\as_unschedule_all_actions( $hook );
+				as_unschedule_all_actions( $hook );
 			}
 		}
 		$this->ids   = array();

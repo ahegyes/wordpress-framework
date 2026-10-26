@@ -68,17 +68,17 @@ final class TransientCacheTest extends TestCase {
 		$sentinel = new \stdClass();
 		self::assertTrue( $this->cache()->set( 'key', $value ) );
 
-		\wp_cache_flush();
+		wp_cache_flush();
 		$cache = $this->cache();
 
-		self::assertSame( \maybe_serialize( $value ), \maybe_serialize( $cache->get( 'key', $sentinel ) ) );
+		self::assertSame( maybe_serialize( $value ), maybe_serialize( $cache->get( 'key', $sentinel ) ) );
 		self::assertTrue( $cache->has( 'key' ) );
 	}
 
 	#[DataProviderExternal( CachesTest::class, 'valid_keys' )]
 	public function test_any_key_psr_16_allows_round_trips_through_the_options_table( string $key ): void {
 		self::assertTrue( $this->cache()->set( $key, 'Value.' ) );
-		\wp_cache_flush();
+		wp_cache_flush();
 
 		self::assertSame( 'Value.', $this->cache()->get( $key ) );
 	}
@@ -89,7 +89,7 @@ final class TransientCacheTest extends TestCase {
 		$cache->set( 'key', 'Lower.' );
 		$cache->set( 'cafe', 'Plain.' );
 		$cache->set( 'café', 'Accented.' );
-		\wp_cache_flush();
+		wp_cache_flush();
 
 		self::assertSame( array( 'Upper.', 'Lower.', 'Plain.', 'Accented.' ), \array_values( $this->cache()->getMultiple( array( 'Key', 'key', 'cafe', 'café' ) ) ) );
 	}
@@ -110,14 +110,14 @@ final class TransientCacheTest extends TestCase {
 	}
 
 	public function test_a_filtered_scalar_reads_as_a_miss(): void {
-		\add_filter( "pre_transient_{$this->prefix}_" . \md5( 'key' ), static fn (): string => 'Filtered.' );
+		add_filter( "pre_transient_{$this->prefix}_" . \md5( 'key' ), static fn (): string => 'Filtered.' );
 
 		self::assertSame( 'Default.', $this->cache()->get( 'key', 'Default.' ) );
 	}
 
 	public static function lifetimes(): array {
 		return array(
-			'null-is-a-day'   => array( null, \DAY_IN_SECONDS ),
+			'null-is-a-day'   => array( null, DAY_IN_SECONDS ),
 			'seconds'         => array( 120, 120 ),
 			'hours-interval'  => array( new \DateInterval( 'PT2H' ), 7200 ),
 			'months-interval' => array( new \DateInterval( 'P1M' ), null ),
@@ -139,9 +139,9 @@ final class TransientCacheTest extends TestCase {
 		global $wpdb;
 
 		$cache = $this->cache();
-		$cache->set( 'key', 'Value.', \HOUR_IN_SECONDS );
+		$cache->set( 'key', 'Value.', HOUR_IN_SECONDS );
 		$wpdb->update( $wpdb->options, array( 'option_value' => \time() - 1 ), array( 'option_name' => "_transient_timeout_{$this->prefix}_" . \md5( 'key' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Expires the entry without waiting.
-		\wp_cache_flush();
+		wp_cache_flush();
 
 		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
 		self::assertFalse( $cache->has( 'key' ) );
@@ -155,7 +155,7 @@ final class TransientCacheTest extends TestCase {
 		$this->fail_queries( "UPDATE `$wpdb->options` SET" );
 
 		self::assertFalse( $cache->set( 'key', 'Newer.' ) );
-		\wp_cache_flush();
+		wp_cache_flush();
 		self::assertSame( 'Prior.', $cache->get( 'key' ) );
 	}
 
@@ -195,7 +195,7 @@ final class TransientCacheTest extends TestCase {
 	}
 
 	public function test_behind_a_persistent_object_cache_the_same_results_hold(): void {
-		$previous = \wp_using_ext_object_cache( true );
+		$previous = wp_using_ext_object_cache( true );
 
 		try {
 			$cache = $this->cache();
@@ -214,7 +214,7 @@ final class TransientCacheTest extends TestCase {
 	}
 
 	public function test_behind_a_persistent_object_cache_changing_a_stored_or_returned_object_never_changes_the_entry(): void {
-		$previous = \wp_using_ext_object_cache( true );
+		$previous = wp_using_ext_object_cache( true );
 
 		try {
 			$cache  = $this->cache();
@@ -232,7 +232,7 @@ final class TransientCacheTest extends TestCase {
 	}
 
 	public function test_behind_a_persistent_object_cache_clearing_makes_every_earlier_entry_miss_and_a_key_set_again_reuses_its_entry(): void {
-		$previous = \wp_using_ext_object_cache( true );
+		$previous = wp_using_ext_object_cache( true );
 
 		try {
 			$cache = $this->cache();
@@ -257,9 +257,9 @@ final class TransientCacheTest extends TestCase {
 		$cache = $this->cache();
 
 		self::assertTrue( $cache->clear() );
-		$first = \get_option( "{$this->prefix}_cache_generation" );
+		$first = get_option( "{$this->prefix}_cache_generation" );
 		self::assertTrue( $cache->clear() );
-		$second = \get_option( "{$this->prefix}_cache_generation" );
+		$second = get_option( "{$this->prefix}_cache_generation" );
 
 		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', $first );
 		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', $second );
@@ -276,31 +276,31 @@ final class TransientCacheTest extends TestCase {
 
 	#[DataProvider( 'unusable_generations' )]
 	public function test_a_generation_option_holding_no_non_empty_string_reads_as_none_until_a_write_starts_one( mixed $stored ): void {
-		\update_option( "{$this->prefix}_cache_generation", $stored );
-		\set_transient(
+		update_option( "{$this->prefix}_cache_generation", $stored );
+		set_transient(
 			"{$this->prefix}_" . \md5( 'key' ),
 			array(
 				'value'      => 'Value.',
 				'generation' => $stored,
 			),
-			\HOUR_IN_SECONDS
+			HOUR_IN_SECONDS
 		);
 		$cache = $this->cache();
 
 		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
 		self::assertTrue( $cache->set( 'other', 'Other.' ) );
-		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', \get_option( "{$this->prefix}_cache_generation" ) );
+		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', get_option( "{$this->prefix}_cache_generation" ) );
 		self::assertSame( 'Other.', $cache->get( 'other' ) );
 	}
 
 	public function test_without_a_generation_every_read_misses_without_a_write(): void {
-		\set_transient(
+		set_transient(
 			"{$this->prefix}_" . \md5( 'key' ),
 			array(
 				'value'      => 'Value.',
 				'generation' => null,
 			),
-			\HOUR_IN_SECONDS
+			HOUR_IN_SECONDS
 		);
 		$stored = $this->stored();
 		$cache  = $this->cache();
@@ -314,7 +314,7 @@ final class TransientCacheTest extends TestCase {
 	public function test_an_entry_from_before_the_generation_was_deleted_never_comes_back(): void {
 		$cache = $this->cache();
 		$cache->set( 'old', 'Old.' );
-		\delete_option( "{$this->prefix}_cache_generation" );
+		delete_option( "{$this->prefix}_cache_generation" );
 
 		$cache->set( 'new', 'New.' );
 
@@ -356,12 +356,12 @@ final class TransientCacheTest extends TestCase {
 
 		self::assertFalse( $one->has( 'key' ) );
 		self::assertFalse( $two->has( 'key' ) );
-		self::assertFalse( \get_option( "{$this->prefix}_one_cache_generation" ) );
+		self::assertFalse( get_option( "{$this->prefix}_one_cache_generation" ) );
 	}
 
 	// Returning the stored value from this filter makes update_option() report a failed write, as a refused database write would.
 	public function test_a_generation_that_cannot_be_stored_fails_writes_and_clears(): void {
-		\add_filter( "pre_update_option_{$this->prefix}_cache_generation", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
+		add_filter( "pre_update_option_{$this->prefix}_cache_generation", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
 		$cache = $this->cache();
 
 		self::assertFalse( $cache->set( 'key', 'Value.' ) );
@@ -372,7 +372,7 @@ final class TransientCacheTest extends TestCase {
 	public function test_behind_a_persistent_object_cache_a_failed_delete_returns_false(): void {
 		global $wp_object_cache;
 
-		$previous = \wp_using_ext_object_cache( true );
+		$previous = wp_using_ext_object_cache( true );
 		$original = $wp_object_cache;
 
 		$wp_object_cache = new class() extends \WP_Object_Cache {

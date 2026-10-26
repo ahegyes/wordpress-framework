@@ -49,7 +49,7 @@ final class PluginBootTest extends TestCase {
 	protected function setUp(): void {
 		$this->delete_failure_transients();
 		$this->logger = new RecordingLogger();
-		\add_action(
+		add_action(
 			'acme_initialized',
 			function (): void {
 				$this->fired[] = 'acme_initialized';
@@ -57,7 +57,7 @@ final class PluginBootTest extends TestCase {
 			10,
 			0
 		);
-		\add_action(
+		add_action(
 			'acme_initialization_blocked',
 			function (): void {
 				$this->fired[] = 'acme_initialization_blocked';
@@ -65,7 +65,7 @@ final class PluginBootTest extends TestCase {
 			10,
 			0
 		);
-		\add_action(
+		add_action(
 			'acme_initialization_failure',
 			function ( \Throwable $failure ): void {
 				$this->fired[]    = 'acme_initialization_failure';
@@ -77,7 +77,7 @@ final class PluginBootTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		$this->delete_failure_transients();
-		\wp_set_current_user( 0 );
+		wp_set_current_user( 0 );
 	}
 
 	public function test_a_composition_that_completes_boots_and_announces_initialization_once(): void {
@@ -101,7 +101,7 @@ final class PluginBootTest extends TestCase {
 	public function test_a_composition_that_reports_an_unmet_requirement_is_blocked(): void {
 		// The all hook receives an action's own arguments, before do_action() pads an argumentless call with an empty string.
 		$arguments = array();
-		\add_action(
+		add_action(
 			'all',
 			static function ( string $hook_name, mixed ...$args ) use ( &$arguments ): void {
 				if ( 'acme_initialization_blocked' === $hook_name ) {
@@ -128,10 +128,10 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
 		self::assertSame( array( $failure ), $this->failures );
 
-		\wp_set_current_user( $this->make_user( 'acme-boot-admin', 'administrator' ) );
+		wp_set_current_user( $this->make_user( 'acme-boot-admin', 'administrator' ) );
 		self::assertStringContainsString( self::NOTICE, $this->render_admin_notices() );
 
-		\wp_set_current_user( $this->make_user( 'acme-boot-editor', 'editor' ) );
+		wp_set_current_user( $this->make_user( 'acme-boot-editor', 'editor' ) );
 		self::assertStringNotContainsString( self::NOTICE, $this->render_admin_notices() );
 	}
 
@@ -173,7 +173,7 @@ final class PluginBootTest extends TestCase {
 			$log = (string) \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
-			\wp_delete_file( $log_file );
+			wp_delete_file( $log_file );
 		}
 
 		self::assertSame( 'failed', $boot->status );
@@ -183,14 +183,14 @@ final class PluginBootTest extends TestCase {
 		self::assertStringContainsString( 'RuntimeException: composition failed in ' . __FILE__ . ':' . $failure->getLine(), $log );
 		self::assertStringContainsString( $logging_failure::class . ': ' . $logging_failure->getMessage(), $log );
 
-		\wp_set_current_user( $this->make_user( 'acme-boot-admin', 'administrator' ) );
+		wp_set_current_user( $this->make_user( 'acme-boot-admin', 'administrator' ) );
 		self::assertStringContainsString( self::NOTICE, $this->render_admin_notices() );
 	}
 
 	// An interrupted run leaves its throttle transients behind, which silence the next run's logging for up to an hour.
 	protected function delete_failure_transients(): void {
 		foreach ( array( 'composition failed', 'first failure', 'second failure' ) as $message ) {
-			\delete_transient( 'acme_boot_failure_' . \md5( $message ) );
+			delete_transient( 'acme_boot_failure_' . \md5( $message ) );
 		}
 	}
 
@@ -200,7 +200,7 @@ final class PluginBootTest extends TestCase {
 
 	protected function render_admin_notices(): string {
 		\ob_start();
-		\do_action( 'all_admin_notices' );
+		do_action( 'all_admin_notices' );
 
 		return (string) \ob_get_clean();
 	}

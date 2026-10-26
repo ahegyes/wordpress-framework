@@ -8,7 +8,7 @@ trait ProductFixturesTrait {
 	protected array $product_ids = array();
 
 	protected function make_product( array $meta = array(), string $type = 'simple' ): \WC_Product {
-		$product = \wc_get_product_object( $type );
+		$product = wc_get_product_object( $type );
 		$product->set_name( 'Acme product' );
 		foreach ( $meta as $key => $value ) {
 			$product->update_meta_data( $key, $value );
@@ -22,9 +22,9 @@ trait ProductFixturesTrait {
 	#[After]
 	protected function delete_products(): void {
 		foreach ( $this->product_ids as $product_id ) {
-			\wp_delete_post( $product_id, true );
+			wp_delete_post( $product_id, true );
 		}
-		\delete_option( 'woocommerce_meta_box_errors' );
-		\wp_cache_flush();
+		delete_option( 'woocommerce_meta_box_errors' );
+		wp_cache_flush();
 	}
 }

@@ -63,7 +63,7 @@ final class CachesTest extends TestCase {
 
 		$cache = $this->cache( $kind );
 
-		self::assertSame( \maybe_serialize( $value ), \maybe_serialize( $cache->get( 'key', $sentinel ) ) );
+		self::assertSame( maybe_serialize( $value ), maybe_serialize( $cache->get( 'key', $sentinel ) ) );
 		self::assertTrue( $cache->has( 'key' ) );
 	}
 
@@ -426,14 +426,14 @@ final class CachesTest extends TestCase {
 		$cache   = $this->cache( $kind );
 		$cache->set( 'key', 'Main.' );
 
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		try {
 			$missed = $cache->get( 'key', 'Default.' );
 			$cache->set( 'key', 'Other.' );
 			$cache->clear();
 			$cleared = $cache->has( 'key' );
 		} finally {
-			\restore_current_blog();
+			restore_current_blog();
 		}
 
 		self::assertSame( 'Default.', $missed );
@@ -457,16 +457,16 @@ final class CachesTest extends TestCase {
 	}
 
 	protected function generation( string $kind ): ?string {
-		$generation = 'transient' === $kind ? \get_option( "{$this->prefix}_cache_cache_generation" ) : \wp_cache_get( 'last_changed', "{$this->prefix}_cache" );
+		$generation = 'transient' === $kind ? get_option( "{$this->prefix}_cache_cache_generation" ) : wp_cache_get( 'last_changed', "{$this->prefix}_cache" );
 
 		return \is_string( $generation ) ? $generation : null;
 	}
 
 	protected function plant( string $kind, string $key, mixed $value ): void {
 		if ( 'transient' === $kind ) {
-			\set_transient( "{$this->prefix}_cache_" . \md5( $key ), $value, \HOUR_IN_SECONDS );
+			set_transient( "{$this->prefix}_cache_" . \md5( $key ), $value, HOUR_IN_SECONDS );
 		} else {
-			\wp_cache_set( \md5( $key ), $value, "{$this->prefix}_cache" );
+			wp_cache_set( \md5( $key ), $value, "{$this->prefix}_cache" );
 		}
 	}
 

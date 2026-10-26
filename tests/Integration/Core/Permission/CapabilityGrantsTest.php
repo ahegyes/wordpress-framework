@@ -50,14 +50,14 @@ final class CapabilityGrantsTest extends TestCase {
 	protected function tearDown(): void {
 		// The roles row is shared by every test, so each test's roles and capabilities leave it.
 		$this->next_request();
-		foreach ( \wp_roles()->roles as $role => $data ) {
+		foreach ( wp_roles()->roles as $role => $data ) {
 			if ( \str_starts_with( $role, $this->prefix ) ) {
-				\remove_role( $role );
+				remove_role( $role );
 				continue;
 			}
 			foreach ( \array_keys( $data['capabilities'] ) as $cap ) {
 				if ( \str_starts_with( (string) $cap, $this->prefix ) ) {
-					\wp_roles()->remove_cap( $role, (string) $cap );
+					wp_roles()->remove_cap( $role, (string) $cap );
 				}
 			}
 		}
@@ -133,7 +133,7 @@ final class CapabilityGrantsTest extends TestCase {
 		$declared = array( $this->add_role( 'editor' ) => array( $this->cap( 'a' ) ) );
 		$this->grants( $declared )->run();
 		$this->next_request();
-		\wp_load_alloptions();
+		wp_load_alloptions();
 
 		$queries = $wpdb->num_queries;
 		$this->grants( $declared )->run();
@@ -154,7 +154,7 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertArrayNotHasKey( $later, $this->stored_roles() );
 		self::assertEquals( array( $editor => array( $this->cap( 'a' ) ) ), $this->ledger() );
 
-		\add_role( $later, 'Later' );
+		add_role( $later, 'Later' );
 		$this->next_request();
 		$this->grants( $declared )->run();
 
@@ -179,8 +179,8 @@ final class CapabilityGrantsTest extends TestCase {
 	public function test_a_ledgered_pair_the_declaration_drops_is_revoked_unless_changed_by_hand_and_leaves_the_ledger(): void {
 		$editor = $this->add_role( 'editor' );
 		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ), $this->cap( 'c' ) ) ) )->run();
-		\wp_roles()->remove_cap( $editor, $this->cap( 'b' ) );
-		\wp_roles()->add_cap( $editor, $this->cap( 'c' ), false );
+		wp_roles()->remove_cap( $editor, $this->cap( 'b' ) );
+		wp_roles()->add_cap( $editor, $this->cap( 'c' ), false );
 
 		$this->next_request();
 		$this->grants( array() )->run();
@@ -197,7 +197,7 @@ final class CapabilityGrantsTest extends TestCase {
 			$author => array( $this->cap( 'a' ) ),
 		);
 		$this->grants( $declared )->run();
-		\remove_role( $author );
+		remove_role( $author );
 
 		$this->next_request();
 		$this->grants( $declared )->run();
@@ -208,8 +208,8 @@ final class CapabilityGrantsTest extends TestCase {
 	public function test_a_declared_pair_removed_or_denied_by_hand_stays_so_when_a_later_run_grants_another(): void {
 		$editor = $this->add_role( 'editor' );
 		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ) ) ) )->run();
-		\wp_roles()->remove_cap( $editor, $this->cap( 'a' ) );
-		\wp_roles()->add_cap( $editor, $this->cap( 'b' ), false );
+		wp_roles()->remove_cap( $editor, $this->cap( 'a' ) );
+		wp_roles()->add_cap( $editor, $this->cap( 'b' ), false );
 
 		$this->next_request();
 		$this->grants( array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ), $this->cap( 'c' ) ) ) )->run();
@@ -228,7 +228,7 @@ final class CapabilityGrantsTest extends TestCase {
 		$editor   = $this->add_role( 'editor' );
 		$declared = array( $editor => array( $this->cap( 'a' ) ) );
 		$this->grants( $declared )->run();
-		\remove_role( $editor );
+		remove_role( $editor );
 		$this->next_request();
 		$this->grants( $declared )->run();
 
@@ -246,7 +246,7 @@ final class CapabilityGrantsTest extends TestCase {
 		$grants->register_hooks();
 		$grants->run();
 
-		\remove_role( $editor );
+		remove_role( $editor );
 		$this->add_role( 'editor' );
 		$this->next_request();
 		$this->grants( $declared )->run();
@@ -277,13 +277,13 @@ final class CapabilityGrantsTest extends TestCase {
 		$grants = $this->grants( array( $editor => array( $this->cap( 'a' ) ) ) );
 		$grants->register_hooks();
 		$grants->run();
-		$row = \get_option( "{$this->prefix}_grants" );
+		$row = get_option( "{$this->prefix}_grants" );
 
-		\remove_role( $other );
-		\add_option( "{$this->prefix}_unrelated", array( $editor => array() ) );
-		\update_option( "{$this->prefix}_unrelated", array() );
+		remove_role( $other );
+		add_option( "{$this->prefix}_unrelated", array( $editor => array() ) );
+		update_option( "{$this->prefix}_unrelated", array() );
 
-		self::assertSame( $row, \get_option( "{$this->prefix}_grants" ) );
+		self::assertSame( $row, get_option( "{$this->prefix}_grants" ) );
 	}
 
 	public function test_a_changed_declaration_grants_the_added_pairs_and_revokes_the_dropped_ones_in_one_run(): void {
@@ -317,7 +317,7 @@ final class CapabilityGrantsTest extends TestCase {
 		$warning = array( 'warning', 'The roles row did not keep the capability changes {changes}, so the next request makes them again.', array( 'changes' => "grant {$this->cap( 'a' )} to $editor" ) );
 		self::assertSame( array( $warning, $warning ), $this->logger->records );
 
-		\remove_all_filters( 'pre_update_option_' . \wp_roles()->role_key );
+		remove_all_filters( 'pre_update_option_' . wp_roles()->role_key );
 		$this->next_request();
 		$this->grants( $declared )->run();
 
@@ -337,7 +337,7 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertEquals( array( $editor => array( $this->cap( 'a' ) ) ), $this->ledger() );
 		self::assertSame( array( array( 'warning', 'The roles row did not keep the capability changes {changes}, so the next request makes them again.', array( 'changes' => "revoke {$this->cap( 'a' )} from $editor" ) ) ), $this->logger->records );
 
-		\remove_all_filters( 'pre_update_option_' . \wp_roles()->role_key );
+		remove_all_filters( 'pre_update_option_' . wp_roles()->role_key );
 		$this->next_request();
 		$this->grants( array() )->run();
 
@@ -356,7 +356,7 @@ final class CapabilityGrantsTest extends TestCase {
 			$log = (string) \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
-			\wp_delete_file( $log_file );
+			wp_delete_file( $log_file );
 		}
 
 		self::assertStringContainsString( "[{$this->prefix}_grants.warning] The roles row did not keep the capability changes {changes}, so the next request makes them again. {\"changes\":\"grant {$this->cap( 'a' )} to $editor\"}", $log );
@@ -369,30 +369,30 @@ final class CapabilityGrantsTest extends TestCase {
 		$editor  = $this->add_role( 'editor' );
 		$pending = null;
 		$this->before_query(
-			\wp_roles()->role_key,
+			wp_roles()->role_key,
 			function () use ( $wpdb, &$pending ): void {
 				$raw     = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "{$this->prefix}_grants" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
-				$pending = \maybe_unserialize( (string) $raw )['pending'] ?? null;
+				$pending = maybe_unserialize( (string) $raw )['pending'] ?? null;
 			}
 		);
 
 		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
 
 		self::assertSame( array( $editor => array( $this->cap( 'a' ) ) ), $pending );
-		self::assertSame( array(), \get_option( "{$this->prefix}_grants" )['pending'] );
+		self::assertSame( array(), get_option( "{$this->prefix}_grants" )['pending'] );
 	}
 
 	public function test_a_pending_record_the_ledger_row_does_not_keep_is_logged_and_grants_nothing_until_the_next_request(): void {
 		$editor   = $this->add_role( 'editor' );
 		$declared = array( $editor => array( $this->cap( 'a' ) ) );
-		\add_filter( "pre_update_option_{$this->prefix}_grants", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
+		add_filter( "pre_update_option_{$this->prefix}_grants", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
 
 		$this->grants( $declared )->run();
 
 		self::assertSame( array(), $this->stored_caps( $editor ) );
 		self::assertSame( array( array( 'warning', 'The ledger row did not keep the pending grants, so the next request makes them.', array() ) ), $this->logger->records );
 
-		\remove_all_filters( "pre_update_option_{$this->prefix}_grants" );
+		remove_all_filters( "pre_update_option_{$this->prefix}_grants" );
 		$this->next_request();
 		$this->grants( $declared )->run();
 
@@ -408,7 +408,7 @@ final class CapabilityGrantsTest extends TestCase {
 				$this->cap( 'c' ) => false,
 			)
 		);
-		\update_option(
+		update_option(
 			"{$this->prefix}_grants",
 			array(
 				'v'           => 1,
@@ -435,7 +435,7 @@ final class CapabilityGrantsTest extends TestCase {
 
 	public function test_a_pending_grant_that_the_declaration_has_since_dropped_is_revoked(): void {
 		$editor = $this->add_role( 'editor', array( $this->cap( 'a' ) => true ) );
-		\update_option(
+		update_option(
 			"{$this->prefix}_grants",
 			array(
 				'v'           => 1,
@@ -454,7 +454,7 @@ final class CapabilityGrantsTest extends TestCase {
 
 	public function test_a_denial_made_through_wp_roles_earlier_in_the_request_stays(): void {
 		$editor = $this->add_role( 'editor' );
-		\wp_roles()->add_cap( $editor, $this->cap( 'a' ), false );
+		wp_roles()->add_cap( $editor, $this->cap( 'a' ), false );
 
 		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
 
@@ -495,7 +495,7 @@ final class CapabilityGrantsTest extends TestCase {
 				),
 			),
 		};
-		\update_option( "{$this->prefix}_grants", $row, true );
+		update_option( "{$this->prefix}_grants", $row, true );
 
 		$this->grants( $grants )->run();
 
@@ -508,7 +508,7 @@ final class CapabilityGrantsTest extends TestCase {
 		$site_id = $this->make_site( 'acme-grants' );
 		$editor  = $this->role( 'editor' );
 
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		try {
 			$this->add_role( 'editor' );
 			$grants = $this->grants( array( $editor => array( $this->cap( 'a' ) ) ) );
@@ -516,17 +516,17 @@ final class CapabilityGrantsTest extends TestCase {
 			$grants->run();
 			$granted = $this->stored_caps( $editor );
 			$ledger  = $this->ledger();
-			\remove_role( $editor );
+			remove_role( $editor );
 			$forgotten = $this->ledger();
 		} finally {
-			\restore_current_blog();
+			restore_current_blog();
 		}
 
 		self::assertSame( array( $this->cap( 'a' ) => true ), $granted );
 		self::assertEquals( array( $editor => array( $this->cap( 'a' ) ) ), $ledger );
 		self::assertSame( array(), $forgotten );
 		self::assertArrayNotHasKey( $editor, $this->stored_roles() );
-		self::assertFalse( \get_option( "{$this->prefix}_grants" ) );
+		self::assertFalse( get_option( "{$this->prefix}_grants" ) );
 	}
 
 	protected function grants( array $grants, ?PsrAbstractLogger $logger = null ): CapabilityGrants {
@@ -542,28 +542,28 @@ final class CapabilityGrantsTest extends TestCase {
 	}
 
 	protected function add_role( string $name, array $capabilities = array() ): string {
-		\add_role( $this->role( $name ), \ucfirst( $name ), $capabilities );
+		add_role( $this->role( $name ), \ucfirst( $name ), $capabilities );
 
 		return $this->role( $name );
 	}
 
 	// A new request reads the roles row and the options again, so nothing a test changed stays only in memory.
 	protected function next_request(): void {
-		\wp_cache_flush();
-		\wp_roles()->for_site();
+		wp_cache_flush();
+		wp_roles()->for_site();
 	}
 
 	// A role-locking plugin can keep the stored roles from changing while the request's copy changes.
 	protected function keep_roles_row(): void {
-		\add_filter( 'pre_update_option_' . \wp_roles()->role_key, static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
+		add_filter( 'pre_update_option_' . wp_roles()->role_key, static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
 	}
 
 	protected function stored_roles(): array {
 		global $wpdb;
 
-		$raw = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, \wp_roles()->role_key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
+		$raw = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, wp_roles()->role_key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
 
-		return (array) \maybe_unserialize( (string) $raw );
+		return (array) maybe_unserialize( (string) $raw );
 	}
 
 	protected function stored_caps( string $role ): array {
@@ -577,7 +577,7 @@ final class CapabilityGrantsTest extends TestCase {
 				\sort( $caps );
 				return $caps;
 			},
-			\get_option( "{$this->prefix}_grants" )['grants'] ?? array()
+			get_option( "{$this->prefix}_grants" )['grants'] ?? array()
 		);
 	}
 
