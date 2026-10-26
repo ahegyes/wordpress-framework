@@ -27,14 +27,14 @@ final class AdminNoticesStorageTest extends TestCase {
 	protected function setUp(): void {
 		$this->user_id = $this->make_user( 'acme_notices_admin', 'administrator' );
 		$this->notices = new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
-		\wp_set_current_user( $this->user_id );
+		wp_set_current_user( $this->user_id );
 	}
 
 	#[\Override]
 	protected function tearDown(): void {
-		\wp_set_current_user( 0 );
-		while ( \is_multisite() && \ms_is_switched() ) {
-			\restore_current_blog();
+		wp_set_current_user( 0 );
+		while ( is_multisite() && ms_is_switched() ) {
+			restore_current_blog();
 		}
 	}
 
@@ -57,7 +57,7 @@ final class AdminNoticesStorageTest extends TestCase {
 	}
 
 	public function test_on_a_single_site_network_notices_keep_their_own_option_that_is_not_autoloaded(): void {
-		if ( \is_multisite() ) {
+		if ( is_multisite() ) {
 			self::markTestSkipped( 'A single-site row.' );
 		}
 
@@ -81,7 +81,7 @@ final class AdminNoticesStorageTest extends TestCase {
 	#[DataProvider( 'stored_scopes' )]
 	public function test_a_message_with_quotes_and_backslashes_reads_back_unchanged( NoticeScope $scope ): void {
 		$this->notices->add( $this->notice( 'one', $scope, "Can't \\ \"save\" <b>this</b>." ) );
-		\wp_cache_flush();
+		wp_cache_flush();
 
 		self::assertSame( array( "Can't \\ \"save\" <b>this</b>." ), self::messages( $this->notices->get_notices( $scope ) ) );
 	}
@@ -98,7 +98,7 @@ final class AdminNoticesStorageTest extends TestCase {
 
 	public function test_entries_that_are_not_valid_notices_of_the_scope_are_left_out_and_dropped_at_the_next_write(): void {
 		$valid = $this->notice( 'one', NoticeScope::Site )->to_array();
-		\update_option(
+		update_option(
 			"{$this->prefix}_notices",
 			array(
 				'garbage' => 'garbage',
@@ -122,7 +122,7 @@ final class AdminNoticesStorageTest extends TestCase {
 	}
 
 	public function test_an_entry_is_read_under_its_own_id(): void {
-		\update_option( "{$this->prefix}_notices", array( 'other' => $this->notice( 'one', NoticeScope::Site )->to_array() ), false );
+		update_option( "{$this->prefix}_notices", array( 'other' => $this->notice( 'one', NoticeScope::Site )->to_array() ), false );
 
 		$this->notices->remove( 'one', NoticeScope::Site );
 
@@ -149,20 +149,20 @@ final class AdminNoticesStorageTest extends TestCase {
 		$this->view( 'dashboard' );
 
 		self::assertSame( array( 'network:one' ), \array_keys( $this->user_meta( "{$this->prefix}_network_hidden_notices" ) ) );
-		self::assertFalse( \get_user_option( "{$this->prefix}_hidden_notices", $this->user_id ) );
+		self::assertFalse( get_user_option( "{$this->prefix}_hidden_notices", $this->user_id ) );
 	}
 
 	#[Group( 'multisite' )]
 	public function test_site_and_user_notices_live_under_their_sites_keys(): void {
 		global $wpdb;
 		$site_id = $this->make_site( 'acme-notices' );
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		$this->notices->add( $this->notice( 'one' ) );
 		$this->notices->add( $this->notice( 'one', NoticeScope::Site ) );
-		\restore_current_blog();
+		restore_current_blog();
 
 		self::assertSame( array( 'one' ), \array_keys( $this->user_meta( $wpdb->get_blog_prefix( $site_id ) . "{$this->prefix}_notices" ) ) );
-		self::assertSame( array( 'one' ), \array_keys( (array) \get_blog_option( $site_id, "{$this->prefix}_notices" ) ) );
+		self::assertSame( array( 'one' ), \array_keys( (array) get_blog_option( $site_id, "{$this->prefix}_notices" ) ) );
 		self::assertSame( array(), $this->notices->get_notices( NoticeScope::User ) );
 		self::assertSame( array(), $this->notices->get_notices( NoticeScope::Site ) );
 	}
@@ -170,12 +170,12 @@ final class AdminNoticesStorageTest extends TestCase {
 	#[Group( 'multisite' )]
 	public function test_network_notices_live_in_the_network_option_whichever_site_adds_them(): void {
 		$site_id = $this->make_site( 'acme-notices' );
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		$this->notices->add( $this->notice( 'one', NoticeScope::Network ) );
-		\restore_current_blog();
+		restore_current_blog();
 
-		self::assertSame( array( 'one' ), \array_keys( (array) \get_network_option( null, "{$this->prefix}_network_notices" ) ) );
-		self::assertFalse( \get_blog_option( $site_id, "{$this->prefix}_network_notices" ) );
+		self::assertSame( array( 'one' ), \array_keys( (array) get_network_option( null, "{$this->prefix}_network_notices" ) ) );
+		self::assertFalse( get_blog_option( $site_id, "{$this->prefix}_network_notices" ) );
 		self::assertSame( array( 'one' ), self::ids( $this->notices->get_notices( NoticeScope::Network ) ) );
 	}
 
@@ -190,7 +190,7 @@ final class AdminNoticesStorageTest extends TestCase {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
 
-		\set_current_screen( $screen );
+		set_current_screen( $screen );
 		\ob_start();
 		$this->notices->render_notices();
 		\ob_end_clean();
@@ -204,7 +204,7 @@ final class AdminNoticesStorageTest extends TestCase {
 		$values = $wpdb->get_col( $wpdb->prepare( 'SELECT meta_value FROM %i WHERE user_id = %d AND meta_key = %s', $wpdb->usermeta, $this->user_id, $key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Inspects the stored row.
 		self::assertLessThanOrEqual( 1, \count( $values ) );
 
-		return \is_string( $values[0] ?? null ) ? (array) \maybe_unserialize( $values[0] ) : array();
+		return \is_string( $values[0] ?? null ) ? (array) maybe_unserialize( $values[0] ) : array();
 	}
 
 	protected function option_row( string $name ): array {
@@ -212,7 +212,7 @@ final class AdminNoticesStorageTest extends TestCase {
 
 		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT option_value, autoload FROM %i WHERE option_name = %s', $wpdb->options, $name ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Inspects the stored row.
 
-		return array( \maybe_unserialize( $row['option_value'] ?? '' ), $row['autoload'] ?? null );
+		return array( maybe_unserialize( $row['option_value'] ?? '' ), $row['autoload'] ?? null );
 	}
 
 	protected static function ids( array $notices ): array {

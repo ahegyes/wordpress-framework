@@ -30,4 +30,10 @@ final class ScheduledHookTest extends TestCase {
 
 		new ScheduledHook( $hook, $args );
 	}
+
+	public function test_arguments_of_the_wrong_type_are_reported_before_an_invalid_hook(): void {
+		$this->expectExceptionMessage( 'are not a list of integers, strings, booleans and nulls' );
+
+		new ScheduledHook( '', array( 1.5 ) );
+	}
 }

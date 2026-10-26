@@ -55,8 +55,7 @@ final readonly class Lock {
 	) {
 		OptionRows::check_name( $name );
 
-		// A hold whose TTL is below 1 second expires as it is taken, which would end the exclusion without a sign.
-		if ( $ttl < 1 ) {
+		if ( $ttl < 1 ) { // A hold whose TTL is below 1 second expires as it is taken, which would end the exclusion without a sign.
 			throw new InvalidArgumentException( "Lock TTL '$ttl' is below 1 second." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
@@ -83,8 +82,7 @@ final readonly class Lock {
 	 * @return  LockClaim
 	 */
 	public function acquire( string $owner ): LockClaim {
-		// An empty owner would write a row that holds no lock, which the next claim takes over.
-		if ( '' === $owner ) {
+		if ( '' === $owner ) { // An empty owner would write a row that holds no lock, which the next claim takes over.
 			throw new InvalidArgumentException( 'A lock owner cannot be empty.' );
 		}
 
@@ -129,7 +127,7 @@ final readonly class Lock {
 
 		// Within the second of its last write the row already holds this hold, and the database reports no change for an unchanged value.
 		$hold = $this->make_hold( $owner, $this->clock->now()->getTimestamp() );
-		return \maybe_serialize( $hold ) === $row->raw || ! \is_null( OptionRows::replace( $row, $hold ) );
+		return maybe_serialize( $hold ) === $row->raw || ! \is_null( OptionRows::replace( $row, $hold ) );
 	}
 
 	/**
@@ -141,6 +139,8 @@ final readonly class Lock {
 	 * @param   string $owner The token that names the holder.
 	 *
 	 * @throws  RuntimeException Thrown when the lock cannot be read or deleted.
+	 *
+	 * @return  void
 	 */
 	public function release( string $owner ): void {
 		$row = OptionRows::get( $this->name );

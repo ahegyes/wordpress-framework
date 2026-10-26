@@ -37,12 +37,12 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		foreach ( array( '', '_error', '_high_water', '_first_run', '_lock' ) as $suffix ) {
-			\delete_option( $this->option . $suffix );
+			delete_option( $this->option . $suffix );
 		}
 	}
 
 	public function test_a_failing_step_releases_the_lock_and_is_rethrown_so_the_fixed_step_runs_next(): void {
-		self::assertSame( 'local', \wp_get_environment_type() );
+		self::assertSame( 'local', wp_get_environment_type() );
 		$failure = new \RuntimeException( 'Step failed locally.' );
 		$fixed   = false;
 		$steps   = array(
@@ -62,13 +62,13 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 
 		self::assertSame( $failure, $caught, 'The failure was not rethrown.' );
 		self::assertNull( $this->get_lock() );
-		self::assertIsArray( \get_option( "{$this->option}_error" ) );
+		self::assertIsArray( get_option( "{$this->option}_error" ) );
 
 		$fixed = true;
 		$this->make_runner( $steps )->run();
 
 		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
-		self::assertFalse( \get_option( "{$this->option}_error" ) );
+		self::assertFalse( get_option( "{$this->option}_error" ) );
 	}
 
 	public function test_a_failure_after_its_lock_was_taken_over_leaves_the_new_lock(): void {
@@ -79,7 +79,7 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 					'time'  => \time(),
 					'ttl'   => 600,
 				);
-				\update_option( "{$this->option}_lock", $hold, false ); // Stands in for another run taking the lock over.
+				update_option( "{$this->option}_lock", $hold, false ); // Stands in for another run taking the lock over.
 				throw new \RuntimeException( 'Failed after a takeover.' );
 			},
 		);

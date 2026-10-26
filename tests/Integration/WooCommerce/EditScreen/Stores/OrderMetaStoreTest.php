@@ -41,7 +41,7 @@ final class OrderMetaStoreTest extends TestCase {
 
 	public function test_the_stored_value_is_read_past_woocommerces_view_filter(): void {
 		$order = $this->make_order( array( "_{$this->prefix}_text" => 'stored' ) );
-		\add_filter( "woocommerce_order_get__{$this->prefix}_text", static fn (): string => 'filtered' );
+		add_filter( "woocommerce_order_get__{$this->prefix}_text", static fn (): string => 'filtered' );
 
 		self::assertSame( array( "_{$this->prefix}_text" => 'stored' ), ( new OrderMetaStore() )->get_values( $order->get_id(), array( "_{$this->prefix}_text" ) ) );
 	}
@@ -76,7 +76,7 @@ final class OrderMetaStoreTest extends TestCase {
 				"_{$this->prefix}_list"  => array(),
 			)
 		);
-		\wp_cache_flush();
+		wp_cache_flush();
 
 		self::assertSame(
 			array(
@@ -117,10 +117,10 @@ final class OrderMetaStoreTest extends TestCase {
 		$this->use_order_storage( $storage );
 		$order = $this->make_order();
 		$seen  = array();
-		\add_action(
+		add_action(
 			'woocommerce_update_order',
 			function ( int $order_id ) use ( &$seen ): void {
-				$seen[] = \wc_get_order( $order_id )->get_meta( "_{$this->prefix}_b", true, 'edit' );
+				$seen[] = wc_get_order( $order_id )->get_meta( "_{$this->prefix}_b", true, 'edit' );
 			}
 		);
 

@@ -63,8 +63,8 @@ final class TermForm implements ObjectFormHostInterface {
 	public function register_hooks( ObjectForm $form ): void {
 		$this->form = $form;
 		foreach ( $this->taxonomies as $taxonomy ) {
-			\add_action( "{$taxonomy}_edit_form", array( $this, 'render_section' ) );
-			\add_action( "edited_$taxonomy", array( $this, 'save_term' ) );
+			add_action( "{$taxonomy}_edit_form", array( $this, 'render_section' ) );
+			add_action( "edited_$taxonomy", array( $this, 'save_term' ) );
 		}
 	}
 
@@ -112,6 +112,8 @@ final class TermForm implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   \WP_Term $term The edited term.
+	 *
+	 * @return  void
 	 */
 	public function render_section( \WP_Term $term ): void {
 		$this->form->render( $term->term_id );
@@ -124,6 +126,8 @@ final class TermForm implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   int $term_id The updated term's id.
+	 *
+	 * @return  void
 	 */
 	public function save_term( int $term_id ): void {
 		$this->form->save( $term_id );

@@ -39,9 +39,9 @@ final class WooCommerceLoggerTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		\ini_set( 'error_log', (string) $this->previous_log_file );
-		\wp_delete_file( $this->log_file );
-		\delete_option( 'woocommerce_logs_logging_enabled' );
-		\delete_option( 'woocommerce_logs_level_threshold' );
+		wp_delete_file( $this->log_file );
+		delete_option( 'woocommerce_logs_logging_enabled' );
+		delete_option( 'woocommerce_logs_level_threshold' );
 	}
 
 	public static function levels(): array {
@@ -158,7 +158,7 @@ final class WooCommerceLoggerTest extends TestCase {
 
 	public function test_an_exception_context_value_that_is_not_a_throwable_reaches_woocommerce_unchanged_and_the_error_log_without_a_trace(): void {
 		$this->logger()->error( 'Warm-up failed.', array( 'exception' => null ) );
-		\update_option( 'woocommerce_logs_logging_enabled', 'no' );
+		update_option( 'woocommerce_logs_logging_enabled', 'no' );
 		$this->logger( null, 'acme', false )->error( 'Warm-up failed again.', array( 'exception' => 'Cache is cold.' ) );
 
 		self::assertSame( array( 'exception' => null ), \array_intersect_key( $this->handler->records[0][2], array( 'exception' => true ) ) );
@@ -196,7 +196,7 @@ final class WooCommerceLoggerTest extends TestCase {
 
 	#[DataProvider( 'dropping_settings' )]
 	public function test_an_error_reaches_the_error_log_exactly_when_woocommerce_drops_it( string $option, string $value, bool $dropped = true ): void {
-		\update_option( $option, $value );
+		update_option( $option, $value );
 		$exception = new \RuntimeException( 'Gateway timed out.' );
 
 		$this->logger( null, 'acme', false )->error(
@@ -216,7 +216,7 @@ final class WooCommerceLoggerTest extends TestCase {
 	}
 
 	public function test_a_record_below_error_never_reaches_the_error_log(): void {
-		\update_option( 'woocommerce_logs_logging_enabled', 'no' );
+		update_option( 'woocommerce_logs_logging_enabled', 'no' );
 
 		$this->logger( null, 'acme', false )->warning( 'Cache is cold.' );
 

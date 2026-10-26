@@ -78,6 +78,12 @@ final class NoticeTest extends TestCase {
 		$make();
 	}
 
+	public function test_screens_of_the_wrong_type_are_reported_before_an_invalid_id(): void {
+		$this->expectExceptionMessage( 'are not a list of screen ids' );
+
+		new Notice( 'A', 'Hi', screens: array( 7 ) );
+	}
+
 	public function test_absent_optional_fields_take_their_defaults_and_unknown_keys_are_ignored(): void {
 		$notice = Notice::from_array(
 			array(
@@ -146,5 +152,13 @@ final class NoticeTest extends TestCase {
 	#[DataProvider( 'sharing' )]
 	public function test_only_site_and_network_notices_that_are_not_per_viewer_are_shared( Notice $notice, bool $shared ): void {
 		self::assertSame( $shared, $notice->is_shared() );
+	}
+
+	public function test_notices_are_equal_when_every_field_is(): void {
+		$notice = new Notice( 'a', 'Hi', screens: array( 'plugins' ) );
+
+		self::assertTrue( $notice->equals( new Notice( 'a', 'Hi', screens: array( 'plugins' ) ) ) );
+		self::assertFalse( $notice->equals( new Notice( 'a', 'Hi', screens: array( 'dashboard' ) ) ) );
+		self::assertFalse( $notice->equals( new Notice( 'a', 'Hi', NoticeType::Info, screens: array( 'plugins' ) ) ) );
 	}
 }

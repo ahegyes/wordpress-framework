@@ -50,8 +50,8 @@ final class TermFormTest extends TestCase {
 		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
 		foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
-			self::assertSame( 10, \has_action( "{$taxonomy}_edit_form", array( $host, 'render_section' ) ) );
-			self::assertSame( 10, \has_action( "edited_$taxonomy", array( $host, 'save_term' ) ) );
+			self::assertSame( 10, has_action( "{$taxonomy}_edit_form", array( $host, 'render_section' ) ) );
+			self::assertSame( 10, has_action( "edited_$taxonomy", array( $host, 'save_term' ) ) );
 		}
 	}
 
@@ -75,7 +75,7 @@ final class TermFormTest extends TestCase {
 
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
 		$term_id = $this->make_term( 'category' );
-		\add_term_meta( $term_id, "_{$this->prefix}_name", 'stored' );
+		add_term_meta( $term_id, "_{$this->prefix}_name", 'stored' );
 		$spec = $this->spec( array( $this->field( 'text', 'name', array( 'default' => 'fresh' ) ), $this->field( 'text', 'absent', array( 'default' => 'fresh' ) ) ) );
 
 		$edit = self::document( $this->edit_screen( $spec, 'category', $term_id )['body'] );
@@ -96,7 +96,7 @@ final class TermFormTest extends TestCase {
 
 	public function test_update_saves_the_accepted_fields_and_shows_a_rejection_after_the_redirect(): void {
 		$term_id = $this->make_term( 'category' );
-		\add_term_meta( $term_id, "_{$this->prefix}_note", 'kept' );
+		add_term_meta( $term_id, "_{$this->prefix}_note", 'kept' );
 		$spec = $this->spec( array( $this->field( 'text', 'name' ), $this->field( 'text', 'note', array( 'validate' => 'acme:reject' ) ) ) );
 
 		$data  = self::serialize_form(
@@ -120,7 +120,7 @@ final class TermFormTest extends TestCase {
 
 	public function test_quick_edit_stores_nothing(): void {
 		$term_id = $this->make_term( 'category' );
-		\add_term_meta( $term_id, "_{$this->prefix}_name", 'kept' );
+		add_term_meta( $term_id, "_{$this->prefix}_name", 'kept' );
 		$spec = $this->spec( array( $this->field( 'text', 'name' ) ) );
 		$list = self::document( $this->admin_request( 'GET', 'edit-tags.php?taxonomy=category', $this->admin, self::FIXTURE, $spec )['body'] );
 
@@ -141,13 +141,13 @@ final class TermFormTest extends TestCase {
 			)
 		);
 
-		self::assertSame( "{$this->prefix} quick", \get_term( $term_id )->name );
+		self::assertSame( "{$this->prefix} quick", get_term( $term_id )->name );
 		self::assertSame( array( 'kept' ), $this->meta( $term_id, 'name' ) );
 	}
 
 	public function test_an_update_in_code_stores_nothing(): void {
 		$term_id = $this->make_term( 'category' );
-		\add_term_meta( $term_id, "_{$this->prefix}_name", 'kept' );
+		add_term_meta( $term_id, "_{$this->prefix}_name", 'kept' );
 		$form = new ObjectForm(
 			$this->id,
 			new RecordedDefinition(
@@ -161,17 +161,17 @@ final class TermFormTest extends TestCase {
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
-		\wp_set_current_user( $this->admin );
+		wp_set_current_user( $this->admin );
 		$_POST[ $this->id ] = array( "_{$this->prefix}_name" => 'programmatic' );
 
 		try {
-			\wp_update_term( $term_id, 'category', array( 'name' => "{$this->prefix} in code" ) );
+			wp_update_term( $term_id, 'category', array( 'name' => "{$this->prefix} in code" ) );
 		} finally {
 			unset( $_POST[ $this->id ] );
-			\wp_set_current_user( 0 );
+			wp_set_current_user( 0 );
 		}
 
-		self::assertSame( "{$this->prefix} in code", \get_term( $term_id )->name );
+		self::assertSame( "{$this->prefix} in code", get_term( $term_id )->name );
 		self::assertSame( array( 'kept' ), $this->meta( $term_id, 'name' ) );
 	}
 
@@ -201,7 +201,7 @@ final class TermFormTest extends TestCase {
 	}
 
 	protected function make_term( string $taxonomy ): int {
-		$term = \wp_insert_term( "{$this->prefix} " . \count( $this->terms ), $taxonomy );
+		$term = wp_insert_term( "{$this->prefix} " . \count( $this->terms ), $taxonomy );
 		self::assertIsArray( $term );
 		$this->terms[] = array( (int) $term['term_id'], $taxonomy );
 
@@ -213,7 +213,7 @@ final class TermFormTest extends TestCase {
 	}
 
 	protected function meta( int $term_id, string $name ): array {
-		return \get_term_meta( $term_id, "_{$this->prefix}_$name", false );
+		return get_term_meta( $term_id, "_{$this->prefix}_$name", false );
 	}
 
 	protected static function rejections( string $html ): array {
@@ -228,7 +228,7 @@ final class TermFormTest extends TestCase {
 	#[After]
 	protected function delete_terms(): void {
 		foreach ( $this->terms as list( $term_id, $taxonomy ) ) {
-			\wp_delete_term( $term_id, $taxonomy );
+			wp_delete_term( $term_id, $taxonomy );
 		}
 	}
 }

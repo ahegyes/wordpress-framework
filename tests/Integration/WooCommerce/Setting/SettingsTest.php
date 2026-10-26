@@ -41,7 +41,7 @@ final class SettingsTest extends TestCase {
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
-		require_once \WC_ABSPATH . 'includes/admin/settings/class-wc-settings-page.php';
+		require_once WC_ABSPATH . 'includes/admin/settings/class-wc-settings-page.php';
 	}
 
 	#[\Override]
@@ -54,7 +54,7 @@ final class SettingsTest extends TestCase {
 		SettingsSectionRegistry::get_instance()->unregister_all();
 		$this->reset_settings_pages();
 		$GLOBALS['wp_rest_server'] = null;
-		\wp_set_current_user( 0 );
+		wp_set_current_user( 0 );
 	}
 
 	public static function silent_and_worded_rejections(): array {
@@ -130,8 +130,8 @@ final class SettingsTest extends TestCase {
 	}
 
 	public function test_saving_a_section_stores_its_values_and_leaves_the_other_section_untouched(): void {
-		\update_option( "{$this->prefix}_name", 'old' );
-		\update_option( "{$this->prefix}_flag", 'yes' );
+		update_option( "{$this->prefix}_name", 'old' );
+		update_option( "{$this->prefix}_flag", 'yes' );
 		$spec = $this->tab_spec(
 			array(
 				''         => self::section( 'General', array( $this->field( 'text', 'name' ) ) ),
@@ -140,12 +140,12 @@ final class SettingsTest extends TestCase {
 		);
 
 		$this->save( $spec, 'advanced', array( "{$this->prefix}_flag" => false ) );
-		self::assertSame( 'no', \get_option( "{$this->prefix}_flag" ) );
-		self::assertSame( 'old', \get_option( "{$this->prefix}_name" ) );
+		self::assertSame( 'no', get_option( "{$this->prefix}_flag" ) );
+		self::assertSame( 'old', get_option( "{$this->prefix}_name" ) );
 
 		$this->save( $spec, '', array( "{$this->prefix}_name" => 'new' ) );
-		self::assertSame( 'new', \get_option( "{$this->prefix}_name" ) );
-		self::assertSame( 'no', \get_option( "{$this->prefix}_flag" ) );
+		self::assertSame( 'new', get_option( "{$this->prefix}_name" ) );
+		self::assertSame( 'no', get_option( "{$this->prefix}_flag" ) );
 	}
 
 	public function test_a_tab_field_round_trips_through_woocommerces_rest_api(): void {
@@ -155,7 +155,7 @@ final class SettingsTest extends TestCase {
 		$listed  = $this->rest( 'GET', "/wc/v3/settings/{$this->prefix}" );
 
 		self::assertSame( 200, $updated->get_status() );
-		self::assertSame( 'via rest', \get_option( "{$this->prefix}_name" ) );
+		self::assertSame( 'via rest', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array( 'via rest' ), \array_column( \array_filter( (array) $listed->get_data(), fn ( array $setting ): bool => "{$this->prefix}_name" === $setting['id'] ), 'value' ) );
 	}
 
@@ -173,7 +173,7 @@ final class SettingsTest extends TestCase {
 		$saved    = $this->save( $spec, $this->prefix, array( "{$this->prefix}_name" => 'v' ), array(), 'products' );
 
 		self::assertContains( 'Acme', self::texts( $products, 'ul.subsubsub a' ) );
-		self::assertSame( 'v!', \get_option( "{$this->prefix}_name" ) );
+		self::assertSame( 'v!', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array( array( 'validate', "{$this->prefix}_name", 'v' ) ), $saved['records'] );
 	}
 
@@ -193,8 +193,8 @@ final class SettingsTest extends TestCase {
 	public function test_a_section_whose_id_is_taken_is_rejected_by_the_registry(): void {
 		$wrong    = array();
 		$registry = SettingsSectionRegistry::get_instance();
-		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		\add_action(
+		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		add_action(
 			'doing_it_wrong_run',
 			static function ( string $function_name ) use ( &$wrong ): void {
 				$wrong[] = $function_name;
@@ -207,12 +207,12 @@ final class SettingsTest extends TestCase {
 	}
 
 	public function test_a_disabled_field_is_never_saved_even_when_its_value_is_posted(): void {
-		\update_option( "{$this->prefix}_name", 'old' );
+		update_option( "{$this->prefix}_name", 'old' );
 		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( 'text', 'name', array( 'custom_attributes' => array( 'disabled' => 'disabled' ) ) ) ) ) ) );
 
 		$this->save( $spec, '', array(), array( "{$this->prefix}_name" => 'tampered' ) );
 
-		self::assertSame( 'old', \get_option( "{$this->prefix}_name" ) );
+		self::assertSame( 'old', get_option( "{$this->prefix}_name" ) );
 	}
 
 	public function test_a_field_without_validate_stores_woocommerces_value(): void {
@@ -220,7 +220,7 @@ final class SettingsTest extends TestCase {
 
 		$this->save( $spec, '', array( "{$this->prefix}_name" => ' <b>bold</b> ' ) );
 
-		self::assertSame( 'bold', \get_option( "{$this->prefix}_name" ) );
+		self::assertSame( 'bold', get_option( "{$this->prefix}_name" ) );
 	}
 
 	public function test_validate_receives_the_raw_submission_alone_and_its_return_value_is_stored(): void {
@@ -228,13 +228,13 @@ final class SettingsTest extends TestCase {
 
 		$saved = $this->save( $spec, '', array( "{$this->prefix}_name" => ' abc ' ) );
 
-		self::assertSame( ' ABC ', \get_option( "{$this->prefix}_name" ) );
+		self::assertSame( ' ABC ', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array( array( 'validate', "{$this->prefix}_name", ' abc ' ) ), $saved['records'] );
 	}
 
 	#[DataProvider( 'silent_and_worded_rejections' )]
 	public function test_a_rejection_keeps_the_stored_value_and_shows_its_message_once_as_text( string $behavior, string $message ): void {
-		\update_option( "{$this->prefix}_name", 'old' );
+		update_option( "{$this->prefix}_name", 'old' );
 		$spec = $this->tab_spec(
 			array(
 				'' => self::section(
@@ -255,7 +255,7 @@ final class SettingsTest extends TestCase {
 
 		$saved = self::document( $this->save( $spec, '', array( "{$this->prefix}_name" => 'too long' ) )['body'] );
 
-		self::assertSame( 'old', \get_option( "{$this->prefix}_name" ) );
+		self::assertSame( 'old', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array( $message ), self::texts( $saved, '#message.error' ) );
 		self::assertNull( $saved->querySelector( '#message.error b' ) );
 	}
@@ -277,29 +277,29 @@ final class SettingsTest extends TestCase {
 
 	#[DataProvider( 'unposted_fields' )]
 	public function test_a_field_the_form_did_not_post_keeps_its_stored_value( string $type, array $keys, string $stored ): void {
-		\update_option( "{$this->prefix}_field", $stored );
+		update_option( "{$this->prefix}_field", $stored );
 		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( $type, 'field', $keys ) ) ) ) );
 		$data = self::serialize_form( $this->open( $spec )['body'], 'form#mainform' ) + array( 'save' => 'Save changes' );
 		unset( $data[ "{$this->prefix}_field" ] );
 
 		$this->admin_request( 'POST', $this->settings_path( $this->prefix, '' ), $this->admin, self::FIXTURE, $spec, $data );
 
-		self::assertSame( $stored, \get_option( "{$this->prefix}_field" ) );
+		self::assertSame( $stored, get_option( "{$this->prefix}_field" ) );
 	}
 
 	#[DataProvider( 'cleared_woocommerce_lists' )]
 	public function test_a_cleared_woocommerce_list_without_validate_stores_an_empty_list( string $type, array $keys, array $stored ): void {
-		\update_option( "{$this->prefix}_list", $stored );
+		update_option( "{$this->prefix}_list", $stored );
 		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( $type, 'list', $keys ) ) ) ) );
 
 		$this->save( $spec, '', array( "{$this->prefix}_list" => array() ) );
 
-		self::assertSame( array(), \get_option( "{$this->prefix}_list" ) );
+		self::assertSame( array(), get_option( "{$this->prefix}_list" ) );
 	}
 
 	public function test_validate_receives_no_for_an_unchecked_checkbox_and_an_empty_list_for_a_cleared_multiselect(): void {
-		\update_option( "{$this->prefix}_flag", 'yes' );
-		\update_option( "{$this->prefix}_colors", array( 'red' ) );
+		update_option( "{$this->prefix}_flag", 'yes' );
+		update_option( "{$this->prefix}_colors", array( 'red' ) );
 		$spec = $this->tab_spec(
 			array(
 				'' => self::section(
@@ -335,8 +335,8 @@ final class SettingsTest extends TestCase {
 			),
 			$saved['records']
 		);
-		self::assertSame( 'no', \get_option( "{$this->prefix}_flag" ) );
-		self::assertSame( array(), \get_option( "{$this->prefix}_colors" ) );
+		self::assertSame( 'no', get_option( "{$this->prefix}_flag" ) );
+		self::assertSame( array(), get_option( "{$this->prefix}_colors" ) );
 	}
 
 	public function test_over_rest_validate_receives_woocommerces_normalized_value(): void {
@@ -364,7 +364,7 @@ final class SettingsTest extends TestCase {
 		$this->rest( 'PUT', "/wc/v3/settings/{$this->prefix}/{$this->prefix}_name", array( 'value' => ' <b>bold</b><script>x</script> ' ) );
 
 		self::assertSame( array( '<b>bold</b>x' ), $received );
-		self::assertSame( '<b>bold</b>x', \get_option( "{$this->prefix}_name" ) );
+		self::assertSame( '<b>bold</b>x', get_option( "{$this->prefix}_name" ) );
 	}
 
 	public function test_an_option_the_helpers_do_not_own_passes_through_unchanged(): void {
@@ -376,7 +376,7 @@ final class SettingsTest extends TestCase {
 			'type' => 'text',
 		);
 
-		self::assertSame( 'kept', \apply_filters( 'woocommerce_admin_settings_sanitize_option', 'kept', $foreign, 'raw' ) );
+		self::assertSame( 'kept', apply_filters( 'woocommerce_admin_settings_sanitize_option', 'kept', $foreign, 'raw' ) );
 	}
 
 	public function test_with_a_section_registered_on_a_tab_each_fields_validate_runs_once_per_save(): void {
@@ -407,11 +407,11 @@ final class SettingsTest extends TestCase {
 
 		$this->save( $spec, '', array( "{$this->prefix}_extra" => 'c' ) );
 
-		self::assertSame( 'c!', \get_option( "{$this->prefix}_extra" ) );
+		self::assertSame( 'c!', get_option( "{$this->prefix}_extra" ) );
 	}
 
 	public function test_a_custom_type_field_renders_in_woocommerces_row_through_its_render_callable(): void {
-		\update_option( "{$this->prefix}_widget", 'stored' );
+		update_option( "{$this->prefix}_widget", 'stored' );
 		// WooCommerce's title and sectionend entries open and close the table that holds the rows.
 		$fields = array(
 			array(
@@ -442,16 +442,16 @@ final class SettingsTest extends TestCase {
 
 		$this->save( $spec, '', array( "{$this->prefix}_widget" => 'w' ) );
 
-		self::assertSame( 'w!', \get_option( "{$this->prefix}_widget" ) );
+		self::assertSame( 'w!', get_option( "{$this->prefix}_widget" ) );
 	}
 
 	public function test_a_custom_type_field_without_validate_is_rejected(): void {
-		\update_option( "{$this->prefix}_widget", 'old' );
+		update_option( "{$this->prefix}_widget", 'old' );
 		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->custom_field() ) ) ) );
 
 		$saved = self::document( $this->save( $spec, '', array( "{$this->prefix}_widget" => 'w' ) )['body'] );
 
-		self::assertSame( 'old', \get_option( "{$this->prefix}_widget" ) );
+		self::assertSame( 'old', get_option( "{$this->prefix}_widget" ) );
 		self::assertSame( array( 'Widget was not saved, so it keeps its previous value. This field cannot be saved because nothing validates its value.' ), self::texts( $saved, '#message.error' ) );
 	}
 
@@ -475,32 +475,32 @@ final class SettingsTest extends TestCase {
 		$tab->get_settings_for_section( '' );
 
 		\ob_start();
-		\do_action( 'woocommerce_admin_field_acme_widget', $this->field( 'acme_widget', 'foreign', array( 'value' => '' ) ) );
+		do_action( 'woocommerce_admin_field_acme_widget', $this->field( 'acme_widget', 'foreign', array( 'value' => '' ) ) );
 
 		self::assertSame( '', \ob_get_clean() );
 	}
 
 	public function test_a_checkboxes_group_renders_and_round_trips_its_choices(): void {
-		\update_option( "{$this->prefix}_colors", array( 'red' ) );
+		update_option( "{$this->prefix}_colors", array( 'red' ) );
 		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( 'checkboxes', 'colors', array( 'options' => self::COLORS ) ) ) ) ) );
 
 		$form = self::document( $this->open( $spec )['body'] );
 		self::assertCount( 3, $form->querySelectorAll( "form#mainform fieldset input[type=\"checkbox\"][name=\"{$this->prefix}_colors[]\"]" ) );
 
 		$this->save( $spec, '', array( "{$this->prefix}_colors" => array( 'blue', 'teal' ) ) );
-		self::assertSame( array( 'blue', 'teal' ), \get_option( "{$this->prefix}_colors" ) );
+		self::assertSame( array( 'blue', 'teal' ), get_option( "{$this->prefix}_colors" ) );
 
 		$this->save( $spec, '', array( "{$this->prefix}_colors" => array() ) );
-		self::assertSame( array(), \get_option( "{$this->prefix}_colors" ) );
+		self::assertSame( array(), get_option( "{$this->prefix}_colors" ) );
 	}
 
 	public function test_a_checkboxes_group_rejects_an_unknown_choice(): void {
-		\update_option( "{$this->prefix}_colors", array( 'red' ) );
+		update_option( "{$this->prefix}_colors", array( 'red' ) );
 		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( 'checkboxes', 'colors', array( 'options' => self::COLORS ) ) ) ) ) );
 
 		$saved = self::document( $this->save( $spec, '', array(), array( "{$this->prefix}_colors" => array( 'pink' ) ) )['body'] );
 
-		self::assertSame( array( 'red' ), \get_option( "{$this->prefix}_colors" ) );
+		self::assertSame( array( 'red' ), get_option( "{$this->prefix}_colors" ) );
 		self::assertSame( array( 'Colors was not saved, so it keeps its previous value. Choose one of the available options.' ), self::texts( $saved, '#message.error' ) );
 	}
 
@@ -566,7 +566,7 @@ final class SettingsTest extends TestCase {
 			$this->tab( \array_map( static fn ( array $section ): string => $section['label'], $sections ) ),
 			new RecordedDefinition( static fn ( string $tab_id, string $section_id ): array => $sections[ $section_id ]['fields'] )
 		);
-		\add_filter(
+		add_filter(
 			'woocommerce_get_settings_pages',
 			static function ( array $pages ) use ( $tab ): array {
 				$pages[] = $tab;
@@ -590,10 +590,10 @@ final class SettingsTest extends TestCase {
 
 	// The server holds only WooCommerce's settings routes, because a full build keeps memory for the rest of the run.
 	protected function rest( string $method, string $route, array $params = array() ): \WP_REST_Response {
-		\wp_set_current_user( $this->admin );
-		\remove_all_actions( 'rest_api_init' );
-		\add_action( 'rest_api_init', array( \WC(), 'register_wp_admin_settings' ) );
-		\add_action(
+		wp_set_current_user( $this->admin );
+		remove_all_actions( 'rest_api_init' );
+		add_action( 'rest_api_init', array( WC(), 'register_wp_admin_settings' ) );
+		add_action(
 			'rest_api_init',
 			static function (): void {
 				( new \WC_REST_Setting_Options_Controller() )->register_routes();
@@ -606,7 +606,7 @@ final class SettingsTest extends TestCase {
 			$request->set_param( $key, $value );
 		}
 
-		return \rest_get_server()->dispatch( $request );
+		return rest_get_server()->dispatch( $request );
 	}
 
 	protected function open( array $spec, string $section = '', ?string $tab = null ): array {

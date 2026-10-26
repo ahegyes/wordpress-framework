@@ -64,10 +64,12 @@ final class OptionsPage {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function register_hooks(): void {
-		\add_action( 'admin_menu', array( $this, 'add_page' ) );
-		\add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_menu', array( $this, 'add_page' ) );
+		add_action( 'admin_init', array( $this, 'register_settings' ) );
 	}
 
 	// endregion
@@ -79,10 +81,12 @@ final class OptionsPage {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function add_page(): void {
 		$page = $this->get_page();
-		\add_submenu_page( $page['parent'], $page['page_title'], $page['menu_title'], $page['capability'], $this->id, array( $this, 'render_page' ) );
+		add_submenu_page( $page['parent'], $page['page_title'], $page['menu_title'], $page['capability'], $this->id, array( $this, 'render_page' ) );
 	}
 
 	/**
@@ -90,12 +94,14 @@ final class OptionsPage {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function register_settings(): void {
 		foreach ( \array_unique( \array_column( $this->get_page()['tabs'], 'option' ) ) as $option ) {
-			\register_setting( $option, $option );
-			\add_filter( "option_page_capability_$option", array( $this, 'get_capability' ) );
-			\add_filter( "pre_update_option_$option", array( $this, 'sanitize_submission' ), 10, 3 );
+			register_setting( $option, $option );
+			add_filter( "option_page_capability_$option", array( $this, 'get_capability' ) );
+			add_filter( "pre_update_option_$option", array( $this, 'sanitize_submission' ), 10, 3 );
 		}
 	}
 
@@ -127,7 +133,7 @@ final class OptionsPage {
 	 */
 	public function sanitize_submission( mixed $value, mixed $old_value, string $option ): mixed {
 		// WordPress core reads option_page from the request, not only the body, and trims it, so the same reading decides whether the submission is this option's.
-		$option_page = \is_string( $_REQUEST['option_page'] ?? null ) ? \sanitize_text_field( \wp_unslash( $_REQUEST['option_page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- options.php verifies the nonce before it saves.
+		$option_page = \is_string( $_REQUEST['option_page'] ?? null ) ? sanitize_text_field( wp_unslash( $_REQUEST['option_page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- options.php verifies the nonce before it saves.
 		if ( 'options.php' !== ( $GLOBALS['pagenow'] ?? '' ) || $option_page !== $option ) {
 			return $value;
 		}
@@ -142,7 +148,7 @@ final class OptionsPage {
 		$result = Forms::sanitize_fields( $fields, \is_array( $value ) ? $value : array() );
 		foreach ( $fields as $field ) {
 			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
-				\add_settings_error( $option, $field['id'], \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) );
+				add_settings_error( $option, $field['id'], esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) );
 			}
 		}
 
@@ -150,19 +156,21 @@ final class OptionsPage {
 	}
 
 	/**
-	 * Prints the page with the form of the tab the request names.
+	 * Prints the page with the form of the tab the request names, or of its first tab.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function render_page(): void {
 		$page = $this->get_page();
-		$tab  = $this->get_current_tab();
+		$slug = \is_string( $_GET['tab'] ?? null ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Selects the tab to show and changes nothing.
+		$tab  = \array_find( $page['tabs'], static fn ( array $tab ): bool => $slug === $tab['slug'] ) ?? $page['tabs'][0] ?? null;
 
-		echo '<div class="wrap"><h1>' . \esc_html( $page['page_title'] ) . '</h1>';
-		// WordPress core prints the settings errors on the pages under Settings itself.
-		if ( 'options-general.php' !== $page['parent'] ) {
-			\settings_errors();
+		echo '<div class="wrap"><h1>' . esc_html( $page['page_title'] ) . '</h1>';
+		if ( 'options-general.php' !== $page['parent'] ) { // WordPress core prints the settings errors on the pages under Settings itself.
+			settings_errors();
 		}
 		if ( \is_null( $tab ) ) {
 			echo '</div>';
@@ -170,17 +178,28 @@ final class OptionsPage {
 		}
 
 		if ( \count( $page['tabs'] ) > 1 ) {
-			echo '<nav class="nav-tab-wrapper" aria-label="' . \esc_attr( $page['page_title'] ) . '">';
+			echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr( $page['page_title'] ) . '">';
 			foreach ( $page['tabs'] as $link ) {
-				$url = \esc_url( \add_query_arg( 'tab', $link['slug'], \menu_page_url( $this->id, false ) ) );
+				$url = esc_url( add_query_arg( 'tab', $link['slug'], menu_page_url( $this->id, false ) ) );
 				echo $link['slug'] === $tab['slug'] ? "<a href=\"$url\" class=\"nav-tab nav-tab-active\" aria-current=\"page\">" : "<a href=\"$url\" class=\"nav-tab\">"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The URL is escaped.
-				echo \esc_html( $link['title'] ) . '</a>';
+				echo esc_html( $link['title'] ) . '</a>';
 			}
 			echo '</nav>';
 		}
 
-		$this->render_form( $tab );
-		echo '</div>';
+		$option = $tab['option'];
+		$stored = get_option( $option );
+		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
+			add_settings_field( $row['field']['id'] ?? '', esc_html( $row['field']['title'] ?? '' ), array( $this, 'render_field' ), $this->id, 'default', $row );
+		}
+
+		echo '<form action="options.php" method="post">';
+		settings_fields( $option );
+		echo '<table class="form-table" role="presentation">';
+		do_settings_fields( $this->id, 'default' );
+		echo '</table>';
+		submit_button();
+		echo '</form></div>';
 	}
 
 	/**
@@ -190,6 +209,8 @@ final class OptionsPage {
 	 * @version 2.0.0
 	 *
 	 * @param   FieldRow $args The field's row.
+	 *
+	 * @return  void
 	 */
 	public function render_field( array $args ): void {
 		echo Forms::render_control( $args['field'], $args['value'], $args['name'], $args['id'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control.
@@ -219,55 +240,11 @@ final class OptionsPage {
 			 *
 			 * @param   list<Tab> $tabs The page's tabs.
 			 */
-			$page['tabs'] = \apply_filters( "{$this->id}_tabs", $page['tabs'] );
+			$page['tabs'] = apply_filters( "{$this->id}_tabs", $page['tabs'] );
 			$this->page   = $page;
 		}
 
 		return $this->page;
-	}
-
-	/**
-	 * Returns the tab the request names, or the first tab when it names none of them, or null when the page has no tabs.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @return  Tab|null
-	 */
-	protected function get_current_tab(): ?array {
-		$tabs = $this->get_page()['tabs'];
-		$slug = \is_string( $_GET['tab'] ?? null ) ? \sanitize_text_field( \wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Selects the tab to show and changes nothing.
-		foreach ( $tabs as $tab ) {
-			if ( $slug === $tab['slug'] ) {
-				return $tab;
-			}
-		}
-
-		return $tabs[0] ?? null;
-	}
-
-	/**
-	 * Prints the tab's form, with one Settings API row per field that has an id.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   Tab $tab The tab.
-	 */
-	protected function render_form( array $tab ): void {
-		$option = $tab['option'];
-		$stored = \get_option( $option );
-		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
-			\add_settings_field( $row['field']['id'] ?? '', \esc_html( $row['field']['title'] ?? '' ), array( $this, 'render_field' ), $this->id, 'default', $row );
-		}
-
-		echo '<form action="options.php" method="post">';
-		\settings_fields( $option );
-		echo '<table class="form-table" role="presentation">';
-		\do_settings_fields( $this->id, 'default' );
-		echo '</table>';
-		\submit_button();
-		echo '</form>';
 	}
 
 	// endregion

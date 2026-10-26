@@ -16,9 +16,9 @@ final class UninstallerWithoutActionSchedulerTest extends TestCase {
 
 	public function test_a_consenting_run_without_action_scheduler_completes(): void {
 		self::assertFalse( \function_exists( 'as_unschedule_all_actions' ) );
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
-		\update_option( "{$this->prefix}_settings", 'x' );
-		\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_settings", 'x' );
+		wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
 
 		Uninstaller::run(
 			self::PLUGIN_FILE,
@@ -31,7 +31,7 @@ final class UninstallerWithoutActionSchedulerTest extends TestCase {
 			array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_cleanup()
 		);
 
-		self::assertFalse( \wp_next_scheduled( "{$this->prefix}_cron" ) );
+		self::assertFalse( wp_next_scheduled( "{$this->prefix}_cron" ) );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
 		self::assertSame( array( 'cleanup' ), \array_column( $this->calls, 0 ) );

@@ -110,7 +110,7 @@ final class ObjectCacheTest extends TestCase {
 	#[After]
 	protected function restore_the_object_cache(): void {
 		$GLOBALS['wp_object_cache'] = $this->replaced;
-		\wp_cache_flush();
+		wp_cache_flush();
 	}
 
 	public static function invalid_groups(): array {
@@ -149,10 +149,10 @@ final class ObjectCacheTest extends TestCase {
 
 		self::assertSame(
 			array(
-				'value'      => \maybe_serialize( array( 'a' => 1 ) ),
-				'generation' => \wp_cache_get( 'last_changed', $this->group() ),
+				'value'      => maybe_serialize( array( 'a' => 1 ) ),
+				'generation' => wp_cache_get( 'last_changed', $this->group() ),
 			),
-			\wp_cache_get( \md5( 'key' ), $this->group() )
+			wp_cache_get( \md5( 'key' ), $this->group() )
 		);
 		self::assertEqualsCanonicalizing( array( 'last_changed', \md5( 'key' ) ), \array_keys( $this->spy->cache[ $this->group() ] ) );
 	}
@@ -160,11 +160,11 @@ final class ObjectCacheTest extends TestCase {
 	public function test_a_key_named_last_changed_leaves_the_salt_alone(): void {
 		$cache = $this->cache();
 		$cache->set( 'other', 'Other.' );
-		$salt = \wp_cache_get( 'last_changed', $this->group() );
+		$salt = wp_cache_get( 'last_changed', $this->group() );
 
 		$cache->set( 'last_changed', 'Value.' );
 
-		self::assertSame( $salt, \wp_cache_get( 'last_changed', $this->group() ) );
+		self::assertSame( $salt, wp_cache_get( 'last_changed', $this->group() ) );
 		self::assertSame( 'Other.', $cache->get( 'other' ) );
 	}
 
@@ -218,8 +218,8 @@ final class ObjectCacheTest extends TestCase {
 
 	#[DataProvider( 'unusable_salts' )]
 	public function test_a_salt_holding_no_non_empty_string_reads_as_none_until_a_write_starts_one( mixed $stored ): void {
-		\wp_cache_set( 'last_changed', $stored, $this->group() );
-		\wp_cache_set(
+		wp_cache_set( 'last_changed', $stored, $this->group() );
+		wp_cache_set(
 			\md5( 'key' ),
 			array(
 				'value'      => 'Value.',
@@ -232,8 +232,8 @@ final class ObjectCacheTest extends TestCase {
 		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
 		self::assertTrue( $cache->set( 'other', 'Other.' ) );
 		self::assertTrue( $cache->setMultiple( array( 'more' => 'More.' ) ) );
-		self::assertIsString( \wp_cache_get( 'last_changed', $this->group() ) );
-		self::assertNotSame( '', \wp_cache_get( 'last_changed', $this->group() ) );
+		self::assertIsString( wp_cache_get( 'last_changed', $this->group() ) );
+		self::assertNotSame( '', wp_cache_get( 'last_changed', $this->group() ) );
 		self::assertSame( 'Other.', $cache->get( 'other' ) );
 		self::assertSame( 'More.', $cache->get( 'more' ) );
 	}
@@ -252,12 +252,12 @@ final class ObjectCacheTest extends TestCase {
 		$fired = $this->record_last_changed();
 		$cache = $this->cache();
 		$cache->set( 'key', 'Value.' );
-		$salt = \wp_cache_get( 'last_changed', $this->group() );
+		$salt = wp_cache_get( 'last_changed', $this->group() );
 
 		self::assertTrue( $cache->clear() );
-		$first = \wp_cache_get( 'last_changed', $this->group() );
+		$first = wp_cache_get( 'last_changed', $this->group() );
 		self::assertTrue( $cache->clear() );
-		$second = \wp_cache_get( 'last_changed', $this->group() );
+		$second = wp_cache_get( 'last_changed', $this->group() );
 
 		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', $first );
 		self::assertMatchesRegularExpression( '/\A[0-9a-f]{16}\z/', $second );
@@ -277,7 +277,7 @@ final class ObjectCacheTest extends TestCase {
 	public function test_a_clear_whose_last_changed_time_repeats_still_makes_every_entry_miss(): void {
 		$cache = $this->cache();
 		$cache->set( 'key', 'Value.' );
-		\add_action( 'wp_cache_set_last_changed', static fn ( string $group, string $time, mixed $previous ): bool => \wp_cache_set( 'last_changed', $previous, $group ), 10, 3 );
+		add_action( 'wp_cache_set_last_changed', static fn ( string $group, string $time, mixed $previous ): bool => wp_cache_set( 'last_changed', $previous, $group ), 10, 3 );
 
 		self::assertTrue( $cache->clear() );
 
@@ -289,7 +289,7 @@ final class ObjectCacheTest extends TestCase {
 		$cache->clear();
 		$cache->set( 'key', 'Value.' );
 
-		\wp_cache_set_last_changed( $this->group() );
+		wp_cache_set_last_changed( $this->group() );
 
 		self::assertFalse( $cache->has( 'key' ) );
 	}
@@ -297,11 +297,11 @@ final class ObjectCacheTest extends TestCase {
 	public function test_clearing_leaves_stale_entries_for_the_object_cache_to_evict_and_never_flushes_the_group(): void {
 		$cache = $this->cache();
 		$cache->set( 'key', 'Value.' );
-		$entry = \wp_cache_get( \md5( 'key' ), $this->group() );
+		$entry = wp_cache_get( \md5( 'key' ), $this->group() );
 
 		self::assertTrue( $cache->clear() );
 
-		self::assertSame( $entry, \wp_cache_get( \md5( 'key' ), $this->group() ) );
+		self::assertSame( $entry, wp_cache_get( \md5( 'key' ), $this->group() ) );
 		self::assertNotContains( 'flush_group', \array_column( $this->spy->calls, 0 ) );
 	}
 
@@ -422,7 +422,7 @@ final class ObjectCacheTest extends TestCase {
 
 	protected function record_last_changed(): \ArrayObject {
 		$fired = new \ArrayObject();
-		\add_action(
+		add_action(
 			'wp_cache_set_last_changed',
 			static function ( string $group, string $time, mixed $previous ) use ( $fired ): void {
 				$fired[] = array( $group, $previous );

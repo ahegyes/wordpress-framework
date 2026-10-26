@@ -27,14 +27,14 @@ trait OrderMetaFixturesTrait {
 		global $wpdb;
 
 		$p              = $this->prefix;
-		$this->order_id = \wp_insert_post(
+		$this->order_id = wp_insert_post(
 			array(
 				'post_title'  => "$p order",
 				'post_status' => 'draft',
 			)
 		);
 		foreach ( $this->order_meta_keys() as $key ) {
-			\add_post_meta( $this->order_id, $key, 'x' );
+			add_post_meta( $this->order_id, $key, 'x' );
 			if ( $this->table_exists( 'wc_orders_meta' ) ) {
 				$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Seeds the order meta table WooCommerce would write.
 					"{$wpdb->prefix}wc_orders_meta",
@@ -98,7 +98,7 @@ trait OrderMetaFixturesTrait {
 			}
 		}
 		if ( 0 !== $this->order_id ) {
-			\wp_delete_post( $this->order_id, true );
+			wp_delete_post( $this->order_id, true );
 		}
 	}
 }

@@ -30,25 +30,25 @@ final class UninstallerOnNetworkTest extends TestCase {
 
 	#[\Override]
 	protected function setUp(): void {
-		$this->main_site  = \get_main_site_id();
+		$this->main_site  = get_main_site_id();
 		$this->other_site = $this->make_site( 'acme-uninstall' );
 		$this->user       = $this->make_user( 'acme_uninstall_network_user', 'subscriber' );
-		\add_user_meta( $this->user, "{$this->prefix}_global_state", 'x' );
-		\update_network_option( null, "{$this->prefix}_network_settings", 'x' );
+		add_user_meta( $this->user, "{$this->prefix}_global_state", 'x' );
+		update_network_option( null, "{$this->prefix}_network_settings", 'x' );
 	}
 
 	#[\Override]
 	protected function tearDown(): void {
-		while ( \ms_is_switched() ) {
-			\restore_current_blog();
+		while ( ms_is_switched() ) {
+			restore_current_blog();
 		}
-		foreach ( \get_sites(
+		foreach ( get_sites(
 			array(
 				'fields' => 'ids',
 				'number' => 0,
 			)
 		) as $site_id ) {
-			$this->on_site( (int) $site_id, fn () => \wp_unschedule_hook( "{$this->prefix}_cron" ) );
+			$this->on_site( (int) $site_id, fn () => wp_unschedule_hook( "{$this->prefix}_cron" ) );
 		}
 	}
 
@@ -80,7 +80,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( $constant ) );
 
 		// The constant consents for every site of the network, which may hold more sites than the test created.
-		$consenting = $constant ? \get_sites(
+		$consenting = $constant ? get_sites(
 			array(
 				'fields' => 'ids',
 				'number' => 0,
@@ -104,7 +104,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Writes a letter-case twin that the network options API would read as the same option.
 			$wpdb->sitemeta,
 			array(
-				'site_id'    => \get_current_network_id(),
+				'site_id'    => get_current_network_id(),
 				'meta_key'   => $twin, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A test row.
 				'meta_value' => 'x', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- A test row.
 			)
@@ -119,11 +119,11 @@ final class UninstallerOnNetworkTest extends TestCase {
 	public function test_the_network_pass_clears_a_deleted_network_options_cached_value(): void {
 		$args = $this->args( true );
 		// The network cleanup runs just before the deletes, so it caches the value they must clear.
-		$args['cleanup'] = fn ( array $context ): mixed => \get_network_option( null, "{$this->prefix}_network_settings" );
+		$args['cleanup'] = fn ( array $context ): mixed => get_network_option( null, "{$this->prefix}_network_settings" );
 
 		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $args );
 
-		self::assertFalse( \get_network_option( null, "{$this->prefix}_network_settings" ) );
+		self::assertFalse( get_network_option( null, "{$this->prefix}_network_settings" ) );
 	}
 
 	public function test_a_throw_on_one_site_leaves_the_other_sites_swept_and_is_thrown_after_the_rest(): void {
@@ -131,13 +131,13 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$this->seed_site( $this->other_site, 'yes' );
 		$main_site = $this->main_site;
 		$filter    = static function ( mixed $value ) use ( $main_site ): mixed {
-			if ( \get_current_blog_id() === $main_site ) {
+			if ( get_current_blog_id() === $main_site ) {
 				throw new \LogicException( 'The filter failed.' );
 			}
 
 			return $value;
 		};
-		\add_filter( "option_{$this->prefix}_remove_data", $filter );
+		add_filter( "option_{$this->prefix}_remove_data", $filter );
 
 		$failure = null;
 		try {
@@ -145,7 +145,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		} catch ( RuntimeException $exception ) {
 			$failure = $exception;
 		} finally {
-			\remove_filter( "option_{$this->prefix}_remove_data", $filter );
+			remove_filter( "option_{$this->prefix}_remove_data", $filter );
 		}
 
 		self::assertInstanceOf( RuntimeException::class, $failure );
@@ -157,7 +157,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 
 	public function test_a_web_request_on_a_large_network_refuses_before_any_change_and_names_wp_plugin_uninstall(): void {
 		self::assertFalse( \defined( 'WP_CLI' ) );
-		\add_filter( 'wp_is_large_network', '__return_true' );
+		add_filter( 'wp_is_large_network', '__return_true' );
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
@@ -181,7 +181,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 	#[PreserveGlobalState( false )]
 	public function test_wp_cli_sweeps_a_large_network(): void {
 		\define( 'WP_CLI', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WP-CLI's own constant, in a process of its own.
-		\add_filter( 'wp_is_large_network', '__return_true' );
+		add_filter( 'wp_is_large_network', '__return_true' );
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
@@ -194,9 +194,9 @@ final class UninstallerOnNetworkTest extends TestCase {
 	public function test_memory_stays_flat_across_a_sixty_site_sweep(): void {
 		$site_ids = \array_map( fn ( int $number ): int => $this->make_site( "acme-sweep-$number" ), \range( 1, 60 ) );
 		foreach ( $site_ids as $site_id ) {
-			$this->on_site( $site_id, fn () => \wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" ) );
+			$this->on_site( $site_id, fn () => wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" ) );
 		}
-		\wp_cache_flush();
+		wp_cache_flush();
 		\gc_collect_cycles();
 		$before = \memory_get_usage();
 
@@ -205,7 +205,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		\gc_collect_cycles();
 		$growth = \memory_get_usage() - $before;
 		foreach ( $site_ids as $site_id ) {
-			self::assertFalse( $this->on_site( $site_id, fn () => \wp_next_scheduled( "{$this->prefix}_cron" ) ) );
+			self::assertFalse( $this->on_site( $site_id, fn () => wp_next_scheduled( "{$this->prefix}_cron" ) ) );
 		}
 		// Each visited site would otherwise keep about 35 KB of options in WordPress's runtime cache.
 		self::assertLessThan( 1024 * 1024, $growth );
@@ -239,11 +239,11 @@ final class UninstallerOnNetworkTest extends TestCase {
 				global $wpdb;
 
 				if ( null !== $consent ) {
-					\update_option( "{$this->prefix}_remove_data", $consent );
+					update_option( "{$this->prefix}_remove_data", $consent );
 				}
-				\update_option( "{$this->prefix}_settings", 'x' );
-				\add_user_meta( $this->user, $wpdb->get_blog_prefix() . "{$this->prefix}_site_state", 'x' );
-				\wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
+				update_option( "{$this->prefix}_settings", 'x' );
+				add_user_meta( $this->user, $wpdb->get_blog_prefix() . "{$this->prefix}_site_state", 'x' );
+				wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
 			}
 		);
 	}
@@ -257,7 +257,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 				return array(
 					$this->option_exists( "{$this->prefix}_settings" ),
 					$this->user_meta_exists( $wpdb->get_blog_prefix() . "{$this->prefix}_site_state" ),
-					false !== \wp_next_scheduled( "{$this->prefix}_cron" ),
+					false !== wp_next_scheduled( "{$this->prefix}_cron" ),
 					$this->option_exists( "{$this->prefix}_remove_data" ),
 				);
 			}
@@ -269,11 +269,11 @@ final class UninstallerOnNetworkTest extends TestCase {
 	}
 
 	protected function on_site( int $site_id, \Closure $operation ): mixed {
-		\switch_to_blog( $site_id );
+		switch_to_blog( $site_id );
 		try {
 			return $operation();
 		} finally {
-			\restore_current_blog();
+			restore_current_blog();
 		}
 	}
 }

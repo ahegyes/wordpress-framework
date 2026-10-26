@@ -26,12 +26,12 @@ final class RequirementsTest extends TestCase {
 	#[\Override]
 	protected function setUp(): void {
 		$this->slug = 'acme-requirements-' . \bin2hex( \random_bytes( 3 ) );
-		\remove_all_actions( 'all_admin_notices' );
+		remove_all_actions( 'all_admin_notices' );
 	}
 
 	#[\Override]
 	protected function tearDown(): void {
-		\wp_set_current_user( 0 );
+		wp_set_current_user( 0 );
 		foreach ( $this->directories as $directory ) {
 			\array_map( 'unlink', \glob( "$directory/*" ) );
 			\rmdir( $directory );
@@ -56,7 +56,7 @@ final class RequirementsTest extends TestCase {
 			'at-the-floor' => array(
 				array(
 					'Requires PHP'      => \PHP_MAJOR_VERSION . '.' . \PHP_MINOR_VERSION,
-					'Requires at least' => \get_bloginfo( 'version' ),
+					'Requires at least' => get_bloginfo( 'version' ),
 				),
 			),
 			'no-headers'   => array( array() ),
@@ -65,35 +65,35 @@ final class RequirementsTest extends TestCase {
 
 	#[DataProvider( 'unmet_headers' )]
 	public function test_a_plugin_below_a_header_is_refused_and_shows_core_message_only_to_users_who_can_activate_plugins( array $headers ): void {
-		$plugin_file = $this->write_plugin( \WP_PLUGIN_DIR, $headers );
+		$plugin_file = $this->write_plugin( WP_PLUGIN_DIR, $headers );
 
 		self::assertFalse( Requirements::check_floors( $plugin_file ) );
 
-		$error = \validate_plugin_requirements( \plugin_basename( $plugin_file ) );
+		$error = validate_plugin_requirements( plugin_basename( $plugin_file ) );
 		self::assertInstanceOf( \WP_Error::class, $error );
-		$notice = \wp_get_admin_notice(
+		$notice = wp_get_admin_notice(
 			$error->get_error_message(),
 			array(
 				'type'           => 'error',
 				'paragraph_wrap' => false,
 			)
 		);
-		self::assertSame( \wp_kses_post( $notice ), $this->render_notices_as( 'administrator' ) );
+		self::assertSame( wp_kses_post( $notice ), $this->render_notices_as( 'administrator' ) );
 		self::assertSame( '', $this->render_notices_as( 'editor' ) );
 	}
 
 	#[DataProvider( 'met_headers' )]
 	public function test_a_plugin_meeting_its_headers_passes_and_prints_nothing( array $headers ): void {
-		$plugin_file = $this->write_plugin( \WP_PLUGIN_DIR, $headers );
+		$plugin_file = $this->write_plugin( WP_PLUGIN_DIR, $headers );
 
 		self::assertTrue( Requirements::check_floors( $plugin_file ) );
 		self::assertSame( '', $this->render_notices_as( 'administrator' ) );
 	}
 
 	public function test_core_reads_the_translated_headers_only_when_the_notice_renders(): void {
-		$plugin_file  = $this->write_plugin( \WP_PLUGIN_DIR, array( 'Requires PHP' => '99' ) );
+		$plugin_file  = $this->write_plugin( WP_PLUGIN_DIR, array( 'Requires PHP' => '99' ) );
 		$translations = 0;
-		\add_filter(
+		add_filter(
 			"gettext_$this->slug",
 			static function ( string $translation ) use ( &$translations ): string {
 				++$translations;
@@ -110,7 +110,7 @@ final class RequirementsTest extends TestCase {
 	}
 
 	public function test_a_refused_plugin_outside_the_plugins_directory_prints_nothing(): void {
-		$plugin_file = $this->write_plugin( \untrailingslashit( \get_temp_dir() ), array( 'Requires PHP' => '99' ) );
+		$plugin_file = $this->write_plugin( untrailingslashit( get_temp_dir() ), array( 'Requires PHP' => '99' ) );
 		self::assertFalse( Requirements::check_floors( $plugin_file ) );
 
 		// Core reads the headers from the plugins directory, so it warns about the missing file and reports the requirements as met.
@@ -136,7 +136,7 @@ final class RequirementsTest extends TestCase {
 
 	public function test_an_error_prints_its_message_without_a_paragraph_wrap(): void {
 		$message = '<p>Acme Requirements needs <strong>PHP 99</strong>.</p>';
-		$notice  = \wp_get_admin_notice(
+		$notice  = wp_get_admin_notice(
 			$message,
 			array(
 				'type'           => 'error',
@@ -144,7 +144,7 @@ final class RequirementsTest extends TestCase {
 			)
 		);
 
-		self::assertSame( \wp_kses_post( $notice ), $this->print_notice_as( 'administrator', new \WP_Error( 'acme', $message ) ) );
+		self::assertSame( wp_kses_post( $notice ), $this->print_notice_as( 'administrator', new \WP_Error( 'acme', $message ) ) );
 	}
 
 	public function test_an_error_keeps_the_arguments_it_is_given(): void {
@@ -153,7 +153,7 @@ final class RequirementsTest extends TestCase {
 			'paragraph_wrap' => true,
 		);
 
-		self::assertSame( \wp_kses_post( \wp_get_admin_notice( 'Acme Requirements needs PHP 99.', $args ) ), $this->print_notice_as( 'administrator', new \WP_Error( 'acme', 'Acme Requirements needs PHP 99.' ), $args ) );
+		self::assertSame( wp_kses_post( wp_get_admin_notice( 'Acme Requirements needs PHP 99.', $args ) ), $this->print_notice_as( 'administrator', new \WP_Error( 'acme', 'Acme Requirements needs PHP 99.' ), $args ) );
 	}
 
 	public static function unprintable_messages(): array {
@@ -185,16 +185,16 @@ final class RequirementsTest extends TestCase {
 	}
 
 	protected function render_notices_as( string $role ): string {
-		\wp_set_current_user( $this->make_user( "acme_requirements_$role", $role ) );
+		wp_set_current_user( $this->make_user( "acme_requirements_$role", $role ) );
 
 		\ob_start();
-		\do_action( 'all_admin_notices' );
+		do_action( 'all_admin_notices' );
 
 		return (string) \ob_get_clean();
 	}
 
 	protected function print_notice_as( string $role, mixed ...$arguments ): string {
-		\wp_set_current_user( $this->make_user( "acme_requirements_$role", $role ) );
+		wp_set_current_user( $this->make_user( "acme_requirements_$role", $role ) );
 
 		\ob_start();
 		Requirements::print_admin_notice( ...$arguments );

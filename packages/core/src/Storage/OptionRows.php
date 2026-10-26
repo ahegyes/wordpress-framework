@@ -67,8 +67,7 @@ final class OptionRows {
 		// A row rather than a single value, because wpdb::get_var() returns null for an empty string as it does for a missing row.
 		$wpdb->flush();
 		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, $name ) ?? '', ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- A cached value may predate another request's write.
-		// wpdb::get_row() returns null for a failed query as for a missing row, so the error left after the flush tells them apart.
-		if ( '' !== $wpdb->last_error ) {
+		if ( '' !== $wpdb->last_error ) { // wpdb::get_row() returns null for a failed query as for a missing row, so the error left after the flush tells them apart.
 			throw new RuntimeException( "Could not read option '$name': $wpdb->last_error" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
@@ -177,6 +176,8 @@ final class OptionRows {
 	 * @param   int    $max_length Optional. The most characters the name may hold. Default is the 191 of the option_name column.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the name is empty, surrounded by whitespace or longer than the maximum.
+	 *
+	 * @return  void
 	 */
 	public static function check_name( string $name, int $max_length = self::MAX_NAME_LENGTH ): void {
 		if ( '' === $name || \trim( $name ) !== $name || \mb_strlen( $name ) > $max_length ) {
@@ -202,14 +203,13 @@ final class OptionRows {
 	 * @return  string
 	 */
 	protected static function serialize( string $name, mixed $value ): string {
-		self::check_name( $name );
-
-		// A stored object's class name changes with each plugin's scoping prefix, so it would not read back.
-		if ( ! self::is_storable( $value ) ) {
+		if ( ! self::is_storable( $value ) ) { // A stored object's class name changes with each plugin's scoping prefix, so it would not read back.
 			throw new InvalidArgumentException( "The value of option '$name' holds something other than scalars, null and arrays." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
-		$raw = \maybe_serialize( $value );
+		self::check_name( $name );
+
+		$raw = maybe_serialize( $value );
 		return \is_scalar( $raw ) ? (string) $raw : '';
 	}
 
@@ -239,7 +239,7 @@ final class OptionRows {
 	 * @return  OptionRow
 	 */
 	protected static function make_row( string $name, string $raw ): OptionRow {
-		return new OptionRow( $name, \maybe_unserialize( $raw ), $raw );
+		return new OptionRow( $name, maybe_unserialize( $raw ), $raw );
 	}
 
 	/**
@@ -275,14 +275,16 @@ final class OptionRows {
 	 * @version 2.0.0
 	 *
 	 * @param   string $name The option name.
+	 *
+	 * @return  void
 	 */
 	protected static function forget( string $name ): void {
-		\wp_cache_delete( $name, 'options' );
+		wp_cache_delete( $name, 'options' );
 		foreach ( array( 'notoptions', 'alloptions' ) as $list ) {
 			// Writing a cached list back could restore another request's stale entries, so a list that names the option is dropped.
-			$names = \wp_cache_get( $list, 'options' );
+			$names = wp_cache_get( $list, 'options' );
 			if ( \is_array( $names ) && \array_key_exists( $name, $names ) ) {
-				\wp_cache_delete( $list, 'options' );
+				wp_cache_delete( $list, 'options' );
 			}
 		}
 	}

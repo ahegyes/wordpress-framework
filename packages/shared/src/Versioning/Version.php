@@ -44,7 +44,6 @@ final readonly class Version extends AbstractValueObject implements \Stringable 
 	public function __toString(): string {
 		$label  = \is_null( $this->pre_release ) ? '' : "-$this->pre_release";
 		$number = 0 === $this->pre_release_number ? '' : ".$this->pre_release_number";
-
 		return "$this->major.$this->minor.$this->patch$label$number";
 	}
 

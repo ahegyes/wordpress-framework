@@ -22,7 +22,7 @@ trait RunsAdminRequestsTrait {
 			\serialize( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- The request process reads it.
 				array(
 					'method'  => $method,
-					'host'    => (string) \parse_url( \home_url(), \PHP_URL_HOST ) . ( \is_int( \parse_url( \home_url(), \PHP_URL_PORT ) ) ? ':' . \parse_url( \home_url(), \PHP_URL_PORT ) : '' ),
+					'host'    => (string) \parse_url( home_url(), \PHP_URL_HOST ) . ( \is_int( \parse_url( home_url(), \PHP_URL_PORT ) ) ? ':' . \parse_url( home_url(), \PHP_URL_PORT ) : '' ),
 					'uri'     => '/wp-admin/' . $path,
 					'file'    => $file,
 					'get'     => $query,
@@ -45,19 +45,19 @@ trait RunsAdminRequestsTrait {
 		\unlink( $result );
 		self::assertIsArray( $outcome, $stderr . $body );
 		self::assertSame( array(), $outcome['errors'], $stderr );
-		\wp_cache_flush();
+		wp_cache_flush();
 
 		return $outcome + array( 'body' => $body );
 	}
 
 	protected function get_session_cookies( int $user_id ): array {
 		if ( ! isset( $this->session_cookies[ $user_id ] ) ) {
-			$expiration                        = \time() + \DAY_IN_SECONDS;
+			$expiration                        = \time() + DAY_IN_SECONDS;
 			$token                             = \WP_Session_Tokens::get_instance( $user_id )->create( $expiration );
 			$this->session_tokens[ $user_id ]  = $token;
 			$this->session_cookies[ $user_id ] = array(
-				\AUTH_COOKIE      => \wp_generate_auth_cookie( $user_id, $expiration, 'auth', $token ),
-				\LOGGED_IN_COOKIE => \wp_generate_auth_cookie( $user_id, $expiration, 'logged_in', $token ),
+				AUTH_COOKIE      => wp_generate_auth_cookie( $user_id, $expiration, 'auth', $token ),
+				LOGGED_IN_COOKIE => wp_generate_auth_cookie( $user_id, $expiration, 'logged_in', $token ),
 			);
 		}
 

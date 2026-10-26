@@ -23,7 +23,7 @@ final class WooCommerceLoggerWithoutWooCommerceTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		\ini_set( 'error_log', (string) $this->previous_log_file );
-		\wp_delete_file( $this->log_file );
+		wp_delete_file( $this->log_file );
 	}
 
 	public function test_without_woocommerce_errors_reach_the_error_log_and_lower_levels_go_nowhere(): void {

@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Core\AdminNotice;
 
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+use DeepWebSolutions\Framework\Shared\ValueObject\AbstractValueObject;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -16,7 +17,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  *
  * @phpstan-type NoticeRow array{v: 1, id: string, message: string, type: value-of<NoticeType>, scope: value-of<NoticeScope>, persistent: bool, dismissible: bool, capability: string|null, screens: list<string>, expires_at: int|null, per_viewer: bool}
  */
-final readonly class Notice {
+final readonly class Notice extends AbstractValueObject {
 	// region FIELDS AND CONSTANTS
 
 	/**
@@ -64,6 +65,10 @@ final readonly class Notice {
 		public ?int $expires_at = null,
 		public bool $per_viewer = false
 	) {
+		if ( ! \array_is_list( $screens ) || ! \array_all( $screens, static fn ( mixed $screen ): bool => \is_string( $screen ) && '' !== $screen ) ) {
+			throw new InvalidArgumentException( "The screens of notice '$id' are not a list of screen ids." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+
 		if ( 1 !== \preg_match( self::ID_PATTERN, $id ) ) {
 			throw new InvalidArgumentException( "Notice id '$id' is not a lowercase letter followed by up to 63 lowercase letters, digits, underscores and hyphens." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
@@ -74,10 +79,6 @@ final readonly class Notice {
 
 		if ( \is_null( $capability ) && ( NoticeScope::Site === $scope || NoticeScope::Network === $scope ) ) {
 			throw new InvalidArgumentException( "The $scope->value notice '$id' has no capability." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
-		}
-
-		if ( ! \array_is_list( $screens ) || ! \array_all( $screens, static fn ( mixed $screen ): bool => \is_string( $screen ) && '' !== $screen ) ) {
-			throw new InvalidArgumentException( "The screens of notice '$id' are not a list of screen ids." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
 		if ( ! \is_null( $expires_at ) && $expires_at < 1 ) {

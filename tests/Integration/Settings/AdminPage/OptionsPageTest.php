@@ -53,7 +53,7 @@ final class OptionsPageTest extends TestCase {
 
 	#[\Override]
 	protected function tearDown(): void {
-		\delete_transient( 'settings_errors' );
+		delete_transient( 'settings_errors' );
 	}
 
 	public static function parents(): array {
@@ -122,7 +122,7 @@ final class OptionsPageTest extends TestCase {
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'v!' ), \get_option( $this->option ) );
+		self::assertSame( array( 'name' => 'v!' ), get_option( $this->option ) );
 		self::assertSame( array( array( 'name', 'v' ) ), $saved['records'] );
 		self::assertSame( array( 'Settings saved.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
@@ -133,19 +133,19 @@ final class OptionsPageTest extends TestCase {
 
 		$request = $this->admin_request( 'GET', "admin-post.php?option_page={$this->option}", $this->admin, self::FIXTURE, $spec );
 
-		self::assertSame( $value, \get_option( $this->option ) );
+		self::assertSame( $value, get_option( $this->option ) );
 		self::assertSame( array(), $request['records'] );
 	}
 
 	#[DataProvider( 'parents' )]
 	public function test_a_rejected_field_keeps_its_value_and_its_message_shows_once( string $parent_file ): void {
-		\update_option( $this->option, array( 'name' => 'old' ) );
+		update_option( $this->option, array( 'name' => 'old' ) );
 		$spec = $this->spec( array( self::field( 'text', 'name', array( 'validate' => 'acme:reject' ) ) ), array( 'parent' => $parent_file ) );
 		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'too long' ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'old' ), \get_option( $this->option ) );
+		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
 		self::assertSame( array( 'Name was not saved, so it keeps its previous value. Use at most four characters.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
@@ -156,29 +156,29 @@ final class OptionsPageTest extends TestCase {
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'new' ), \get_option( $this->option ) );
+		self::assertSame( array( 'name' => 'new' ), get_option( $this->option ) );
 		self::assertSame( array( 'Settings saved.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_a_rejection_without_a_message_says_that_the_value_is_not_valid(): void {
-		\update_option( $this->option, array( 'name' => 'old' ) );
+		update_option( $this->option, array( 'name' => 'old' ) );
 		$spec = $this->spec( array( self::field( 'text', 'name', array( 'validate' => 'acme:reject-silently' ) ) ) );
 		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'new' ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'old' ), \get_option( $this->option ) );
+		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
 		self::assertSame( array( 'Name was not saved because its value is not valid, so it keeps its previous value.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_a_built_in_rejection_carries_what_to_enter(): void {
-		\update_option( $this->option, array( 'email' => 'ops@example.com' ) );
+		update_option( $this->option, array( 'email' => 'ops@example.com' ) );
 		$spec = $this->spec( array( self::field( 'email', 'email' ) ) );
 		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[email]" => 'not an email' ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'email' => 'ops@example.com' ), \get_option( $this->option ) );
+		self::assertSame( array( 'email' => 'ops@example.com' ), get_option( $this->option ) );
 		self::assertSame( array( 'Email was not saved, so it keeps its previous value. Enter a valid email address, such as name@example.com.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
@@ -218,17 +218,17 @@ final class OptionsPageTest extends TestCase {
 
 	#[DataProvider( 'multi_value_types' )]
 	public function test_a_fully_cleared_multi_value_field_stores_an_empty_array( string $type ): void {
-		\update_option( $this->option, array( 'colors' => array( 'red', 'blue' ) ) );
+		update_option( $this->option, array( 'colors' => array( 'red', 'blue' ) ) );
 		$spec = $this->spec( array( self::field( $type, 'colors', array( 'options' => self::COLORS ) ) ) );
 		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[colors]" => array() ) );
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'colors' => array() ), \get_option( $this->option ) );
+		self::assertSame( array( 'colors' => array() ), get_option( $this->option ) );
 	}
 
 	public function test_an_unchecked_checkbox_stores_no_while_a_text_field_posts(): void {
-		\update_option(
+		update_option(
 			$this->option,
 			array(
 				'alpha' => 'yes',
@@ -253,7 +253,7 @@ final class OptionsPageTest extends TestCase {
 				'beta'  => 'no',
 				'name'  => 'new',
 			),
-			\get_option( $this->option )
+			get_option( $this->option )
 		);
 	}
 
@@ -264,7 +264,7 @@ final class OptionsPageTest extends TestCase {
 			'colors' => array( 'red' ),
 			'other'  => 'old',
 		);
-		\update_option( $this->option, $stored );
+		update_option( $this->option, $stored );
 		$spec = $this->spec(
 			array(
 				self::field( 'text', 'name', array( 'custom_attributes' => array( 'disabled' => 'disabled' ) ) ),
@@ -284,13 +284,13 @@ final class OptionsPageTest extends TestCase {
 
 		$this->save( $spec, $this->admin, self::form_data( $form, array( "{$this->option}[other]" => 'new' ) ) );
 
-		self::assertSame( \array_replace( $stored, array( 'other' => 'new' ) ), \get_option( $this->option ) );
+		self::assertSame( \array_replace( $stored, array( 'other' => 'new' ) ), get_option( $this->option ) );
 		self::assertSame( array( 'other' ), \array_keys( self::form_data( $form )[ $this->option ] ) );
 		self::assertCount( 0, self::document( $form )->querySelectorAll( 'form input[type="hidden"][name^="' . $this->option . '["]' ) );
 	}
 
 	public function test_a_tab_whose_every_control_is_disabled_leaves_the_row_unchanged(): void {
-		\update_option( $this->option, array( 'name' => 'old' ) );
+		update_option( $this->option, array( 'name' => 'old' ) );
 		$spec = $this->spec(
 			array(
 				self::field(
@@ -308,7 +308,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertArrayNotHasKey( $this->option, $data );
-		self::assertSame( array( 'name' => 'old' ), \get_option( $this->option ) );
+		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
 		self::assertSame( array(), $saved['records'] );
 	}
 
@@ -324,7 +324,7 @@ final class OptionsPageTest extends TestCase {
 
 		self::assertSame( 403, $saved['died']['status'] ?? null );
 		self::assertStringContainsString( 'Sorry, you are not allowed to manage options for this site.', $saved['died']['message'] ?? '' );
-		self::assertFalse( \get_option( $this->option ) );
+		self::assertFalse( get_option( $this->option ) );
 	}
 
 	public function test_a_capability_below_manage_options_lets_its_holder_save(): void {
@@ -333,12 +333,12 @@ final class OptionsPageTest extends TestCase {
 
 		$this->save( $spec, $this->editor, $data );
 
-		self::assertSame( array( 'name' => 'new' ), \get_option( $this->option ) );
+		self::assertSame( array( 'name' => 'new' ), get_option( $this->option ) );
 	}
 
 	#[DataProvider( 'relocated_option_pages' )]
 	public function test_an_option_page_outside_the_post_body_or_padded_still_validates( string $variant ): void {
-		\update_option( $this->option, array( 'size' => 's' ) );
+		update_option( $this->option, array( 'size' => 's' ) );
 		$spec                          = $this->spec(
 			array(
 				self::field(
@@ -366,7 +366,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data, $query );
 
 		self::assertNull( $saved['died'] );
-		self::assertSame( array( 'size' => 's' ), \get_option( $this->option ) );
+		self::assertSame( array( 'size' => 's' ), get_option( $this->option ) );
 	}
 
 	#[DataProvider( 'multi_value_types' )]
@@ -376,12 +376,12 @@ final class OptionsPageTest extends TestCase {
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'colors' => array( 'red', 'teal' ) ), \get_option( $this->option ) );
+		self::assertSame( array( 'colors' => array( 'red', 'teal' ) ), get_option( $this->option ) );
 	}
 
 	#[DataProvider( 'multi_value_types' )]
 	public function test_a_cleared_multi_value_field_reaches_validate_as_an_empty_array( string $type ): void {
-		\update_option( $this->option, array( 'colors' => array( 'red' ) ) );
+		update_option( $this->option, array( 'colors' => array( 'red' ) ) );
 		$spec = $this->spec(
 			array(
 				self::field(
@@ -399,7 +399,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( array( array( 'colors', array() ) ), $saved['records'] );
-		self::assertSame( array( 'colors' => array() ), \get_option( $this->option ) );
+		self::assertSame( array( 'colors' => array() ), get_option( $this->option ) );
 	}
 
 	public function test_a_tampered_value_for_a_disabled_field_is_ignored(): void {
@@ -408,7 +408,7 @@ final class OptionsPageTest extends TestCase {
 			'agree' => 'no',
 			'other' => 'old',
 		);
-		\update_option( $this->option, $stored );
+		update_option( $this->option, $stored );
 		$spec                           = $this->spec(
 			array(
 				self::field( 'text', 'name', array( 'custom_attributes' => array( 'disabled' => 'disabled' ) ) ),
@@ -422,7 +422,7 @@ final class OptionsPageTest extends TestCase {
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame( $stored, \get_option( $this->option ) );
+		self::assertSame( $stored, get_option( $this->option ) );
 	}
 
 	public function test_the_submenu_entry_and_the_page_exist_only_for_users_holding_the_capability(): void {
@@ -454,7 +454,7 @@ final class OptionsPageTest extends TestCase {
 			'days'   => array( '2' ),
 			'agree'  => 'yes',
 		);
-		\update_option( $this->option, $stored );
+		update_option( $this->option, $stored );
 		$spec = $this->spec(
 			array(
 				self::field( 'text', 'name' ),
@@ -475,7 +475,7 @@ final class OptionsPageTest extends TestCase {
 
 		$this->save( $spec, $this->admin, self::form_data( $form, array( "{$this->option}[name]" => 'new' ) ) );
 
-		self::assertSame( \array_replace( $stored, array( 'name' => 'new' ) ), \get_option( $this->option ) );
+		self::assertSame( \array_replace( $stored, array( 'name' => 'new' ) ), get_option( $this->option ) );
 		$labels = array();
 		foreach ( self::document( $form )->querySelectorAll( 'form tr' ) as $row ) {
 			$for = $row->querySelector( 'th label' )?->getAttribute( 'for' );
@@ -510,11 +510,11 @@ final class OptionsPageTest extends TestCase {
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'new' ), \get_option( $this->option ) );
+		self::assertSame( array( 'name' => 'new' ), get_option( $this->option ) );
 	}
 
 	public function test_a_stored_id_absent_from_the_definition_keeps_its_value(): void {
-		\update_option(
+		update_option(
 			$this->option,
 			array(
 				'name'    => 'old',
@@ -531,7 +531,7 @@ final class OptionsPageTest extends TestCase {
 				'name'    => 'new',
 				'retired' => 'kept',
 			),
-			\get_option( $this->option )
+			get_option( $this->option )
 		);
 	}
 
@@ -558,9 +558,9 @@ final class OptionsPageTest extends TestCase {
 				'name'  => '',
 				'extra' => 'e!',
 			),
-			\get_option( $this->option )
+			get_option( $this->option )
 		);
-		self::assertSame( array( 'key' => 'k' ), \get_option( $addon ) );
+		self::assertSame( array( 'key' => 'k' ), get_option( $addon ) );
 	}
 
 	public function test_each_tab_shows_its_own_form_and_an_unknown_tab_shows_the_first(): void {

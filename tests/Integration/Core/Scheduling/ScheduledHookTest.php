@@ -33,4 +33,12 @@ final class ScheduledHookTest extends TestCase {
 
 		new ScheduledHook( 'acme_sweep', array( \str_repeat( 'a', 7997 ) ) );
 	}
+
+	public function test_hooks_are_equal_when_their_names_and_arguments_are(): void {
+		$hook = new ScheduledHook( 'acme_sweep', array( 1, 'one' ) );
+
+		self::assertTrue( $hook->equals( new ScheduledHook( 'acme_sweep', array( 1, 'one' ) ) ) );
+		self::assertFalse( $hook->equals( new ScheduledHook( 'acme_sweep', array( '1', 'one' ) ) ) );
+		self::assertFalse( $hook->equals( new ScheduledHook( 'acme_other', array( 1, 'one' ) ) ) );
+	}
 }

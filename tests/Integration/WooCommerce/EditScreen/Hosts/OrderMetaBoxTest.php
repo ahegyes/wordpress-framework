@@ -67,7 +67,7 @@ final class OrderMetaBoxTest extends TestCase {
 		$host = new OrderMetaBox();
 		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
-		self::assertSame( 10, \has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
+		self::assertSame( 10, has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_a_screen_needs_it(): void {
@@ -214,7 +214,7 @@ final class OrderMetaBoxTest extends TestCase {
 		$host = new OrderMetaBox();
 		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
 
-		self::assertSame( 35, \has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
+		self::assertSame( 35, has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
 	}
 
 	public function test_update_stores_the_accepted_values_through_the_orders_meta(): void {
@@ -301,7 +301,7 @@ final class OrderMetaBoxTest extends TestCase {
 		$screen   = $this->admin_request( 'GET', 'admin.php?page=wc-orders&action=new', $this->admin, self::FIXTURE, $spec );
 		$data     = self::serialize_form( $screen['body'], 'form#order', array( $this->control_name( 'flag' ) => true ) );
 		$order_id = (int) $data['post_ID'];
-		$order    = \wc_get_order( $order_id );
+		$order    = wc_get_order( $order_id );
 		self::assertInstanceOf( \WC_Order::class, $order );
 		$this->orders[] = $order;
 
@@ -350,8 +350,8 @@ final class OrderMetaBoxTest extends TestCase {
 			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
-		\wp_set_current_user( $this->admin );
-		$_POST[ "{$this->id}_nonce" ] = \wp_create_nonce( "{$this->id}_nonce_{$order->get_id()}" );
+		wp_set_current_user( $this->admin );
+		$_POST[ "{$this->id}_nonce" ] = wp_create_nonce( "{$this->id}_nonce_{$order->get_id()}" );
 		$_POST[ $this->id ]           = array( "_{$this->prefix}_name" => 'programmatic' );
 
 		try {
@@ -359,10 +359,10 @@ final class OrderMetaBoxTest extends TestCase {
 			$order->save();
 		} finally {
 			unset( $_POST[ "{$this->id}_nonce" ], $_POST[ $this->id ] );
-			\wp_set_current_user( 0 );
+			wp_set_current_user( 0 );
 		}
 
-		self::assertSame( 'Updated in code', \wc_get_order( $order->get_id() )->get_customer_note() );
+		self::assertSame( 'Updated in code', wc_get_order( $order->get_id() )->get_customer_note() );
 		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'name' ) );
 	}
 
@@ -373,7 +373,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 		$screen = self::document( $this->posts_edit_screen( $spec, $order->get_id() )['body'] );
 
-		self::assertSame( 'shop_order', \get_post_type( $order->get_id() ) );
+		self::assertSame( 'shop_order', get_post_type( $order->get_id() ) );
 		self::assertNotNull( $screen->querySelector( "form#post div.postbox[id=\"{$this->id}\"] input[type=hidden][name=\"{$this->id}_nonce\"]" ) );
 		self::assertSame( 'stored', $this->control( $this->box( $screen ), 'name' )->getAttribute( 'value' ) );
 	}

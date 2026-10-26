@@ -19,7 +19,7 @@ final class MetaTypesWithoutWooCommerceTest extends TestCase {
 		self::assertFalse( $this->table_exists( 'wc_orders_meta' ) );
 		self::assertFalse( $this->table_exists( 'woocommerce_order_itemmeta' ) );
 		$this->seed_order_meta();
-		\update_option( "{$this->prefix}_remove_data", 'yes' );
+		update_option( "{$this->prefix}_remove_data", 'yes' );
 
 		Uninstaller::run(
 			self::PLUGIN_FILE,
@@ -31,6 +31,6 @@ final class MetaTypesWithoutWooCommerceTest extends TestCase {
 		);
 
 		self::assertSame( $this->kept_order_meta_keys(), $this->meta_keys_in( 'postmeta' ) );
-		self::assertFalse( \get_option( "{$this->prefix}_remove_data" ) );
+		self::assertFalse( get_option( "{$this->prefix}_remove_data" ) );
 	}
 }

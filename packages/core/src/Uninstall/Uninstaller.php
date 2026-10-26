@@ -70,6 +70,8 @@ final class Uninstaller {
 	 * @param   array<string, mixed> $args        Optional. The consent (an option, its key in a grouped row, or a constant), the meta types the meta kinds may name beside post, term and comment, and the cleanup. Default none, which keeps the footprint.
 	 *
 	 * @throws  RuntimeException Thrown when a web request runs on a large network, before any change, or when a delete, a site's pass or the cleanup failed, once every site was visited.
+	 *
+	 * @return  void
 	 */
 	public static function run( string $plugin_file, array $footprint, array $args = array() ): void {
 		$args            += array(
@@ -103,28 +105,26 @@ final class Uninstaller {
 		$args['meta_types'] = $meta_types;
 
 		$uninstaller = new self( $plugin_file, $footprint, $args );
-		if ( ! \is_multisite() ) {
+		if ( ! is_multisite() ) {
 			$uninstaller->uninstall_site( true );
 		} else {
-			// A web request could not finish sweeping a large network within the server's time limit, which WP-CLI does not have.
-			if ( \wp_is_large_network() && ! self::is_constant_true( 'WP_CLI' ) ) {
+			if ( wp_is_large_network() && ! self::is_constant_true( 'WP_CLI' ) ) { // A web request could not finish sweeping a large network within the server's time limit, which WP-CLI does not have.
 				throw new RuntimeException( 'Uninstall does not sweep a large network in a web request; run `wp plugin uninstall` instead.' );
 			}
 
-			foreach ( \get_sites(
+			foreach ( get_sites(
 				array(
 					'fields' => 'ids',
 					'number' => 0,
 				)
 			) as $site_id ) {
-				\switch_to_blog( $site_id );
+				switch_to_blog( $site_id );
 				try {
 					$uninstaller->uninstall_site( false );
 				} finally {
-					\restore_current_blog();
-					// WordPress keeps every visited site's options in its runtime cache, so the sweep's memory would grow with each site.
-					if ( \wp_cache_supports( 'flush_runtime' ) ) {
-						\wp_cache_flush_runtime();
+					restore_current_blog();
+					if ( wp_cache_supports( 'flush_runtime' ) ) { // WordPress keeps every visited site's options in its runtime cache, so the sweep's memory would grow with each site.
+						wp_cache_flush_runtime();
 					}
 				}
 			}
@@ -152,14 +152,14 @@ final class Uninstaller {
 	/**
 	 * Runs the uninstall pass on the current site, which unschedules the plugin's jobs and, only where the site consents, runs the cleanup and deletes the footprint.
 	 *
-	 * A throw, such as one from another plugin's hook, ends only this site's pass, and the retry finds the rest of its footprint and its consent row.
-	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @global  \wpdb $wpdb The WordPress database connection.
 	 *
 	 * @param   bool $network_footprint Whether the pass also deletes the network options and network-wide user meta, which a single site keeps as its own.
+	 *
+	 * @return  void
 	 */
 	protected function uninstall_site( bool $network_footprint ): void {
 		global $wpdb;
@@ -169,15 +169,14 @@ final class Uninstaller {
 			foreach ( self::get_strings( $this->footprint['cron_hooks'] ?? null ) as $hook ) {
 				$wpdb->flush();
 				try {
-					$result = \wp_unschedule_hook( $hook, true );
+					$result = wp_unschedule_hook( $hook, true );
 				} catch ( \Throwable $throwable ) {
 					$result = $throwable;
 				}
 				$this->record_failure( "cron hook $hook", $result );
 			}
 
-			// Action Scheduler is loaded only while a plugin that bundles it is active.
-			if ( \function_exists( 'as_unschedule_all_actions' ) ) {
+			if ( \function_exists( 'as_unschedule_all_actions' ) ) { // Action Scheduler is loaded only while a plugin that bundles it is active.
 				$jobs = array();
 				foreach ( self::get_strings( $this->footprint['as_hooks'] ?? null ) as $hook ) {
 					$jobs[ "Action Scheduler hook $hook" ] = array( $hook );
@@ -189,8 +188,7 @@ final class Uninstaller {
 				foreach ( $jobs as $subject => $arguments ) {
 					$wpdb->flush();
 					try {
-						// Action Scheduler throws when its store fails to cancel an action.
-						\as_unschedule_all_actions( ...$arguments );
+						as_unschedule_all_actions( ...$arguments ); // Action Scheduler throws when its store fails to cancel an action.
 						$result = null;
 					} catch ( \Throwable $throwable ) {
 						$result = $throwable;
@@ -202,10 +200,10 @@ final class Uninstaller {
 			// A job that cannot be unscheduled only ever fires into a missing callback, so it is logged and never holds the uninstall back.
 			$unscheduling = \array_splice( $this->failures, $failed );
 			if ( array() !== $unscheduling ) {
-				\error_log( '[' . \plugin_basename( $this->plugin_file ) . '] Uninstall could not unschedule: ' . \implode( '; ', $unscheduling ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
+				\error_log( '[' . plugin_basename( $this->plugin_file ) . '] Uninstall could not unschedule: ' . \implode( '; ', $unscheduling ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- No logger exists while a plugin is uninstalled.
 			}
 
-			$consent = \get_option( $this->args['consent']['option'] );
+			$consent = get_option( $this->args['consent']['option'] );
 			if ( '' !== $this->args['consent']['key'] ) {
 				$consent = \is_array( $consent ) ? $consent[ $this->args['consent']['key'] ] ?? null : null;
 			}
@@ -213,8 +211,7 @@ final class Uninstaller {
 				return;
 			}
 
-			// A failed cleanup keeps the footprint, so its retry still finds every row it reads.
-			if ( ! $this->run_cleanup( 'site' ) ) {
+			if ( ! $this->run_cleanup( 'site' ) ) { // A failed cleanup keeps the footprint, so its retry still finds every row it reads.
 				return;
 			}
 
@@ -224,25 +221,25 @@ final class Uninstaller {
 			}
 			foreach ( \array_diff( \array_unique( $options ), array( $this->args['consent']['option'] ) ) as $option ) {
 				$wpdb->flush();
-				$this->record_failure( "option $option", \delete_option( $option ) );
+				$this->record_failure( "option $option", delete_option( $option ) );
 			}
 
 			foreach ( self::get_strings( $this->footprint['transients'] ?? null ) as $transient ) {
 				$wpdb->flush();
-				$this->record_failure( "transient $transient", \delete_transient( $transient ) );
+				$this->record_failure( "transient $transient", delete_transient( $transient ) );
 			}
 
 			foreach ( self::get_strings( $this->footprint['post_types'] ?? null ) as $post_type ) {
 				foreach ( $this->get_matching_ids( $wpdb->posts, 'ID', 'post_type', $post_type ) as $post_id ) {
 					$wpdb->flush();
-					$this->record_failure( "post $post_id of type $post_type", self::confirm_deleted( \wp_delete_post( $post_id, true ) ) );
+					$this->record_failure( "post $post_id of type $post_type", self::confirm_deleted( wp_delete_post( $post_id, true ) ) );
 				}
 			}
 
 			foreach ( self::get_strings( $this->footprint['comment_types'] ?? null ) as $comment_type ) {
 				foreach ( $this->get_matching_ids( $wpdb->comments, 'comment_ID', 'comment_type', $comment_type ) as $comment_id ) {
 					$wpdb->flush();
-					$this->record_failure( "comment $comment_id of type $comment_type", self::confirm_deleted( \wp_delete_comment( $comment_id, true ) ) );
+					$this->record_failure( "comment $comment_id of type $comment_type", self::confirm_deleted( wp_delete_comment( $comment_id, true ) ) );
 				}
 			}
 
@@ -262,7 +259,7 @@ final class Uninstaller {
 
 				$keys = self::get_strings( $meta_keys[ $name ] ?? null );
 				foreach ( self::get_strings( $meta_prefixes[ $name ] ?? null ) as $prefix ) {
-					foreach ( '' === $meta_type['meta_type'] ? $tables : array( (string) \_get_meta_table( $meta_type['meta_type'] ), ...$tables ) as $table ) {
+					foreach ( '' === $meta_type['meta_type'] ? $tables : array( (string) _get_meta_table( $meta_type['meta_type'] ), ...$tables ) as $table ) {
 						$keys = \array_merge( $keys, $this->get_names_by_prefix( $table, 'meta_key', $prefix ) );
 					}
 				}
@@ -279,23 +276,21 @@ final class Uninstaller {
 					}
 				}
 
-				// Where the object cache cannot flush a single group, the entries expire on their own.
-				if ( \wp_cache_supports( 'flush_group' ) ) {
+				if ( wp_cache_supports( 'flush_group' ) ) { // Where the object cache cannot flush a single group, the entries expire on their own.
 					foreach ( $meta_type['cache_groups'] as $group ) {
-						\wp_cache_flush_group( $group );
+						wp_cache_flush_group( $group );
 					}
 				}
 			}
 
-			// Site user meta keys carry the site's table prefix, as update_user_option() writes them.
-			$blog_prefix = $wpdb->get_blog_prefix();
+			$blog_prefix = $wpdb->get_blog_prefix(); // Site user meta keys carry the site's table prefix, as update_user_option() writes them.
 			$this->delete_meta_keys( 'user', \array_map( static fn ( string $key ): string => $blog_prefix . $key, self::get_strings( $this->footprint['user_meta_site'] ?? null ) ) );
 			foreach ( self::get_strings( $this->footprint['user_meta_site_prefixes'] ?? null ) as $prefix ) {
 				$this->delete_meta_keys( 'user', $this->get_names_by_prefix( $wpdb->usermeta, 'meta_key', $blog_prefix . $prefix ) );
 			}
 
 			foreach ( self::get_strings( $this->footprint['capabilities'] ?? null ) as $capability ) {
-				foreach ( \wp_roles()->role_objects as $role ) {
+				foreach ( wp_roles()->role_objects as $role ) {
 					$wpdb->flush();
 					$role->remove_cap( $capability );
 					$this->record_failure( "capability $capability of role $role->name", null );
@@ -314,10 +309,10 @@ final class Uninstaller {
 			// The consent row goes last and only after a clean pass, so an interrupted or failed run still consents on its retry.
 			if ( '' !== $this->args['consent']['option'] && \count( $this->failures ) === $failed ) {
 				$wpdb->flush();
-				$this->record_failure( "option {$this->args['consent']['option']}", \delete_option( $this->args['consent']['option'] ) );
+				$this->record_failure( "option {$this->args['consent']['option']}", delete_option( $this->args['consent']['option'] ) );
 			}
 		} catch ( \Throwable $throwable ) {
-			$this->failures[] = 'site ' . \get_current_blog_id() . ": {$throwable->getMessage()}";
+			$this->failures[] = 'site ' . get_current_blog_id() . ": {$throwable->getMessage()}";
 		}
 	}
 
@@ -328,21 +323,23 @@ final class Uninstaller {
 	 * @version 2.0.0
 	 *
 	 * @global  \wpdb $wpdb The WordPress database connection.
+	 *
+	 * @return  void
 	 */
 	protected function delete_network_footprint(): void {
 		global $wpdb;
 
 		$options = self::get_strings( $this->footprint['network_options'] ?? null );
-		if ( \is_multisite() ) {
+		if ( is_multisite() ) {
 			// WordPress's delete_network_option() matches keys under the column's collation, which would also delete another plugin's key that differs only in letter case.
 			$this->delete_meta_keys( 'site', $options );
 			foreach ( $options as $option ) {
-				\wp_cache_delete( \get_current_network_id() . ":$option", 'site-options' );
+				wp_cache_delete( get_current_network_id() . ":$option", 'site-options' );
 			}
 		} else {
 			foreach ( $options as $option ) {
 				$wpdb->flush();
-				$this->record_failure( "network option $option", \delete_option( $option ) );
+				$this->record_failure( "network option $option", delete_option( $option ) );
 			}
 		}
 
@@ -364,14 +361,16 @@ final class Uninstaller {
 	 *
 	 * @param   string       $meta_type The meta type.
 	 * @param   list<string> $keys      The meta keys.
+	 *
+	 * @return  void
 	 */
 	protected function delete_meta_keys( string $meta_type, array $keys ): void {
 		global $wpdb;
 
 		foreach ( $keys as $key ) {
-			foreach ( $this->get_matching_ids( (string) \_get_meta_table( $meta_type ), 'user' === $meta_type ? 'umeta_id' : 'meta_id', 'meta_key', $key ) as $meta_id ) {
+			foreach ( $this->get_matching_ids( (string) _get_meta_table( $meta_type ), 'user' === $meta_type ? 'umeta_id' : 'meta_id', 'meta_key', $key ) as $meta_id ) {
 				$wpdb->flush();
-				$this->record_failure( "$meta_type meta $meta_id of key $key", self::confirm_deleted( \delete_metadata_by_mid( $meta_type, $meta_id ) ) );
+				$this->record_failure( "$meta_type meta $meta_id of key $key", self::confirm_deleted( delete_metadata_by_mid( $meta_type, $meta_id ) ) );
 			}
 		}
 	}
@@ -402,7 +401,7 @@ final class Uninstaller {
 			( $this->args['cleanup'] )(
 				array(
 					'scope'       => $scope,
-					'site_id'     => \get_current_blog_id(),
+					'site_id'     => get_current_blog_id(),
 					'plugin_file' => $this->plugin_file,
 				)
 			);
@@ -513,9 +512,9 @@ final class Uninstaller {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   mixed $deleted The delete function's return value.
+	 * @param   \WP_Post|bool|null $deleted The delete function's return value.
 	 *
-	 * @return  mixed
+	 * @return  \WP_Post|true|\WP_Error
 	 */
 	protected static function confirm_deleted( mixed $deleted ): mixed {
 		return null === $deleted || false === $deleted ? new \WP_Error( 'not_deleted', 'It was not deleted.' ) : $deleted;

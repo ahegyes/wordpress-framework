@@ -62,8 +62,8 @@ final class CapabilityGrants implements ComponentInterface {
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		\add_action( 'wp_loaded', array( $this, 'run' ) );
-		\add_action( 'updated_option', array( $this, 'forget_deleted_roles' ), 10, 3 );
+		add_action( 'wp_loaded', array( $this, 'run' ) );
+		add_action( 'updated_option', array( $this, 'forget_deleted_roles' ), 10, 3 );
 	}
 
 	// endregion
@@ -77,10 +77,12 @@ final class CapabilityGrants implements ComponentInterface {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @return  void
 	 */
 	public function run(): void {
-		$roles       = \wp_roles();
-		$fingerprint = \md5( (string) \wp_json_encode( array( $this->grants, \array_values( \array_filter( \array_keys( $this->grants ), $roles->is_role( ... ) ) ) ) ) );
+		$roles       = wp_roles();
+		$fingerprint = \md5( (string) wp_json_encode( array( $this->grants, \array_values( \array_filter( \array_keys( $this->grants ), $roles->is_role( ... ) ) ) ) ) );
 		$row         = $this->get_row();
 		if ( $row['fingerprint'] === $fingerprint ) {
 			return;
@@ -132,8 +134,7 @@ final class CapabilityGrants implements ComponentInterface {
 		// The pending write precedes the grants, so a request killed after granting leaves the next run a record that tells its grants from hand grants.
 		if ( array() !== $granted ) {
 			$this->write_row( '', $ledger, $granted );
-			// update_option() also returns false for an unchanged value, so the record is read back.
-			if ( $this->get_row()['pending'] !== $granted ) {
+			if ( $this->get_row()['pending'] !== $granted ) { // update_option() also returns false for an unchanged value, so the record is read back.
 				$this->logger->warning( 'The ledger row did not keep the pending grants, so the next request makes them.' );
 				return;
 			}
@@ -146,7 +147,7 @@ final class CapabilityGrants implements ComponentInterface {
 		}
 
 		// A grant changes the request's copy of the roles even when the row refuses it, so the check reads the option that the next request loads.
-		$stored  = \get_option( $roles->role_key );
+		$stored  = get_option( $roles->role_key );
 		$failed  = array();
 		$pending = array();
 		foreach ( $granted as $role => $caps ) {
@@ -194,6 +195,8 @@ final class CapabilityGrants implements ComponentInterface {
 	 * @param   string $option    The name of the option written.
 	 * @param   mixed  $old_value The option's previous value.
 	 * @param   mixed  $value     The option's new value.
+	 *
+	 * @return  void
 	 */
 	public function forget_deleted_roles( string $option, mixed $old_value, mixed $value ): void {
 		global $wpdb;
@@ -224,7 +227,7 @@ final class CapabilityGrants implements ComponentInterface {
 	 * @return  array{fingerprint: string, grants: Pairs, pending: Pairs}
 	 */
 	protected function get_row(): array {
-		$row = \get_option( $this->ledger_option );
+		$row = get_option( $this->ledger_option );
 		if ( ! \is_array( $row ) || 1 !== ( $row['v'] ?? null ) ) {
 			$row = array();
 		}
@@ -245,9 +248,11 @@ final class CapabilityGrants implements ComponentInterface {
 	 * @param   string $fingerprint The fingerprint, or an empty string when the next run has work to do.
 	 * @param   Pairs  $grants      The ledger of grants made.
 	 * @param   Pairs  $pending     The grants about to be made.
+	 *
+	 * @return  void
 	 */
 	protected function write_row( string $fingerprint, array $grants, array $pending ): void {
-		\update_option(
+		update_option(
 			$this->ledger_option,
 			array(
 				'v'           => 1,
@@ -272,7 +277,6 @@ final class CapabilityGrants implements ComponentInterface {
 	 */
 	protected static function get_capabilities( mixed $roles, string $role ): ?array {
 		$data = \is_array( $roles ) ? $roles[ $role ] ?? null : null;
-
 		return \is_array( $data ) && \is_array( $data['capabilities'] ?? null ) ? $data['capabilities'] : null;
 	}
 

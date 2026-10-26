@@ -67,9 +67,9 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	#[\Override]
 	public function register_hooks( ObjectForm $form ): void {
 		$this->form = $form;
-		\add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 10, 2 );
-		\add_action( 'save_post', array( $this, 'save_meta_box' ), 10, 2 );
-		\add_filter( 'wp_refresh_nonces', array( $this, 'refresh_nonces' ), 11, 2 );
+		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 10, 2 );
+		add_action( 'save_post', array( $this, 'save_meta_box' ), 10, 2 );
+		add_filter( 'wp_refresh_nonces', array( $this, 'refresh_nonces' ), 11, 2 );
 	}
 
 	/**
@@ -102,11 +102,13 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 *
 	 * @param   string    $title The form's title, escaped, which the box's own title shows instead.
 	 * @param   list<Row> $rows  The rows, one per field.
+	 *
+	 * @return  void
 	 */
 	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
 		foreach ( $rows as $row ) {
-			$heading = \is_null( $row['label_for'] ) ? '<span class="post-attributes-label">' . $row['title'] . '</span>' : '<label class="post-attributes-label" for="' . \esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label>';
+			$heading = \is_null( $row['label_for'] ) ? '<span class="post-attributes-label">' . $row['title'] . '</span>' : '<label class="post-attributes-label" for="' . esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label>';
 			echo '<div class="form-field"><p class="post-attributes-label-wrapper">' . $heading . '</p>' . $row['control'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
 		}
 	}
@@ -123,6 +125,8 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 *
 	 * @param   string $post_type The edited object's post type.
 	 * @param   mixed  $post      The edited object, which is a comment on the comment edit screen.
+	 *
+	 * @return  void
 	 */
 	public function add_meta_box( string $post_type, mixed $post ): void {
 		if ( ! $post instanceof \WP_Post || ! \in_array( $post_type, $this->post_types, true ) || ! $this->form->can_render( $post->ID ) ) {
@@ -130,7 +134,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 		}
 
 		// WordPress prints a box's title as markup and the block editor lists it as text, so the title goes in as the form defines it.
-		\add_meta_box( $this->form->get_id(), $this->form->get_title( $post->ID ), array( $this, 'render_meta_box' ), $post_type, $this->context, $this->priority );
+		add_meta_box( $this->form->get_id(), $this->form->get_title( $post->ID ), array( $this, 'render_meta_box' ), $post_type, $this->context, $this->priority );
 	}
 
 	/**
@@ -140,15 +144,17 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   \WP_Post $post The edited post.
+	 *
+	 * @return  void
 	 */
 	public function render_meta_box( \WP_Post $post ): void {
 		$this->form->render( $post->ID );
 
 		// The block editor's heartbeat script sets only core's nonces, by name, while the classic editor's sets every one the heartbeat returns.
-		if ( true === \get_current_screen()?->is_block_editor() ) {
+		if ( true === get_current_screen()?->is_block_editor() ) {
 			foreach ( \array_keys( $this->form->get_refreshed_nonces( $post->ID ) ) as $field ) {
-				$field = \esc_js( $field );
-				\wp_add_inline_script( 'heartbeat', "jQuery( document ).on( 'heartbeat-tick', function ( event, data ) { var nonces = data['wp-refresh-metabox-loader-nonces']; if ( nonces && nonces.replace && nonces.replace['$field'] ) { jQuery( '#$field' ).val( nonces.replace['$field'] ); } } );" );
+				$field = esc_js( $field );
+				wp_add_inline_script( 'heartbeat', "jQuery( document ).on( 'heartbeat-tick', function ( event, data ) { var nonces = data['wp-refresh-metabox-loader-nonces']; if ( nonces && nonces.replace && nonces.replace['$field'] ) { jQuery( '#$field' ).val( nonces.replace['$field'] ); } } );" );
 			}
 		}
 	}
@@ -161,6 +167,8 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	 *
 	 * @param   int      $post_id The saved post's id.
 	 * @param   \WP_Post $post    The saved post.
+	 *
+	 * @return  void
 	 */
 	public function save_meta_box( int $post_id, \WP_Post $post ): void {
 		if ( \in_array( $post->post_type, $this->post_types, true ) ) {
@@ -188,7 +196,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 			}
 
 			$post_id = (int) $request['post_id'];
-			if ( \in_array( \get_post_type( $post_id ), $this->post_types, true ) ) {
+			if ( \in_array( get_post_type( $post_id ), $this->post_types, true ) ) {
 				$refresh['replace'] += $this->form->get_refreshed_nonces( $post_id );
 				$response[ $key ]    = $refresh;
 			}

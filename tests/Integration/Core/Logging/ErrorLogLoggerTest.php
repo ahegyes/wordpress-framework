@@ -29,7 +29,7 @@ final class ErrorLogLoggerTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		\ini_set( 'error_log', (string) $this->previous_log_file );
-		\wp_delete_file( $this->log_file );
+		wp_delete_file( $this->log_file );
 	}
 
 	public static function levels(): array {
@@ -57,7 +57,7 @@ final class ErrorLogLoggerTest extends TestCase {
 	#[DataProvider( 'levels' )]
 	public function test_every_record_fires_query_monitors_action_for_its_level( string $level ): void {
 		$received = array();
-		\add_action(
+		add_action(
 			"qm/$level",
 			static function ( mixed ...$args ) use ( &$received ): void {
 				$received[] = $args;

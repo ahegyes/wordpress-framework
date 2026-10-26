@@ -76,14 +76,14 @@ final class LockTest extends TestCase {
 
 	#[DataProvider( 'rows_that_hold_no_lock' )]
 	public function test_a_row_that_holds_no_lock_is_taken_over( mixed $value ): void {
-		\update_option( "{$this->prefix}_lock", $value, false );
+		update_option( "{$this->prefix}_lock", $value, false );
 
 		self::assertSame( LockClaim::TakenOver, $this->make_lock()->acquire( 'second' ) );
 		self::assertSame( self::hold( 'second', 1800000000 ), $this->stored() );
 	}
 
 	public function test_a_hold_with_keys_it_does_not_know_still_holds_the_lock(): void {
-		\update_option( "{$this->prefix}_lock", self::hold( 'first', 1800000000 ) + array( 'host' => 'web-2' ), false );
+		update_option( "{$this->prefix}_lock", self::hold( 'first', 1800000000 ) + array( 'host' => 'web-2' ), false );
 
 		self::assertSame( LockClaim::Busy, $this->make_lock()->acquire( 'second' ) );
 		self::assertTrue( $this->make_lock()->refresh( 'first' ) );
@@ -129,7 +129,7 @@ final class LockTest extends TestCase {
 		$lock = $this->make_lock();
 		$lock->acquire( 'first' );
 		$writes = array();
-		\add_filter(
+		add_filter(
 			'query',
 			static function ( string $query ) use ( &$writes ): string {
 				if ( 1 === \preg_match( '/^\s*(INSERT|UPDATE|DELETE)\b/i', $query ) ) {

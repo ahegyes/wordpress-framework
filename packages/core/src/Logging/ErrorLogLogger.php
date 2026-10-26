@@ -44,6 +44,8 @@ final class ErrorLogLogger extends AbstractLogger {
 	 * @param   array<mixed>       $context The values to interpolate, and any Throwable to write after the message under the exception key.
 	 *
 	 * @throws  PsrInvalidArgumentException Thrown when the level is not a PSR-3 level.
+	 *
+	 * @return  void
 	 */
 	#[\Override]
 	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
@@ -53,7 +55,7 @@ final class ErrorLogLogger extends AbstractLogger {
 		}
 
 		\error_log( self::format_record( $this->channel, $level, self::interpolate( (string) $message, $context ), $context ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Writing to the error log is this logger's purpose.
-		\do_action( "qm/$level", $message, $context );
+		do_action( "qm/$level", $message, $context );
 	}
 
 	// endregion

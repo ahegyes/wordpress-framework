@@ -69,8 +69,8 @@ final class OrderMetaBox implements ObjectFormHostInterface {
 	#[\Override]
 	public function register_hooks( ObjectForm $form ): void {
 		$this->form = $form;
-		\add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 10, 2 );
-		\add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_meta_box' ), 35 );
+		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 10, 2 );
+		add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_meta_box' ), 35 );
 	}
 
 	/**
@@ -118,6 +118,8 @@ final class OrderMetaBox implements ObjectFormHostInterface {
 	 *
 	 * @param   string $screen_id The screen's id, which is the post type when orders are stored as posts.
 	 * @param   mixed  $order     The edited object, which on an order screen is a WC_Order in WooCommerce's order tables and a WP_Post in the posts table.
+	 *
+	 * @return  void
 	 */
 	public function add_meta_box( string $screen_id, mixed $order ): void {
 		// WooCommerce's order screen ids depend on the storage, the order type and whether the user sees its menu.
@@ -127,7 +129,7 @@ final class OrderMetaBox implements ObjectFormHostInterface {
 		}
 
 		// WordPress prints a box's title as markup, so the title goes in as the form defines it.
-		\add_meta_box( $this->form->get_id(), $this->form->get_title( $order_id ), array( $this, 'render_meta_box' ), $screen_id, $this->context, $this->priority );
+		add_meta_box( $this->form->get_id(), $this->form->get_title( $order_id ), array( $this, 'render_meta_box' ), $screen_id, $this->context, $this->priority );
 	}
 
 	/**
@@ -137,6 +139,8 @@ final class OrderMetaBox implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   mixed $order The edited order, a WC_Order in WooCommerce's order tables and a WP_Post in the posts table.
+	 *
+	 * @return  void
 	 */
 	public function render_meta_box( mixed $order ): void {
 		$this->form->render( OrderUtil::get_post_or_order_id( $order ) );
@@ -151,6 +155,8 @@ final class OrderMetaBox implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 *
 	 * @param   int $order_id The saved order's id.
+	 *
+	 * @return  void
 	 */
 	public function save_meta_box( int $order_id ): void {
 		$this->form->save( $order_id );

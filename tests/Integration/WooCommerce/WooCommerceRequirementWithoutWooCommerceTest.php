@@ -28,21 +28,21 @@ final class WooCommerceRequirementWithoutWooCommerceTest extends TestCase {
 
 		// On a network, only a super admin can activate plugins unless the network enables the plugins menu.
 		$super_admin = $this->make_user( 'acme_requirement_super_admin', 'administrator' );
-		\grant_super_admin( $super_admin );
+		grant_super_admin( $super_admin );
 		$html  = $this->render_notices_as( $super_admin );
-		$error = \validate_plugin_requirements( \plugin_basename( $plugin_file ) );
-		\revoke_super_admin( $super_admin );
+		$error = validate_plugin_requirements( plugin_basename( $plugin_file ) );
+		revoke_super_admin( $super_admin );
 
 		self::assertInstanceOf( \WP_Error::class, $error );
 		self::assertSame( 'plugin_missing_dependencies', $error->get_error_code() );
-		$expected = \wp_get_admin_notice(
+		$expected = wp_get_admin_notice(
 			$error->get_error_message(),
 			array(
 				'type'           => 'error',
 				'paragraph_wrap' => false,
 			)
 		);
-		self::assertSame( \wp_kses_post( $expected ), $html );
+		self::assertSame( wp_kses_post( $expected ), $html );
 		self::assertSame( '', $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) ) );
 	}
 }

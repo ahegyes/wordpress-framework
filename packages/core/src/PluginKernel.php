@@ -79,6 +79,8 @@ final class PluginKernel {
 	 * @param   list<class-string> $roots The top-level component classes, in order.
 	 *
 	 * @throws  LogicException Thrown when a class is not a component, appears twice in the tree, or resolves to an entry of another type.
+	 *
+	 * @return  void
 	 */
 	public function boot( array $roots ): void {
 		foreach ( $this->resolve( $roots ) as $component ) {
@@ -128,8 +130,7 @@ final class PluginKernel {
 
 			$components[] = $component;
 			if ( \is_a( $class, CompositeComponentInterface::class, true ) ) {
-				// The declared class names the children, so no runtime state can add an unvisited node.
-				\array_push( $components, ...$this->resolve( $class::get_child_component_classes() ) );
+				\array_push( $components, ...$this->resolve( $class::get_child_component_classes() ) ); // The declared class names the children, so no runtime state can add an unvisited node.
 			}
 		}
 

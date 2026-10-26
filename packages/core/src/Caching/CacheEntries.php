@@ -56,8 +56,7 @@ final class CacheEntries {
 	 * @return  string
 	 */
 	public static function check_key( mixed $key ): string {
-		// PHP turns a numeric array key into an integer, so a key of setMultiple() can arrive as one.
-		if ( \is_int( $key ) ) {
+		if ( \is_int( $key ) ) { // PHP turns a numeric array key into an integer, so a key of setMultiple() can arrive as one.
 			$key = (string) $key;
 		}
 
@@ -124,7 +123,7 @@ final class CacheEntries {
 	 */
 	public static function wrap( mixed $value, string $generation ): array {
 		return array(
-			'value'      => \maybe_serialize( $value ),
+			'value'      => maybe_serialize( $value ),
 			'generation' => $generation,
 		);
 	}
@@ -147,7 +146,7 @@ final class CacheEntries {
 		}
 
 		$value = $entry['value'];
-		return array( \is_string( $value ) ? \maybe_unserialize( $value ) : $value );
+		return array( \is_string( $value ) ? maybe_unserialize( $value ) : $value );
 	}
 
 	// endregion

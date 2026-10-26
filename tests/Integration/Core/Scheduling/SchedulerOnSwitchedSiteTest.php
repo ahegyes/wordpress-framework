@@ -30,18 +30,18 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 	protected function setUp(): void {
 		$this->hook       = 'acme_scheduling_' . \bin2hex( \random_bytes( 4 ) );
 		$this->other_site = $this->make_site( 'acme-scheduling' );
-		\add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		\add_action(
+		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
+		add_action(
 			'doing_it_wrong_run',
 			function ( string $function_name ): void {
 				$this->doing_it_wrong[] = $function_name;
 			}
 		);
-		\add_filter(
+		add_filter(
 			'pre_update_option_cron',
 			function ( mixed $value, mixed $old_value ): mixed {
 				if ( $value !== $old_value ) {
-					$this->writes[] = \get_current_blog_id();
+					$this->writes[] = get_current_blog_id();
 				}
 
 				return $value;
@@ -53,14 +53,14 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 
 	#[\Override]
 	protected function tearDown(): void {
-		while ( \ms_is_switched() ) {
-			\restore_current_blog();
+		while ( ms_is_switched() ) {
+			restore_current_blog();
 		}
 
-		\wp_unschedule_hook( $this->hook );
-		\switch_to_blog( $this->other_site );
-		\wp_unschedule_hook( $this->hook );
-		\restore_current_blog();
+		wp_unschedule_hook( $this->hook );
+		switch_to_blog( $this->other_site );
+		wp_unschedule_hook( $this->hook );
+		restore_current_blog();
 	}
 
 	public static function writes(): array {
@@ -76,12 +76,12 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 	#[DataProvider( 'writes' )]
 	public function test_a_write_on_a_switched_site_is_an_error_that_writes_nothing( \Closure $write ): void {
 		$scheduler = $this->make_scheduler();
-		\switch_to_blog( $this->other_site );
-		\wp_schedule_single_event( \time() + 60, $this->hook );
+		switch_to_blog( $this->other_site );
+		wp_schedule_single_event( \time() + 60, $this->hook );
 		$this->writes = array();
 
 		$result = $write( $scheduler, new ScheduledHook( $this->hook ) );
-		\restore_current_blog();
+		restore_current_blog();
 
 		self::assertInstanceOf( \WP_Error::class, $result );
 		self::assertSame( 'scheduler_switched', $result->get_error_code() );
@@ -92,11 +92,11 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 	public function test_is_scheduled_on_a_switched_site_is_false_with_a_developer_notice(): void {
 		$scheduler = $this->make_scheduler();
 		$hook      = new ScheduledHook( $this->hook );
-		\switch_to_blog( $this->other_site );
-		\wp_schedule_single_event( \time() + 60, $this->hook );
+		switch_to_blog( $this->other_site );
+		wp_schedule_single_event( \time() + 60, $this->hook );
 
 		$scheduled = $scheduler->is_scheduled( $hook );
-		\restore_current_blog();
+		restore_current_blog();
 
 		self::assertFalse( $scheduled );
 		self::assertCount( 1, $this->doing_it_wrong );
@@ -105,13 +105,13 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 	public function test_the_site_that_loaded_the_plugin_schedules_after_a_switch_is_restored(): void {
 		$scheduler = $this->make_scheduler();
 		$hook      = new ScheduledHook( $this->hook );
-		\switch_to_blog( $this->other_site );
-		\restore_current_blog();
+		switch_to_blog( $this->other_site );
+		restore_current_blog();
 
 		self::assertTrue( $scheduler->enqueue( $hook ) );
 
 		self::assertTrue( $scheduler->is_scheduled( $hook ) );
-		self::assertSame( array( \get_main_site_id() ), $this->writes );
+		self::assertSame( array( get_main_site_id() ), $this->writes );
 		self::assertSame( array(), $this->doing_it_wrong );
 	}
 
