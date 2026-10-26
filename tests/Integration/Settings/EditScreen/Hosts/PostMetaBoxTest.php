@@ -660,18 +660,21 @@ final class PostMetaBoxTest extends TestCase {
 		self::assertSame( array( 'no' ), $this->meta( $post_id, 'flag' ) );
 	}
 
-	public function test_a_rejection_in_the_block_editor_waits_for_the_next_classic_screen(): void {
+	// The block editor's meta box save follows the redirect to the edit screen and discards that page, so the editor's script fetches the rejection afterwards.
+	public function test_a_rejection_in_the_block_editor_reaches_the_editor_after_the_save(): void {
 		$post_id = $this->make_post( array( "_{$this->prefix}_note" => 'kept' ) );
 		$spec    = $this->spec( array( $this->field( 'text', 'note', array( 'validate' => 'acme:reject' ) ) ), array(), array( 'editor' => 'block' ) );
 
 		$saved      = $this->block_editor_save( $spec, $post_id, array( $this->control_name( 'note' ) => 'too long' ) );
 		$redirected = $this->follow( $spec, $saved );
-		$list       = $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec );
+		\wp_set_current_user( $this->admin );
+		$delivered = ( new AdminNotices( $this->id, new ErrorLogLogger( 'acme' ) ) )->rest_deliver();
+		$list      = $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec );
 
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'note' ) );
 		self::assertNotNull( self::document( $redirected['body'] )->querySelector( 'form.metabox-base-form' ) );
-		self::assertSame( array(), self::rejections( $redirected['body'] ) );
-		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $list['body'] ) );
+		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), \array_column( $delivered, 'content' ) );
+		self::assertSame( array(), self::rejections( $list['body'] ) );
 	}
 
 	#[DataProvider( 'heartbeat_refreshes' )]

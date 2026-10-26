@@ -275,7 +275,7 @@ final class AdminNoticesTest extends TestCase {
 		self::assertCount( 1, $this->notices()->get_notices( NoticeScope::User, $this->editor ) );
 	}
 
-	public function test_block_editor_screens_show_and_consume_nothing(): void {
+	public function test_block_editor_screens_print_and_consume_no_classic_notices(): void {
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'saved' ), $this->admin );
 		$notices->add( $this->notice( 'shared', NoticeScope::Site ) );

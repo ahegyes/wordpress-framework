@@ -170,6 +170,21 @@ final class ObjectFormTest extends TestCase {
 		self::assertSame( 'Saved.', \get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
 	}
 
+	public function test_a_second_rejection_of_a_field_replaces_the_first(): void {
+		\wp_set_current_user( $this->author_id );
+		$notices = new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
+
+		$this->post_form( $this->post_id );
+		$this->rejecting_form( $notices )->save( $this->post_id );
+		$this->post_form( $this->post_id );
+		$this->rejecting_form( $notices, 'Renamed note' )->save( $this->post_id );
+
+		$stored = $notices->get_notices( NoticeScope::User, $this->author_id );
+		self::assertCount( 1, $stored );
+		self::assertSame( 'rejection-' . \md5( "{$this->prefix}_details|_{$this->prefix}_note" ), $stored[0]->id );
+		self::assertSame( 'Renamed note was not saved, so it keeps its previous value. Use at most four characters.', $stored[0]->message );
+	}
+
 	public function test_a_rejection_whose_notice_cannot_be_stored_is_logged_and_keeps_the_accepted_values(): void {
 		\wp_set_current_user( $this->author_id );
 		$this->post_form( $this->post_id );
@@ -243,7 +258,7 @@ final class ObjectFormTest extends TestCase {
 		);
 	}
 
-	protected function rejecting_form( AdminNotices $notices ): ObjectForm {
+	protected function rejecting_form( AdminNotices $notices, string $title = 'Note & more' ): ObjectForm {
 		$_POST[ "{$this->prefix}_details" ][ "_{$this->prefix}_note" ] = 'Too long.';
 
 		return new ObjectForm(
@@ -260,7 +275,7 @@ final class ObjectFormTest extends TestCase {
 						array(
 							'type'     => 'text',
 							'id'       => "_{$this->prefix}_note",
-							'title'    => 'Note & more',
+							'title'    => $title,
 							'validate' => static fn (): \WP_Error => new \WP_Error( 'acme_rejected', 'Use at most four characters.' ),
 						),
 					),
