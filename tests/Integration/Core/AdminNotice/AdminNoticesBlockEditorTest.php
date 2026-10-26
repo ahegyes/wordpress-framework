@@ -122,7 +122,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 			$settings
 		);
 		self::assertStringContainsString( "wp.apiFetch( { path: settings.path, method: 'POST' } ).then(", $script );
-		self::assertStringContainsString( '__unstableHTML: true', $script );
+		self::assertSame( 1, \preg_match( "/wp\\.data\\.dispatch\\( 'core\\/notices' \\)\\.createNotice\\( notice\\.status, notice\\.content, \\{\\s*id: notice\\.id,\\s*isDismissible: notice\\.isDismissible,\\s*__unstableHTML: true\\s*\\} \\);/", $script ) );
 		self::assertStringContainsString( '} ).catch( function ( error ) {', $script );
 		self::assertSame( 1, \preg_match( '/if \( settings\.waiting \) \{\s*deliver\(\);\s*\}/', $script ) );
 		self::assertStringContainsString( "wp.hooks.addAction( 'editor.savePost', settings.prefix + '/notices'", $script );
