@@ -25,8 +25,8 @@ wordpress-framework/
 │       └── Uninstall/Uninstaller
 ├── packages/settings/     ahegyes/wp-framework-settings     php >=8.5 · core ^2.0
 │   └── src/               psr-4 DeepWebSolutions\Framework\Settings\ · Forms (render_control, sanitize_value, sanitize_fields, is_disabled, is_group, get_title, get_rejection_message, check_helper_id, render_hidden_input, escape_attribute, get_rows (@internal))
-│       ├── AdminPage/{OptionsPage, OptionsPageDefinitionInterface}
-│       └── EditScreen/{ObjectForm, ObjectFormDefinitionInterface, ObjectFormHostInterface, ObjectStoreInterface, FormTable (@internal), Hosts/{PostMetaBox, UserProfile, TermForm}, Stores/MetadataStore}
+│       ├── AdminPage/{OptionsPage, OptionsPageDefinitionInterface} · pages store each tab's fields in one option through the Settings API
+│       └── EditScreen/{ObjectForm, ObjectFormDefinitionInterface, ObjectFormHostInterface, ObjectStoreInterface, FormTable (@internal), Hosts/{PostMetaBox, UserProfile, TermForm}, Stores/MetadataStore} · forms store each field on the edited object through a store
 ├── packages/woocommerce/  ahegyes/wp-framework-woocommerce  php >=8.5 · settings ^2.0 (WC ^11.2 as host)
 │   └── src/               psr-4 DeepWebSolutions\Framework\WooCommerce\ · WooCommerceRequirement
 │       ├── EditScreen/{Hosts/OrderMetaBox, Stores/OrderMetaStore}
