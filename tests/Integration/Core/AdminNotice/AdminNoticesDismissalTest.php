@@ -4,15 +4,9 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\AdminNotice;
 
 use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
-use DeepWebSolutions\Framework\Core\AdminNotice\NoticeContext;
-use DeepWebSolutions\Framework\Core\AdminNotice\NoticeIdentity;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
-use DeepWebSolutions\Framework\Core\AdminNotice\NoticeType;
-use DeepWebSolutions\Framework\Core\AdminNotice\StoredNotice;
-use DeepWebSolutions\Framework\Core\AdminNotice\Stores\UserMetaRecipientStates;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
-use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RendersAdminScreensTrait;
@@ -42,7 +36,6 @@ final class ThrowingDismissalLogger extends PsrAbstractLogger {
 final class AdminNoticesDismissalTest extends TestCase {
 	use CreatesSitesTrait;
 	use CreatesUsersTrait;
-	use InterceptsQueriesTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 	use RendersAdminScreensTrait;
@@ -107,20 +100,9 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 		self::assertSame( array(), $this->render( $this->other_admin ) );
 		self::assertSame( array(), $this->notices->get_notices( NoticeScope::Site ) );
-		self::assertNull( ( new UserMetaRecipientStates( $this->prefix ) )->get( new NoticeIdentity( NoticeContext::current( NoticeScope::Site ), 'setup' ), $this->admin ) );
+		self::assertFalse( \get_user_option( "{$this->prefix}_hidden_notices", $this->admin ) );
 		$this->notices->add( $this->notice( 'setup', NoticeScope::Site ) );
 		self::assertSame( array( $this->dom_id( 'site', 'setup' ) ), \array_keys( $this->render( $this->admin ) ) );
-	}
-
-	public function test_a_shared_dismissal_leaves_a_notice_saved_again_after_it_was_shown(): void {
-		$this->notices->add( $this->notice( 'setup', NoticeScope::Site ) );
-		$shown = $this->shown( $this->admin, 'site', 'setup' );
-		$this->notices->add( $this->notice( 'setup', NoticeScope::Site, type: NoticeType::Warning ) );
-
-		self::assertSame( 404, $this->dismiss( $shown )->get_status() );
-
-		self::assertSame( array( NoticeType::Warning ), \array_map( static fn ( StoredNotice $record ): NoticeType => $record->notice->type, $this->notices->get_notices( NoticeScope::Site ) ) );
-		self::assertSame( array(), $this->dismissed );
 	}
 
 	public function test_a_per_viewer_site_notice_dismissed_by_one_user_still_shows_to_another(): void {
@@ -130,6 +112,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 		self::assertSame( array(), $this->render( $this->admin ) );
 		self::assertSame( array( $this->dom_id( 'site', 'news' ) ), \array_keys( $this->render( $this->other_admin ) ) );
+		self::assertSame( 'dismissed', \get_user_option( "{$this->prefix}_hidden_notices", $this->admin )['site:news']['state'] ?? null );
 	}
 
 	public function test_dismissing_a_request_notice_records_only_the_callers_state_and_leaves_a_site_notice_of_the_same_id(): void {
@@ -198,23 +181,25 @@ final class AdminNoticesDismissalTest extends TestCase {
 					return array( $shown, 404 );
 				},
 			),
-			'missing-generation'  => array( static fn ( self $test ): array => array( array( 'generation' => null ) + $test->shown( $test->admin, 'site', 'x' ), 404 ) ),
 			'lacking-capability'  => array(
 				static function ( self $test ): array {
 					$shown = $test->shown( $test->admin, 'site', 'x' );
-					return array( array( 'generation' => $test->notices->add( $test->notice( 'x', NoticeScope::Site, capability: 'acme_never_granted' ) )->generation ) + $shown, 403 );
+					$test->notices->add( $test->notice( 'x', NoticeScope::Site, capability: 'acme_never_granted' ) );
+					return array( $shown, 403 );
 				},
 			),
 			'not-dismissible'     => array(
 				static function ( self $test ): array {
 					$shown = $test->shown( $test->admin, 'site', 'x' );
-					return array( array( 'generation' => $test->notices->add( $test->notice( 'x', NoticeScope::Site, dismissible: false ) )->generation ) + $shown, 403 );
+					$test->notices->add( $test->notice( 'x', NoticeScope::Site, dismissible: false ) );
+					return array( $shown, 403 );
 				},
 			),
 			'one-shot'            => array(
 				static function ( self $test ): array {
 					$shown = $test->shown( $test->admin, 'site', 'x' );
-					return array( array( 'generation' => $test->notices->add( $test->notice( 'x', NoticeScope::Site, persistent: false ) )->generation ) + $shown, 403 );
+					$test->notices->add( $test->notice( 'x', NoticeScope::Site, persistent: false ) );
+					return array( $shown, 403 );
 				},
 			),
 		);
@@ -235,10 +220,9 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	public static function invalid_parameters(): array {
 		return array(
-			'unknown-scope'       => array( array( 'scope' => 'galaxy' ) ),
-			'invalid-id'          => array( array( 'id' => 'Bad' ) ),
-			'trailing-newline'    => array( array( 'id' => "x\n" ) ),
-			'generation-not-text' => array( array( 'generation' => array( 1 ) ) ),
+			'unknown-scope'    => array( array( 'scope' => 'galaxy' ) ),
+			'invalid-id'       => array( array( 'id' => 'Bad' ) ),
+			'trailing-newline' => array( array( 'id' => "x\n" ) ),
 		);
 	}
 
@@ -262,12 +246,11 @@ final class AdminNoticesDismissalTest extends TestCase {
 		);
 
 		return array(
-			'unknown-scope'       => array( array( 'scope' => 'galaxy' ) + $valid ),
-			'scope-not-text'      => array( array( 'scope' => 1 ) + $valid ),
-			'id-not-text'         => array( array( 'id' => 1 ) + $valid ),
-			'trailing-newline'    => array( array( 'id' => "x\n" ) + $valid ),
-			'missing-nonce'       => array( \array_diff_key( $valid, array( 'nonce' => true ) ) ),
-			'generation-not-text' => array( array( 'generation' => 1 ) + $valid ),
+			'unknown-scope'    => array( array( 'scope' => 'galaxy' ) + $valid ),
+			'scope-not-text'   => array( array( 'scope' => 1 ) + $valid ),
+			'id-not-text'      => array( array( 'id' => 1 ) + $valid ),
+			'trailing-newline' => array( array( 'id' => "x\n" ) + $valid ),
+			'missing-nonce'    => array( \array_diff_key( $valid, array( 'nonce' => true ) ) ),
 		);
 	}
 
@@ -285,8 +268,8 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	public static function failing_stores(): array {
 		return array(
-			'per-viewer-state' => array( true, static fn () => \add_filter( 'add_user_metadata', '__return_false' ) ),
-			'shared-notice'    => array( false, static fn ( self $test ) => $test->fail_queries( 'DELETE FROM' ) ),
+			'per-viewer-state' => array( true, static fn ( self $test ) => \add_filter( 'update_user_metadata', static fn (): never => throw new \RuntimeException( 'The user meta is unavailable.' ) ) ),
+			'shared-notice'    => array( false, static fn ( self $test ) => \add_filter( "pre_update_option_{$test->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) ) ),
 		);
 	}
 
@@ -308,7 +291,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$notices->add( $this->notice( 'x', NoticeScope::Site ) );
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_body_params( $this->shown( $this->admin, 'site', 'x' ) );
-		$this->fail_queries( 'DELETE FROM' );
+		\add_filter( "pre_update_option_{$this->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) );
 		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
 		$previous = \ini_set( 'error_log', $log_file );
 
@@ -343,7 +326,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 	}
 
 	#[Group( 'multisite' )]
-	public function test_a_shared_network_notice_dismissed_on_one_site_is_deleted_from_the_main_sites_options(): void {
+	public function test_a_shared_network_notice_dismissed_on_one_site_is_deleted_for_the_network(): void {
 		$site_id = $this->make_site( 'acme-notices' );
 		\add_user_to_blog( $site_id, $this->admin, 'administrator' );
 		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read' ) );
@@ -353,8 +336,8 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 		\restore_current_blog();
 		self::assertSame( array(), $this->render( $this->admin, 'dashboard-network' ) );
-		self::assertFalse( \get_blog_option( \get_main_site_id(), "{$this->prefix}_network_notice_x" ) );
-		self::assertSame( array(), \get_user_meta( $this->admin, "{$this->prefix}_network_notice_states", false ) );
+		self::assertSame( array(), \get_network_option( null, "{$this->prefix}_network_notices" ) );
+		self::assertSame( array(), \get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", false ) );
 	}
 
 	#[Group( 'multisite' )]
@@ -370,7 +353,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		\restore_current_blog();
 		self::assertSame( array(), $this->render( $this->admin ) );
 		self::assertSame( array(), $this->render( $this->admin, 'dashboard-network' ) );
-		self::assertCount( 1, \get_user_meta( $this->admin, "{$this->prefix}_network_notice_states", false ) );
+		self::assertSame( array( 'network:x' ), \array_keys( \get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", true ) ) );
 	}
 
 	protected function notice( string $id, NoticeScope $scope, mixed ...$arguments ): Notice {
@@ -386,10 +369,9 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$attributes = $this->render( $user_id )[ $this->dom_id( $scope, $id ) ];
 
 		return array(
-			'scope'      => $attributes['data-notice-scope'],
-			'id'         => $attributes['data-notice-id'],
-			'nonce'      => $attributes['data-notice-nonce'],
-			'generation' => $attributes['data-notice-generation'] ?? null,
+			'scope' => $attributes['data-notice-scope'],
+			'id'    => $attributes['data-notice-id'],
+			'nonce' => $attributes['data-notice-nonce'],
 		);
 	}
 

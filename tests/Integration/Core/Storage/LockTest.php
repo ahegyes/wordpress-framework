@@ -76,14 +76,14 @@ final class LockTest extends TestCase {
 
 	#[DataProvider( 'rows_that_hold_no_lock' )]
 	public function test_a_row_that_holds_no_lock_is_taken_over( mixed $value ): void {
-		OptionRows::upsert( "{$this->prefix}_lock", $value );
+		\update_option( "{$this->prefix}_lock", $value, false );
 
 		self::assertSame( LockClaim::TakenOver, $this->make_lock()->acquire( 'second' ) );
 		self::assertSame( self::hold( 'second', 1800000000 ), $this->stored() );
 	}
 
 	public function test_a_hold_with_keys_it_does_not_know_still_holds_the_lock(): void {
-		OptionRows::upsert( "{$this->prefix}_lock", self::hold( 'first', 1800000000 ) + array( 'host' => 'web-2' ) );
+		\update_option( "{$this->prefix}_lock", self::hold( 'first', 1800000000 ) + array( 'host' => 'web-2' ), false );
 
 		self::assertSame( LockClaim::Busy, $this->make_lock()->acquire( 'second' ) );
 		self::assertTrue( $this->make_lock()->refresh( 'first' ) );

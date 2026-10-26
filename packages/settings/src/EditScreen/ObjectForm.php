@@ -7,7 +7,6 @@ use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\Framework\Settings\Forms;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
-use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -212,11 +211,7 @@ final class ObjectForm {
 
 		foreach ( $fields as $field ) {
 			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
-				try {
-					$this->notices->add( new Notice( 'rejection-' . \wp_generate_uuid4(), \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) ) );
-				} catch ( RuntimeException ) {
-					continue; // The accepted values are already stored, so a notice the store refuses is only lost.
-				}
+				$this->notices->add( new Notice( 'rejection-' . \wp_generate_uuid4(), \esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) ) );
 			}
 		}
 	}
