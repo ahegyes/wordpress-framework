@@ -169,8 +169,7 @@ final class OptionsPage {
 		$tab  = \array_find( $page['tabs'], static fn ( array $tab ): bool => $slug === $tab['slug'] ) ?? $page['tabs'][0] ?? null;
 
 		echo '<div class="wrap"><h1>' . esc_html( $page['page_title'] ) . '</h1>';
-		// WordPress core prints the settings errors on the pages under Settings itself.
-		if ( 'options-general.php' !== $page['parent'] ) {
+		if ( 'options-general.php' !== $page['parent'] ) { // WordPress core prints the settings errors on the pages under Settings itself.
 			settings_errors();
 		}
 		if ( \is_null( $tab ) ) {

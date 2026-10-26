@@ -316,7 +316,8 @@ final class Forms {
 			}
 
 			$field['title'] = self::get_title( $field );
-			$row            = array(
+
+			$row = array(
 				'field' => $field,
 				'value' => \array_key_exists( $field['id'], $values ) ? $values[ $field['id'] ] : ( $field['default'] ?? '' ),
 				'name'  => "{$prefix}[{$field['id']}]",
@@ -666,7 +667,6 @@ final class Forms {
 		}
 
 		$email = \trim( (string) $raw );
-
 		return '' === $email || ( sanitize_email( $email ) === $email && false !== is_email( $email ) ) ? $email : self::reject( 'invalid_email' );
 	}
 
@@ -691,7 +691,6 @@ final class Forms {
 		}
 
 		$safe = esc_url_raw( $url );
-
 		return '' === $safe ? self::reject( 'invalid_url' ) : $safe;
 	}
 

@@ -19,8 +19,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	 */
 	#[\Override]
 	final public function equals( ValueObjectInterface $other ): bool {
-		// An array cast holds every property, including the private ones of parent classes.
-		return static::class === $other::class && self::are_equal( (array) $this, (array) $other );
+		return static::class === $other::class && self::are_equal( (array) $this, (array) $other ); // An array cast holds every property, including the private ones of parent classes.
 	}
 
 	// endregion

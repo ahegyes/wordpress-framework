@@ -122,8 +122,7 @@ final class Updater {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
-		// WordPress reads a missing Text Domain as the plugin's folder name.
-		$headers = get_plugin_data( $plugin_file, false, false );
+		$headers = get_plugin_data( $plugin_file, false, false ); // WordPress reads a missing Text Domain as the plugin's folder name.
 		$slug    = $headers['TextDomain'];
 		// WordPress reads the Update URI header from 5.8, and names the update hook after the host of the sanitized URI, which gains a scheme when it has none.
 		$uri = wp_parse_url( esc_url_raw( $headers['UpdateURI'] ?? '' ) );
@@ -205,8 +204,7 @@ final class Updater {
 			}
 
 			$candidate_version = \ltrim( $candidate['tag_name'], 'v' );
-			// PHP's version_compare() ranks some words, such as 'preview', above every number.
-			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-[0-9A-Za-z.]+)?$/', $candidate_version ) ) {
+			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-[0-9A-Za-z.]+)?$/', $candidate_version ) ) { // PHP's version_compare() ranks some words, such as 'preview', above every number.
 				continue;
 			}
 
@@ -253,7 +251,6 @@ final class Updater {
 		}
 
 		set_transient( $transient, $release ?? array(), null === $release ? 5 * MINUTE_IN_SECONDS : HOUR_IN_SECONDS );
-
 		return $release;
 	}
 
