@@ -34,9 +34,10 @@ wordpress-framework/
 │       ├── ProductData/{ProductDataTab, ProductDataTabDefinitionInterface, ProductMeta}
 │       ├── Setting/{SettingsTab, SettingsSection, SectionFieldsDefinitionInterface, Fields (@internal)}
 │       └── Uninstall/MetaTypes
-├── tests/{Unit, PHPStan, Integration, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b}}
+├── tests/{Unit, PHPStan, Integration, Php74, Support, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b, personas}}
 │                          consumer-a: a WooCommerce plugin on all five packages, scoped through configs by its own composer.json
 │                          consumer-b: a plugin on bootstrap, shared, core and settings, without WooCommerce, scoped the same way
+│                          personas/{bootstrap, shared, core, settings, woocommerce}: one plugin per stack, shared a plain PHP project, each requiring only its top package, scoped the same way
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core and packages/settings, with the WordPress stubs and extensions
@@ -45,6 +46,7 @@ wordpress-framework/
 ├── .wp-env.json           developer environment: single site with WooCommerce, as local, on port 8800
 ├── .wp-env.tests.json     Integration environment: single site with WooCommerce, as production
 ├── .wp-env.multisite.json Integration environment for the `multisite` and `without-woocommerce` groups: a network without WooCommerce, as production
+├── .wp-env.php74.json     environment of the `Php74` suite: single site on PHP 7.4 with WordPress 6.3, as production
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -54,11 +56,10 @@ wordpress-framework/
 composer packages-install
 composer quality-check          # validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
-composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run
-composer fixtures:build         # builds consumer-a, then consumer-b: each a development install that scopes, its PHPStan, then its production install
-composer test:integration:run   # fixtures:build, then Integration tests in the running .wp-env.tests.json, without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
-composer test:integration:multisite      # starts .wp-env.multisite.json, then runs test:integration:multisite:run
-composer test:integration:multisite:run  # fixtures:build, then the multisite and without-woocommerce groups in the running .wp-env.multisite.json
+composer fixtures:build         # builds consumer-a, consumer-b, then the five personas: each a development install that scopes, its PHPStan, then its production install
+composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run: fixtures:build, then Integration tests without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
+composer test:integration:multisite  # starts .wp-env.multisite.json, then runs test:integration:multisite:run: fixtures:build, then the multisite and without-woocommerce groups
+composer test:integration:php74      # starts .wp-env.php74.json, then runs test:integration:php74:run: the bootstrap persona's build, then the Php74 suite with the host's PHP
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint

@@ -12,7 +12,7 @@ permissions:
 jobs:
   unit:
     name: Unit
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
     with:
       php-version: '8.5'
       composer-script: 'test:unit'
@@ -20,7 +20,7 @@ jobs:
 
   integration:
     name: Integration
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
     with:
       php-version: '8.5'
       composer-script: 'test:integration:run'
@@ -28,8 +28,16 @@ jobs:
 
   integration-multisite:
     name: Integration (multisite)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
     with:
       php-version: '8.5'
       composer-script: 'test:integration:multisite:run'
       wp-env-config-file: '.wp-env.multisite.json'
+
+  integration-php74:
+    name: Integration (PHP 7.4)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
+    with:
+      php-version: '8.5'
+      composer-script: 'test:integration:php74:run'
+      wp-env-config-file: '.wp-env.php74.json'

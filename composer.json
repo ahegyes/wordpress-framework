@@ -54,7 +54,8 @@
     },
     "exclude-from-classmap": [
       "tests/Fixtures/consumer-a/",
-      "tests/Fixtures/consumer-b/"
+      "tests/Fixtures/consumer-b/",
+      "tests/Fixtures/personas/"
     ]
   },
 
@@ -62,7 +63,12 @@
     "generate-autoloader": "@composer dump-autoload -o",
     "fixtures:build": [
       "@fixtures:build:consumer-a",
-      "@fixtures:build:consumer-b"
+      "@fixtures:build:consumer-b",
+      "@fixtures:build:persona-bootstrap",
+      "@fixtures:build:persona-shared",
+      "@fixtures:build:persona-core",
+      "@fixtures:build:persona-settings",
+      "@fixtures:build:persona-woocommerce"
     ],
     "fixtures:build:consumer-a": [
       "Composer\\Config::disableProcessTimeout",
@@ -79,6 +85,46 @@
       "@composer install --working-dir=tests/Fixtures/consumer-b --no-interaction",
       "tests/Fixtures/consumer-b/vendor/bin/phpstan analyse -c tests/Fixtures/consumer-b/phpstan.dist.neon --memory-limit=1G --no-progress",
       "@composer install --working-dir=tests/Fixtures/consumer-b --no-dev --no-interaction"
+    ],
+    "fixtures:build:persona-bootstrap": [
+      "Composer\\Config::disableProcessTimeout",
+      "@composer validate --strict --working-dir=tests/Fixtures/personas/bootstrap",
+      "rm -rf tests/Fixtures/personas/bootstrap/vendor",
+      "@composer install --working-dir=tests/Fixtures/personas/bootstrap --no-interaction",
+      "tests/Fixtures/personas/bootstrap/vendor/bin/phpstan analyse -c tests/Fixtures/personas/bootstrap/phpstan.dist.neon --memory-limit=1G --no-progress",
+      "@composer install --working-dir=tests/Fixtures/personas/bootstrap --no-dev --no-interaction"
+    ],
+    "fixtures:build:persona-shared": [
+      "Composer\\Config::disableProcessTimeout",
+      "@composer validate --strict --working-dir=tests/Fixtures/personas/shared",
+      "rm -rf tests/Fixtures/personas/shared/vendor",
+      "@composer install --working-dir=tests/Fixtures/personas/shared --no-interaction",
+      "tests/Fixtures/personas/shared/vendor/bin/phpstan analyse -c tests/Fixtures/personas/shared/phpstan.dist.neon --memory-limit=1G --no-progress",
+      "@composer install --working-dir=tests/Fixtures/personas/shared --no-dev --no-interaction"
+    ],
+    "fixtures:build:persona-core": [
+      "Composer\\Config::disableProcessTimeout",
+      "@composer validate --strict --working-dir=tests/Fixtures/personas/core",
+      "rm -rf tests/Fixtures/personas/core/vendor",
+      "@composer install --working-dir=tests/Fixtures/personas/core --no-interaction",
+      "tests/Fixtures/personas/core/vendor/bin/phpstan analyse -c tests/Fixtures/personas/core/phpstan.dist.neon --memory-limit=1G --no-progress",
+      "@composer install --working-dir=tests/Fixtures/personas/core --no-dev --no-interaction"
+    ],
+    "fixtures:build:persona-settings": [
+      "Composer\\Config::disableProcessTimeout",
+      "@composer validate --strict --working-dir=tests/Fixtures/personas/settings",
+      "rm -rf tests/Fixtures/personas/settings/vendor",
+      "@composer install --working-dir=tests/Fixtures/personas/settings --no-interaction",
+      "tests/Fixtures/personas/settings/vendor/bin/phpstan analyse -c tests/Fixtures/personas/settings/phpstan.dist.neon --memory-limit=1G --no-progress",
+      "@composer install --working-dir=tests/Fixtures/personas/settings --no-dev --no-interaction"
+    ],
+    "fixtures:build:persona-woocommerce": [
+      "Composer\\Config::disableProcessTimeout",
+      "@composer validate --strict --working-dir=tests/Fixtures/personas/woocommerce",
+      "rm -rf tests/Fixtures/personas/woocommerce/vendor",
+      "@composer install --working-dir=tests/Fixtures/personas/woocommerce --no-interaction",
+      "tests/Fixtures/personas/woocommerce/vendor/bin/phpstan analyse -c tests/Fixtures/personas/woocommerce/phpstan.dist.neon --memory-limit=1G --no-progress",
+      "@composer install --working-dir=tests/Fixtures/personas/woocommerce --no-dev --no-interaction"
     ],
     "packages-install": "@composer install --ignore-platform-req=php+ --no-interaction",
     "packages-update": [
@@ -130,6 +176,18 @@
       "@putenv CI=1",
       "@fixtures:build",
       "node_modules/.bin/wp-env --config .wp-env.multisite.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --group=multisite --group=without-woocommerce"
+    ],
+    "test:integration:php74": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:php74:start",
+      "@test:integration:php74:run"
+    ],
+    "test:integration:php74:run": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "@fixtures:build:persona-bootstrap",
+      "@php vendor/bin/phpunit --testsuite=Php74"
     ],
 
     "quality-check": [

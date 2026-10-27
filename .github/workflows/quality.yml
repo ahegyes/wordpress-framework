@@ -11,13 +11,13 @@ permissions:
 jobs:
   lint-php:
     name: Lint PHP
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
     with:
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
 
   php-syntax:
     name: PHP syntax
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
     with:
       php-versions: '["7.4"]'
       paths: '["packages/bootstrap"]'
@@ -61,7 +61,7 @@ jobs:
     needs: consumer-a-build
     permissions:
       contents: read
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-plugin-check.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-plugin-check.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
     with:
       artifact: consumer-a
       plugin-slug: acme-consumer-a
@@ -73,7 +73,7 @@ jobs:
     needs: consumer-a-build
     permissions:
       contents: read
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
     with:
       artifact: consumer-a
       php-versions: '["7.4"]'

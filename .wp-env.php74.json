@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/wp-env.schema.json",
+  "core": "WordPress/WordPress#tags/6.3.13",
+  "phpVersion": "7.4",
+  "port": 8803,
+  "testsEnvironment": false,
+  "mappings": {
+    "wp-content/mu-plugins/wp-framework": "."
+  },
+  "config": {
+    "WP_DEBUG": true,
+    "SCRIPT_DEBUG": true,
+    "WP_ENVIRONMENT_TYPE": false,
+    "WP_PLUGIN_DIR": "/var/www/html/wp-content/mu-plugins/wp-framework/tests/.cache/php74-plugins"
+  }
+}

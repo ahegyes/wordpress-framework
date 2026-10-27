@@ -18,6 +18,9 @@
 		<testsuite name="Integration" bootstrap="tests/Integration/bootstrap.php">
 			<directory>tests/Integration</directory>
 		</testsuite>
+		<testsuite name="Php74">
+			<directory>tests/Php74</directory>
+		</testsuite>
 	</testsuites>
 
 	<php>

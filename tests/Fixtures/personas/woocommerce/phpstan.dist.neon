@@ -1,0 +1,18 @@
+# The WordPress extensions are listed here because composer.json keeps them from installing themselves, and before configs' profile because wp-compat's neon resets WPCompat.requiresAtLeast to null.
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+    - vendor/johnbillion/wp-compat/extension.neon
+    - vendor/swissspidy/phpstan-no-private/rules.neon
+    - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
+
+parameters:
+    paths:
+        - acme-persona-woocommerce.php
+        - functions.php
+        - src
+    scanFiles:
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
+    # The scoped packages load through vendor-prefixed/scoper-autoload.php, which PHPStan does not read.
+    scanDirectories:
+        - vendor-prefixed
