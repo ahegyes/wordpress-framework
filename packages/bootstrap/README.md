@@ -29,7 +29,7 @@ The packages are not on Packagist, and Composer reads repositories only from the
 
 WordPress loads every plugin into one PHP process, so each plugin ships the package prefixed under its own namespace. Two plugins that ship it unprefixed fatal with "Cannot redeclare class …" once both load it. WordPress symbols stay global.
 
-[wordpress-configs](https://github.com/ahegyes/wordpress-configs) prefixes the package with php-scoper into `vendor-prefixed/` after every Composer install. The package loads by path, never through an autoloader, so the plugin adds to its `composer.json`:
+[wordpress-configs](https://github.com/ahegyes/wordpress-configs) prefixes the package with php-scoper into `vendor-prefixed/` after every development install, and a later `composer install --no-dev` keeps that output, so a build runs both, in that order. The package loads by path, never through an autoloader, so the plugin adds to its `composer.json`:
 
 ```json
 {

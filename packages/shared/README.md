@@ -29,7 +29,7 @@ The packages are not on Packagist, and Composer reads repositories only from the
 
 A project that runs beside other copies of the package, as every WordPress plugin does, ships it prefixed under its own namespace, because unprefixed copies resolve to whichever autoloader registered first, so one project silently runs another's copy.
 
-[wordpress-configs](https://github.com/ahegyes/wordpress-configs) prefixes the package with php-scoper into `vendor-prefixed/` after every Composer install. The project adds to its `composer.json`:
+[wordpress-configs](https://github.com/ahegyes/wordpress-configs) prefixes the package with php-scoper into `vendor-prefixed/` after every development install, and a later `composer install --no-dev` keeps that output, so a build runs both, in that order. The project adds to its `composer.json`:
 
 ```json
 {
