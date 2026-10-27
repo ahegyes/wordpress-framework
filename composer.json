@@ -21,6 +21,7 @@
   },
   "require-dev": {
     "ahegyes/wordpress-configs": "dev-trunk",
+    "automattic/jetpack-changelogger": "^7",
     "johnpbloch/wordpress-core": "^7.1",
     "nikic/php-parser": "^5",
     "php-stubs/woocommerce-stubs": "^11.2",
@@ -205,9 +206,14 @@
 
     "quality-check": [
       "@composer validate --strict",
+      "@changelog:validate",
       "@lint:php",
       "@test"
-    ]
+    ],
+
+    "changelog:add": "@php vendor/bin/changelogger add",
+    "changelog:validate": "@php vendor/bin/changelogger validate",
+    "changelog:write": "@php vendor/bin/changelogger write"
   },
 
   "extra": {
@@ -223,6 +229,20 @@
         "swissspidy/phpstan-no-private",
         "szepeviktor/phpstan-wordpress"
       ]
+    },
+    "changelogger": {
+      "versioning": "semver",
+      "changelog": "CHANGELOG.md",
+      "changes-dir": "changelog",
+      "default-type": "changed",
+      "types": {
+        "added": "Added",
+        "changed": "Changed",
+        "deprecated": "Deprecated",
+        "removed": "Removed",
+        "fixed": "Fixed",
+        "security": "Security"
+      }
     }
   },
 
