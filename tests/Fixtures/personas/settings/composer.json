@@ -1,0 +1,66 @@
+{
+  "name": "acme/persona-settings",
+  "description": "A kernel-free plugin on the settings package, without WooCommerce, which the framework's tests build, scope and run.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+
+  "require": {
+    "php": ">=8.5"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "ahegyes/wp-framework-settings": "^2.0",
+    "humbug/php-scoper": "^0.18"
+  },
+
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../../../../packages/*",
+      "options": { "symlink": false }
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wordpress-configs"
+    }
+  ],
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "autoload": {
+    "psr-4": {
+      "Acme\\PersonaSettings\\": "src/"
+    },
+    "files": [
+      "vendor-prefixed/scoper-autoload.php"
+    ]
+  },
+
+  "scripts": {
+    "post-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::postAutoloadDump"
+    ]
+  },
+
+  "extra": {
+    "phpstan/extension-installer": {
+      "ignore": [
+        "johnbillion/wp-compat",
+        "swissspidy/phpstan-no-private",
+        "szepeviktor/phpstan-wordpress"
+      ]
+    },
+    "scoping-prefix": "Acme\\PersonaSettings\\Scoped",
+    "text-domain": "acme-persona-settings"
+  },
+
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "platform-check": false,
+    "sort-packages": true
+  }
+}
