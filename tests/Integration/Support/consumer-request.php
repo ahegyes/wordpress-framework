@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Runs a copy of consumer-a in the request: activates it on the site, defines the spec's constants and locale, skips WordPress's update check, and records what the plugin did once the admin initializes.
+ * Runs copies of the consumer fixtures in the request: activates them on the site, defines the spec's constants and locale, skips WordPress's update check, and records how each consumer booted and what consumer-a did once the admin initializes.
  *
- * The spec may also relax the export safeguard with a value, expect warnings for files a partial deploy removed, uninstall the copy, or run the order-count export with a failing order query.
+ * The spec may also relax consumer-a's export safeguard with a value, expect warnings for files a partial deploy removed, uninstall a copy, or run consumer-a's order-count export with a failing order query.
  *
  * @package Acme
  */
@@ -43,6 +43,27 @@ if ( array_key_exists( 'relaxation', $spec ) ) {
 	add_filter( 'acme_ca_restrict_exports', static fn (): mixed => $spec['relaxation'] );
 }
 
+$acme_record_boots = static function (): void {
+	$consumers = array(
+		'consumer_a' => 'acme_ca',
+		'consumer_b' => 'acme_cb',
+	);
+	foreach ( $consumers as $key => $prefix ) {
+		try {
+			$plugin = function_exists( "{$prefix}_plugin" ) ? ( "{$prefix}_plugin" )() : null;
+		} catch ( Error ) { // The composition root's class file may be missing.
+			$plugin = null;
+		}
+		$GLOBALS['acme_outcome']['records'][ $key ] = array(
+			'status'           => $plugin?->boot->status,
+			'resolved'         => $plugin?->kernel?->resolved,
+			'skipped'          => $plugin?->kernel?->skipped,
+			'initialized'      => did_action( "{$prefix}_initialized" ),
+			'functions_loaded' => function_exists( "{$prefix}_plugin" ),
+		);
+	}
+};
+
 // A fresh update check keeps WordPress, and the plugin's updater with it, from fetching releases during the request.
 add_filter( 'pre_site_transient_update_plugins', static fn (): object => (object) array( 'last_checked' => time() ) );
 
@@ -56,23 +77,15 @@ add_action(
 
 add_action(
 	'admin_init',
-	static function () use ( $spec, $acme_capability ): void {
+	static function () use ( $spec, $acme_capability, $acme_record_boots ): void {
 		$records = &$GLOBALS['acme_outcome']['records'];
 		if ( isset( $spec['uninstall'] ) ) {
 			$records['deleted'] = delete_plugins( array( $spec['uninstall'] ) );
 			exit; // WordPress redirects or answers as JSON after deleting a plugin, so no admin notice renders in the request.
 		}
 
-		try {
-			$plugin = function_exists( 'acme_ca_plugin' ) ? acme_ca_plugin() : null;
-		} catch ( Error ) { // The composition root's class file may be missing.
-			$plugin = null;
-		}
+		$acme_record_boots();
 		$records += array(
-			'status'             => $plugin?->boot->status,
-			'resolved'           => $plugin?->kernel?->resolved,
-			'skipped'            => $plugin?->kernel?->skipped,
-			'initialized'        => did_action( 'acme_ca_initialized' ),
 			'can_export'         => current_user_can( $acme_capability ),
 			'safeguard_attached' => has_filter( 'map_meta_cap', 'acme_ca_map_export_capability' ),
 			'export_hooked'      => has_action( 'admin_post_acme_ca_export' ),
@@ -80,7 +93,6 @@ add_action(
 			'updater_hooked'     => has_filter( 'update_plugins_github.com' ),
 			'schedules_hooked'   => has_filter( 'cron_schedules' ),
 			'safeguards_loaded'  => function_exists( 'acme_ca_is_relaxed' ),
-			'functions_loaded'   => function_exists( 'acme_ca_plugin' ),
 		);
 
 		if ( $spec['export_throws'] ?? false ) {
