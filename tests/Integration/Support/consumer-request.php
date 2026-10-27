@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Runs copies of the consumer fixtures in the request: activates them on the site, defines the spec's constants and locale, skips WordPress's update check, and records how each consumer booted, once the admin initializes and again after a plugin's activation, and what consumer-a did.
+ * Runs copies of the consumer and persona fixtures in the request: activates them on the site, defines the spec's constants and locale, skips WordPress's update check, and records how each consumer and the core persona booted, once the admin initializes and again after a plugin's activation, what consumer-a and the core persona did, and what WooCommerce logged.
  *
  * The spec may also mint the nonce of an action the request checks, relax consumer-a's export safeguard with a value, expect warnings for files a partial deploy removed, uninstall a copy, or run consumer-a's order-count export with a failing order query.
  *
@@ -45,8 +45,9 @@ if ( array_key_exists( 'relaxation', $spec ) ) {
 
 $acme_record_boots = static function (): void {
 	$consumers = array(
-		'consumer_a' => 'acme_ca',
-		'consumer_b' => 'acme_cb',
+		'consumer_a'   => 'acme_ca',
+		'consumer_b'   => 'acme_cb',
+		'persona_core' => 'acme_pc',
 	);
 	foreach ( $consumers as $key => $prefix ) {
 		try {
@@ -64,6 +65,22 @@ $acme_record_boots = static function (): void {
 	}
 };
 add_action( 'activated_plugin', $acme_record_boots );
+
+add_filter(
+	'woocommerce_register_log_handlers',
+	static fn ( array $handlers ): array => array_merge(
+		$handlers,
+		array(
+			new class() implements WC_Log_Handler_Interface {
+				public function handle( $timestamp, $level, $message, $context ) {
+					$GLOBALS['acme_outcome']['records']['logs'][] = array( $level, $message, $context['source'] ?? null );
+
+					return true;
+				}
+			},
+		)
+	)
+);
 
 // A fresh update check keeps WordPress, and the plugin's updater with it, from fetching releases during the request.
 add_filter( 'pre_site_transient_update_plugins', static fn (): object => (object) array( 'last_checked' => time() ) );
@@ -99,6 +116,7 @@ add_action(
 			'updater_hooked'      => has_filter( 'update_plugins_github.com' ),
 			'schedules_hooked'    => has_filter( 'cron_schedules' ),
 			'safeguards_loaded'   => function_exists( 'acme_ca_is_relaxed' ),
+			'greeting_shortcode'  => shortcode_exists( 'acme_pc_greeting' ),
 		);
 
 		if ( $spec['export_throws'] ?? false ) {

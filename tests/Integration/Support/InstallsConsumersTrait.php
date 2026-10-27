@@ -50,11 +50,11 @@ trait InstallsConsumersTrait {
 		$this->plugin_options = array();
 
 		foreach ( is_multisite() ? get_sites( array( 'fields' => 'ids' ) ) : array( 1 ) as $site_id ) {
-			foreach ( array( 'acme\_ca\_', 'acme\_cb\_' ) as $prefix ) {
+			foreach ( array( 'acme\_ca\_', 'acme\_cb\_', 'acme\_pc\_', 'acme\_ps\_', 'acme\_pw\_' ) as $prefix ) {
 				$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s', $wpdb->get_blog_prefix( $site_id ) . 'options', $prefix . '%', '\_transient\_' . $prefix . '%', '\_transient\_timeout\_' . $prefix . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the rows the consumers stored.
 			}
 		}
-		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE meta_key LIKE %s', $wpdb->postmeta, '\_acme\_ca\_%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the rows consumer-a stored.
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE meta_key LIKE %s OR meta_key LIKE %s', $wpdb->postmeta, '\_acme\_ca\_%', '\_acme\_pw\_%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the rows consumer-a and the woocommerce persona stored.
 		wp_clean_plugins_cache();
 		wp_cache_flush();
 	}
