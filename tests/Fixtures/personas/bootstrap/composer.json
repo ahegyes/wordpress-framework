@@ -21,6 +21,10 @@
     },
     {
       "type": "vcs",
+      "url": "https://github.com/ahegyes/wp-framework-bootstrap"
+    },
+    {
+      "type": "vcs",
       "url": "https://github.com/ahegyes/wordpress-configs"
     }
   ],
