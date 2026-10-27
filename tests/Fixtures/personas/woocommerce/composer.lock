@@ -12,13 +12,13 @@
             "version": "dev-trunk",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ahegyes/wordpress-configs.git",
-                "reference": "1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9"
+                "url": "https://github.com/ahegyes/wordpress-configs.git",
+                "reference": "88710a71e2bcc7db7cb81b4eb96411438369ce0f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9",
-                "reference": "1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/88710a71e2bcc7db7cb81b4eb96411438369ce0f",
+                "reference": "88710a71e2bcc7db7cb81b4eb96411438369ce0f",
                 "shasum": ""
             },
             "require": {
@@ -135,7 +135,11 @@
                 }
             ],
             "description": "Shared PHPCS, PHPStan and php-scoper configurations and reusable GitHub Actions workflows for WordPress projects.",
-            "time": "2026-10-27T11:35:43+00:00"
+            "support": {
+                "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
+                "issues": "https://github.com/ahegyes/wordpress-configs/issues"
+            },
+            "time": "2026-10-27T16:14:08+00:00"
         },
         {
             "name": "ahegyes/wp-framework-bootstrap",
