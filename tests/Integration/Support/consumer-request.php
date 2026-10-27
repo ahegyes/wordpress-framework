@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Runs copies of the consumer fixtures in the request: activates them on the site, defines the spec's constants and locale, skips WordPress's update check, and records how each consumer booted and what consumer-a did once the admin initializes.
+ * Runs copies of the consumer fixtures in the request: activates them on the site, defines the spec's constants and locale, skips WordPress's update check, and records how each consumer booted, once the admin initializes and again after a plugin's activation, and what consumer-a did.
  *
- * The spec may also relax consumer-a's export safeguard with a value, expect warnings for files a partial deploy removed, uninstall a copy, or run consumer-a's order-count export with a failing order query.
+ * The spec may also mint the nonce of an action the request checks, relax consumer-a's export safeguard with a value, expect warnings for files a partial deploy removed, uninstall a copy, or run consumer-a's order-count export with a failing order query.
  *
  * @package Acme
  */
@@ -63,6 +63,7 @@ $acme_record_boots = static function (): void {
 		);
 	}
 };
+add_action( 'activated_plugin', $acme_record_boots );
 
 // A fresh update check keeps WordPress, and the plugin's updater with it, from fetching releases during the request.
 add_filter( 'pre_site_transient_update_plugins', static fn (): object => (object) array( 'last_checked' => time() ) );
@@ -84,15 +85,20 @@ add_action(
 			exit; // WordPress redirects or answers as JSON after deleting a plugin, so no admin notice renders in the request.
 		}
 
+		if ( isset( $spec['nonce'] ) ) {
+			$_REQUEST['_wpnonce'] = wp_create_nonce( $spec['nonce'] );
+		}
+
 		$acme_record_boots();
 		$records += array(
-			'can_export'         => current_user_can( $acme_capability ),
-			'safeguard_attached' => has_filter( 'map_meta_cap', 'acme_ca_map_export_capability' ),
-			'export_hooked'      => has_action( 'admin_post_acme_ca_export' ),
-			'reports_page_class' => class_exists( 'Acme\ConsumerA\Reports\ReportsPage', false ),
-			'updater_hooked'     => has_filter( 'update_plugins_github.com' ),
-			'schedules_hooked'   => has_filter( 'cron_schedules' ),
-			'safeguards_loaded'  => function_exists( 'acme_ca_is_relaxed' ),
+			'woocommerce_present' => class_exists( 'WooCommerce', false ),
+			'can_export'          => current_user_can( $acme_capability ),
+			'safeguard_attached'  => has_filter( 'map_meta_cap', 'acme_ca_map_export_capability' ),
+			'export_hooked'       => has_action( 'admin_post_acme_ca_export' ),
+			'reports_page_class'  => class_exists( 'Acme\ConsumerA\Reports\ReportsPage', false ),
+			'updater_hooked'      => has_filter( 'update_plugins_github.com' ),
+			'schedules_hooked'    => has_filter( 'cron_schedules' ),
+			'safeguards_loaded'   => function_exists( 'acme_ca_is_relaxed' ),
 		);
 
 		if ( $spec['export_throws'] ?? false ) {
