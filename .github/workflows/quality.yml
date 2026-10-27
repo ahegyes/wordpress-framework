@@ -11,13 +11,70 @@ permissions:
 jobs:
   lint-php:
     name: Lint PHP
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@2389745f0da45ecf37986de0bdf11fecc1d4a26d
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
     with:
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
 
   php-syntax:
     name: PHP syntax
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@2389745f0da45ecf37986de0bdf11fecc1d4a26d
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
     with:
       php-versions: '["7.4"]'
       paths: '["packages/bootstrap"]'
+
+  consumer-a-build:
+    name: Build consumer-a
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+
+      - name: Build consumer-a
+        run: composer fixtures:build
+
+      # A release ships neither config, and Plugin Check flags scoper.inc.php's missing direct-access guard.
+      - name: Upload the build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: consumer-a
+          path: |
+            tests/Fixtures/consumer-a
+            !tests/Fixtures/consumer-a/scoper.inc.php
+            !tests/Fixtures/consumer-a/phpstan.dist.neon
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  consumer-a-plugin-check:
+    name: Plugin Check (consumer-a)
+    needs: consumer-a-build
+    permissions:
+      contents: read
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-plugin-check.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    with:
+      artifact: consumer-a
+      plugin-slug: acme-consumer-a
+      # Both parse every PHP file with php-parser 4, which stops at PHP 8.4 syntax such as protected(set).
+      exclude-checks: prefixing,direct_file_access
+
+  consumer-a-php-syntax:
+    name: PHP 7.4 syntax (consumer-a)
+    needs: consumer-a-build
+    permissions:
+      contents: read
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
+    with:
+      artifact: consumer-a
+      php-versions: '["7.4"]'
+      paths: '["vendor-prefixed/ahegyes/wp-framework-bootstrap", "acme-consumer-a.php", "uninstall.php", "includes"]'

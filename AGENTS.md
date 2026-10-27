@@ -34,7 +34,8 @@ wordpress-framework/
 │       ├── ProductData/{ProductDataTab, ProductDataTabDefinitionInterface, ProductMeta}
 │       ├── Setting/{SettingsTab, SettingsSection, SectionFieldsDefinitionInterface, Fields (@internal)}
 │       └── Uninstall/MetaTypes
-├── tests/{Unit, PHPStan, Integration, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests}}
+├── tests/{Unit, PHPStan, Integration, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a}}
+│                          consumer-a: a WooCommerce plugin on all five packages, scoped through configs by its own composer.json
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core and packages/settings, with the WordPress stubs and extensions
@@ -53,9 +54,10 @@ composer packages-install
 composer quality-check          # validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
 composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run
-composer test:integration:run   # Integration tests in the running .wp-env.tests.json, without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
+composer fixtures:build         # builds consumer-a: a development install that scopes, its PHPStan, then its production install
+composer test:integration:run   # fixtures:build, then Integration tests in the running .wp-env.tests.json, without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
 composer test:integration:multisite      # starts .wp-env.multisite.json, then runs test:integration:multisite:run
-composer test:integration:multisite:run  # the multisite and without-woocommerce groups in the running .wp-env.multisite.json
+composer test:integration:multisite:run  # fixtures:build, then the multisite and without-woocommerce groups in the running .wp-env.multisite.json
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint

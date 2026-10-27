@@ -24,4 +24,4 @@ jobs:
       contents: read
       security-events: write
       actions: read
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-workflow-checks.yml@2389745f0da45ecf37986de0bdf11fecc1d4a26d
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-workflow-checks.yml@1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9
