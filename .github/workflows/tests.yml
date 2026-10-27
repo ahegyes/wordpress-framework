@@ -22,18 +22,22 @@ jobs:
     name: WordPress versions
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      contents: read
     outputs:
       versions: ${{ steps.versions.outputs.versions }}
     steps:
-      # WordPress's version API offers the newest release of every branch, so new majors and point releases join without a commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The floor is the highest WordPress a package declares, and WordPress's version API offers the newest release of every branch, so new releases and floors join without an edit here.
       - name: List the newest release of every branch from the floor up
         id: versions
-        env:
-          FLOOR: '7.1'
         run: |
+          floor=$(jq -rs '[.[].extra["requires-wp"] // empty] | max_by(split(".") | map(tonumber)) // error("No package declares extra.requires-wp.")' packages/*/composer.json)
           offers=$(curl -fsS https://api.wordpress.org/core/version-check/1.7/)
-          versions=$(printf '%s' "$offers" | jq -c --arg floor "$FLOOR" '[.offers[].version | select((split(".")[0:2] | map(tonumber)) >= ($floor | split(".") | map(tonumber)))] | unique | if length == 0 then error("No WordPress release at or above \($floor).") else . end')
+          versions=$(printf '%s' "$offers" | jq -c --arg floor "$floor" '[.offers[].version | select((split(".")[0:2] | map(tonumber)) >= ($floor | split(".") | map(tonumber)))] | unique | if length == 0 then error("No WordPress release at or above \($floor).") else . end')
           echo "versions=$versions" >> "$GITHUB_OUTPUT"
 
   integration:

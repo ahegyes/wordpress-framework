@@ -39,7 +39,7 @@ wordpress-framework/
 │                          consumer-b: a plugin on bootstrap, shared, core and settings, without WooCommerce, scoped the same way
 │                          personas/{bootstrap, shared, core, settings, woocommerce}: one plugin per stack, shared a plain PHP project, each requiring only its top package, scoped the same way; core, settings and woocommerce list their closure's mirrors as `vcs` repositories after the path repository
 │                          bin/prefer-lowest.sh: locks a fixture's runtime packages at their lowest allowed versions; a persona keeps only the tested package on its path repository, and every other framework package must lock from its mirror at a tag
-├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the 7.1 floor up, as WordPress's version API lists them; nightly.yml runs WordPress trunk daily, never on pull requests
+├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the packages' highest `extra.requires-wp` up, as WordPress's version API lists them; nightly.yml runs WordPress trunk daily, never on pull requests
 ├── CHANGELOG.md           the one changelog of the lockstep releases, written at release from the fragments `composer changelog:add` stages in changelog/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
