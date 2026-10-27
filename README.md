@@ -14,13 +14,13 @@ Monorepo publishing five Composer packages:
 | `ahegyes/wp-framework-settings` | Settings screens and edit-screen fields declared as data, so WordPress's own APIs render, validate and save them and a plugin never hand-writes form handling. |
 | `ahegyes/wp-framework-woocommerce` | The framework's settings, edit-screen and logging helpers carried onto WooCommerce's own screens and APIs, for plugins that extend WooCommerce. |
 
-The packages form a stack: core builds on bootstrap and shared, settings on core, and woocommerce on settings, and shared also installs alone.
+The packages form a stack: core builds on bootstrap and shared, settings on core, and woocommerce on settings, and shared also installs alone. Each package's README covers installing, prefixing and using it.
 
 ## Requirements
 
-- **PHP**: 8.5 or later (the bootstrap package itself parses on PHP 7.4)
-- **WordPress**: 7.1 or later
-- **Node.js**: 26 or later with npm 11 or later (for wp-env CLI)
+- **PHP**: the floor `composer.json` declares under `require.php`; each package's `composer.json` declares its own, the bootstrap package's lower
+- **WordPress**: the highest floor the package manifests declare under `extra.requires-wp`
+- **Node.js and npm**: the versions `package.json` declares under `engines` (for wp-env CLI)
 - **Docker**: for the wp-env environments
 
 ## Local development
@@ -55,11 +55,11 @@ composer quality-check      # Validation, PHPCS, PHPStan, Unit and Integration t
 
 ## Testing strategy
 
-- **Unit tests** (`tests/Unit/`) run in plain PHP with no WordPress loaded, including tests that run PHPStan and read the package manifests.
+- **Unit tests** (`tests/Unit/`) run in plain PHP with no WordPress loaded, including tests that run PHPStan, read the package manifests, and check that each package README's examples are copied from its persona.
 - **Integration tests** (`tests/Integration/`) run inside wp-env's `cli` container against real WordPress, hooks and users, on a single site with WooCommerce, and the `multisite` and `without-woocommerce` groups on a network without it. `test:integration` starts the tests environment before every run, which also applies any change to its config; `test:integration:run` skips that start, as CI does after starting the environment itself.
 - **Fixture plugins** (`tests/Fixtures/consumer-a/`, `tests/Fixtures/consumer-b/`): consumer-a is a WooCommerce plugin built on all five packages. It installs them through its own `composer.json`, scopes them with wordpress-configs and passes PHPStan on its own code; the Integration tests copy its production build into the plugins directory and run it through wp-admin requests and WP-CLI, whole and with files missing. consumer-b, built the same way on every package but woocommerce, boots where WooCommerce is absent and beside consumer-a, activated and loaded in either order; the tests also check that each scoped build holds exactly its closure and autoloads its own prefixed copy.
 - **Personas** (`tests/Fixtures/personas/`): one per stack, each requiring only the top package of its stack and built like the fixture plugins, so each production build holds exactly its scoped closure and nothing unscoped. The shared persona runs in plain PHP; the core persona boots its components and runs a migration, and the settings persona saves and rejects a value through `options.php`, both where WooCommerce is absent; the woocommerce persona saves a settings tab and product data through WooCommerce's screens and logs to WooCommerce's log; the bootstrap persona runs on PHP 7.4, which many sites still run.
-- **Prefer-lowest lane** (`tests/bin/prefer-lowest.sh`): consumer-a runs with its runtime packages locked at the lowest versions its constraints allow, so a minimum too low to work fails before a consumer installs it. For the core, settings and woocommerce personas, which list their closure's mirrors as `vcs` repositories, the script keeps only the tested package on the path repository and locks every other framework package from its mirror at the lowest allowed tag, so they run only where the mirrors carry release tags.
+- **Prefer-lowest lane** (`tests/bin/prefer-lowest.sh`): consumer-a runs with its runtime packages locked at the lowest versions its constraints allow, so a minimum too low to work fails before a consumer installs it. For the core, settings and woocommerce personas, which like every persona list their stack's mirrors as `vcs` repositories, the script keeps only the tested package on the path repository and locks every other framework package from its mirror at the lowest allowed tag, so they run only where the mirrors carry release tags.
 - **CI** runs the Integration tests once for the newest release of every WordPress branch from the floor up, read from WordPress's version API, so a new release joins without a change here; WordPress trunk runs nightly, outside pull requests.
 - **PHP 7.4 tests** (`tests/Php74/`) run with the host's PHP against a PHP 7.4 site with WordPress 6.3, through WP-CLI in its environment: the bootstrap persona passes its floors there, and a copy that needs a newer PHP shows WordPress core's message through the notice markup WordPress before 6.4 needs, both with the updater hooked.
 - **Type tests** (`tests/PHPStan/`) are files PHPStan analyzes during `lint:php`: `assertType()` calls pin inferred types, and each expected error carries a `@phpstan-ignore` naming its identifier, so the run fails when the error disappears.
