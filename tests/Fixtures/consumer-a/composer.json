@@ -1,0 +1,72 @@
+{
+  "name": "acme/consumer-a",
+  "description": "A WooCommerce plugin built on all five framework packages, which the framework's tests build, scope and run as a WordPress plugin.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+
+  "require": {
+    "php": ">=8.5"
+  },
+  "require-dev": {
+    "ahegyes/wordpress-configs": "dev-trunk",
+    "ahegyes/wp-framework-bootstrap": "^2.0",
+    "ahegyes/wp-framework-core": "^2.0",
+    "ahegyes/wp-framework-settings": "^2.0",
+    "ahegyes/wp-framework-shared": "^2.0",
+    "ahegyes/wp-framework-woocommerce": "^2.0",
+    "humbug/php-scoper": "^0.18",
+    "php-di/php-di": "^7",
+    "php-stubs/woocommerce-stubs": "^11.2"
+  },
+
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../../../packages/*",
+      "options": { "symlink": false }
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/ahegyes/wordpress-configs"
+    }
+  ],
+
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+
+  "autoload": {
+    "psr-4": {
+      "Acme\\ConsumerA\\": "src/"
+    },
+    "files": [
+      "vendor-prefixed/scoper-autoload.php"
+    ]
+  },
+
+  "scripts": {
+    "post-autoload-dump": [
+      "DeepWebSolutions\\Config\\Composer\\ScopePhpDependencies::postAutoloadDump"
+    ]
+  },
+
+  "extra": {
+    "phpstan/extension-installer": {
+      "ignore": [
+        "johnbillion/wp-compat",
+        "swissspidy/phpstan-no-private",
+        "szepeviktor/phpstan-wordpress"
+      ]
+    },
+    "scoping-prefix": "Acme\\ConsumerA\\Scoped",
+    "text-domain": "acme-consumer-a"
+  },
+
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "phpstan/extension-installer": true
+    },
+    "platform-check": false,
+    "sort-packages": true
+  }
+}

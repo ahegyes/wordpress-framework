@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Acme Consumer A 1.0.0\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: acme-consumer-a\n"
+
+#. translators: %s: The plugin's name.
+msgid "%s could not finish starting, so its features may be unavailable. The error has been logged."
+msgstr "%s konnte nicht vollständig starten, daher sind seine Funktionen möglicherweise nicht verfügbar. Der Fehler wurde protokolliert."
+
+#. translators: 1: The plugin's name. 2: The lowest WooCommerce version the plugin runs on.
+msgid "%1$s needs WooCommerce %2$s or later, so its features stay off until WooCommerce is updated."
+msgstr "%1$s benötigt WooCommerce %2$s oder neuer, daher bleiben seine Funktionen aus, bis WooCommerce aktualisiert ist."
