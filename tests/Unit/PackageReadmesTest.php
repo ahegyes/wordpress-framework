@@ -88,6 +88,8 @@ final class PackageReadmesTest extends TestCase {
 		$manifest = \json_decode( '{"require-dev": {"acme/a": "^1.0", "acme/b": "^2.0"}, "repositories": [{"type": "path", "url": "a"}, {"type": "vcs", "url": "b"}]}', true );
 
 		self::assertTrue( self::is_part_of( \json_decode( '{"repositories": [{"type": "vcs", "url": "b"}], "require-dev": {"acme/b": "^2.0"}}', true ), $manifest ) );
+		self::assertTrue( self::is_part_of( \json_decode( '{"repositories": [{"url": "b", "type": "vcs"}]}', true ), $manifest ) );
+		self::assertFalse( self::is_part_of( \json_decode( '{"repositories": [{"type": "vcs"}]}', true ), $manifest ) );
 		self::assertFalse( self::is_part_of( \json_decode( '{"require-dev": {"acme/b": "^2.1"}}', true ), $manifest ) );
 		self::assertFalse( self::is_part_of( \json_decode( '{"repositories": [{"type": "vcs", "url": "c"}]}', true ), $manifest ) );
 		self::assertFalse( self::is_part_of( \json_decode( '{"prefer-stable": true}', true ), $manifest ) );
@@ -126,7 +128,7 @@ final class PackageReadmesTest extends TestCase {
 
 		foreach ( $part as $key => $value ) {
 			$found = \array_is_list( $part )
-				? \in_array( $value, $whole, true )
+				? \array_any( $whole, static fn ( mixed $item ): bool => self::is_part_of( $value, $item ) && self::is_part_of( $item, $value ) )
 				: \array_key_exists( $key, $whole ) && self::is_part_of( $value, $whole[ $key ] );
 			if ( ! $found ) {
 				return false;
