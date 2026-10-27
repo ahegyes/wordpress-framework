@@ -41,6 +41,7 @@ A project that runs beside other copies of the package, as every WordPress plugi
     { "type": "vcs", "url": "https://github.com/ahegyes/wordpress-configs" }
   ],
   "autoload": {
+    "psr-4": { "Acme\\PersonaShared\\": "src/" },
     "files": [ "vendor-prefixed/scoper-autoload.php" ]
   },
   "scripts": {

@@ -44,6 +44,7 @@ WordPress loads every plugin into one PHP process, so each plugin ships the fram
     { "type": "vcs", "url": "https://github.com/ahegyes/wordpress-configs" }
   ],
   "autoload": {
+    "psr-4": { "Acme\\PersonaSettings\\": "src/" },
     "files": [ "vendor-prefixed/scoper-autoload.php" ]
   },
   "scripts": {
