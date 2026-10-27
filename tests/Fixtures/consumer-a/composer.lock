@@ -13,12 +13,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "e2465409c4e9f0c219f87ea5624eb0e17d18dc3b"
+                "reference": "1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/e2465409c4e9f0c219f87ea5624eb0e17d18dc3b",
-                "reference": "e2465409c4e9f0c219f87ea5624eb0e17d18dc3b",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9",
+                "reference": "1ebc3fa3d9a65127f6d39e807f8aed2f7a3b00d9",
                 "shasum": ""
             },
             "require": {
@@ -139,7 +139,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-10-26T22:19:47+00:00"
+            "time": "2026-10-27T11:35:43+00:00"
         },
         {
             "name": "ahegyes/wp-framework-bootstrap",
