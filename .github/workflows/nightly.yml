@@ -1,0 +1,29 @@
+name: Nightly
+
+# WordPress trunk changes daily without a commit here, so this runs on a schedule instead of blocking pull requests.
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Integration
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
+    with:
+      php-version: '8.5'
+      wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+      composer-script: 'test:integration:run'
+      wp-env-config-file: '.wp-env.tests.json'
+
+  integration-multisite:
+    name: Integration (multisite)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
+    with:
+      php-version: '8.5'
+      wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
+      composer-script: 'test:integration:multisite:run'
+      wp-env-config-file: '.wp-env.multisite.json'
