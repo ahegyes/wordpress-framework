@@ -23,7 +23,8 @@ case "$1" in
 		;;
 esac
 
-composer update --prefer-lowest --prefer-stable --with-all-dependencies --no-install --no-interaction --working-dir="$dir" "$@"
+# Composer's pool optimizer drops a shared dependency, such as psr/log, when the lock and a lower tag constrain it differently.
+COMPOSER_POOL_OPTIMIZER=0 composer update --prefer-lowest --prefer-stable --with-all-dependencies --no-install --no-interaction --working-dir="$dir" "$@"
 
 if [ -n "${tested:-}" ] && ! jq -e --arg tested "$tested" '.["packages-dev"] | map(select(.name | startswith("ahegyes/wp-framework-"))) | all(if .name == $tested then .dist.type == "path" else .source.type == "git" and (.version | test("^v?[0-9]+\\.[0-9]+\\.[0-9]+$")) end)' "$dir/composer.lock" > /dev/null; then
 	echo "Every framework package but $tested must lock from its mirror at a tag." >&2
