@@ -62,6 +62,7 @@
     "fixtures:build": [
       "Composer\\Config::disableProcessTimeout",
       "@composer validate --strict --working-dir=tests/Fixtures/consumer-a",
+      "rm -rf tests/Fixtures/consumer-a/vendor",
       "@composer install --working-dir=tests/Fixtures/consumer-a --no-interaction",
       "tests/Fixtures/consumer-a/vendor/bin/phpstan analyse -c tests/Fixtures/consumer-a/phpstan.dist.neon --memory-limit=1G --no-progress",
       "@composer install --working-dir=tests/Fixtures/consumer-a --no-dev --no-interaction"
