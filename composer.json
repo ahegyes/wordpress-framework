@@ -53,19 +53,32 @@
       "DeepWebSolutions\\Framework\\Tests\\": "tests/"
     },
     "exclude-from-classmap": [
-      "tests/Fixtures/consumer-a/"
+      "tests/Fixtures/consumer-a/",
+      "tests/Fixtures/consumer-b/"
     ]
   },
 
   "scripts": {
     "generate-autoloader": "@composer dump-autoload -o",
     "fixtures:build": [
+      "@fixtures:build:consumer-a",
+      "@fixtures:build:consumer-b"
+    ],
+    "fixtures:build:consumer-a": [
       "Composer\\Config::disableProcessTimeout",
       "@composer validate --strict --working-dir=tests/Fixtures/consumer-a",
       "rm -rf tests/Fixtures/consumer-a/vendor",
       "@composer install --working-dir=tests/Fixtures/consumer-a --no-interaction",
       "tests/Fixtures/consumer-a/vendor/bin/phpstan analyse -c tests/Fixtures/consumer-a/phpstan.dist.neon --memory-limit=1G --no-progress",
       "@composer install --working-dir=tests/Fixtures/consumer-a --no-dev --no-interaction"
+    ],
+    "fixtures:build:consumer-b": [
+      "Composer\\Config::disableProcessTimeout",
+      "@composer validate --strict --working-dir=tests/Fixtures/consumer-b",
+      "rm -rf tests/Fixtures/consumer-b/vendor",
+      "@composer install --working-dir=tests/Fixtures/consumer-b --no-interaction",
+      "tests/Fixtures/consumer-b/vendor/bin/phpstan analyse -c tests/Fixtures/consumer-b/phpstan.dist.neon --memory-limit=1G --no-progress",
+      "@composer install --working-dir=tests/Fixtures/consumer-b --no-dev --no-interaction"
     ],
     "packages-install": "@composer install --ignore-platform-req=php+ --no-interaction",
     "packages-update": [

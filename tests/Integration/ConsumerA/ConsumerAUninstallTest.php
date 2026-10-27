@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\ConsumerA;
 
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
-use DeepWebSolutions\Framework\Tests\Integration\Support\InstallsConsumerATrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InstallsConsumersTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class ConsumerAUninstallTest extends TestCase {
 	use CreatesUsersTrait;
-	use InstallsConsumerATrait;
+	use InstallsConsumersTrait;
 
 	protected const string DIR = 'acme-consumer-a-uninstall';
 
@@ -32,7 +32,7 @@ final class ConsumerAUninstallTest extends TestCase {
 
 	public function test_a_consenting_web_uninstall_removes_the_footprint_and_the_files(): void {
 		$this->seed_footprint();
-		$plugin  = $this->install_consumer_a( self::DIR );
+		$plugin  = $this->install_consumer( 'consumer-a', self::DIR );
 		$request = $this->uninstall_on_the_web( $plugin, array() );
 
 		self::assertTrue( $request['records']['deleted'] );
@@ -45,7 +45,7 @@ final class ConsumerAUninstallTest extends TestCase {
 	#[DataProvider( 'engines_that_cannot_run' )]
 	public function test_a_web_uninstall_that_cannot_run_the_engine_keeps_the_data_logs_once_and_deletes_the_files( array $remove, array $headers ): void {
 		$this->seed_footprint();
-		$plugin  = $this->install_consumer_a( self::DIR, $remove, $headers );
+		$plugin  = $this->install_consumer( 'consumer-a', self::DIR, $remove, $headers );
 		$request = $this->uninstall_on_the_web( $plugin, $remove );
 
 		self::assertTrue( $request['records']['deleted'] );
@@ -58,7 +58,7 @@ final class ConsumerAUninstallTest extends TestCase {
 	#[DataProvider( 'engines_that_cannot_run' )]
 	public function test_a_wp_cli_uninstall_that_cannot_run_the_engine_fails_and_keeps_the_data_and_the_files( array $remove, array $headers ): void {
 		$this->seed_footprint();
-		$this->install_consumer_a( self::DIR, $remove, $headers );
+		$this->install_consumer( 'consumer-a', self::DIR, $remove, $headers );
 
 		$descriptors = array(
 			1 => array( 'pipe', 'w' ),
@@ -101,7 +101,7 @@ final class ConsumerAUninstallTest extends TestCase {
 	protected function uninstall_on_the_web( string $plugin, array $missing ): array {
 		$this->log = (string) \tempnam( \sys_get_temp_dir(), 'acme-ca-log-' );
 
-		return $this->consumer_a_request(
+		return $this->consumer_request(
 			'GET',
 			'index.php',
 			$this->make_user( 'acme_ca_admin', 'administrator' ),
