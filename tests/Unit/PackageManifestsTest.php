@@ -24,8 +24,8 @@ final class PackageManifestsTest extends TestCase {
 			'ext-filter'                     => '*',
 			'php'                            => '>=8.5',
 			'psr/clock'                      => '^1',
-			'psr/container'                  => '^2',
-			'psr/log'                        => '^3',
+			'psr/container'                  => '^2.0.2',
+			'psr/log'                        => '^3.0.2',
 			'psr/simple-cache'               => '^3',
 		),
 		'settings'    => array(

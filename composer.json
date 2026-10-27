@@ -189,6 +189,19 @@
       "@fixtures:build:persona-bootstrap",
       "@php vendor/bin/phpunit --testsuite=Php74"
     ],
+    "test:integration:lowest": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "npm --prefix=. run wp-env:tests:start",
+      "@test:integration:lowest:run"
+    ],
+    "test:integration:lowest:run": [
+      "Composer\\Config::disableProcessTimeout",
+      "@putenv CI=1",
+      "tests/bin/prefer-lowest.sh consumer-a",
+      "@fixtures:build:consumer-a",
+      "node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite --filter Integration.ConsumerA."
+    ],
 
     "quality-check": [
       "@composer validate --strict",
