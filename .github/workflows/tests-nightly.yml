@@ -1,4 +1,4 @@
-name: Nightly
+name: Tests (nightly)
 
 # WordPress trunk changes daily without a commit here, so this runs on a schedule instead of blocking pull requests.
 on:
