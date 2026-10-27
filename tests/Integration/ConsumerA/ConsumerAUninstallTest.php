@@ -25,6 +25,7 @@ final class ConsumerAUninstallTest extends TestCase {
 			'bootstrap-loader'  => array( array( 'vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php' ), array() ),
 			'autoloader'        => array( array( 'vendor/autoload.php' ), array() ),
 			'scoped-autoloader' => array( array( 'vendor-prefixed/scoper-autoload.php' ), array() ),
+			'composition-root'  => array( array( 'src/Plugin.php' ), array() ),
 			'below-php-floor'   => array( array(), array( 'Requires PHP' => '99' ) ),
 		);
 	}
