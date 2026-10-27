@@ -167,7 +167,9 @@ final class FormsSanitizeValueTest extends TestCase {
 			'validate' => 'wp_kses_post',
 		);
 
-		self::assertSame( '<a href="https://example.com">Docs</a>alert(1)', Forms::sanitize_value( $field, '<a href="https://example.com">Docs</a><script>alert(1)</script>' ) );
+		$raw = '<a href="https://example.com">Docs</a><script>alert(1)</script>';
+
+		self::assertSame( wp_kses_post( $raw ), Forms::sanitize_value( $field, $raw ) );
 	}
 
 	public function test_a_validate_rejection_passes_through(): void {
