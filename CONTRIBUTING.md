@@ -11,6 +11,7 @@ composer packages-install
 npm install
 composer quality-check
 composer test:integration:multisite
+composer test:integration:php74
 composer audit --locked
 npm audit --omit=dev --audit-level=high
 actionlint

@@ -1,6 +1,6 @@
 # wordpress-framework
 
-A WordPress plugin framework published as five Composer packages under `ahegyes/`, PHP namespace `DeepWebSolutions\Framework\`, GPL-2.0-or-later. splitsh splits each `packages/<dir>/` to its read-only `wp-framework-<dir>` mirror on every push to `trunk`; consumers install the mirrors through `vcs` repositories, not Packagist, and prefix them with php-scoper or Strauss. The packages form a stack: core requires bootstrap and shared, settings requires core, and woocommerce requires settings, each requiring only the layer below it, while shared also installs alone; a plugin ships only the closure of the highest package it uses.
+A WordPress plugin framework published as five Composer packages under `ahegyes/`, PHP namespace `DeepWebSolutions\Framework\`, GPL-2.0-or-later. splitsh splits each `packages/<dir>/` to its read-only `wp-framework-<dir>` mirror on every push to `trunk`, and a `v*` tag to every mirror without `--force`; consumers install the mirrors through `vcs` repositories, not Packagist, and prefix them with php-scoper or Strauss. The packages form a stack: core requires bootstrap and shared, settings requires core, and woocommerce requires settings, each requiring only the layer below it, while shared also installs alone; a plugin ships only the closure of the highest package it uses.
 
 ## Layout
 
@@ -13,7 +13,7 @@ wordpress-framework/
 │       └── Updater          ::register( string $plugin_file ): void
 ├── packages/shared/       ahegyes/wp-framework-shared       php >=8.5 · no package require · WordPress-free
 │   └── src/               psr-4 DeepWebSolutions\Framework\Shared\ · Error/, Exception/, Result/, ValueObject/, Versioning/
-├── packages/core/         ahegyes/wp-framework-core         php >=8.5, ext-filter · bootstrap ^2.0, shared ^2.0, psr/clock ^1, psr/container ^2, psr/log ^3, psr/simple-cache ^3
+├── packages/core/         ahegyes/wp-framework-core         php >=8.5, ext-filter · bootstrap ^2.0, shared ^2.0, psr/clock ^1, psr/container ^2.0.2, psr/log ^3.0.2, psr/simple-cache ^3
 │   └── src/               psr-4 DeepWebSolutions\Framework\Core\ · PluginKernel, PluginBoot, ComponentInterface, CompositeComponentInterface, ConditionalComponentInterface
 │       ├── AdminNotice/{AdminNotices, Notice, NoticeType, NoticeScope}
 │       ├── Caching/{TransientCache, ObjectCache, CacheEntries (@internal), Exceptions/InvalidCacheKeyException}
@@ -34,19 +34,20 @@ wordpress-framework/
 │       ├── ProductData/{ProductDataTab, ProductDataTabDefinitionInterface, ProductMeta}
 │       ├── Setting/{SettingsTab, SettingsSection, SectionFieldsDefinitionInterface, Fields (@internal)}
 │       └── Uninstall/MetaTypes
-├── tests/{Unit, PHPStan, Integration, Php74, Support, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b, personas}}
+├── tests/{Unit, PHPStan, Integration, Php74, Support, bin, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b, personas}}
 │                          consumer-a: a WooCommerce plugin on all five packages, scoped through configs by its own composer.json
 │                          consumer-b: a plugin on bootstrap, shared, core and settings, without WooCommerce, scoped the same way
-│                          personas/{bootstrap, shared, core, settings, woocommerce}: one plugin per stack, shared a plain PHP project, each requiring only its top package, scoped the same way
+│                          personas/{bootstrap, shared, core, settings, woocommerce}: one plugin per stack, shared a plain PHP project, each requiring only its top package, scoped the same way; core, settings and woocommerce list their closure's mirrors as `vcs` repositories after the path repository
+│                          bin/prefer-lowest.sh: locks a fixture's runtime packages at their lowest allowed versions; a persona keeps only the tested package on its path repository, and every other framework package must lock from its mirror at a tag
+├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the 7.1 floor up, as WordPress's version API lists them; nightly.yml runs WordPress trunk daily, never on pull requests
+├── CHANGELOG.md           the one changelog of the lockstep releases, written at release from the fragments `composer changelog:add` stages in changelog/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core and packages/settings, with the WordPress stubs and extensions
 ├── phpstan.woocommerce.neon PHPStan over packages/woocommerce/src, with the WordPress and WooCommerce stubs
 ├── phpstan.bootstrap.neon PHPStan over packages/bootstrap at PHP 7.4 and WordPress 5.2, the oldest it runs on
-├── .wp-env.json           developer environment: single site with WooCommerce, as local, on port 8800
-├── .wp-env.tests.json     Integration environment: single site with WooCommerce, as production
-├── .wp-env.multisite.json Integration environment for the `multisite` and `without-woocommerce` groups: a network without WooCommerce, as production
-├── .wp-env.php74.json     environment of the `Php74` suite: single site on PHP 7.4 with WordPress 6.3, as production
+├── .wp-env.json           developer environment, as local, on port 8800; .wp-env.tests.json the Integration environment, as production; both single sites with WooCommerce
+├── .wp-env.multisite.json a network without WooCommerce for the `multisite` and `without-woocommerce` groups; .wp-env.php74.json a site on PHP 7.4 with WordPress 6.3 for the `Php74` suite; both as production
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -54,16 +55,15 @@ wordpress-framework/
 
 ```sh
 composer packages-install
-composer quality-check          # validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
+composer quality-check          # manifest and changelog validation, PHPCS (both profiles), PHPStan, Unit and Integration tests
 composer test:unit
 composer fixtures:build         # builds consumer-a, consumer-b, then the five personas: each a development install that scopes, its PHPStan, then its production install
 composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run: fixtures:build, then Integration tests without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
 composer test:integration:multisite  # starts .wp-env.multisite.json, then runs test:integration:multisite:run: fixtures:build, then the multisite and without-woocommerce groups
 composer test:integration:php74      # starts .wp-env.php74.json, then runs test:integration:php74:run: the bootstrap persona's build, then the Php74 suite with the host's PHP
-composer audit --locked
-npm audit --omit=dev --audit-level=high
-actionlint
-zizmor .github/
+composer test:integration:lowest     # starts .wp-env.tests.json, then runs test:integration:lowest:run: prefer-lowest.sh on consumer-a, its build, then its rows; rewrites its lock, which git checkout restores
+composer audit --locked && npm audit --omit=dev --audit-level=high
+actionlint && zizmor .github/
 ```
 
 ## Conventions
