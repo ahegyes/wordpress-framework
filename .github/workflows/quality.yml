@@ -41,7 +41,7 @@ jobs:
           tools: composer:v2
 
       - name: Build consumer-a
-        run: composer fixtures:build
+        run: composer fixtures:build:consumer-a
 
       # A release ships neither config, and Plugin Check flags scoper.inc.php's missing direct-access guard.
       - name: Upload the build
