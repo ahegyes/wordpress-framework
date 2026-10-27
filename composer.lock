@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "01ee063cea1cc225ef19057a74c410aa897cafa6"
+                "reference": "c78cee38e43224154323f25fe7530225182cc140"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0",
@@ -48,8 +48,8 @@
                 "ext-filter": "*",
                 "php": ">=8.5",
                 "psr/clock": "^1",
-                "psr/container": "^2",
-                "psr/log": "^3",
+                "psr/container": "^2.0.2",
+                "psr/log": "^3.0.2",
                 "psr/simple-cache": "^3"
             },
             "type": "library",

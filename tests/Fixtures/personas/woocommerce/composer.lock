@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f847b4b1a458ccb76c6d004090f1a79a",
+    "content-hash": "54ead8d182aa937ebeadd23c9de90674",
     "packages": [],
     "packages-dev": [
         {
@@ -175,7 +175,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../../../packages/core",
-                "reference": "609a39b677712ccd67e765dda5c8511fe8a6834f"
+                "reference": "0329428a63ea8fe82c8e112a7719edb288fb859c"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0",
@@ -183,8 +183,8 @@
                 "ext-filter": "*",
                 "php": ">=8.5",
                 "psr/clock": "^1",
-                "psr/container": "^2",
-                "psr/log": "^3",
+                "psr/container": "^2.0.2",
+                "psr/log": "^3.0.2",
                 "psr/simple-cache": "^3"
             },
             "type": "library",
