@@ -23,6 +23,10 @@ case "$1" in
 		;;
 esac
 
+# A detached checkout, as in CI, would version each path package after its commit, so the lane pins dev-trunk, which their branch alias maps to 2.x-dev.
+jq --argjson versions "$(jq -n '[inputs.name | {(.): "dev-trunk"}] | add' packages/*/composer.json)" '.repositories[0].options.versions = $versions' "$dir/composer.json" > "$dir/composer.json.tmp"
+mv "$dir/composer.json.tmp" "$dir/composer.json"
+
 # Composer's pool optimizer drops a shared dependency, such as psr/log, when the lock and a lower tag constrain it differently.
 COMPOSER_POOL_OPTIMIZER=0 composer update --prefer-lowest --prefer-stable --with-all-dependencies --no-install --no-interaction --working-dir="$dir" "$@"
 

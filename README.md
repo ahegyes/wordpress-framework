@@ -46,7 +46,7 @@ composer quality-check      # Validation, PHPCS, PHPStan, Unit and Integration t
 | `test:integration:php74` | Starts the PHP 7.4 environment, then runs `test:integration:php74:run` |
 | `test:integration:php74:run` | Builds the bootstrap persona, then runs the `Php74` suite with the host's PHP against the running PHP 7.4 environment: a single site with WordPress 6.3, as production |
 | `test:integration:lowest` | Starts the tests environment, then runs `test:integration:lowest:run` |
-| `test:integration:lowest:run` | Locks consumer-a's runtime packages at the lowest versions its constraints allow, builds it, then runs its rows in the running tests environment; its rewritten lock is restored with `git checkout` |
+| `test:integration:lowest:run` | Locks consumer-a's runtime packages at the lowest versions its constraints allow, builds it, then runs its rows in the running tests environment; its rewritten manifest and lock are restored with `git checkout` |
 | `test` | Unit and Integration tests |
 | `lint:php` | PHPCS over production code and tests, and PHPStan |
 | `format:php`, `format:php:tests` | Auto-fix code style (PHPCBF) |

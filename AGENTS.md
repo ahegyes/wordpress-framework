@@ -61,7 +61,7 @@ composer fixtures:build         # builds consumer-a, consumer-b, then the five p
 composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run: fixtures:build, then Integration tests without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
 composer test:integration:multisite  # starts .wp-env.multisite.json, then runs test:integration:multisite:run: fixtures:build, then the multisite and without-woocommerce groups
 composer test:integration:php74      # starts .wp-env.php74.json, then runs test:integration:php74:run: the bootstrap persona's build, then the Php74 suite with the host's PHP
-composer test:integration:lowest     # starts .wp-env.tests.json, then runs test:integration:lowest:run: prefer-lowest.sh on consumer-a, its build, then its rows; rewrites its lock, which git checkout restores
+composer test:integration:lowest     # starts .wp-env.tests.json, then runs test:integration:lowest:run: prefer-lowest.sh on consumer-a, its build, then its rows; rewrites its manifest and lock, which git checkout restores
 composer audit --locked && npm audit --omit=dev --audit-level=high
 actionlint && zizmor .github/
 ```
