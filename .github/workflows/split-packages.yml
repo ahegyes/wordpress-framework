@@ -3,6 +3,7 @@ name: Split Packages
 on:
   push:
     branches: [trunk]
+    tags: ['v*']
     paths:
       - 'packages/**'
   workflow_dispatch:
@@ -60,4 +61,10 @@ jobs:
           SPLIT_SHA: ${{ steps.split.outputs.sha }}
           TARGET_REPO: ${{ matrix.package.repo }}
         run: |
-          git push --force "https://x-access-token:${TOKEN}@github.com/ahegyes/${TARGET_REPO}.git" "${SPLIT_SHA}:refs/heads/trunk"
+          remote="https://x-access-token:${TOKEN}@github.com/ahegyes/${TARGET_REPO}.git"
+          # A release tag never moves under consumers' locks, so it goes out without --force.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            git push "$remote" "${SPLIT_SHA}:${GITHUB_REF}"
+          else
+            git push --force "$remote" "${SPLIT_SHA}:refs/heads/trunk"
+          fi
