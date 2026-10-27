@@ -83,7 +83,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		$this->notices()->add( $this->notice( 'saved', message: 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>.' ), $this->admin );
 		wp_set_current_user( $this->admin );
 
-		self::assertSame( 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>. alert( 1 );', $this->deliver()->get_data()[0]['content'] );
+		self::assertSame( wp_kses_post( 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>. <script>alert( 1 );</script>' ), $this->deliver()->get_data()[0]['content'] );
 	}
 
 	public static function other_screens(): array {

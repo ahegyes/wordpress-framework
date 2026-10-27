@@ -1,0 +1,4 @@
+Significance: major
+Type: changed
+
+Complete rewrite as five layered packages, each building only on the one below it, that every plugin ships as its own scoped copy.

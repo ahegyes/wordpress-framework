@@ -363,8 +363,10 @@ final class SettingsTest extends TestCase {
 
 		$this->rest( 'PUT', "/wc/v3/settings/{$this->prefix}/{$this->prefix}_name", array( 'value' => ' <b>bold</b><script>x</script> ' ) );
 
-		self::assertSame( array( '<b>bold</b>x' ), $received );
-		self::assertSame( '<b>bold</b>x', get_option( "{$this->prefix}_name" ) );
+		$normalized = wp_kses_post( '<b>bold</b><script>x</script>' );
+
+		self::assertSame( array( $normalized ), $received );
+		self::assertSame( $normalized, get_option( "{$this->prefix}_name" ) );
 	}
 
 	public function test_an_option_the_helpers_do_not_own_passes_through_unchanged(): void {

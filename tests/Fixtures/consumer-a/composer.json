@@ -15,7 +15,8 @@
     "ahegyes/wp-framework-shared": "^2.0",
     "ahegyes/wp-framework-woocommerce": "^2.0",
     "humbug/php-scoper": "^0.18",
-    "php-di/php-di": "^7",
+    "laravel/serializable-closure": "^2.1",
+    "php-di/php-di": "^7.1.1",
     "php-stubs/woocommerce-stubs": "^11.2"
   },
 
