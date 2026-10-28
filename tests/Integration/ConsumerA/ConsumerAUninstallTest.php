@@ -28,7 +28,7 @@ final class ConsumerAUninstallTest extends TestCase {
 			'autoloader'        => array( array( 'vendor/autoload.php' ), array() ),
 			'scoped-autoloader' => array( array( 'vendor-prefixed/scoper-autoload.php' ), array() ),
 			'composition-root'  => array( array( 'src/Plugin.php' ), array() ),
-			'footprint'         => array( array( 'src/Footprint.php' ), array() ),
+			'footprint'         => array( array( 'includes/footprint.php' ), array() ),
 			'below-php-floor'   => array( array(), array( 'Requires PHP' => '99' ) ),
 		);
 	}
