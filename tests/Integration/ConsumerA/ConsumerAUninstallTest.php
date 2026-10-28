@@ -18,6 +18,8 @@ final class ConsumerAUninstallTest extends TestCase {
 
 	protected int $product_id = 0;
 
+	protected int $user_id = 0;
+
 	protected string $log = '';
 
 	public static function engines_that_cannot_run(): array {
@@ -26,6 +28,7 @@ final class ConsumerAUninstallTest extends TestCase {
 			'autoloader'        => array( array( 'vendor/autoload.php' ), array() ),
 			'scoped-autoloader' => array( array( 'vendor-prefixed/scoper-autoload.php' ), array() ),
 			'composition-root'  => array( array( 'src/Plugin.php' ), array() ),
+			'footprint'         => array( array( 'src/Footprint.php' ), array() ),
 			'below-php-floor'   => array( array(), array( 'Requires PHP' => '99' ) ),
 		);
 	}
@@ -40,6 +43,11 @@ final class ConsumerAUninstallTest extends TestCase {
 		self::assertFalse( get_option( 'acme_ca_settings' ) );
 		self::assertFalse( get_option( 'acme_ca_revision' ) );
 		self::assertSame( '', get_post_meta( $this->product_id, '_acme_ca_packing_note', true ) );
+		self::assertFalse( get_option( 'acme_ca_notices' ) );
+		self::assertFalse( get_network_option( null, 'acme_ca_network_notices' ) );
+		self::assertFalse( get_transient( 'acme_ca_boot_failure_seeded' ) );
+		self::assertFalse( get_user_option( 'acme_ca_hidden_notices', $this->user_id ) );
+		self::assertSame( '', get_user_meta( $this->user_id, 'acme_ca_network_hidden_notices', true ) );
 	}
 
 	#[DataProvider( 'engines_that_cannot_run' )]
@@ -91,6 +99,12 @@ final class ConsumerAUninstallTest extends TestCase {
 	protected function seed_footprint(): void {
 		update_option( 'acme_ca_settings', array( 'delete_data' => 'yes' ) );
 		update_option( 'acme_ca_revision', 1 );
+		update_option( 'acme_ca_notices', array( 'seeded' ) );
+		update_network_option( null, 'acme_ca_network_notices', array( 'seeded' ) );
+		set_transient( 'acme_ca_boot_failure_seeded', 1, HOUR_IN_SECONDS );
+		$this->user_id = $this->make_user( 'acme_ca_admin', 'administrator' );
+		update_user_option( $this->user_id, 'acme_ca_hidden_notices', array( 'seeded' ) );
+		update_user_meta( $this->user_id, 'acme_ca_network_hidden_notices', array( 'seeded' ) );
 
 		$product = wc_get_product_object( 'simple' );
 		$product->set_name( 'Acme product' );

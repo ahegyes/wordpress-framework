@@ -7,7 +7,6 @@ use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\PluginKernel;
 use Acme\ConsumerB\Scoped\DI\ContainerBuilder;
-use Acme\ConsumerB\Scoped\Psr\Container\ContainerInterface as PsrContainerInterface;
 use Acme\ConsumerB\Scoped\Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -142,11 +141,11 @@ final class Plugin {
 	 *
 	 * @param   PsrLoggerInterface $logger The plugin's logger.
 	 *
-	 * @return  array<string, \Closure(PsrContainerInterface): object>
+	 * @return  array<string, \Closure(): object>
 	 */
 	protected function get_definitions( PsrLoggerInterface $logger ): array {
 		return array(
-			AdminNotices::class => static fn ( PsrContainerInterface $c ): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			AdminNotices::class => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
 		);
 	}
 

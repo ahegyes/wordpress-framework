@@ -11,7 +11,6 @@ use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\Scheduling\SchedulerIn
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\WooCommerce\Logging\WooCommerceLogger;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\WooCommerce\WooCommerceRequirement;
 use Acme\ConsumerA\Scoped\DI\ContainerBuilder;
-use Acme\ConsumerA\Scoped\Psr\Container\ContainerInterface as PsrContainerInterface;
 use Acme\ConsumerA\Scoped\Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -60,21 +59,6 @@ final class Plugin {
 		Exports::class,
 		Reports\Reports::class,
 		FaultInjector::class,
-	);
-
-	/**
-	 * The data the plugin stores, which uninstall removes where the site consents.
-	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
-	 *
-	 * @var     array{option_prefixes: list<non-empty-string>, meta: array{post: list<non-empty-string>}, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
-	 */
-	public const array FOOTPRINT = array(
-		'option_prefixes' => array( self::PREFIX . '_' ),
-		'meta'            => array( 'post' => array( ProductData::NOTE_KEY ) ),
-		'cron_hooks'      => array( self::PREFIX . '_revision_run' ),
-		'as_groups'       => array( self::PREFIX ),
 	);
 
 	/**
@@ -195,14 +179,14 @@ final class Plugin {
 	 * @param   PsrLoggerInterface $logger    The plugin's logger.
 	 * @param   Scheduler          $scheduler The plugin's scheduler.
 	 *
-	 * @return  array<string, \Closure(PsrContainerInterface): object>
+	 * @return  array<string, \Closure(): object>
 	 */
 	protected function get_definitions( PsrLoggerInterface $logger, Scheduler $scheduler ): array {
 		return array(
-			PsrLoggerInterface::class => static fn ( PsrContainerInterface $c ): PsrLoggerInterface => $logger,
-			Scheduler::class          => static fn ( PsrContainerInterface $c ): Scheduler => $scheduler,
-			SchedulerInterface::class => static fn ( PsrContainerInterface $c ): Scheduler => $scheduler,
-			AdminNotices::class       => static fn ( PsrContainerInterface $c ): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			PsrLoggerInterface::class => static fn (): PsrLoggerInterface => $logger,
+			Scheduler::class          => static fn (): Scheduler => $scheduler,
+			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
+			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
 		);
 	}
 

@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the plugin's accessor, boots it on plugins_loaded and declares its WooCommerce feature compatibility.
+ * Defines the plugin's accessor, boots it on plugins_loaded, declares its WooCommerce feature compatibility and loads the files in includes/.
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -15,6 +15,18 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'plugins_loaded', 'acme_ca_boot', 15 );
 add_action( 'before_woocommerce_init', 'acme_ca_declare_compatibility' );
+
+$acme_ca_includes = glob( __DIR__ . '/includes/*.php' );
+if ( false === $acme_ca_includes ) {
+	throw new RuntimeException( 'The includes directory could not be read.' );
+}
+
+sort( $acme_ca_includes );
+foreach ( $acme_ca_includes as $acme_ca_include ) {
+	if ( ! str_starts_with( basename( $acme_ca_include ), '_' ) ) { // An underscore prefix keeps a file from loading.
+		require_once $acme_ca_include;
+	}
+}
 
 /**
  * Returns the plugin's composition root, built on first use.

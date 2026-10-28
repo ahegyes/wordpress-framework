@@ -25,6 +25,7 @@ final class ConsumerABootTest extends TestCase {
 		self::assertSame( 1, $request['records']['consumer_a']['initialized'] );
 		self::assertSame( array( self::SCOPED . 'Core\\Scheduling\\Scheduler', self::SCOPED . 'Core\\AdminNotice\\AdminNotices', 'Acme\\ConsumerA\\ProductData', 'Acme\\ConsumerA\\Exports' ), $request['records']['consumer_a']['resolved'] );
 		self::assertTrue( $request['records']['export_hooked'] );
+		self::assertFalse( $request['records']['unloaded_include'] );
 	}
 
 	public function test_a_gated_subtree_is_skipped_and_its_children_never_load(): void {

@@ -116,6 +116,7 @@ add_action(
 			'updater_hooked'      => has_filter( 'update_plugins_github.com' ),
 			'schedules_hooked'    => has_filter( 'cron_schedules' ),
 			'safeguards_loaded'   => function_exists( 'acme_ca_is_relaxed' ),
+			'unloaded_include'    => function_exists( 'acme_ca_unloaded_include' ),
 			'greeting_shortcode'  => shortcode_exists( 'acme_pc_greeting' ),
 		);
 
