@@ -13,20 +13,17 @@ defined( 'ABSPATH' ) || exit;
 add_filter( 'map_meta_cap', 'acme_ca_map_export_capability', 10, 2 );
 
 /**
- * Returns whether a safeguard's own filter relaxes it, which takes an explicit false once the plugin has finished booting.
+ * Returns whether a safeguard's filtered value relaxes it, which takes an explicit false once the plugin has finished booting.
  *
  * @since   1.0.0
  * @version 1.0.0
  *
- * @phpstan-param non-empty-string $filter
- *
- * @param   string $filter  The safeguard's filter, which receives true and the arguments.
- * @param   mixed  ...$args The arguments the filter receives after true.
+ * @param   mixed $filtered The value the safeguard's filter returned for true.
  *
  * @return  bool
  */
-function acme_ca_is_relaxed( string $filter, ...$args ): bool {
-	return 0 < did_action( 'acme_ca_initialized' ) && false === apply_filters( $filter, true, ...$args );
+function acme_ca_is_relaxed( $filtered ): bool {
+	return 0 < did_action( 'acme_ca_initialized' ) && false === $filtered;
 }
 
 /**
@@ -45,5 +42,13 @@ function acme_ca_map_export_capability( array $caps, string $cap ): array {
 		return $caps;
 	}
 
-	return acme_ca_is_relaxed( 'acme_ca_restrict_exports' ) ? array( 'manage_woocommerce' ) : array( 'do_not_allow' );
+	/**
+	 * Filters whether order exports stay locked; an explicit false unlocks them once the plugin has booted.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @param   bool $restricted Whether order exports stay locked.
+	 */
+	return acme_ca_is_relaxed( apply_filters( 'acme_ca_restrict_exports', true ) ) ? array( 'manage_woocommerce' ) : array( 'do_not_allow' );
 }
