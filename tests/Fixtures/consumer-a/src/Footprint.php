@@ -14,7 +14,7 @@ final class Footprint {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The plugin's stored data by kind, which covers every option, transient, meta key and scheduled job the plugin and its framework components write.
+	 * The plugin's stored data by kind, which covers every option, transient, meta key and scheduled job under the plugin's prefix.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
