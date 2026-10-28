@@ -8,6 +8,7 @@
  * @package Acme\ConsumerA
  */
 
+use Acme\ConsumerA\Footprint;
 use Acme\ConsumerA\Plugin;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
@@ -28,7 +29,7 @@ try {
 	}
 
 	require_once __DIR__ . '/vendor/autoload.php';
-	$acme_ca_footprint  = Plugin::FOOTPRINT;
+	$acme_ca_footprint  = Footprint::DATA;
 	$acme_ca_meta_types = MetaTypes::DEFINITIONS;
 } catch ( Throwable $error ) {
 	// WP-CLI then fails and keeps the files for a rerun on a complete build, while a web request deletes them and leaves the data.

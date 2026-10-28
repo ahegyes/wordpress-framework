@@ -62,21 +62,6 @@ final class Plugin {
 	);
 
 	/**
-	 * The data the plugin stores, which uninstall removes where the site consents.
-	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
-	 *
-	 * @var     array{option_prefixes: list<non-empty-string>, meta: array{post: list<non-empty-string>}, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
-	 */
-	public const array FOOTPRINT = array(
-		'option_prefixes' => array( self::PREFIX . '_' ),
-		'meta'            => array( 'post' => array( ProductData::NOTE_KEY ) ),
-		'cron_hooks'      => array( self::PREFIX . '_revision_run' ),
-		'as_groups'       => array( self::PREFIX ),
-	);
-
-	/**
 	 * The boot boundary, whose status tells whether the plugin booted.
 	 *
 	 * @since   1.0.0
