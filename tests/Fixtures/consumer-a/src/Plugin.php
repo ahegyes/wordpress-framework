@@ -161,7 +161,7 @@ final class Plugin {
 			return false;
 		}
 
-		$this->migrations = new MigrationRunner( ACME_CA_FILE, self::PREFIX . '_revision', Migrations::STEPS, $this->logger, $this->scheduler );
+		$this->migrations = new MigrationRunner( ACME_CA_FILE, self::PREFIX . '_revision', acme_ca_get_migration_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
 		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
