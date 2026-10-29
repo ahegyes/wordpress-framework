@@ -41,6 +41,8 @@ final class CachesTest extends TestCase {
 			'null'         => array( null ),
 			'zero'         => array( 0 ),
 			'empty-string' => array( '' ),
+			'serialized'   => array( 'a:1:{i:0;s:1:"x";}' ),
+			'object-text'  => array( 'O:8:"stdClass":0:{}' ),
 			'empty-array'  => array( array() ),
 			'nested-array' => array(
 				array(

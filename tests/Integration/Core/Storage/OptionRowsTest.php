@@ -66,6 +66,17 @@ final class OptionRowsTest extends TestCase {
 		self::assertSame( array( "{$this->prefix}_state" => array( 'Done', 'off' ) ), $this->stored() );
 	}
 
+	public function test_a_serialized_looking_string_reads_back_as_the_string_it_was(): void {
+		$observed = self::insert( "{$this->prefix}_text", 'a:1:{i:0;s:1:"x";}' );
+
+		$replaced = OptionRows::replace( $observed, 'O:8:"stdClass":0:{}' );
+
+		self::assertSame( 'a:1:{i:0;s:1:"x";}', $observed->value );
+		self::assertSame( 'O:8:"stdClass":0:{}', $replaced?->value );
+		self::assertSame( 'O:8:"stdClass":0:{}', OptionRows::get( "{$this->prefix}_text" )?->value );
+		self::assertSame( 'O:8:"stdClass":0:{}', get_option( "{$this->prefix}_text" ) );
+	}
+
 	public function test_deleting_the_observed_row_deletes_it_once(): void {
 		$observed = self::insert( "{$this->prefix}_state", 'Ready' );
 
