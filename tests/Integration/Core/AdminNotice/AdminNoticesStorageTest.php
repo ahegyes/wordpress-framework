@@ -148,7 +148,7 @@ final class AdminNoticesStorageTest extends TestCase {
 		$this->notices->add( $this->notice( 'one', NoticeScope::Network, per_viewer: true ) );
 		$this->view( 'dashboard' );
 
-		self::assertSame( array( 'network:one' ), \array_keys( $this->user_meta( "{$this->prefix}_network_hidden_notices" ) ) );
+		self::assertSame( array( 'network:1:one' ), \array_keys( $this->user_meta( "{$this->prefix}_network_hidden_notices" ) ) );
 		self::assertFalse( get_user_option( "{$this->prefix}_hidden_notices", $this->user_id ) );
 	}
 
