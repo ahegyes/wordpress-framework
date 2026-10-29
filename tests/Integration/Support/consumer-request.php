@@ -61,6 +61,7 @@ $acme_record_boots = static function (): void {
 			'skipped'          => $plugin?->kernel?->skipped,
 			'initialized'      => did_action( "{$prefix}_initialized" ),
 			'functions_loaded' => function_exists( "{$prefix}_plugin" ),
+			'migrations'       => \is_object( $plugin ) && property_exists( $plugin, 'migrations' ) && \is_object( $plugin->migrations ) ? \get_class( $plugin->migrations ) : null,
 		);
 	}
 };
