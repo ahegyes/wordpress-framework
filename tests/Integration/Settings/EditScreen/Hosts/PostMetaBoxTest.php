@@ -332,6 +332,15 @@ final class PostMetaBoxTest extends TestCase {
 		self::assertSame( array( array() ), $this->meta( $post_id, 'boxes' ) );
 	}
 
+	public function test_an_attachments_edit_screen_stores_the_accepted_values(): void {
+		$attachment_id = $this->make_post( array(), 'attachment', 'inherit' );
+		$spec          = $this->spec( array( $this->field( 'text', 'name' ) ), array(), array( 'host_args' => array( 'post_types' => array( 'attachment' ) ) ) );
+
+		$this->save( $spec, $attachment_id, array( $this->control_name( 'name' ) => 'Acme' ) );
+
+		self::assertSame( array( 'Acme' ), $this->meta( $attachment_id, 'name' ) );
+	}
+
 	public function test_validate_receives_the_unslashed_submission_alone(): void {
 		$post_id = $this->make_post();
 		$spec    = $this->spec( array( $this->field( 'text', 'name', array( 'validate' => 'acme:record' ) ) ) );
