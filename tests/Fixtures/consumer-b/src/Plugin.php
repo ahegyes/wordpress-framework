@@ -71,7 +71,7 @@ final class Plugin {
 	 *
 	 * @var     PluginKernel|null
 	 */
-	public protected(set) ?PluginKernel $kernel = null;
+	protected(set) ?PluginKernel $kernel = null;
 
 	/**
 	 * The logger every part of the plugin writes to.

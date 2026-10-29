@@ -89,7 +89,7 @@ final class Plugin {
 	 *
 	 * @var     MigrationRunner|null
 	 */
-	public protected(set) ?MigrationRunner $migrations = null;
+	protected(set) ?MigrationRunner $migrations = null;
 
 	/**
 	 * The kernel, once the composition built it, which tells which components loaded and which were gated off.
@@ -99,7 +99,7 @@ final class Plugin {
 	 *
 	 * @var     PluginKernel|null
 	 */
-	public protected(set) ?PluginKernel $kernel = null;
+	protected(set) ?PluginKernel $kernel = null;
 
 	/**
 	 * The logger every part of the plugin writes to.
