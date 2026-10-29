@@ -353,7 +353,33 @@ final class AdminNoticesDismissalTest extends TestCase {
 		restore_current_blog();
 		self::assertSame( array(), $this->render( $this->admin ) );
 		self::assertSame( array(), $this->render( $this->admin, 'dashboard-network' ) );
-		self::assertSame( array( 'network:x' ), \array_keys( get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", true ) ) );
+		self::assertSame( array( 'network:1:x' ), \array_keys( get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", true ) ) );
+	}
+
+	#[Group( 'multisite' )]
+	public function test_a_per_viewer_network_notice_dismissed_on_one_network_still_shows_on_another(): void {
+		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true ) );
+		self::assertSame( 200, $this->dismiss( $this->shown( $this->admin, 'network', 'x' ) )->get_status() );
+
+		// User meta is installation-wide, so a second network sees the same dismissals.
+		$network                 = $GLOBALS['current_site'];
+		$GLOBALS['current_site'] = new \WP_Network(
+			(object) array(
+				'id'     => 2,
+				'domain' => 'acme.test',
+				'path'   => '/',
+			)
+		);
+		try {
+			$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true ) );
+			$shown = \array_keys( $this->render( $this->admin ) );
+		} finally {
+			delete_network_option( 2, "{$this->prefix}_network_notices" );
+			$GLOBALS['current_site'] = $network;
+		}
+
+		self::assertSame( array( $this->dom_id( 'network', 'x' ) ), $shown );
+		self::assertSame( array( 'network:1:x' ), \array_keys( get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", true ) ) );
 	}
 
 	protected function notice( string $id, NoticeScope $scope, mixed ...$arguments ): Notice {

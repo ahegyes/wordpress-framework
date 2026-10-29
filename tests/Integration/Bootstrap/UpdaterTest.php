@@ -73,6 +73,8 @@ final class UpdaterTest extends TestCase {
 			'newer-prerelease-listed-second' => array( '1.2.0-beta.1', array( 'v1.2.0-beta.1', 'v1.2.0-beta.2' ), '1.2.0-beta.2' ),
 			'stable-successor'               => array( '1.2.0-beta.2', array( 'v1.2.0', 'v1.2.0-beta.2' ), '1.2.0' ),
 			'word-tag-listed'                => array( '1.1.0-beta.1', array( 'preview', 'v1.2.0-beta.1' ), '1.2.0-beta.1' ),
+			'unordered-label-listed'         => array( '2.1.0-beta.1', array( 'v2.1.0', 'v2.1.0-pre.1' ), '2.1.0' ),
+			'uppercase-label'                => array( '2.1.0-beta.1', array( 'v2.1.0-RC1' ), '2.1.0-RC1' ),
 		);
 	}
 

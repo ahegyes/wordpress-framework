@@ -204,7 +204,7 @@ final class Updater {
 			}
 
 			$candidate_version = \ltrim( $candidate['tag_name'], 'v' );
-			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-[0-9A-Za-z.]+)?$/', $candidate_version ) ) { // PHP's version_compare() ranks some words, such as 'preview', above every number.
+			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-(?:dev|alpha|beta|rc)(?:\.?\d+)?)?$/i', $candidate_version ) ) { // PHP's version_compare() orders only these labels below their release, and ranks others, such as 'pre' or 'patch', above it.
 				continue;
 			}
 

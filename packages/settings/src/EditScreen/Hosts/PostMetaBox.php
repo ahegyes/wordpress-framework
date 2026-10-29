@@ -69,6 +69,9 @@ final class PostMetaBox implements ObjectFormHostInterface {
 		$this->form = $form;
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ), 10, 2 );
 		add_action( 'save_post', array( $this, 'save_meta_box' ), 10, 2 );
+		if ( \in_array( 'attachment', $this->post_types, true ) ) {
+			add_action( 'edit_attachment', array( $this, 'save_attachment' ) ); // WordPress saves an attachment without firing save_post.
+		}
 		add_filter( 'wp_refresh_nonces', array( $this, 'refresh_nonces' ), 11, 2 );
 	}
 
@@ -174,6 +177,20 @@ final class PostMetaBox implements ObjectFormHostInterface {
 		if ( \in_array( $post->post_type, $this->post_types, true ) ) {
 			$this->form->save( $post_id );
 		}
+	}
+
+	/**
+	 * Saves the form for a saved attachment, when attachments are among the box's types.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   int $attachment_id The saved attachment's id.
+	 *
+	 * @return  void
+	 */
+	public function save_attachment( int $attachment_id ): void {
+		$this->form->save( $attachment_id );
 	}
 
 	/**

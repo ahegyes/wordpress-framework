@@ -76,6 +76,16 @@ final class Plugin {
 	protected(set) ?PluginKernel $kernel = null;
 
 	/**
+	 * The migration runner, once the composition built it.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     MigrationRunner|null
+	 */
+	protected(set) ?MigrationRunner $migrations = null;
+
+	/**
 	 * The logger every part of the plugin writes to.
 	 *
 	 * @since   1.0.0
@@ -141,7 +151,8 @@ final class Plugin {
 	 */
 	protected function compose(): bool {
 		$this->scheduler->register_hooks();
-		new MigrationRunner( ACME_PC_FILE, self::PREFIX . '_revision', Migrations::STEPS, $this->logger, $this->scheduler )->register_hooks();
+		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::PREFIX . '_revision', acme_pc_get_migration_steps(), $this->logger, $this->scheduler );
+		$this->migrations->register_hooks();
 
 		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger ) )->build() );
 		$this->kernel->boot( self::COMPONENTS );

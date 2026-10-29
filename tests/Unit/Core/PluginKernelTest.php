@@ -148,6 +148,31 @@ final class PluginKernelTest extends TestCase {
 		self::assertSame( array( CompositeA::class, ComponentB::class, ComponentC::class, ComponentD::class ), $kernel->resolved );
 	}
 
+	public function test_a_second_boot_adds_disjoint_roots(): void {
+		$journal = new Journal();
+		$kernel  = new PluginKernel( new FakeContainer( $journal ) );
+
+		$kernel->boot( array( ComponentD::class ) );
+		$kernel->boot( array( CompositeA::class ) );
+
+		self::assertSame(
+			array( 'construct ComponentD', 'register ComponentD', 'construct CompositeA', 'construct ComponentB', 'construct ComponentC', 'register CompositeA', 'register ComponentB', 'register ComponentC' ),
+			$journal->entries
+		);
+		self::assertSame( array( ComponentD::class, CompositeA::class, ComponentB::class, ComponentC::class ), $kernel->resolved );
+	}
+
+	public function test_a_second_boot_reaching_a_class_already_walked_throws_before_it_registers_anything(): void {
+		$journal = new Journal();
+		$kernel  = new PluginKernel( new FakeContainer( $journal ) );
+		$kernel->boot( array( CompositeA::class ) );
+
+		$thrown = self::boot_and_catch( $kernel, array( ComponentD::class, ComponentB::class ) );
+
+		self::assertInstanceOf( LogicException::class, $thrown );
+		self::assertSame( array( 'register CompositeA', 'register ComponentB', 'register ComponentC' ), \array_values( \preg_grep( '/^register /', $journal->entries ) ?: array() ) );
+	}
+
 	public function test_a_gated_out_composite_is_autoloaded_and_skipped_and_its_children_are_never_autoloaded(): void {
 		$kernel = new PluginKernel( new FakeContainer( new Journal(), array( GatedOutComposite::class => static fn (): never => throw new \RuntimeException( 'GatedOutComposite was constructed.' ) ) ) );
 		self::assertFalse( \class_exists( GatedOutComposite::class, false ) );

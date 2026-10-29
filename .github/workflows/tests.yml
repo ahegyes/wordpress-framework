@@ -12,7 +12,7 @@ permissions:
 jobs:
   unit:
     name: Unit
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
     with:
       php-version: '8.5'
       composer-script: 'test:unit'
@@ -47,7 +47,7 @@ jobs:
       fail-fast: false
       matrix:
         wp: ${{ fromJSON(needs.wordpress.outputs.versions) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
     with:
       php-version: '8.5'
       wp-version: ${{ matrix.wp }}
@@ -61,7 +61,7 @@ jobs:
       fail-fast: false
       matrix:
         wp: ${{ fromJSON(needs.wordpress.outputs.versions) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
     with:
       php-version: '8.5'
       wp-version: ${{ matrix.wp }}
@@ -70,7 +70,7 @@ jobs:
 
   integration-php74:
     name: Integration (PHP 7.4)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
     with:
       php-version: '8.5'
       composer-script: 'test:integration:php74:run'
@@ -78,7 +78,7 @@ jobs:
 
   prefer-lowest:
     name: Prefer lowest
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
     with:
       php-version: '8.5'
       composer-script: 'test:integration:lowest:run'

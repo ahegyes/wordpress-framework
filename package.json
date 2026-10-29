@@ -13,7 +13,8 @@
         "npm": ">=11"
     },
     "devDependencies": {
-        "@wordpress/env": "^12.0.0"
+        "@wordpress/env": "^12.0.0",
+        "@wordpress/scripts": "^37.0.0"
     },
     "scripts": {
         "setup": "npm run packages-install:all && npm run wp-env:start",
@@ -22,7 +23,7 @@
 
         "packages-install": "npm install",
         "packages-update": "npm update",
-        "packages-update:wp": "npx --yes @wordpress/scripts@latest packages-update",
+        "packages-update:wp": "wp-scripts packages-update",
 
         "format:all": "composer format:php",
         "lint:all": "composer lint:php",
@@ -49,8 +50,8 @@
 
         "audit": "composer audit && npm audit",
         "audit:fix": "npm audit fix",
-        "check:engines": "npx --yes @wordpress/scripts@latest check-engines",
-        "check:licenses": "npx --yes @wordpress/scripts@latest check-licenses",
+        "check:engines": "wp-scripts check-engines",
+        "check:licenses": "wp-scripts check-licenses",
 
         "test:all": "composer test",
         "quality-check:all": "composer quality-check"

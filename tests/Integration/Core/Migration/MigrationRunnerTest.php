@@ -982,7 +982,8 @@ final class MigrationRunnerTest extends TestCase {
 		while ( 0 < $this->count_pending_runs() && $dispatches < 5 ) {
 			remove_all_actions( "{$this->option}_run" );
 			$this->make_runner( array( $batches ), $clock, null, $scheduler )->register_hooks();
-			'production' === $kind ? $this->run_due_actions() : $this->run_due_cron_events();
+			// Each dispatch is a later request's queue run, by which the previous continuation is due.
+			'production' === $kind ? $this->run_due_actions( \time() + MINUTE_IN_SECONDS ) : $this->run_due_cron_events( \time() + MINUTE_IN_SECONDS );
 			++$dispatches;
 		}
 
@@ -990,6 +991,50 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( 5, $batches->processed );
 		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
 		self::assertSame( 0, $this->count_pending_runs() );
+	}
+
+	public function test_a_spent_budget_leaves_nothing_due_for_the_queue_run_in_progress(): void {
+		$clock   = new SettableClock( new \DateTimeImmutable( '@' . \time() ) );
+		$batches = new RecordedBatches( 5, static fn () => $clock->advance( 30 ) );
+		$this->load_wordpress( $this->make_runner( array( $batches ), $clock, null, new Scheduler( 'acme' ) ) );
+		$claimed_at = \time();
+
+		$this->run_due_actions();
+		$this->run_due_actions( $claimed_at );
+
+		$pending = as_get_scheduled_actions(
+			array(
+				'hook'     => "{$this->option}_run",
+				'status'   => \ActionScheduler_Store::STATUS_PENDING,
+				'per_page' => -1,
+			),
+			'objects'
+		);
+		self::assertCount( 1, $pending );
+		self::assertGreaterThan( $claimed_at, \current( $pending )->get_schedule()->get_date()?->getTimestamp() );
+		self::assertSame( 1, $batches->processed );
+		self::assertCount(
+			1,
+			as_get_scheduled_actions(
+				array(
+					'hook'     => "{$this->option}_run",
+					'status'   => \ActionScheduler_Store::STATUS_COMPLETE,
+					'per_page' => -1,
+				),
+				'ids'
+			)
+		);
+	}
+
+	public function test_a_request_outside_the_runner_hook_enqueues_a_pending_batched_step_without_the_lock(): void {
+		$steps = array( $this->step( 1 ), new RecordedBatches( 3 ) );
+		$this->load_wordpress( $this->make_runner( $steps ) );
+		$this->record_option_writes();
+
+		$this->load_wordpress( $this->make_runner( $steps ) );
+
+		self::assertSame( array(), \array_values( \array_filter( $this->writes, fn ( string $query ): bool => \str_contains( $query, "{$this->option}_lock" ) ) ) );
+		self::assertSame( 1, $this->count_pending_runs() );
 	}
 
 	public function test_a_failure_shows_its_error_instead_of_the_progress_notice_and_only_to_plugin_activators(): void {
@@ -1228,20 +1273,20 @@ final class MigrationRunnerTest extends TestCase {
 		return $cron + \count( as_get_scheduled_actions( $query, 'ids' ) );
 	}
 
-	// Mirrors one Action Scheduler queue-runner batch.
-	protected function run_due_actions(): void {
+	// Mirrors one Action Scheduler queue-runner batch, which claims the actions due by the given time or now.
+	protected function run_due_actions( ?int $at = null ): void {
 		$store = \ActionScheduler::store();
-		$claim = $store->stake_claim( 10, null, array( "{$this->option}_run" ) );
+		$claim = $store->stake_claim( 10, \is_null( $at ) ? null : new \DateTime( "@$at" ), array( "{$this->option}_run" ) );
 		foreach ( $claim->get_actions() as $action_id ) {
 			\ActionScheduler::runner()->process_action( (int) $action_id, 'Tests' );
 		}
 		$store->release_claim( $claim );
 	}
 
-	// Mirrors one wp-cron.php run.
-	protected function run_due_cron_events(): void {
+	// Mirrors one wp-cron.php run, which runs the events due by the given time or now.
+	protected function run_due_cron_events( ?int $at = null ): void {
 		foreach ( _get_cron_array() as $timestamp => $hooks ) {
-			if ( $timestamp > \time() ) {
+			if ( $timestamp > ( $at ?? \time() ) ) {
 				break;
 			}
 
