@@ -13,7 +13,7 @@ jobs:
     name: Lint PHP
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@88710a71e2bcc7db7cb81b4eb96411438369ce0f
     with:
-      scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan"]'
+      scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan", "changelog:validate"]'
 
   php-syntax:
     name: PHP syntax
