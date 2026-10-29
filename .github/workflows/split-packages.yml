@@ -11,9 +11,16 @@ on:
 permissions:
   contents: read
 
+# Splits of one ref run in order, so an older run never force-pushes over a newer split.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   split:
     name: Split ${{ matrix.package.dir }} → ${{ matrix.package.repo }}
+    # A dispatch from another branch would force-push that branch's split over the mirrors' trunk.
+    if: github.ref == 'refs/heads/trunk' || startsWith( github.ref, 'refs/tags/v' )
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
