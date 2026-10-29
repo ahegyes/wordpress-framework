@@ -1026,6 +1026,17 @@ final class MigrationRunnerTest extends TestCase {
 		);
 	}
 
+	public function test_a_request_outside_the_runner_hook_enqueues_a_pending_batched_step_without_the_lock(): void {
+		$steps = array( $this->step( 1 ), new RecordedBatches( 3 ) );
+		$this->load_wordpress( $this->make_runner( $steps ) );
+		$this->record_option_writes();
+
+		$this->load_wordpress( $this->make_runner( $steps ) );
+
+		self::assertSame( array(), \array_values( \array_filter( $this->writes, fn ( string $query ): bool => \str_contains( $query, "{$this->option}_lock" ) ) ) );
+		self::assertSame( 1, $this->count_pending_runs() );
+	}
+
 	public function test_a_failure_shows_its_error_instead_of_the_progress_notice_and_only_to_plugin_activators(): void {
 		$batches = new RecordedBatches(
 			3,
