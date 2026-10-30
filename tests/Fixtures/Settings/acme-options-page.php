@@ -50,7 +50,7 @@ add_action(
 
 if ( isset( $spec['contributed'] ) ) {
 	add_filter(
-		"{$spec['id']}_tabs",
+		"{$spec['id']}/options_page/tabs",
 		static function ( array $tabs ) use ( $spec, $acme_with_behaviors ): array {
 			foreach ( $tabs as &$tab ) {
 				$tab['fields'] = array_merge( $tab['fields'], $spec['contributed']['fields'][ $tab['slug'] ] ?? array() );

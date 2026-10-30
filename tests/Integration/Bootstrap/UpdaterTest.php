@@ -380,7 +380,7 @@ final class UpdaterTest extends TestCase {
 		Updater::register( $this->write_plugin( $this->slug ) );
 		$calls = array();
 		add_filter(
-			"dws_github_updater_config_$this->slug",
+			"dws_github_updater/config/$this->slug",
 			static function ( array $config, string $plugin_basename ) use ( &$calls ): array {
 				$calls[] = array( $config, $plugin_basename );
 
@@ -406,7 +406,7 @@ final class UpdaterTest extends TestCase {
 	#[DataProvider( 'unusable_configurations' )]
 	public function test_a_disabled_or_unusable_configuration_offers_nothing_and_leaves_details_to_wordpress( \Closure $filter ): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
-		add_filter( "dws_github_updater_config_$this->slug", $filter );
+		add_filter( "dws_github_updater/config/$this->slug", $filter );
 		$this->stage_latest( $this->release( 'v2.0.0' ) );
 
 		$updates = $this->check_for_updates();
@@ -420,7 +420,7 @@ final class UpdaterTest extends TestCase {
 	public function test_a_filtered_repository_asset_and_channel_drive_the_request_the_package_and_the_cache(): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
 		add_filter(
-			"dws_github_updater_config_$this->slug",
+			"dws_github_updater/config/$this->slug",
 			static fn (): array => array(
 				'repository' => 'acme/elsewhere',
 				'asset'      => 'bundle.zip',

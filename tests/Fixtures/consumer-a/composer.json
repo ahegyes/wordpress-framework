@@ -2,7 +2,7 @@
   "name": "acme/consumer-a",
   "description": "A WooCommerce plugin built on all five framework packages, which the framework's tests build, scope and run as a WordPress plugin.",
   "type": "wordpress-plugin",
-  "license": "GPL-2.0-or-later",
+  "license": "GPL-3.0-or-later",
 
   "require": {
     "php": ">=8.5"

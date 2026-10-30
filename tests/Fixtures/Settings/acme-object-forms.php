@@ -101,7 +101,7 @@ add_action(
 
 if ( isset( $spec['contributed'] ) ) {
 	add_filter(
-		"{$spec['id']}_fields",
+		"{$spec['id']}/object_form/fields",
 		static function ( array $fields, int $object_id ) use ( $spec, $acme_with_behaviors ): array {
 			$GLOBALS['acme_outcome']['records'][] = array( 'contributed', $object_id );
 

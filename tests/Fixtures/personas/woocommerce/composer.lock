@@ -160,7 +160,7 @@
                 "requires-wp": "5.8"
             },
             "license": [
-                "GPL-2.0-or-later"
+                "GPL-3.0-or-later"
             ],
             "description": "The code a WordPress plugin runs before its autoloader. It parses on PHP 7.4, so a site below the plugin's floors gets a notice instead of a fatal error and still receives the release that fixes it.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -201,7 +201,7 @@
                 }
             },
             "license": [
-                "GPL-2.0-or-later"
+                "GPL-3.0-or-later"
             ],
             "description": "The plugin kernel. A plugin is composed of small components that load only where they apply, on WordPress's own APIs, with the infrastructure WordPress leaves every plugin to rebuild.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -236,7 +236,7 @@
                 }
             },
             "license": [
-                "GPL-2.0-or-later"
+                "GPL-3.0-or-later"
             ],
             "description": "Settings screens and edit-screen fields declared as data, so WordPress's own APIs render, validate and save them and a plugin never hand-writes form handling.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -268,7 +268,7 @@
                 }
             },
             "license": [
-                "GPL-2.0-or-later"
+                "GPL-3.0-or-later"
             ],
             "description": "The WordPress-free building blocks every framework package shares, kept portable enough to work unchanged in any PHP project.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",
@@ -309,7 +309,7 @@
                 }
             },
             "license": [
-                "GPL-2.0-or-later"
+                "GPL-3.0-or-later"
             ],
             "description": "The framework's settings, edit-screen and logging helpers carried onto WooCommerce's own screens and APIs, for plugins that extend WooCommerce.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",

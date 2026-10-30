@@ -262,7 +262,7 @@ final class ObjectForm {
 			 * @param   list<Field> $fields    The form's fields for the object.
 			 * @param   int         $object_id The id of the object being edited or saved.
 			 */
-			$form['fields'] = apply_filters( "{$this->id}_fields", $form['fields'], $object_id );
+			$form['fields'] = apply_filters( "{$this->id}/object_form/fields", $form['fields'], $object_id );
 
 			$this->forms[ $object_id ] = $form;
 		}

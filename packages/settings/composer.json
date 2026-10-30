@@ -2,7 +2,7 @@
   "name": "ahegyes/wp-framework-settings",
   "description": "Settings screens and edit-screen fields declared as data, so WordPress's own APIs render, validate and save them and a plugin never hand-writes form handling.",
   "type": "library",
-  "license": "GPL-2.0-or-later",
+  "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/ahegyes/wordpress-framework",
   "require": {
     "php": ">=8.5",

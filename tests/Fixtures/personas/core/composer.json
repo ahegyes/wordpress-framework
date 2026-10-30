@@ -2,7 +2,7 @@
   "name": "acme/persona-core",
   "description": "A plugin on the core package and PHP-DI, without settings or WooCommerce, which the framework's tests build, scope and run.",
   "type": "wordpress-plugin",
-  "license": "GPL-2.0-or-later",
+  "license": "GPL-3.0-or-later",
 
   "require": {
     "php": ">=8.5"

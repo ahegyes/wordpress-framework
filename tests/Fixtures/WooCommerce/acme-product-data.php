@@ -77,7 +77,7 @@ add_action(
 
 if ( isset( $spec['contributed'] ) ) {
 	add_filter(
-		"{$spec['id']}_groups",
+		"{$spec['id']}/product_data_tab/groups",
 		static function ( array $groups, WC_Product $product ) use ( $spec, $acme_with_behaviors ): array {
 			$GLOBALS['acme_outcome']['records'][] = array( 'groups', $product->get_id() );
 			$groups[]                             = array( 'fields' => $acme_with_behaviors( $spec['contributed'] ) );

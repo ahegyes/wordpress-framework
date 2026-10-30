@@ -164,7 +164,7 @@
                 }
             },
             "license": [
-                "GPL-2.0-or-later"
+                "GPL-3.0-or-later"
             ],
             "description": "The WordPress-free building blocks every framework package shares, kept portable enough to work unchanged in any PHP project.",
             "homepage": "https://github.com/ahegyes/wordpress-framework",

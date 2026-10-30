@@ -94,10 +94,10 @@ final class MigrationRunnerTest extends TestCase {
 		foreach ( array( '', '_error', '_high_water', '_first_run', '_lock' ) as $suffix ) {
 			delete_option( $this->option . $suffix );
 		}
-		wp_unschedule_hook( "{$this->option}_run" );
+		wp_unschedule_hook( "{$this->option}/migration/run" );
 		wp_set_current_user( 0 );
 		unset( $_REQUEST['_wpnonce'], $_SERVER['HTTP_REFERER'] );
-		$wpdb->delete( $wpdb->actionscheduler_actions, array( 'hook' => "{$this->option}_run" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the actions the test created.
+		$wpdb->delete( $wpdb->actionscheduler_actions, array( 'hook' => "{$this->option}/migration/run" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the actions the test created.
 	}
 
 	public function test_pending_steps_run_once_each_in_order_with_a_checkpoint_after_each(): void {
@@ -704,10 +704,10 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	public function test_a_request_outside_the_runner_hook_adds_nothing_while_the_hook_runs_elsewhere(): void {
-		as_enqueue_async_action( "{$this->option}_run", array(), 'acme' );
+		as_enqueue_async_action( "{$this->option}/migration/run", array(), 'acme' );
 		$running = as_get_scheduled_actions(
 			array(
-				'hook'   => "{$this->option}_run",
+				'hook'   => "{$this->option}/migration/run",
 				'status' => \ActionScheduler_Store::STATUS_PENDING,
 			),
 			'ids'
@@ -723,7 +723,7 @@ final class MigrationRunnerTest extends TestCase {
 		$batches = new RecordedBatches( 3 );
 		$this->make_runner( array( $batches, $this->step( 2 ) ) )->register_hooks();
 
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		self::assertSame( 3, $batches->processed );
 		self::assertSame( array( array( 2, 1 ) ), $this->ran );
@@ -746,7 +746,7 @@ final class MigrationRunnerTest extends TestCase {
 			}
 		);
 
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		self::assertSame( 2, $batches->processed );
 		self::assertSame( array( null ), $locks );
@@ -761,9 +761,9 @@ final class MigrationRunnerTest extends TestCase {
 		$revisions = array();
 
 		for ( $request = 1; $request <= 3; ++$request ) {
-			remove_all_actions( "{$this->option}_run" );
+			remove_all_actions( "{$this->option}/migration/run" );
 			$this->make_runner( array( $batches ), $clock )->register_hooks();
-			do_action( "{$this->option}_run" );
+			do_action( "{$this->option}/migration/run" );
 			$revisions[] = array( $batches->processed, MigrationRunner::get_revision( $this->option ) );
 		}
 
@@ -784,7 +784,7 @@ final class MigrationRunnerTest extends TestCase {
 		);
 
 		$this->load_wordpress( $runner );
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		self::assertSame( 1, $batches->processed );
 		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
@@ -803,7 +803,7 @@ final class MigrationRunnerTest extends TestCase {
 		$batches  = new RecordedBatches( 3, static fn ( int $processed ) => 1 === $processed && $takeover->run() );
 		$this->make_runner( array( $batches ) )->register_hooks();
 
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		self::assertSame( 1, $batches->processed );
 		self::assertSame( $later->now->getTimestamp(), $this->get_lock()['time'] ?? null );
@@ -843,7 +843,7 @@ final class MigrationRunnerTest extends TestCase {
 		};
 		$this->make_runner( array( new RecordedBatches( 2, $batch ), new RecordedBatches( 1, $batch ) ) )->register_hooks();
 
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		self::assertSame( array( false, false, false ), $cached );
 		self::assertFalse( wp_cache_get( 'acme_batch', 'acme' ) );
@@ -901,7 +901,7 @@ final class MigrationRunnerTest extends TestCase {
 		\ini_set( 'memory_limit', $tight ? (string) (int) ( \memory_get_usage( true ) / 0.93 ) : '-1' );
 
 		try {
-			do_action( "{$this->option}_run" );
+			do_action( "{$this->option}/migration/run" );
 		} finally {
 			\ini_set( 'memory_limit', $previous );
 		}
@@ -914,7 +914,7 @@ final class MigrationRunnerTest extends TestCase {
 		$this->insert_lock( \time() - 5 );
 		$this->make_runner( array( $batches ) )->register_hooks();
 
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		self::assertSame( 0, $batches->processed );
 		self::assertSame( 0, $this->count_pending_runs() );
@@ -932,7 +932,7 @@ final class MigrationRunnerTest extends TestCase {
 		$this->make_runner( array( $this->step( 1 ), $batches ) )->register_hooks();
 		update_option( $this->option, 1 );
 
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		$error = get_option( "{$this->option}_error" );
 		self::assertIsArray( $error );
@@ -958,7 +958,7 @@ final class MigrationRunnerTest extends TestCase {
 			false
 		);
 
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		self::assertSame( 1, $batches->processed );
 		self::assertFalse( get_option( "{$this->option}_error" ) );
@@ -980,7 +980,7 @@ final class MigrationRunnerTest extends TestCase {
 
 		$dispatches = 0;
 		while ( 0 < $this->count_pending_runs() && $dispatches < 5 ) {
-			remove_all_actions( "{$this->option}_run" );
+			remove_all_actions( "{$this->option}/migration/run" );
 			$this->make_runner( array( $batches ), $clock, null, $scheduler )->register_hooks();
 			// Each dispatch is a later request's queue run, by which the previous continuation is due.
 			'production' === $kind ? $this->run_due_actions( \time() + MINUTE_IN_SECONDS ) : $this->run_due_cron_events( \time() + MINUTE_IN_SECONDS );
@@ -1004,7 +1004,7 @@ final class MigrationRunnerTest extends TestCase {
 
 		$pending = as_get_scheduled_actions(
 			array(
-				'hook'     => "{$this->option}_run",
+				'hook'     => "{$this->option}/migration/run",
 				'status'   => \ActionScheduler_Store::STATUS_PENDING,
 				'per_page' => -1,
 			),
@@ -1017,7 +1017,7 @@ final class MigrationRunnerTest extends TestCase {
 			1,
 			as_get_scheduled_actions(
 				array(
-					'hook'     => "{$this->option}_run",
+					'hook'     => "{$this->option}/migration/run",
 					'status'   => \ActionScheduler_Store::STATUS_COMPLETE,
 					'per_page' => -1,
 				),
@@ -1046,7 +1046,7 @@ final class MigrationRunnerTest extends TestCase {
 		);
 		$runner  = $this->make_runner( array( $batches ) );
 		$runner->register_hooks();
-		do_action( "{$this->option}_run" );
+		do_action( "{$this->option}/migration/run" );
 
 		wp_set_current_user( $this->make_user( 'acme-migrations-admin', 'administrator' ) );
 		$notices = $this->render_admin_notices();
@@ -1066,8 +1066,8 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertStringContainsString( self::PROGRESS_NOTICE, $notices );
 		self::assertSame( 1, \preg_match( '/<a href="([^"]+)">Run the update now<\/a>/', $notices, $link ) );
 		\parse_str( (string) wp_parse_url( \html_entity_decode( $link[1] ), \PHP_URL_QUERY ), $query );
-		self::assertSame( "{$this->option}_run_now", $query['action'] );
-		self::assertSame( 1, wp_verify_nonce( $query['_wpnonce'], "{$this->option}_run_now" ) );
+		self::assertSame( "{$this->option}/migration/run_now", $query['action'] );
+		self::assertSame( 1, wp_verify_nonce( $query['_wpnonce'], "{$this->option}/migration/run_now" ) );
 
 		wp_set_current_user( $this->make_user( 'acme-migrations-editor', 'editor' ) );
 		self::assertStringNotContainsString( self::PROGRESS_NOTICE, $this->render_admin_notices() );
@@ -1150,7 +1150,7 @@ final class MigrationRunnerTest extends TestCase {
 		$batches = new RecordedBatches( 3 );
 		$this->make_runner( array( $batches ) )->register_hooks();
 		wp_set_current_user( $this->make_user( 'acme-migrations-admin', 'administrator' ) );
-		$_REQUEST['_wpnonce']    = wp_create_nonce( "{$this->option}_run_now" );
+		$_REQUEST['_wpnonce']    = wp_create_nonce( "{$this->option}/migration/run_now" );
 		$_SERVER['HTTP_REFERER'] = \str_starts_with( $referer, 'https://' ) ? $referer : admin_url( $referer );
 
 		self::assertSame( admin_url( $destination ), $this->post_run_now() );
@@ -1170,7 +1170,7 @@ final class MigrationRunnerTest extends TestCase {
 		$batches = new RecordedBatches( 3 );
 		$this->make_runner( array( $batches ) )->register_hooks();
 		wp_set_current_user( $this->make_user( "acme-migrations-$role", $role ) );
-		$_REQUEST['_wpnonce'] = $valid_nonce ? wp_create_nonce( "{$this->option}_run_now" ) : 'invalid';
+		$_REQUEST['_wpnonce'] = $valid_nonce ? wp_create_nonce( "{$this->option}/migration/run_now" ) : 'invalid';
 
 		self::assertSame( 'died', $this->post_run_now() );
 		self::assertSame( 0, $batches->processed );
@@ -1251,7 +1251,7 @@ final class MigrationRunnerTest extends TestCase {
 		);
 
 		try {
-			do_action( "admin_post_{$this->option}_run_now" );
+			do_action( "admin_post_{$this->option}/migration/run_now" );
 		} catch ( \OutOfBoundsException | \OverflowException $stop ) {
 			return $stop->getMessage();
 		}
@@ -1262,10 +1262,10 @@ final class MigrationRunnerTest extends TestCase {
 	protected function count_pending_runs(): int {
 		$cron = 0;
 		foreach ( _get_cron_array() as $hooks ) {
-			$cron += \count( $hooks[ "{$this->option}_run" ] ?? array() );
+			$cron += \count( $hooks[ "{$this->option}/migration/run" ] ?? array() );
 		}
 		$query = array(
-			'hook'     => "{$this->option}_run",
+			'hook'     => "{$this->option}/migration/run",
 			'status'   => \ActionScheduler_Store::STATUS_PENDING,
 			'per_page' => -1,
 		);
@@ -1276,7 +1276,7 @@ final class MigrationRunnerTest extends TestCase {
 	// Mirrors one Action Scheduler queue-runner batch, which claims the actions due by the given time or now.
 	protected function run_due_actions( ?int $at = null ): void {
 		$store = \ActionScheduler::store();
-		$claim = $store->stake_claim( 10, \is_null( $at ) ? null : new \DateTime( "@$at" ), array( "{$this->option}_run" ) );
+		$claim = $store->stake_claim( 10, \is_null( $at ) ? null : new \DateTime( "@$at" ), array( "{$this->option}/migration/run" ) );
 		foreach ( $claim->get_actions() as $action_id ) {
 			\ActionScheduler::runner()->process_action( (int) $action_id, 'Tests' );
 		}
@@ -1290,9 +1290,9 @@ final class MigrationRunnerTest extends TestCase {
 				break;
 			}
 
-			foreach ( $hooks[ "{$this->option}_run" ] ?? array() as $event ) {
-				wp_unschedule_event( $timestamp, "{$this->option}_run", $event['args'], true );
-				do_action_ref_array( "{$this->option}_run", $event['args'] );
+			foreach ( $hooks[ "{$this->option}/migration/run" ] ?? array() as $event ) {
+				wp_unschedule_event( $timestamp, "{$this->option}/migration/run", $event['args'], true );
+				do_action_ref_array( "{$this->option}/migration/run", $event['args'] );
 			}
 		}
 	}

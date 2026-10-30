@@ -6,8 +6,8 @@
  * Requires at least: 7.1
  * Requires PHP:      8.5
  * Author:            Acme
- * License:           GPL-2.0-or-later
- * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * License:           GPL-3.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:       acme-persona-core
  *
  * @package Acme\PersonaCore

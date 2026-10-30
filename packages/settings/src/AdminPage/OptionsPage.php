@@ -240,7 +240,7 @@ final class OptionsPage {
 			 *
 			 * @param   list<Tab> $tabs The page's tabs.
 			 */
-			$page['tabs'] = apply_filters( "{$this->id}_tabs", $page['tabs'] );
+			$page['tabs'] = apply_filters( "{$this->id}/options_page/tabs", $page['tabs'] );
 			$this->page   = $page;
 		}
 
