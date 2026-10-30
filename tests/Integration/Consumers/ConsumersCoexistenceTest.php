@@ -61,7 +61,7 @@ final class ConsumersCoexistenceTest extends TestCase {
 		self::assertStringContainsString( 'id="wpfooter"', $request['body'] );
 		foreach ( self::ROOTS as $consumer => $roots ) {
 			self::assertSame( 'booted', $request['records'][ $consumer ]['status'] );
-			self::assertSame( 1, $request['records'][ $consumer ]['initialized'] );
+			self::assertSame( 1, $request['records'][ $consumer ]['boot_succeeded'] );
 			self::assertSame( $roots, $request['records'][ $consumer ]['resolved'] );
 		}
 	}
