@@ -28,7 +28,7 @@ function acme_ca_get_footprint(): array {
 		'user_meta_site_prefixes'   => array( Plugin::PREFIX . '_' ),
 		'user_meta_global_prefixes' => array( Plugin::PREFIX . '_' ),
 		'network_options'           => array( Plugin::PREFIX . '_network_notices' ),
-		'cron_hooks'                => array( Plugin::PREFIX . '_revision_run' ),
+		'cron_hooks'                => array( Plugin::PREFIX . '_revision/migration/run' ),
 		'as_groups'                 => array( Plugin::PREFIX ),
 	);
 }

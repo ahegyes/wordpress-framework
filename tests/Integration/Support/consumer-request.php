@@ -40,7 +40,7 @@ if ( isset( $spec['locale'] ) ) {
 }
 
 if ( array_key_exists( 'relaxation', $spec ) ) {
-	add_filter( 'acme_ca_restrict_exports', static fn (): mixed => $spec['relaxation'] );
+	add_filter( 'acme_ca/exports/should_restrict', static fn (): mixed => $spec['relaxation'] );
 }
 
 $acme_record_boots = static function (): void {
@@ -59,7 +59,7 @@ $acme_record_boots = static function (): void {
 			'status'           => $plugin?->boot->status,
 			'resolved'         => $plugin?->kernel?->resolved,
 			'skipped'          => $plugin?->kernel?->skipped,
-			'initialized'      => did_action( "{$prefix}_initialized" ),
+			'initialized'      => did_action( "{$prefix}/boot/succeeded" ),
 			'functions_loaded' => function_exists( "{$prefix}_plugin" ),
 			'migrations'       => \is_object( $plugin ) && property_exists( $plugin, 'migrations' ) && \is_object( $plugin->migrations ) ? \get_class( $plugin->migrations ) : null,
 		);
@@ -135,7 +135,7 @@ add_action(
 				$records['export_error'] = $exception->getMessage();
 			}
 			$records['can_export_after_throw']         = current_user_can( $acme_capability );
-			$records['relaxation_left']                = has_filter( 'acme_ca_restrict_exports', '__return_false' );
+			$records['relaxation_left']                = has_filter( 'acme_ca/exports/should_restrict', '__return_false' );
 			$records['safeguard_attached_after_throw'] = has_filter( 'map_meta_cap', 'acme_ca_map_export_capability' );
 		}
 	},

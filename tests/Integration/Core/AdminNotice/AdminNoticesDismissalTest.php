@@ -54,7 +54,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$this->logger      = new DismissalLogger();
 		$this->notices     = new AdminNotices( $this->prefix, $this->logger );
 		add_action(
-			"{$this->prefix}_notice_dismissed",
+			"{$this->prefix}/admin_notice/dismissed",
 			function ( mixed ...$arguments ): void {
 				$this->dismissed[] = $arguments;
 			},

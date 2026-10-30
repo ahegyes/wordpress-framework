@@ -32,17 +32,17 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 	#[\Override]
 	protected function setUp(): void {
 		add_action(
-			'acme_initialized',
+			'acme/boot/succeeded',
 			function (): void {
-				$this->fired[] = 'acme_initialized';
+				$this->fired[] = 'acme/boot/succeeded';
 			},
 			10,
 			0
 		);
 		add_action(
-			'acme_initialization_failure',
+			'acme/boot/failed',
 			function ( \Throwable $failure ): void {
-				$this->fired[]    = 'acme_initialization_failure';
+				$this->fired[]    = 'acme/boot/failed';
 				$this->failures[] = $failure;
 			}
 		);
@@ -67,7 +67,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 
 		self::assertSame( $failure, $caught, 'The failure was not rethrown.' );
 		self::assertSame( 'failed', $boot->status );
-		self::assertSame( array( 'acme_initialization_failure' ), $this->fired );
+		self::assertSame( array( 'acme/boot/failed' ), $this->fired );
 		self::assertSame( array( $failure ), $this->failures );
 	}
 }

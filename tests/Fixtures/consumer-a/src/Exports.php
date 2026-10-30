@@ -61,11 +61,11 @@ final class Exports implements ComponentInterface {
 			wp_die( esc_html__( 'Only shop managers can export orders.', 'acme-consumer-a' ), 403 );
 		}
 
-		add_filter( Plugin::PREFIX . '_restrict_exports', '__return_false' );
+		add_filter( Plugin::PREFIX . '/exports/should_restrict', '__return_false' );
 		try {
 			$count = $this->count_orders();
 		} finally {
-			remove_filter( Plugin::PREFIX . '_restrict_exports', '__return_false' );
+			remove_filter( Plugin::PREFIX . '/exports/should_restrict', '__return_false' );
 		}
 
 		if ( $count->is_success() ) {

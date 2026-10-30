@@ -79,7 +79,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	}
 
 	public function test_a_delivered_message_is_filtered_and_keeps_only_post_markup(): void {
-		add_filter( "{$this->prefix}_notice_message", static fn ( string $message ): string => "$message <script>alert( 1 );</script>", 10, 3 );
+		add_filter( "{$this->prefix}/admin_notice/message", static fn ( string $message ): string => "$message <script>alert( 1 );</script>", 10, 3 );
 		$this->notices()->add( $this->notice( 'saved', message: 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>.' ), $this->admin );
 		wp_set_current_user( $this->admin );
 

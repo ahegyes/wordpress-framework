@@ -297,7 +297,7 @@ final class AdminNoticesTest extends TestCase {
 	public function test_the_visibility_filter_hides_a_notice_without_consuming_it_unless_it_returns_true(): void {
 		$calls = array();
 		add_filter(
-			"{$this->prefix}_notice_visible",
+			"{$this->prefix}/admin_notice/should_show",
 			static function ( mixed $visible, string $id, string $scope ) use ( &$calls ): mixed {
 				$calls[] = array( $visible, $id, $scope );
 				return match ( $id ) {
@@ -322,7 +322,7 @@ final class AdminNoticesTest extends TestCase {
 	public function test_the_message_filter_replaces_the_printed_message_unless_it_returns_no_string(): void {
 		$calls = array();
 		add_filter(
-			"{$this->prefix}_notice_message",
+			"{$this->prefix}/admin_notice/message",
 			static function ( string $message, string $id, string $scope ) use ( &$calls ): ?string {
 				$calls[] = array( $message, $id, $scope );
 				return 'kept' === $id ? null : 'Translated.';

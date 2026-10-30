@@ -23,7 +23,7 @@ add_filter( 'map_meta_cap', 'acme_ca_map_export_capability', 10, 2 );
  * @return  bool
  */
 function acme_ca_is_relaxed( $filtered ): bool {
-	return 0 < did_action( 'acme_ca_initialized' ) && false === $filtered;
+	return 0 < did_action( 'acme_ca/boot/succeeded' ) && false === $filtered;
 }
 
 /**
@@ -50,5 +50,5 @@ function acme_ca_map_export_capability( array $caps, string $cap ): array {
 	 *
 	 * @param   bool $restricted Whether order exports stay locked.
 	 */
-	return acme_ca_is_relaxed( apply_filters( 'acme_ca_restrict_exports', true ) ) ? array( 'manage_woocommerce' ) : array( 'do_not_allow' );
+	return acme_ca_is_relaxed( apply_filters( 'acme_ca/exports/should_restrict', true ) ) ? array( 'manage_woocommerce' ) : array( 'do_not_allow' );
 }
