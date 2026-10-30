@@ -9,8 +9,8 @@
  * WC requires at least: 11.2
  * WC tested up to:      11.2
  * Author:               Acme
- * License:              GPL-2.0-or-later
- * License URI:          https://www.gnu.org/licenses/gpl-2.0.html
+ * License:              GPL-3.0-or-later
+ * License URI:          https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:          acme-persona-woocommerce
  *
  * @package Acme\PersonaWooCommerce

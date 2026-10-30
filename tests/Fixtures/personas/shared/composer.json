@@ -2,7 +2,7 @@
   "name": "acme/persona-shared",
   "description": "A project on the shared package alone, which the framework's tests build, scope and run in plain PHP.",
   "type": "project",
-  "license": "GPL-2.0-or-later",
+  "license": "GPL-3.0-or-later",
 
   "require": {
     "php": ">=8.5"

@@ -1,6 +1,6 @@
 # wordpress-framework
 
-A WordPress plugin framework published as five Composer packages under `ahegyes/`, PHP namespace `DeepWebSolutions\Framework\`, GPL-2.0-or-later. splitsh splits each `packages/<dir>/` to its read-only `wp-framework-<dir>` mirror on every push to `trunk`, and a `v*` tag to every mirror without `--force`; consumers install the mirrors through `vcs` repositories, not Packagist, and prefix them with php-scoper through wordpress-configs. The packages form a stack: core requires bootstrap and shared, settings requires core, and woocommerce requires settings, each requiring only the layer below it, while shared also installs alone; a plugin ships only the closure of the highest package it uses.
+A WordPress plugin framework published as five Composer packages under `ahegyes/`, PHP namespace `DeepWebSolutions\Framework\`, GPL-3.0-or-later. splitsh splits each `packages/<dir>/` to its read-only `wp-framework-<dir>` mirror on every push to `trunk`, and a `v*` tag to every mirror without `--force`; consumers install the mirrors through `vcs` repositories, not Packagist, and prefix them with php-scoper through wordpress-configs. The packages form a stack: core requires bootstrap and shared, settings requires core, and woocommerce requires settings, each requiring only the layer below it, while shared also installs alone; a plugin ships only the closure of the highest package it uses.
 
 ## Layout
 
