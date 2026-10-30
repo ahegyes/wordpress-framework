@@ -146,7 +146,7 @@ final class Updater {
 		 * @param   array{enabled: bool, repository: string, asset: string, channel: 'stable'|'prerelease'} $config          Whether updates are offered, the owner/name repository, the release asset's file name, and the channel: 'stable' follows the latest release, 'prerelease' the highest of the ten newest releases.
 		 * @param   string                                                                                  $plugin_basename The plugin's basename.
 		 */
-		$config = apply_filters( "dws_github_updater_config_$slug", $defaults, plugin_basename( $plugin_file ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
+		$config = apply_filters( "dws_github_updater/config/$slug", $defaults, plugin_basename( $plugin_file ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
 		if ( ! \is_array( $config ) ) {
 			return null;
 		}
