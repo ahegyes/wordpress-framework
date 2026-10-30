@@ -49,7 +49,7 @@ final class ConsumerAFailureTest extends TestCase {
 		self::assertStringContainsString( 'id="wpfooter"', $request['body'] );
 		self::assertStringContainsString( self::FAILURE_NOTICE, $request['body'] );
 		self::assertSame( 'failed', $request['records']['consumer_a']['status'] );
-		self::assertSame( 0, $request['records']['consumer_a']['initialized'] );
+		self::assertSame( 0, $request['records']['consumer_a']['boot_succeeded'] );
 		self::assertFalse( $request['records']['can_export'] );
 	}
 

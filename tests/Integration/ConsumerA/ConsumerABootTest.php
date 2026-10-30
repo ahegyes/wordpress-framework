@@ -22,7 +22,7 @@ final class ConsumerABootTest extends TestCase {
 		self::assertNull( $request['died'] );
 		self::assertStringContainsString( 'id="wpfooter"', $request['body'] );
 		self::assertSame( 'booted', $request['records']['consumer_a']['status'] );
-		self::assertSame( 1, $request['records']['consumer_a']['initialized'] );
+		self::assertSame( 1, $request['records']['consumer_a']['boot_succeeded'] );
 		self::assertSame( array( self::SCOPED . 'Core\\Scheduling\\Scheduler', self::SCOPED . 'Core\\AdminNotice\\AdminNotices', 'Acme\\ConsumerA\\ProductData', 'Acme\\ConsumerA\\Exports' ), $request['records']['consumer_a']['resolved'] );
 		self::assertTrue( $request['records']['export_hooked'] );
 		self::assertFalse( $request['records']['unloaded_include'] );

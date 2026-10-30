@@ -138,7 +138,7 @@ final class Updater {
 		);
 
 		/**
-		 * Filters the GitHub updater's configuration for the plugin whose text domain ends the hook name; a key the filter leaves out keeps its default.
+		 * Filters the GitHub updater's configuration for the plugin whose text domain ends the hook name. A key the filter leaves out keeps its default.
 		 *
 		 * @since   2.0.0
 		 * @version 2.0.0
