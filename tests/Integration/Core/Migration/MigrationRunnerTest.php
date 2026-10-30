@@ -7,6 +7,7 @@ use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
@@ -114,6 +115,13 @@ final class MigrationRunnerTest extends TestCase {
 
 		self::assertSame( array( array( 2, 1 ), array( 3, 2 ) ), $this->ran );
 		self::assertSame( 3, MigrationRunner::get_revision( $this->option ) );
+	}
+
+	public function test_an_option_whose_scheduled_hook_would_pass_191_bytes_is_refused(): void {
+		new MigrationRunner( self::PLUGIN_FILE, \str_repeat( 'a', 177 ), array(), $this->logger, $this->make_wp_cron_scheduler() );
+
+		$this->expectException( InvalidArgumentException::class );
+		new MigrationRunner( self::PLUGIN_FILE, \str_repeat( 'a', 178 ), array(), $this->logger, $this->make_wp_cron_scheduler() );
 	}
 
 	public static function current_revisions(): array {
