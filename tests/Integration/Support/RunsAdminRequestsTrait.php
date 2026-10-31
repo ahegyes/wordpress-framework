@@ -8,18 +8,25 @@ trait RunsAdminRequestsTrait {
 	protected array $session_cookies = array();
 	protected array $session_tokens  = array();
 
-	// Each request runs in its own PHP process, which loads WordPress and then the fixture with the spec in $spec; the processes share opcache's file cache, so WordPress and WooCommerce compile once rather than in every request.
+	// Each request runs in its own PHP process, which loads WordPress and then the fixture with the spec in $spec; the processes share the run's opcache file cache, so WordPress and WooCommerce compile once rather than in every request.
 	protected function admin_request( string $method, string $path, int $user_id, string $fixture, mixed $spec, array $post = array() ): array {
 		$file  = (string) \strtok( $path, '?' );
 		$query = array();
 		\parse_str( (string) \parse_url( $path, \PHP_URL_QUERY ), $query );
 		$result = (string) \tempnam( \sys_get_temp_dir(), 'acme-request-' );
-		$cache  = \sys_get_temp_dir() . '/acme-opcache';
-		if ( ! \is_dir( $cache ) ) {
-			\mkdir( $cache ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Opcache needs its cache directory to exist.
-		}
 
-		$process = \proc_open( array( \PHP_BINARY, '-d', 'opcache.enable_cli=1', '-d', "opcache.file_cache=$cache", '-d', 'opcache.file_cache_only=1', __DIR__ . '/admin-request.php' ), array( array( 'pipe', 'r' ), array( 'pipe', 'w' ), array( 'pipe', 'w' ) ), $pipes ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Runs the request in its own process.
+		// Timestamp checks keep a rewritten file fresh, since no file younger than two seconds is cached, and recorded warnings replay a cached file's compile-time deprecations to the request's error handler.
+		$command = array(
+			\PHP_BINARY,
+			'-dopcache.enable_cli=1',
+			'-dopcache.file_cache=' . WP_FRAMEWORK_OPCACHE,
+			'-dopcache.file_cache_only=1',
+			'-dopcache.validate_timestamps=1',
+			'-dopcache.file_update_protection=2',
+			'-dopcache.record_warnings=1',
+			__DIR__ . '/admin-request.php',
+		);
+		$process = \proc_open( $command, array( array( 'pipe', 'r' ), array( 'pipe', 'w' ), array( 'pipe', 'w' ) ), $pipes ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Runs the request in its own process.
 		self::assertIsResource( $process );
 		\fwrite(
 			$pipes[0],

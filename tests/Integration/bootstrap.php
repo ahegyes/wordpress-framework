@@ -19,3 +19,8 @@ require_once ABSPATH . 'wp-admin/includes/plugin.php';
 require_once dirname( __DIR__, 2 ) . '/packages/bootstrap/load.php';
 
 $wp_framework_loaded = true;
+
+// The admin request processes share this opcache file cache, which each run starts empty, so no compiled script outlives the run.
+define( 'WP_FRAMEWORK_OPCACHE', sys_get_temp_dir() . '/wp-framework-opcache' );
+exec( 'rm -rf ' . escapeshellarg( WP_FRAMEWORK_OPCACHE ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Empties the previous run's cache.
+mkdir( WP_FRAMEWORK_OPCACHE ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Opcache needs its cache directory to exist.
