@@ -28,8 +28,9 @@ final class ConsumerABuildTest extends TestCase {
 	public function test_a_missing_build_file_shows_the_build_notice_to_plugin_managers_and_the_safeguard_holds( string $file, bool $warns ): void {
 		$plugin = $this->install_consumer( 'consumer-a', 'acme-consumer-a', array( $file ) );
 		$spec   = array(
-			'activate' => $plugin,
-			'missing'  => array( $file ),
+			'activate'   => $plugin,
+			'missing'    => array( $file ),
+			'relaxation' => false,
 		);
 
 		$admin  = $this->consumer_request( 'GET', 'index.php', $this->make_user( 'acme_ca_admin', 'administrator' ), $spec );
@@ -46,15 +47,24 @@ final class ConsumerABuildTest extends TestCase {
 		self::assertStringNotContainsString( self::BUILD_NOTICE, $editor['body'] );
 	}
 
-	public function test_a_site_below_the_php_floor_gets_core_s_message_and_the_updater_while_nothing_else_loads(): void {
+	public function test_a_site_below_the_php_floor_keeps_the_safeguard_and_gets_core_s_message_and_the_updater_while_nothing_else_loads(): void {
 		$plugin  = $this->install_consumer( 'consumer-a', 'acme-consumer-a', array(), array( 'Requires PHP' => '99' ) );
-		$request = $this->consumer_request( 'GET', 'index.php', $this->make_user( 'acme_ca_admin', 'administrator' ), array( 'activate' => $plugin ) );
+		$request = $this->consumer_request(
+			'GET',
+			'index.php',
+			$this->make_user( 'acme_ca_admin', 'administrator' ),
+			array(
+				'activate'   => $plugin,
+				'relaxation' => false,
+			)
+		);
 
 		self::assertNull( $request['died'] );
 		self::assertStringContainsString( 'id="wpfooter"', $request['body'] );
 		self::assertStringContainsString( 'does not meet minimum requirements for Acme Consumer A. The plugin requires PHP 99.', $request['body'] );
 		self::assertTrue( $request['records']['updater_hooked'] );
-		self::assertFalse( $request['records']['safeguards_loaded'] );
+		self::assertSame( 10, $request['records']['safeguard_attached'] );
+		self::assertFalse( $request['records']['can_export'] );
 		self::assertFalse( $request['records']['consumer_a']['functions_loaded'] );
 	}
 }

@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Prints, as JSON on its last line, what an administrator sees on the PHP 7.4 site's plugins screen: its PHP and WordPress versions, whether wp_admin_notice() exists, whether an updater is hooked, and the admin notices.
+ * Prints, as JSON on its last line, what an administrator sees on the PHP 7.4 site's plugins screen: its PHP and WordPress versions, whether wp_admin_notice() exists, whether an updater is hooked, the capabilities consumer-a's order export maps to while an explicit false relaxes it, and the admin notices.
  *
  * WP-CLI requires it with WordPress and the active plugins loaded, as wp-admin has them before its notices render. It parses on PHP 7.4.
  *
@@ -9,6 +9,7 @@
 
 wp_set_current_user( 1 );
 set_current_screen( 'plugins' );
+add_filter( 'acme_ca/exports/should_restrict', '__return_false' );
 
 ob_start();
 do_action( 'admin_notices' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Fires WordPress's own action.
@@ -21,6 +22,7 @@ echo "\n" . wp_json_encode( // phpcs:ignore WordPress.Security.EscapeOutput.Outp
 		'wordpress'       => get_bloginfo( 'version' ),
 		'wp_admin_notice' => function_exists( 'wp_admin_notice' ),
 		'updater_hooked'  => false !== has_filter( 'update_plugins_github.com' ),
+		'export_caps'     => map_meta_cap( 'acme_ca_export_orders', get_current_user_id() ), // phpcs:ignore WordPress.WP.Capabilities.Unknown -- consumer-a's safeguard maps the capability.
 		'notices'         => $acme_notices,
 	)
 );
