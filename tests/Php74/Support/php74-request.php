@@ -21,7 +21,7 @@ echo "\n" . wp_json_encode( // phpcs:ignore WordPress.Security.EscapeOutput.Outp
 		'wordpress'       => get_bloginfo( 'version' ),
 		'wp_admin_notice' => function_exists( 'wp_admin_notice' ),
 		'updater_hooked'  => false !== has_filter( 'update_plugins_github.com' ),
-		'export_caps'     => map_meta_cap( 'acme_ca_export_orders', get_current_user_id() ),
+		'export_caps'     => map_meta_cap( 'acme_ca_export_orders', get_current_user_id() ), // phpcs:ignore WordPress.WP.Capabilities.Unknown -- consumer-a's safeguard maps the capability.
 		'notices'         => $acme_notices,
 	)
 );
