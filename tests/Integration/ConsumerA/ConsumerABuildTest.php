@@ -28,8 +28,9 @@ final class ConsumerABuildTest extends TestCase {
 	public function test_a_missing_build_file_shows_the_build_notice_to_plugin_managers_and_the_safeguard_holds( string $file, bool $warns ): void {
 		$plugin = $this->install_consumer( 'consumer-a', 'acme-consumer-a', array( $file ) );
 		$spec   = array(
-			'activate' => $plugin,
-			'missing'  => array( $file ),
+			'activate'   => $plugin,
+			'missing'    => array( $file ),
+			'relaxation' => false,
 		);
 
 		$admin  = $this->consumer_request( 'GET', 'index.php', $this->make_user( 'acme_ca_admin', 'administrator' ), $spec );
