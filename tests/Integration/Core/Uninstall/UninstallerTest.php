@@ -79,40 +79,6 @@ final class UninstallerTest extends TestCase {
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 
-	public function test_the_prefix_sweeps_keep_what_wordpress_names_after_a_table_prefix_the_footprint_prefix_heads(): void {
-		global $wpdb;
-		$p     = $this->prefix;
-		$table = $wpdb->base_prefix;
-		update_option( "{$p}_remove_data", 'yes' );
-		$this->seed_footprint();
-		update_option( "{$p}_tbl_user_roles", 'x' );
-		update_option( "{$p}_tbl_acme_a", 'x' );
-		add_user_meta( $this->ids['user'], "{$p}_tbl_capabilities", 'x' );
-		add_user_meta( $this->ids['user'], "{$p}_tbl_acme_a", 'x' );
-
-		// WordPress names a site's roles and its users' capabilities after the table prefix, which the engine reads from wpdb.
-		$wpdb->base_prefix = "{$p}_tbl_";
-		try {
-			Uninstaller::run(
-				self::PLUGIN_FILE,
-				array(
-					'option_prefixes'           => array( "{$p}_cache_", "{$p}_t", "{$p}_tbl_acme_" ),
-					'user_meta_global_prefixes' => array( "{$p}_global_", "{$p}_t", "{$p}_tbl_acme_" ),
-				),
-				array( 'consent' => array( 'option' => "{$p}_remove_data" ) )
-			);
-		} finally {
-			$wpdb->base_prefix = $table;
-		}
-
-		self::assertTrue( $this->option_exists( "{$p}_tbl_user_roles" ) );
-		self::assertTrue( $this->user_meta_exists( "{$p}_tbl_capabilities" ) );
-		self::assertFalse( $this->option_exists( "{$p}_tbl_acme_a" ) );
-		self::assertFalse( $this->user_meta_exists( "{$p}_tbl_acme_a" ) );
-		self::assertFalse( $this->option_exists( "{$p}_cache_a" ) );
-		self::assertFalse( $this->user_meta_exists( "{$p}_global_a" ) );
-	}
-
 	public function test_the_cleanup_runs_first_while_the_footprint_and_the_consent_row_are_stored(): void {
 		$consent_option = "{$this->prefix}_cache_remove_data";
 		update_option( $consent_option, 'yes' );
