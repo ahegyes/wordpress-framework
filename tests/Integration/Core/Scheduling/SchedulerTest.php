@@ -764,6 +764,17 @@ final class SchedulerTest extends TestCase {
 		self::assertSame( array( $args ), $received );
 	}
 
+	public function test_ensuring_replaces_a_cron_expression_chain_with_one_interval_chain(): void {
+		as_schedule_cron_action( \time(), '0 * * * *', $this->hook, array(), self::GROUP );
+
+		self::assertTrue( $this->make_scheduler( 'production' )->ensure_recurring( new ScheduledHook( $this->hook ), Recurrence::from_interval( 3600 ) ) );
+
+		$pending = $this->pending_action_ids();
+		self::assertCount( 1, $pending );
+		self::assertInstanceOf( \ActionScheduler_IntervalSchedule::class, \ActionScheduler::store()->fetch_action( $pending[0] )->get_schedule() );
+		self::assertSame( 3600, \ActionScheduler::store()->fetch_action( $pending[0] )->get_schedule()->get_recurrence() );
+	}
+
 	protected static function assert_wp_error( mixed $actual, string $code ): void {
 		self::assertInstanceOf( \WP_Error::class, $actual );
 		self::assertSame( $code, $actual->get_error_code() );

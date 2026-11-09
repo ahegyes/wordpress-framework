@@ -586,6 +586,29 @@ final class OptionsPageTest extends TestCase {
 		self::assertNull( $single->querySelector( '.nav-tab' ) );
 	}
 
+	public function test_saving_the_second_of_two_tabs_on_one_option_keeps_the_first_tabs_field(): void {
+		$spec = $this->spec(
+			array( self::field( 'text', 'name' ) ),
+			array(
+				'tabs' => array(
+					self::tab( 'general', $this->option, array( self::field( 'text', 'name' ) ) ),
+					self::tab( 'second', $this->option, array( self::field( 'text', 'other' ) ) ),
+				),
+			)
+		);
+		$this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'first' ) ) );
+
+		$this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin, 'second' )['body'], array( "{$this->option}[other]" => 'second' ) ) );
+
+		self::assertSame(
+			array(
+				'name'  => 'first',
+				'other' => 'second',
+			),
+			get_option( $this->option )
+		);
+	}
+
 	protected function spec( array $fields, array $page = array(), array $extra = array() ): array {
 		return array(
 			'id'   => $this->id,

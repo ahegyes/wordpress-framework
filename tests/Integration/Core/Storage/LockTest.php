@@ -113,6 +113,16 @@ final class LockTest extends TestCase {
 		self::assertSame( self::hold( 'third', 1800000061 ), $this->stored() );
 	}
 
+	public function test_a_hold_released_between_the_failed_insert_and_the_read_is_busy(): void {
+		$lock = $this->make_lock();
+		$lock->acquire( 'first' );
+		$this->clock->advance( 10 );
+		$this->before_query( 'SELECT option_value', static fn () => $lock->release( 'first' ) );
+
+		self::assertSame( LockClaim::Busy, $lock->acquire( 'second' ) );
+		self::assertNull( $this->stored() );
+	}
+
 	public function test_refreshing_extends_the_hold_to_a_full_ttl_from_now(): void {
 		$lock = $this->make_lock();
 		$lock->acquire( 'first' );

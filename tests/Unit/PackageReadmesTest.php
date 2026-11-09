@@ -82,6 +82,7 @@ final class PackageReadmesTest extends TestCase {
 		self::assertTrue( self::contains( $source, array( 'if ( true ) {', "\treturn;", '}', '', "echo 'acme';" ) ) );
 		self::assertFalse( self::contains( $source, array( 'if ( true ) {', 'return;' ) ) );
 		self::assertFalse( self::contains( $source, array( "\treturn;", '}', "echo 'acme';" ) ) );
+		self::assertFalse( self::contains( array( "// echo 'acme';" ), array( "echo 'acme';" ) ) );
 	}
 
 	public function test_a_json_example_is_part_of_a_manifest_only_where_every_value_matches(): void {

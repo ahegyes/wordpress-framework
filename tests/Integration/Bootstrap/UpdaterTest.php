@@ -202,6 +202,35 @@ final class UpdaterTest extends TestCase {
 		self::assertSame( $this->asset_url( 'v2.0.0' ), get_transient( "{$this->slug}_github_release_stable" )['package'] ?? null );
 	}
 
+	public function test_a_cached_record_holding_a_field_of_another_type_is_fetched_again(): void {
+		Updater::register( $this->write_plugin( $this->slug ) );
+		set_transient(
+			"{$this->slug}_github_release_stable",
+			array(
+				'version' => 9,
+				'package' => $this->asset_url( 'v9.0.0' ),
+			),
+			HOUR_IN_SECONDS
+		);
+		$this->stage_latest( $this->release( 'v2.0.0' ) );
+
+		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
+
+		self::assertSame( '2.0.0', $offer->new_version ?? null );
+		self::assertCount( 2, $this->requests );
+	}
+
+	public function test_a_requirement_past_the_first_8_kb_of_the_entry_file_reads_as_none(): void {
+		Updater::register( $this->write_plugin( $this->slug ) );
+		$this->stage_latest( $this->release( 'v2.0.0' ) );
+		$this->stage( $this->raw_url( 'v2.0.0' ), 200, "<?php\n/**\n * Plugin Name: Acme Updater\n * " . \str_repeat( 'x', 8 * KB_IN_BYTES ) . "\n * Requires PHP: 99\n */\n" );
+
+		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
+
+		self::assertIsObject( $offer );
+		self::assertSame( '', $offer->requires_php );
+	}
+
 	public function test_another_plugins_check_passes_through_without_a_request(): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
 		$this->write_plugin( "$this->slug-other" );

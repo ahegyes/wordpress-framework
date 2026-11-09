@@ -253,20 +253,21 @@ final class UninstallerTest extends TestCase {
 
 	public static function failing_statements(): array {
 		return array(
-			'an-option-delete' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings' ),
-			'a-prefix-read'    => array( static fn ( \wpdb $wpdb, string $prefix ): string => 'SELECT DISTINCT CAST( `option_name`', '_cache_', 'option_exists', '_cache_a' ),
-			'a-post-type-read' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "AS value FROM `$wpdb->posts`", '_type', 'post_type_has_posts', '_type' ),
-			'a-network-option' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_network_settings'", '_network_settings', 'network_option_exists', '_network_settings' ),
+			'an-option-delete'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings' ),
+			'a-prefix-read'                        => array( static fn ( \wpdb $wpdb, string $prefix ): string => 'SELECT DISTINCT CAST( `option_name`', '_cache_', 'option_exists', '_cache_a' ),
+			'a-post-type-read'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "AS value FROM `$wpdb->posts`", '_type', 'post_type_has_posts', '_type' ),
+			'a-network-option'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_network_settings'", '_network_settings', 'network_option_exists', '_network_settings' ),
+			'an-option-delete-with-prefix-consent' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings', '_cache_remove_data' ),
 		);
 	}
 
 	#[DataProvider( 'failing_statements' )]
-	public function test_a_failed_statement_keeps_the_consent_row_and_throws_after_the_rest_so_a_retry_completes( \Closure $needle, string $subject, string $kept, string $row ): void {
+	public function test_a_failed_statement_keeps_the_consent_row_and_throws_after_the_rest_so_a_retry_completes( \Closure $needle, string $subject, string $kept, string $row, string $consent = '_remove_data' ): void {
 		global $wpdb;
 
 		$this->seed_footprint();
-		update_option( "{$this->prefix}_remove_data", 'yes' );
-		$args = array( 'consent' => array( 'option' => "{$this->prefix}_remove_data" ) ) + $this->recording_cleanup();
+		update_option( $this->prefix . $consent, 'yes' );
+		$args = array( 'consent' => array( 'option' => $this->prefix . $consent ) ) + $this->recording_cleanup();
 		$this->fail_queries( $needle( $wpdb, $this->prefix ) );
 
 		$failure = null;
@@ -281,14 +282,14 @@ final class UninstallerTest extends TestCase {
 		self::assertTrue( $this->$kept( $this->prefix . $row ) );
 		self::assertFalse( $this->table_exists( "{$this->prefix}_log" ) );
 		self::assertSame( array( 'cleanup' ), \array_column( $this->calls, 0 ) );
-		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
+		self::assertTrue( $this->option_exists( $this->prefix . $consent ) );
 
 		remove_all_filters( 'query' );
 		$this->restore_query_errors();
 		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $args );
 
 		self::assertFalse( $this->$kept( $this->prefix . $row ) );
-		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
+		self::assertFalse( $this->option_exists( $this->prefix . $consent ) );
 	}
 
 	public static function refused_deletes(): array {

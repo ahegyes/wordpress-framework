@@ -27,15 +27,18 @@ final class VersionTest extends TestCase {
 
 	public static function invalid_versions(): array {
 		return array(
-			'single-segment'         => array( '2' ),
-			'four-segments'          => array( '1.2.3.4' ),
-			'label-without-a-hyphen' => array( '8.5.0RC1' ),
-			'v-prefix'               => array( 'v1.2.3' ),
-			'build-metadata'         => array( '1.0.0+build.5' ),
-			'unknown-label'          => array( '1.0.0-pre.1' ),
-			'leading-zero'           => array( '01.2.3' ),
-			'dot-without-a-number'   => array( '2.0.0-beta.' ),
-			'trailing-newline'       => array( "1.2.3\n" ),
+			'single-segment'                  => array( '2' ),
+			'four-segments'                   => array( '1.2.3.4' ),
+			'label-without-a-hyphen'          => array( '8.5.0RC1' ),
+			'v-prefix'                        => array( 'v1.2.3' ),
+			'build-metadata'                  => array( '1.0.0+build.5' ),
+			'unknown-label'                   => array( '1.0.0-pre.1' ),
+			'leading-zero'                    => array( '01.2.3' ),
+			'leading-zero-minor'              => array( '1.02.3' ),
+			'leading-zero-patch'              => array( '1.2.03' ),
+			'leading-zero-pre-release-number' => array( '1.0.0-rc.01' ),
+			'dot-without-a-number'            => array( '2.0.0-beta.' ),
+			'trailing-newline'                => array( "1.2.3\n" ),
 		);
 	}
 

@@ -8,6 +8,8 @@
  * @package Acme\PersonaBootstrap
  */
 
+use Acme\PersonaBootstrap\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
+
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_notices', 'acme_pb_render_notice' );
@@ -21,9 +23,5 @@ add_action( 'admin_notices', 'acme_pb_render_notice' );
  * @return  void
  */
 function acme_pb_render_notice(): void {
-	if ( ! current_user_can( 'activate_plugins' ) ) {
-		return;
-	}
-
-	printf( '<div class="notice notice-info"><p>%s</p></div>', esc_html__( 'Acme Persona Bootstrap is running.', 'acme-persona-bootstrap' ) );
+	Requirements::print_admin_notice( esc_html__( 'Acme Persona Bootstrap is running.', 'acme-persona-bootstrap' ), array( 'type' => 'info' ) );
 }

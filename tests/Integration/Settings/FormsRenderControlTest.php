@@ -90,6 +90,23 @@ final class FormsRenderControlTest extends TestCase {
 		self::assertSame( 'Shown below.', self::text( $document->getElementById( 'acme.key.description' ) ) );
 	}
 
+	public static function non_input_controls(): array {
+		return array(
+			'textarea'    => array( 'textarea', array(), 'textarea' ),
+			'select'      => array( 'select', array( 'options' => array( 'a' => 'A' ) ), 'select:not([multiple])' ),
+			'multiselect' => array( 'multiselect', array( 'options' => array( 'a' => 'A' ) ), 'select[multiple]' ),
+		);
+	}
+
+	#[DataProvider( 'non_input_controls' )]
+	public function test_help_text_is_linked_from_a_non_input_control_by_aria_describedby( string $type, array $keys, string $selector ): void {
+		$document = self::render( $type, array( 'desc' => 'Shown below.' ) + $keys );
+		$control  = $document->getElementById( 'acme.key' );
+
+		self::assertTrue( $control->matches( $selector ) );
+		self::assertSame( array( 'Shown below.' ), self::descriptions( $document, $control ) );
+	}
+
 	public function test_a_desc_and_a_string_desc_tip_each_get_their_own_description(): void {
 		$document = self::render(
 			'text',

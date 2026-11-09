@@ -2,9 +2,15 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit;
 
+use Composer\Autoload\ClassLoader;
+use Composer\InstalledVersions;
+use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\ClassLike;
+use PhpParser\Node\Stmt\Declare_;
+use PhpParser\Node\Stmt\GroupUse;
 use PhpParser\Node\Stmt\Namespace_;
+use PhpParser\Node\Stmt\Use_;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
@@ -35,6 +41,29 @@ final class PackageManifestsTest extends TestCase {
 		'woocommerce' => array(
 			'ahegyes/wp-framework-settings' => '^2.0',
 			'php'                           => '>=8.5',
+		),
+	);
+
+	protected const array EXTRAS = array(
+		'bootstrap'   => array(
+			'branch-alias' => array( 'dev-trunk' => '2.x-dev' ),
+			'requires-wp'  => '5.8',
+		),
+		'shared'      => array(
+			'branch-alias' => array( 'dev-trunk' => '2.x-dev' ),
+		),
+		'core'        => array(
+			'branch-alias' => array( 'dev-trunk' => '2.x-dev' ),
+			'requires-wp'  => '7.1',
+		),
+		'settings'    => array(
+			'branch-alias' => array( 'dev-trunk' => '2.x-dev' ),
+			'requires-wp'  => '7.1',
+		),
+		'woocommerce' => array(
+			'branch-alias'     => array( 'dev-trunk' => '2.x-dev' ),
+			'requires-plugins' => array( 'woocommerce' ),
+			'requires-wp'      => '7.1',
 		),
 	);
 
@@ -78,6 +107,14 @@ final class PackageManifestsTest extends TestCase {
 	}
 
 	#[DataProvider( 'package_names' )]
+	public function test_a_packages_extra_declares_exactly_its_floors_and_branch_alias( string $package ): void {
+		$extra = \array_intersect_key( self::read_manifest( $package )['extra'] ?? array(), \array_flip( array( 'branch-alias', 'requires-plugins', 'requires-wp' ) ) );
+		\ksort( $extra );
+
+		self::assertSame( self::EXTRAS[ $package ], $extra );
+	}
+
+	#[DataProvider( 'package_names' )]
 	public function test_a_package_references_only_its_closure( string $package ): void {
 		$allowed    = self::closure( $package );
 		$violations = array();
@@ -85,14 +122,25 @@ final class PackageManifestsTest extends TestCase {
 		$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory() . "/$package", \FilesystemIterator::SKIP_DOTS ) );
 		foreach ( new \RegexIterator( $files, '/\.php$/' ) as $file ) {
 			foreach ( self::referenced_names( $file->getPathname() ) as $name ) {
-				$owner = self::owner_of( $name );
-				if ( ( ! \is_null( $owner ) || \str_starts_with( $name, 'Psr\\' ) || \str_starts_with( $name, 'DeepWebSolutions\\Framework\\' ) ) && ! \in_array( $owner, $allowed, true ) ) {
+				if ( self::is_foreign( $name, $allowed ) ) {
 					$violations[] = $file->getPathname() . ": $name";
 				}
 			}
 		}
 
 		self::assertSame( array(), $violations );
+	}
+
+	public function test_a_name_a_development_package_owns_is_foreign_and_a_native_or_host_name_is_not(): void {
+		$allowed = self::closure( 'core' );
+
+		foreach ( array( TestCase::class, NodeFinder::class, 'DeepWebSolutions\\Framework\\Settings\\Forms', 'DeepWebSolutions\\Framework\\Tests\\Unit\\AutoloadTest' ) as $name ) {
+			self::assertTrue( self::is_foreign( $name, $allowed ), $name );
+		}
+
+		foreach ( array( 'Psr\\Log\\LoggerInterface', \Throwable::class, 'WP_Error', 'add_action', 'ActionScheduler_Store', 'as_schedule_single_action', 'Automattic\\WooCommerce\\Utilities\\OrderUtil' ) as $name ) {
+			self::assertFalse( self::is_foreign( $name, $allowed ), $name );
+		}
 	}
 
 	public function test_a_closure_holds_the_package_and_every_package_below_it(): void {
@@ -119,6 +167,24 @@ final class PackageManifestsTest extends TestCase {
 	#[DataProvider( 'autoloaded_packages' )]
 	public function test_an_autoloaded_package_maps_only_its_namespace_to_src( string $package, string $prefix ): void {
 		self::assertSame( array( 'psr-4' => array( $prefix => 'src/' ) ), self::read_manifest( $package )['autoload'] ?? null );
+	}
+
+	public function test_every_file_outside_the_shared_package_exits_without_wordpress_right_after_its_use_block(): void {
+		$unguarded = array();
+		foreach ( array( 'bootstrap', 'core', 'settings', 'woocommerce' ) as $package ) {
+			$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory() . "/$package", \FilesystemIterator::SKIP_DOTS ) );
+			foreach ( new \RegexIterator( $files, '#(?<!/index)\.php$#' ) as $file ) {
+				$code      = (string) \file_get_contents( $file->getPathname() );
+				$nodes     = ( new ParserFactory() )->createForHostVersion()->parse( $code );
+				$namespace = ( new NodeFinder() )->findFirstInstanceOf( $nodes, Namespace_::class );
+				$statement = \current( \array_filter( $namespace?->stmts ?? $nodes, static fn ( Node $node ): bool => ! $node instanceof Declare_ && ! $node instanceof Use_ && ! $node instanceof GroupUse ) );
+				if ( false === $statement || "\\defined( 'ABSPATH' ) || exit;" !== \substr( $code, $statement->getStartFilePos(), $statement->getEndFilePos() - $statement->getStartFilePos() + 1 ) ) {
+					$unguarded[] = $file->getPathname();
+				}
+			}
+		}
+
+		self::assertSame( array(), $unguarded );
 	}
 
 	public function test_every_package_directory_carries_an_index_stub(): void {
@@ -224,6 +290,13 @@ final class PackageManifestsTest extends TestCase {
 		return \array_map( static fn ( Name $name ): string => $name->toString(), ( new NodeFinder() )->findInstanceOf( $nodes, Name::class ) );
 	}
 
+	protected static function is_foreign( string $name, array $allowed ): bool {
+		$owner = self::owner_of( $name );
+
+		return ( ! \is_null( $owner ) || \str_starts_with( $name, 'Psr\\' ) || \str_starts_with( $name, 'DeepWebSolutions\\Framework\\' ) ) && ! \in_array( $owner, $allowed, true );
+	}
+
+	// WordPress, WooCommerce and Action Scheduler load nothing through Composer here, so a name the autoloader finds belongs to a development package or to the root project.
 	protected static function owner_of( string $name ): ?string {
 		foreach ( self::OWNERS as $prefix => $owner ) {
 			if ( \str_starts_with( $name . '\\', $prefix ) ) {
@@ -231,6 +304,14 @@ final class PackageManifestsTest extends TestCase {
 			}
 		}
 
-		return null;
+		$vendor = \dirname( __DIR__, 2 ) . '/vendor';
+		$file   = ClassLoader::getRegisteredLoaders()[ $vendor ]->findFile( $name );
+		if ( false === $file ) {
+			return null;
+		}
+
+		$path = (string) \realpath( $file );
+
+		return \str_starts_with( $path, "$vendor/" ) ? \implode( '/', \array_slice( \explode( '/', \substr( $path, \strlen( "$vendor/" ) ) ), 0, 2 ) ) : InstalledVersions::getRootPackage()['name'];
 	}
 }
