@@ -41,14 +41,23 @@ try {
 	return;
 }
 
-Uninstaller::run(
-	$acme_ca_file,
-	$acme_ca_footprint,
-	array(
-		'consent'    => array(
-			'option' => Plugin::PREFIX . '_settings',
-			'key'    => 'delete_data',
-		),
-		'meta_types' => $acme_ca_meta_types,
-	)
-);
+try {
+	Uninstaller::run(
+		$acme_ca_file,
+		$acme_ca_footprint,
+		array(
+			'consent'    => array(
+				'option' => Plugin::PREFIX . '_settings',
+				'key'    => 'delete_data',
+			),
+			'meta_types' => $acme_ca_meta_types,
+		)
+	);
+} catch ( RuntimeException $exception ) {
+	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
+		throw $exception;
+	}
+
+	// wp_die() ends the request before WordPress deletes the files, so the next uninstall retries, and shows the reason where a throw shows only the critical-error page.
+	wp_die( esc_html( $exception->getMessage() ), '', array( 'response' => 500 ) );
+}
