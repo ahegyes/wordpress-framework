@@ -12,6 +12,8 @@ npm install
 composer quality-check
 composer test:integration:multisite
 composer test:integration:php74
+npm run lint:scripts
+npm run test:e2e
 composer test:integration:lowest
 git checkout tests/Fixtures/consumer-a/composer.json tests/Fixtures/consumer-a/composer.lock
 composer audit --locked

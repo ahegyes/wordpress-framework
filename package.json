@@ -13,6 +13,9 @@
 		"npm": ">=11"
 	},
 	"devDependencies": {
+		"@ahegyes/wordpress-configs": "git+https://github.com/ahegyes/wordpress-configs.git#c944e73ab2656633397e7736ea104bbe72726ffd",
+		"@playwright/test": "^1.64.1",
+		"@wordpress/e2e-test-utils-playwright": "^3.1.0",
 		"@wordpress/env": "^12.0.0",
 		"@wordpress/scripts": "^37.0.0"
 	},
@@ -26,7 +29,9 @@
 		"packages-update:wp": "wp-scripts packages-update",
 
 		"format:all": "composer format:php",
-		"lint:all": "composer lint:php",
+
+		"lint:scripts": "wp-scripts lint-js tests/EndToEnd eslint.config.mjs playwright.config.js",
+		"lint:all": "composer lint:php && npm run lint:scripts",
 
 		"wp-env:start": "wp-env start",
 		"wp-env:stop": "wp-env stop",
@@ -53,7 +58,9 @@
 		"check:engines": "wp-scripts check-engines",
 		"check:licenses": "wp-scripts check-licenses",
 
-		"test:all": "composer test",
-		"quality-check:all": "composer quality-check"
+		"test:e2e": "playwright test --config=playwright.config.js",
+		"test:all": "composer test && npm run test:e2e",
+
+		"quality-check:all": "composer quality-check && npm run lint:scripts && npm run test:e2e"
 	}
 }

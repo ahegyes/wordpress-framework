@@ -721,8 +721,6 @@ final class PostMetaBoxTest extends TestCase {
 
 		$scripts = self::scripts_naming( $block, "'{$this->id}_nonce'" );
 		self::assertCount( 1, $scripts );
-		self::assertStringContainsString( "'heartbeat-tick'", $scripts[0] );
-		self::assertStringContainsString( "['wp-refresh-metabox-loader-nonces']", $scripts[0] );
 		self::assertSame( array(), self::scripts_naming( $classic, "'{$this->id}_nonce'" ) );
 	}
 

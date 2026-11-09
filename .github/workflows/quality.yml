@@ -15,6 +15,12 @@ jobs:
     with:
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan", "changelog:validate"]'
 
+  lint-scripts:
+    name: Lint scripts
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    with:
+      scripts: '["lint:scripts"]'
+
   php-syntax:
     name: PHP syntax
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@c944e73ab2656633397e7736ea104bbe72726ffd

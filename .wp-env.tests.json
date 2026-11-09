@@ -6,6 +6,7 @@
 	"testsEnvironment": false,
 	"mappings": {
 		"wp-content/mu-plugins/wp-framework": ".",
+		"wp-content/plugins/acme-end-to-end": "./tests/Fixtures/end-to-end",
 		"wp-content/plugins/woocommerce": "./vendor/wp-plugin/woocommerce"
 	},
 	"config": {

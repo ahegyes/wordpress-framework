@@ -364,7 +364,7 @@ final class AdminNoticesTest extends TestCase {
 		self::assertArrayNotHasKey( 'data-notice-nonce', $shown[ $this->dom_id( 'user', 'once' ) ] );
 	}
 
-	public function test_the_dismiss_script_loads_on_wp_api_fetch_only_after_a_persistent_dismissible_notice_and_targets_this_plugins_notices(): void {
+	public function test_the_dismiss_script_loads_on_wp_api_fetch_only_after_a_persistent_dismissible_notice_with_this_plugins_settings(): void {
 		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'once', NoticeScope::Request ) );
@@ -388,8 +388,6 @@ final class AdminNoticesTest extends TestCase {
 			\json_decode( $matches[1], true )
 		);
 		self::assertStringContainsString( '\/', $matches[1] );
-		self::assertStringContainsString( "getAttribute( 'data-notices' ) !== settings.prefix", $script );
-		self::assertStringContainsString( "nonce: notice.getAttribute( 'data-notice-nonce' )", $script );
 	}
 
 	public function test_registered_hooks_print_the_notices_and_load_the_script(): void {

@@ -34,14 +34,16 @@ wordpress-framework/
 │       ├── ProductData/{ProductDataTab, ProductDataTabDefinitionInterface, ProductMeta}
 │       ├── Setting/{SettingsTab, SettingsSection, SectionFieldsDefinitionInterface, Fields (@internal)}
 │       └── Uninstall/MetaTypes
-├── tests/{Unit, PHPStan, Integration, Php74, Support, bin, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b, personas}}
+├── tests/{Unit, PHPStan, Integration, Php74, EndToEnd, Support, bin, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b, personas, end-to-end}}
 │                          consumer-a: a WooCommerce plugin on all five packages, scoped through configs by its own composer.json
 │                          consumer-b: a plugin on bootstrap, shared, core and settings, without WooCommerce, scoped the same way
 │                          personas/{bootstrap, shared, core, settings, woocommerce}: one plugin per stack, shared a plain PHP project, each requiring only its top package, scoped the same way; each lists its stack's mirrors as `vcs` repositories after the path repository, the set its package README copies
+│                          end-to-end: an unscoped plugin on the root autoloader, which .wp-env.tests.json maps into the plugins directory, with a dismissible notice and an object form for the Playwright spec
 │                          bin/prefer-lowest.sh: locks a fixture's runtime packages at their lowest allowed versions; a persona keeps only the tested package on its path repository, and every other framework package must lock from its mirror at a tag
-├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the packages' highest `extra.requires-wp` up, as WordPress's version API lists them; tests-nightly.yml runs WordPress trunk daily, never on pull requests
+├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the packages' highest `extra.requires-wp` up, as WordPress's version API lists them; tests-nightly.yml runs WordPress trunk daily, never on pull requests; the end-to-end spec runs in tests.yml beside Integration
 ├── CHANGELOG.md           the one changelog of the lockstep releases, written at release from the fragments `composer changelog:add` stages in changelog/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
+├── playwright.config.js   Playwright over tests/EndToEnd on .wp-env.tests.json's port, from configs' base; eslint.config.mjs lints the spec and both configs
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core and packages/settings, with the WordPress stubs and extensions
 ├── phpstan.woocommerce.neon PHPStan over packages/woocommerce/src, with the WordPress and WooCommerce stubs
@@ -62,6 +64,8 @@ composer test:integration       # starts .wp-env.tests.json, then runs test:inte
 composer test:integration:multisite  # starts .wp-env.multisite.json, then runs test:integration:multisite:run: fixtures:build, then the multisite and without-woocommerce groups
 composer test:integration:php74      # starts .wp-env.php74.json, then runs test:integration:php74:run: consumer-a's and the bootstrap persona's builds, then the Php74 suite with the host's PHP
 composer test:integration:lowest     # starts .wp-env.tests.json, then runs test:integration:lowest:run: prefer-lowest.sh on consumer-a, its build, then its rows; rewrites its manifest and lock, which git checkout restores
+npm run lint:scripts            # ESLint over tests/EndToEnd and the Playwright and ESLint configs
+npm run test:e2e                # the Playwright spec on the running tests environment, which it starts when none listens
 composer audit --locked && npm audit --omit=dev --audit-level=high   # every Composer package, but only npm's runtime packages, of which there are none
 actionlint && zizmor .github/
 ```

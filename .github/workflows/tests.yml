@@ -68,6 +68,21 @@ jobs:
       composer-script: 'test:integration:multisite:run'
       wp-env-config-file: '.wp-env.multisite.json'
 
+  e2e:
+    name: E2E
+    needs: wordpress
+    strategy:
+      fail-fast: false
+      matrix:
+        wp: ${{ fromJSON(needs.wordpress.outputs.versions) }}
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    with:
+      artifact-slug: wp-${{ matrix.wp }}
+      php-version: '8.5'
+      wp-version: ${{ matrix.wp }}
+      build-script: ''
+      wp-env-config-file: '.wp-env.tests.json'
+
   integration-php74:
     name: Integration (PHP 7.4)
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
