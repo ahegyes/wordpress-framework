@@ -9,24 +9,29 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   lint-php:
     name: Lint PHP
+    permissions:
+      contents: read
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan", "changelog:validate"]'
 
   lint-scripts:
     name: Lint scripts
+    permissions:
+      contents: read
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       scripts: '["lint:scripts"]'
 
   php-syntax:
-    name: PHP syntax
+    name: PHP 7.4 syntax (bootstrap)
+    permissions:
+      contents: read
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       php-versions: '["7.4"]'
