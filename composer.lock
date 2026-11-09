@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6b86ee63ec27a105df236e9d1202728e",
+    "content-hash": "fb3874ebd4d6f43289e9e2c869f18d23",
     "packages": [
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -12,7 +12,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/bootstrap",
-                "reference": "d7fbbb1be6d0467f8a25d10357daa2844d27c89c"
+                "reference": "582b7173f9d21b37e1ee883a327c1803839a1028"
             },
             "require": {
                 "php": ">=7.4"
@@ -40,7 +40,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "5077e005c70673ef1edcb5eb3f9ef2a5815c1ac8"
+                "reference": "4005b52ff3fca827e0a93d6452a30a77753b3a27"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0",
@@ -81,7 +81,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/settings",
-                "reference": "0ce4068423bab13b7c8b3a3a695cda1f1cddd341"
+                "reference": "871caa27457eb493745a7d2e95bf01930bbe087b"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0",
@@ -116,7 +116,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/shared",
-                "reference": "819a2f4e24281546eb8447361e91eead55aaccdf"
+                "reference": "1f9e5e0299d779a8cb9d7f9becc5ee6efcb735d0"
             },
             "require": {
                 "php": ">=8.5"
@@ -148,7 +148,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "889aeeb7081f84560297e058a5cf5723ae7aefaa"
+                "reference": "657eb2dbc0484dae31ff8c97c7786716c9090c17"
             },
             "require": {
                 "ahegyes/wp-framework-settings": "^2.0",
@@ -6200,6 +6200,38 @@
             ],
             "time": "2026-08-20T19:54:29+00:00",
             "published-time": "2026-08-20T19:54:42+00:00"
+        },
+        {
+            "name": "wp-plugin/plugin-check",
+            "version": "2.2.0",
+            "source": {
+                "type": "svn",
+                "url": "https://plugins.svn.wordpress.org/plugin-check/",
+                "reference": "tags/2.2.0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/plugin/plugin-check.2.2.0.zip"
+            },
+            "require": {
+                "composer/installers": "~1.0|~2.0"
+            },
+            "type": "wordpress-plugin",
+            "notification-url": "https://wp-packages.org/downloads",
+            "authors": [
+                {
+                    "name": "WordPress.org"
+                }
+            ],
+            "description": "Plugin Check is a WordPress.org tool which provides checks to help plugins meet the directory requirements and follow various best practices.",
+            "homepage": "https://github.com/WordPress/plugin-check",
+            "support": {
+                "changelog": "https://wordpress.org/plugins/plugin-check/#developers",
+                "issues": "https://wordpress.org/support/plugin/plugin-check",
+                "source": "https://plugins.svn.wordpress.org/plugin-check"
+            },
+            "time": "2026-11-06T17:12:09+00:00",
+            "published-time": "2026-11-06T17:12:09+00:00"
         },
         {
             "name": "wp-plugin/woocommerce",

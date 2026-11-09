@@ -26,6 +26,7 @@
 		"nikic/php-parser": "^5",
 		"php-stubs/woocommerce-stubs": "^11.2",
 		"phpunit/phpunit": "^13",
+		"wp-plugin/plugin-check": "^2.2",
 		"wp-plugin/woocommerce": "^11.2"
 	},
 
@@ -51,7 +52,8 @@
 
 	"autoload-dev": {
 		"psr-4": {
-			"DeepWebSolutions\\Framework\\Tests\\": "tests/"
+			"DeepWebSolutions\\Framework\\Tests\\": "tests/",
+			"PluginCheckCS\\PluginCheck\\": "vendor/wp-plugin/plugin-check/vendor/plugin-check/phpcs-sniffs/PluginCheck/"
 		},
 		"exclude-from-classmap": [
 			"tests/Fixtures/consumer-a/",
