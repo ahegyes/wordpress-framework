@@ -3,7 +3,7 @@
 namespace DeepWebSolutions\Framework\Shared\Exception;
 
 /**
- * Marks every exception the framework throws, so a caller can tell the framework's failures apart.
+ * Marks the exceptions the framework defines, so a caller can tell the framework's failures apart.
  *
  * @since   2.0.0
  * @version 2.0.0
