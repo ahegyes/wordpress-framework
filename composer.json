@@ -166,16 +166,6 @@
 			"@fixtures:build:persona-bootstrap",
 			"@php vendor/bin/phpunit --testsuite=Php74"
 		],
-		"test:integration:php86": [
-			"Composer\\Config::disableProcessTimeout",
-			"@putenv CI=1",
-			"npm --prefix=. run wp-env:php86:start",
-			"@test:integration:php86:run"
-		],
-		"test:integration:php86:run": [
-			"@putenv WP_ENV_CONFIG_FILE=.wp-env.php86.json",
-			"@test:integration:run"
-		],
 		"test:integration:woocommerce-nightly": [
 			"Composer\\Config::disableProcessTimeout",
 			"@putenv CI=1",

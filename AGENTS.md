@@ -41,7 +41,7 @@ wordpress-framework/
 │                          end-to-end: an unscoped plugin on the root autoloader, which .wp-env.tests.json maps into the plugins directory, with a dismissible notice and an object form for the Playwright spec
 │                          bin/build-fixture.sh: builds one fixture as fixtures:build:<name> calls it: a development install that scopes, its PHPStan, then its production install
 │                          bin/prefer-lowest.sh: locks a fixture's runtime packages at their lowest allowed versions; a persona keeps only the tested package on its path repository, and every other framework package must lock from its mirror at a tag
-├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the packages' highest `extra.requires-wp` up, as WordPress's version API lists them; tests-nightly.yml runs WordPress trunk, WooCommerce's trunk build and, once Docker publishes WordPress's PHP 8.6 images, PHP 8.6 daily, never on pull requests; the end-to-end spec runs in tests.yml beside Integration
+├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the packages' highest `extra.requires-wp` up, as WordPress's version API lists them; tests-nightly.yml runs WordPress trunk and WooCommerce's trunk build daily, never on pull requests; the end-to-end spec runs in tests.yml beside Integration
 ├── CHANGELOG.md           the one changelog of the lockstep releases, written at release from the fragments `composer changelog:add` stages in changelog/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
 ├── playwright.config.js   Playwright over tests/EndToEnd on .wp-env.tests.json's port, from configs' base; eslint.config.mjs lints the spec and both configs
@@ -51,7 +51,7 @@ wordpress-framework/
 ├── phpstan.bootstrap.neon PHPStan over packages/bootstrap and consumer-a's safeguard at the oldest PHP and WordPress the bootstrap package runs on, which its `phpVersion` and `WPCompat.requiresAtLeast` set
 ├── .wp-env.json           developer environment, as local, on port 8800; .wp-env.tests.json the Integration environment, as production; both single sites with WooCommerce
 ├── .wp-env.multisite.json a network without WooCommerce for the `multisite` and `without-woocommerce` groups; .wp-env.php74.json a site on PHP 7.4 with WordPress 6.3 for the `Php74` suite; both as production
-├── .wp-env.php86.json     the tests environment on PHP 8.6, on port 8805; .wp-env.woocommerce-nightly.json the tests environment with WooCommerce's trunk build, on port 8804; both for the nightly lanes
+├── .wp-env.woocommerce-nightly.json the tests environment with WooCommerce's trunk build, on port 8804, for the nightly lane
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -65,7 +65,7 @@ composer fixtures:build         # builds consumer-a, consumer-b, then the five p
 composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run: fixtures:build, then Integration tests without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
 composer test:integration:multisite  # starts .wp-env.multisite.json, then runs test:integration:multisite:run: fixtures:build, then the multisite and without-woocommerce groups
 composer test:integration:php74      # starts .wp-env.php74.json, then runs test:integration:php74:run: consumer-a's and the bootstrap persona's builds, then the Php74 suite with the host's PHP
-composer test:integration:php86      # starts .wp-env.php86.json, then runs test:integration:php86:run: test:integration:run's rows on PHP 8.6; test:integration:woocommerce-nightly does the same on WooCommerce's trunk build
+composer test:integration:woocommerce-nightly  # starts .wp-env.woocommerce-nightly.json, then runs test:integration:woocommerce-nightly:run: test:integration:run's rows on WooCommerce's trunk build
 composer test:integration:lowest     # starts .wp-env.tests.json, then runs test:integration:lowest:run: prefer-lowest.sh on consumer-a, its build, then its rows; rewrites its manifest and lock, which git checkout restores
 npm run lint:scripts            # ESLint over tests/EndToEnd and the Playwright and ESLint configs
 npm run test:e2e                # the Playwright spec on the running tests environment, which it starts when none listens

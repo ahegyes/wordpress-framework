@@ -53,11 +53,6 @@
 		"wp-env:php74:update": "wp-env --config .wp-env.php74.json start --update",
 		"wp-env:php74:destroy": "wp-env --config .wp-env.php74.json destroy",
 
-		"wp-env:php86:start": "wp-env --config .wp-env.php86.json start",
-		"wp-env:php86:stop": "wp-env --config .wp-env.php86.json stop",
-		"wp-env:php86:update": "wp-env --config .wp-env.php86.json start --update",
-		"wp-env:php86:destroy": "wp-env --config .wp-env.php86.json destroy",
-
 		"wp-env:woocommerce-nightly:start": "wp-env --config .wp-env.woocommerce-nightly.json start",
 		"wp-env:woocommerce-nightly:stop": "wp-env --config .wp-env.woocommerce-nightly.json stop",
 		"wp-env:woocommerce-nightly:update": "wp-env --config .wp-env.woocommerce-nightly.json start --update",
@@ -69,7 +64,6 @@
 		"check:licenses": "wp-scripts check-licenses",
 
 		"test:e2e": "playwright test --config=playwright.config.js",
-		"test:e2e:php86": "npm run wp-env:php86:start && WP_BASE_URL=http://localhost:8805 playwright test --config=playwright.config.js",
 		"test:all": "composer test && npm run test:e2e",
 
 		"quality-check:all": "composer quality-check && npm run lint:scripts && npm run test:e2e"

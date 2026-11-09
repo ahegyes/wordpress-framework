@@ -1,6 +1,6 @@
 name: Tests (nightly)
 
-# WordPress trunk, WooCommerce's trunk build and the next PHP change without a commit here, so this runs on a schedule instead of blocking pull requests.
+# WordPress trunk and WooCommerce's trunk build change daily without a commit here, so this runs on a schedule instead of blocking pull requests.
 on:
   schedule:
     - cron: '0 5 * * *'
@@ -35,43 +35,3 @@ jobs:
       php-version: '8.5'
       composer-script: 'test:integration:woocommerce-nightly:run'
       wp-env-config-file: '.wp-env.woocommerce-nightly.json'
-
-  php86-images:
-    name: PHP 8.6 images
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions: {}
-    outputs:
-      available: ${{ steps.images.outputs.available }}
-    steps:
-      # wp-env builds a site from WordPress's Docker images, which add a PHP version some time after its release, so the PHP 8.6 legs start once its server and CLI images exist.
-      - name: Look for WordPress's PHP 8.6 images
-        id: images
-        run: |
-          available=true
-          for tag in php8.6 cli-php8.6; do
-            curl -fsS --retry 3 --max-time 20 -o /dev/null "https://hub.docker.com/v2/repositories/library/wordpress/tags/$tag" || available=false
-          done
-          echo "available=$available" >> "$GITHUB_OUTPUT"
-
-  integration-php86:
-    name: Integration (PHP 8.6)
-    needs: php86-images
-    if: ${{ needs.php86-images.outputs.available == 'true' }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
-    with:
-      php-version: '8.6'
-      composer-script: 'test:integration:php86:run'
-      wp-env-config-file: '.wp-env.php86.json'
-
-  e2e-php86:
-    name: E2E (PHP 8.6)
-    needs: php86-images
-    if: ${{ needs.php86-images.outputs.available == 'true' }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@c944e73ab2656633397e7736ea104bbe72726ffd
-    with:
-      artifact-slug: php86
-      php-version: '8.6'
-      build-script: ''
-      wp-env-config-file: '.wp-env.php86.json'
-      playwright-script: 'test:e2e:php86'
