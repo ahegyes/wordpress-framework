@@ -2,7 +2,7 @@
 /**
  * Runs copies of the consumer and persona fixtures in the request: activates them on the site, defines the spec's constants and locale, skips WordPress's update check, and records how each consumer and the core persona booted, once the admin initializes and again after a plugin's activation, what consumer-a and the core persona did, and what WooCommerce logged.
  *
- * The spec may also mint the nonce of an action the request checks, relax consumer-a's export safeguard with a value, expect warnings for files a partial deploy removed, uninstall a copy, or run consumer-a's order-count export with a failing order query.
+ * The spec may also mint the nonce of an action the request checks, relax consumer-a's export safeguard with a value, expect warnings for files a partial deploy removed, uninstall a copy, fail every query that holds a given text, or run consumer-a's order-count export with a failing order query.
  *
  * @package Acme
  */
@@ -25,6 +25,10 @@ $acme_previous   = set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentF
 
 if ( isset( $spec['log'] ) ) {
 	ini_set( 'error_log', $spec['log'] ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Captures the plugin's log lines.
+}
+
+if ( '' !== ( $spec['failing_query'] ?? '' ) ) {
+	add_filter( 'query', static fn ( string $query ): string => str_contains( $query, $spec['failing_query'] ) ? 'SELECT * FROM acme_missing_table' : $query );
 }
 
 foreach ( $spec['constants'] ?? array() as $acme_name => $acme_value ) {

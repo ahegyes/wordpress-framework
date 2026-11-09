@@ -162,6 +162,18 @@ final class UninstallerOnNetworkTest extends TestCase {
 		self::assertSame( ! $constant, $this->network_option_exists( "{$this->prefix}_network_settings" ) );
 	}
 
+	public function test_the_network_pass_reads_a_global_user_meta_key_in_pages_and_deletes_every_row(): void {
+		for ( $row = 0; $row <= 1000; ++$row ) {
+			add_user_meta( $this->user, "{$this->prefix}_global_state", (string) $row );
+		}
+		$this->record_id_reads();
+
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( true ) );
+
+		self::assertFalse( $this->user_meta_exists( "{$this->prefix}_global_state" ) );
+		$this->assert_id_reads_paged();
+	}
+
 	public function test_the_network_pass_keeps_a_network_option_that_differs_only_in_letter_case(): void {
 		global $wpdb;
 		$twin = \strtoupper( "{$this->prefix}_network_settings" );

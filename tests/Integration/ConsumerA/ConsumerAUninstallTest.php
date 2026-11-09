@@ -50,6 +50,20 @@ final class ConsumerAUninstallTest extends TestCase {
 		self::assertSame( '', get_user_meta( $this->user_id, 'acme_ca_network_hidden_notices', true ) );
 	}
 
+	public function test_a_web_uninstall_whose_engine_fails_shows_its_message_and_keeps_the_data_and_the_files(): void {
+		global $wpdb;
+
+		$this->seed_footprint();
+		$plugin  = $this->install_consumer( 'consumer-a', self::DIR );
+		$request = $this->uninstall_on_the_web( $plugin, array(), "DELETE FROM `$wpdb->options` WHERE `option_name` = 'acme_ca_revision'" );
+
+		self::assertSame( 500, $request['died']['status'] ?? null );
+		self::assertStringStartsWith( 'Uninstall could not remove everything: option acme_ca_revision: ', $request['died']['message'] ?? '' );
+		self::assertFileExists( WP_PLUGIN_DIR . '/' . self::DIR . '/acme-consumer-a.php' );
+		self::assertSame( array( 'delete_data' => 'yes' ), get_option( 'acme_ca_settings' ) );
+		self::assertSame( '1', get_option( 'acme_ca_revision' ) );
+	}
+
 	#[DataProvider( 'engines_that_cannot_run' )]
 	public function test_a_web_uninstall_that_cannot_run_the_engine_keeps_the_data_logs_once_and_deletes_the_files( array $remove, array $headers ): void {
 		$this->seed_footprint();
@@ -112,7 +126,7 @@ final class ConsumerAUninstallTest extends TestCase {
 		$this->product_id = $product->save();
 	}
 
-	protected function uninstall_on_the_web( string $plugin, array $missing ): array {
+	protected function uninstall_on_the_web( string $plugin, array $missing, string $failing_query = '' ): array {
 		$this->log = (string) \tempnam( \sys_get_temp_dir(), 'acme-ca-log-' );
 
 		return $this->consumer_request(
@@ -120,9 +134,10 @@ final class ConsumerAUninstallTest extends TestCase {
 			'index.php',
 			$this->make_user( 'acme_ca_admin', 'administrator' ),
 			array(
-				'uninstall' => $plugin,
-				'missing'   => $missing,
-				'log'       => $this->log,
+				'uninstall'     => $plugin,
+				'missing'       => $missing,
+				'log'           => $this->log,
+				'failing_query' => $failing_query,
 			)
 		);
 	}

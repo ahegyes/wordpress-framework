@@ -79,6 +79,79 @@ final class UninstallerTest extends TestCase {
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 
+	public function test_a_key_on_more_rows_than_one_read_takes_is_read_in_pages_and_deleted_in_full(): void {
+		$object_id = $this->make_post( 'post', 'publish' );
+		for ( $row = 0; $row <= 1000; ++$row ) {
+			add_metadata( 'post', $object_id, "{$this->prefix}_flag", (string) $row );
+		}
+		$this->record_id_reads();
+
+		Uninstaller::run( self::PLUGIN_FILE, array( 'meta' => array( 'post' => array( "{$this->prefix}_flag" ) ) ), self::stored_consent( 'yes' )( $this->prefix ) );
+
+		self::assertFalse( $this->meta_exists( 'post', "{$this->prefix}_flag" ) );
+		$this->assert_id_reads_paged();
+	}
+
+	public function test_a_post_of_an_unregistered_type_is_deleted_with_its_term_relationships(): void {
+		global $wpdb;
+
+		$term = wp_insert_term( "$this->prefix-tagged", 'category' );
+		self::assertIsArray( $term );
+		$this->ids['term'] = (int) $term['term_id'];
+		$post_id           = $this->make_post( "{$this->prefix}_type", 'publish' );
+		wp_set_object_terms( $post_id, array( $this->ids['term'] ), 'category' );
+
+		Uninstaller::run( self::PLUGIN_FILE, array( 'post_types' => array( "{$this->prefix}_type" ) ), self::stored_consent( 'yes' )( $this->prefix ) );
+
+		self::assertFalse( $this->post_exists( $post_id ) );
+		self::assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE object_id = %d', $wpdb->term_relationships, $post_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the term cache.
+	}
+
+	public function test_a_deleted_posts_id_keeps_its_relationships_in_a_taxonomy_of_another_object_type(): void {
+		global $wpdb;
+
+		$taxonomy = "{$this->prefix}_team";
+		register_taxonomy( $taxonomy, 'user' );
+		$term = wp_insert_term( "$this->prefix-team", $taxonomy );
+		try {
+			self::assertIsArray( $term );
+			$post_id = $this->make_post( "{$this->prefix}_type", 'publish' );
+			wp_set_object_terms( $post_id, array( (int) $term['term_id'] ), $taxonomy ); // Stands for the user that shares the post's id.
+
+			Uninstaller::run( self::PLUGIN_FILE, array( 'post_types' => array( "{$this->prefix}_type" ) ), self::stored_consent( 'yes' )( $this->prefix ) );
+
+			self::assertFalse( $this->post_exists( $post_id ) );
+			self::assertSame( '1', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE object_id = %d', $wpdb->term_relationships, $post_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the term cache.
+		} finally {
+			if ( \is_array( $term ) ) {
+				wp_delete_term( (int) $term['term_id'], $taxonomy );
+			}
+			unregister_taxonomy( $taxonomy );
+		}
+	}
+
+	public function test_a_post_whose_delete_wordpress_refuses_keeps_its_term_relationships(): void {
+		global $wpdb;
+
+		$term = wp_insert_term( "$this->prefix-tagged", 'category' );
+		self::assertIsArray( $term );
+		$this->ids['term'] = (int) $term['term_id'];
+		$post_id           = $this->make_post( "{$this->prefix}_type", 'publish' );
+		wp_set_object_terms( $post_id, array( $this->ids['term'] ), 'category' );
+		add_filter( 'pre_delete_post', '__return_false' );
+
+		try {
+			Uninstaller::run( self::PLUGIN_FILE, array( 'post_types' => array( "{$this->prefix}_type" ) ), self::stored_consent( 'yes' )( $this->prefix ) );
+			self::fail( 'The refused delete was not reported.' );
+		} catch ( RuntimeException ) {
+			self::assertTrue( $this->post_exists( $post_id ) );
+		} finally {
+			remove_filter( 'pre_delete_post', '__return_false' ); // The fixtures' own deletes must not be refused.
+		}
+
+		self::assertSame( '1', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE object_id = %d', $wpdb->term_relationships, $post_id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the term cache.
+	}
+
 	public function test_the_cleanup_runs_first_while_the_footprint_and_the_consent_row_are_stored(): void {
 		$consent_option = "{$this->prefix}_cache_remove_data";
 		update_option( $consent_option, 'yes' );

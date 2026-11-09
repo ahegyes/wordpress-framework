@@ -14,6 +14,8 @@ trait UninstallFixturesTrait {
 
 	protected array $ids = array();
 
+	protected array $id_reads = array();
+
 	protected function footprint(): array {
 		$p = $this->prefix;
 
@@ -242,6 +244,25 @@ trait UninstallFixturesTrait {
 		return is_multisite()
 			? '0' !== $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE BINARY meta_key = %s', $wpdb->sitemeta, $name ) ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the network options cache.
 			: $this->option_exists( $name );
+	}
+
+	// The engine reads row ids under the alias id, one page per query.
+	protected function record_id_reads(): void {
+		add_filter(
+			'query',
+			function ( string $query ): string {
+				if ( \str_contains( $query, ' AS id, ' ) ) {
+					$this->id_reads[] = $query;
+				}
+
+				return $query;
+			}
+		);
+	}
+
+	protected function assert_id_reads_paged(): void {
+		self::assertGreaterThan( 1, \count( $this->id_reads ) );
+		self::assertSame( array(), \array_values( \array_filter( $this->id_reads, static fn ( string $query ): bool => ! \str_contains( $query, 'LIMIT 1000' ) ) ) );
 	}
 
 	protected function user_meta_exists( string $key ): bool {
