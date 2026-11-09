@@ -13,12 +13,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "c944e73ab2656633397e7736ea104bbe72726ffd"
+                "reference": "b107001cce9f2960495d9d50481c8540d228f60c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/c944e73ab2656633397e7736ea104bbe72726ffd",
-                "reference": "c944e73ab2656633397e7736ea104bbe72726ffd",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/b107001cce9f2960495d9d50481c8540d228f60c",
+                "reference": "b107001cce9f2960495d9d50481c8540d228f60c",
                 "shasum": ""
             },
             "require": {
@@ -146,7 +146,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-11-07T10:23:14+00:00"
+            "time": "2026-11-09T15:51:41+00:00"
         },
         {
             "name": "ahegyes/wp-framework-bootstrap",
@@ -154,7 +154,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../../packages/bootstrap",
-                "reference": "7e2974207d40704338c7e945fd1057dd6f2bb615"
+                "reference": "7b8b66dbf1796b00158204faf14698cc5f875a46"
             },
             "require": {
                 "php": ">=7.4"
@@ -182,7 +182,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../../packages/core",
-                "reference": "825003655db71a41d3a6b41621d06b1bca993d63"
+                "reference": "d44c1620202b9c0bcfba1cd6afd8791327a3523e"
             },
             "require": {
                 "ahegyes/wp-framework-bootstrap": "^2.0",
@@ -223,7 +223,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../../packages/settings",
-                "reference": "adf1c74fb62e86f191024a94a2fe9ed831ee010a"
+                "reference": "91a0b9646ff54feb4dd17a2cd31db78a35aee802"
             },
             "require": {
                 "ahegyes/wp-framework-core": "^2.0",
@@ -258,7 +258,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../../packages/shared",
-                "reference": "36f6c7a8ce0f9669d025e8935b6310ae2131537e"
+                "reference": "0d30eb24a6ff8c14fd8ae445ee4fc7efb8cd2dbf"
             },
             "require": {
                 "php": ">=8.5"
