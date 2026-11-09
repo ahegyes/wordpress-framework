@@ -1,59 +1,59 @@
 {
-    "name": "@ahegyes/wordpress-framework",
-    "private": true,
-    "description": "Development tooling for the wp-framework-* WordPress plugin framework monorepo.",
-    "license": "GPL-3.0-or-later",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/ahegyes/wordpress-framework.git"
-    },
-    "bugs": "https://github.com/ahegyes/wordpress-framework/issues",
-    "engines": {
-        "node": ">=26",
-        "npm": ">=11"
-    },
-    "devDependencies": {
-        "@wordpress/env": "^12.0.0",
-        "@wordpress/scripts": "^37.0.0"
-    },
-    "scripts": {
-        "setup": "npm run packages-install:all && npm run wp-env:start",
-        "packages-install:all": "composer packages-install && npm run packages-install",
-        "packages-update:all": "composer packages-update && npm run packages-update && npm run packages-update:wp",
+	"name": "@ahegyes/wordpress-framework",
+	"private": true,
+	"description": "Development tooling for the wp-framework-* WordPress plugin framework monorepo.",
+	"license": "GPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ahegyes/wordpress-framework.git"
+	},
+	"bugs": "https://github.com/ahegyes/wordpress-framework/issues",
+	"engines": {
+		"node": ">=26",
+		"npm": ">=11"
+	},
+	"devDependencies": {
+		"@wordpress/env": "^12.0.0",
+		"@wordpress/scripts": "^37.0.0"
+	},
+	"scripts": {
+		"setup": "npm run packages-install:all && npm run wp-env:start",
+		"packages-install:all": "composer packages-install && npm run packages-install",
+		"packages-update:all": "composer packages-update && npm run packages-update && npm run packages-update:wp",
 
-        "packages-install": "npm install",
-        "packages-update": "npm update",
-        "packages-update:wp": "wp-scripts packages-update",
+		"packages-install": "npm install",
+		"packages-update": "npm update",
+		"packages-update:wp": "wp-scripts packages-update",
 
-        "format:all": "composer format:php",
-        "lint:all": "composer lint:php",
+		"format:all": "composer format:php",
+		"lint:all": "composer lint:php",
 
-        "wp-env:start": "wp-env start",
-        "wp-env:stop": "wp-env stop",
-        "wp-env:update": "wp-env start --update",
-        "wp-env:destroy": "wp-env destroy",
+		"wp-env:start": "wp-env start",
+		"wp-env:stop": "wp-env stop",
+		"wp-env:update": "wp-env start --update",
+		"wp-env:destroy": "wp-env destroy",
 
-        "wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
-        "wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
-        "wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
-        "wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
+		"wp-env:tests:start": "wp-env --config .wp-env.tests.json start",
+		"wp-env:tests:stop": "wp-env --config .wp-env.tests.json stop",
+		"wp-env:tests:update": "wp-env --config .wp-env.tests.json start --update",
+		"wp-env:tests:destroy": "wp-env --config .wp-env.tests.json destroy",
 
-        "wp-env:multisite:start": "wp-env --config .wp-env.multisite.json start",
-        "wp-env:multisite:stop": "wp-env --config .wp-env.multisite.json stop",
-        "wp-env:multisite:update": "wp-env --config .wp-env.multisite.json start --update",
-        "wp-env:multisite:destroy": "wp-env --config .wp-env.multisite.json destroy",
+		"wp-env:multisite:start": "wp-env --config .wp-env.multisite.json start",
+		"wp-env:multisite:stop": "wp-env --config .wp-env.multisite.json stop",
+		"wp-env:multisite:update": "wp-env --config .wp-env.multisite.json start --update",
+		"wp-env:multisite:destroy": "wp-env --config .wp-env.multisite.json destroy",
 
-        "wp-env:php74:start": "wp-env --config .wp-env.php74.json start",
-        "wp-env:php74:stop": "wp-env --config .wp-env.php74.json stop",
-        "wp-env:php74:update": "wp-env --config .wp-env.php74.json start --update",
-        "wp-env:php74:destroy": "wp-env --config .wp-env.php74.json destroy",
+		"wp-env:php74:start": "wp-env --config .wp-env.php74.json start",
+		"wp-env:php74:stop": "wp-env --config .wp-env.php74.json stop",
+		"wp-env:php74:update": "wp-env --config .wp-env.php74.json start --update",
+		"wp-env:php74:destroy": "wp-env --config .wp-env.php74.json destroy",
 
-        "audit": "composer audit && npm audit",
-        "audit:fix": "npm audit fix",
-        "check:engines": "wp-scripts check-engines",
-        "check:licenses": "wp-scripts check-licenses",
+		"audit": "composer audit && npm audit",
+		"audit:fix": "npm audit fix",
+		"check:engines": "wp-scripts check-engines",
+		"check:licenses": "wp-scripts check-licenses",
 
-        "test:all": "composer test",
-        "quality-check:all": "composer quality-check"
-    }
+		"test:all": "composer test",
+		"quality-check:all": "composer quality-check"
+	}
 }
