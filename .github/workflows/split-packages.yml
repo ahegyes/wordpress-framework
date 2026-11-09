@@ -11,7 +11,7 @@ on:
 permissions:
   contents: read
 
-# Splits of one ref run in order, so an older run never force-pushes over a newer split.
+# Splits of one ref never run at once, and a newer pending run replaces an older one.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -22,6 +22,8 @@ jobs:
     # A dispatch from another branch would force-push that branch's split over the mirrors' trunk.
     if: github.ref == 'refs/heads/trunk' || startsWith( github.ref, 'refs/tags/v' )
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: split
     strategy:
       fail-fast: false
       matrix:
@@ -34,6 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # A branch run, a re-run included, splits the current trunk, so re-running an older run never rewinds the mirrors; a tag run splits its tagged commit.
+          ref: ${{ github.ref_type == 'tag' && github.sha || 'trunk' }}
           fetch-depth: 0
           # The default credential helper would hijack the PAT-in-URL push auth and fail with 403.
           persist-credentials: false
