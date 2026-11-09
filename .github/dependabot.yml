@@ -1,7 +1,14 @@
 version: 2
 updates:
   - package-ecosystem: composer
-    directory: /
+    directories:
+      - /
+      - /tests/Fixtures/consumer-a
+      - /tests/Fixtures/consumer-b
+      - /tests/Fixtures/personas/*
+    # configs moves only together with its 14 workflow refs and npm pin, which Dependabot cannot move.
+    ignore:
+      - dependency-name: ahegyes/wordpress-configs
     schedule:
       interval: weekly
       day: monday
