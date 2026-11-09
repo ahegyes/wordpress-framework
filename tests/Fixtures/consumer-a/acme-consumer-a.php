@@ -29,11 +29,12 @@ load_plugin_textdomain( 'acme-consumer-a', false, dirname( plugin_basename( __FI
 require_once __DIR__ . '/includes/safeguards.php'; // Before the floor gate, so the restrictions hold on any runtime that parses the plugin.
 
 $acme_ca_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
-if ( ! is_readable( $acme_ca_bootstrap ) || false === ( require_once $acme_ca_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
+if ( ! is_readable( $acme_ca_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
 	add_action( 'all_admin_notices', 'acme_ca_render_build_notice' );
 	return;
 }
 
+require_once $acme_ca_bootstrap;
 Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
 if ( ! Requirements::check_floors( __FILE__ ) ) {
 	return;

@@ -23,10 +23,11 @@ defined( 'ABSPATH' ) || exit;
 define( 'ACME_PW_FILE', __FILE__ );
 
 $acme_pw_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
-if ( ! is_readable( $acme_pw_bootstrap ) || false === ( require_once $acme_pw_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
+if ( ! is_readable( $acme_pw_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
 	return;
 }
 
+require_once $acme_pw_bootstrap;
 if ( ! Requirements::check_floors( __FILE__ ) ) {
 	return;
 }

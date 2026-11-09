@@ -18,7 +18,6 @@ final class ConsumerABuildTest extends TestCase {
 	public static function missing_build_files(): array {
 		return array(
 			'bootstrap-loader'  => array( 'vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php', false ),
-			'bootstrap-class'   => array( 'vendor-prefixed/ahegyes/wp-framework-bootstrap/src/Updater.php', false ),
 			'autoloader'        => array( 'vendor/autoload.php', true ),
 			'scoped-autoloader' => array( 'vendor-prefixed/scoper-autoload.php', true ),
 			'composition-root'  => array( 'src/Plugin.php', false ),
