@@ -3,7 +3,7 @@
 # Usage: tests/bin/build-fixture.sh tests/Fixtures/consumer-a
 set -eu
 
-dir="$1"
+dir="${1:?Usage: tests/bin/build-fixture.sh <fixture directory>}"
 
 composer validate --strict --working-dir="$dir"
 rm -rf "$dir/vendor"
