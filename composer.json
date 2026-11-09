@@ -166,7 +166,7 @@
 			"Composer\\Config::disableProcessTimeout",
 			"@putenv CI=1",
 			"@fixtures:build",
-			"node_modules/.bin/wp-env --config .wp-env.tests.json run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite --exclude-group=without-woocommerce"
+			"node_modules/.bin/wp-env --config ${WP_ENV_CONFIG_FILE:-.wp-env.tests.json} run cli --env-cwd=wp-content/mu-plugins/wp-framework vendor/bin/phpunit --testsuite=Integration --exclude-group=multisite --exclude-group=without-woocommerce"
 		],
 		"test:integration:multisite": [
 			"Composer\\Config::disableProcessTimeout",
@@ -192,6 +192,26 @@
 			"@fixtures:build:consumer-a",
 			"@fixtures:build:persona-bootstrap",
 			"@php vendor/bin/phpunit --testsuite=Php74"
+		],
+		"test:integration:php86": [
+			"Composer\\Config::disableProcessTimeout",
+			"@putenv CI=1",
+			"npm --prefix=. run wp-env:php86:start",
+			"@test:integration:php86:run"
+		],
+		"test:integration:php86:run": [
+			"@putenv WP_ENV_CONFIG_FILE=.wp-env.php86.json",
+			"@test:integration:run"
+		],
+		"test:integration:woocommerce-nightly": [
+			"Composer\\Config::disableProcessTimeout",
+			"@putenv CI=1",
+			"npm --prefix=. run wp-env:woocommerce-nightly:start",
+			"@test:integration:woocommerce-nightly:run"
+		],
+		"test:integration:woocommerce-nightly:run": [
+			"@putenv WP_ENV_CONFIG_FILE=.wp-env.woocommerce-nightly.json",
+			"@test:integration:run"
 		],
 		"test:integration:lowest": [
 			"Composer\\Config::disableProcessTimeout",
