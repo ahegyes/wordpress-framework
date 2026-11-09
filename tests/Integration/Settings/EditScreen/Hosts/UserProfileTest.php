@@ -131,7 +131,7 @@ final class UserProfileTest extends TestCase {
 		self::assertSame( array( 'O\'Brien C:\\dir' ), $this->meta( $user_id, 'name' ) );
 		self::assertSame( array( array( 'red', 'teal' ) ), $this->meta( $user_id, 'color' ) );
 		self::assertSame( array( 'kept' ), $this->meta( $user_id, 'note' ) );
-		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $next['body'] ) );
+		self::assertSame( array( 'Note was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), self::rejections( $next['body'] ) );
 		self::assertSame( array(), self::rejections( $after['body'] ) );
 	}
 
@@ -150,7 +150,7 @@ final class UserProfileTest extends TestCase {
 		}
 
 		self::assertStringStartsWith( \explode( '/', $path )[0] . '/profile.php', \explode( '/wp-admin/', (string) $saved['location'], 2 )[1] );
-		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $next['body'] ) );
+		self::assertSame( array( 'Note was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), self::rejections( $next['body'] ) );
 	}
 
 	public function test_a_core_profile_error_shows_the_forms_rejection_in_the_same_response(): void {
@@ -168,7 +168,7 @@ final class UserProfileTest extends TestCase {
 
 		self::assertNull( $saved['location'] );
 		self::assertNotNull( self::document( $saved['body'] )->querySelector( 'div.error' ) );
-		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $saved['body'] ) );
+		self::assertSame( array( 'Note was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), self::rejections( $saved['body'] ) );
 		self::assertSame( array( 'saved anyway' ), $this->meta( $this->subscriber, 'name' ) );
 	}
 

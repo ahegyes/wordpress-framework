@@ -144,6 +144,18 @@ final class FormsRenderControlTest extends TestCase {
 		self::assertFalse( self::render( 'checkbox', array(), 'no' )->getElementById( 'acme.key' )->hasAttribute( 'checked' ) );
 	}
 
+	public static function checked_values(): array {
+		return array(
+			'true' => array( true ),
+			'one'  => array( '1' ),
+		);
+	}
+
+	#[DataProvider( 'checked_values' )]
+	public function test_a_checkbox_renders_checked_for_every_value_its_sanitizer_reads_as_yes( mixed $value ): void {
+		self::assertTrue( self::render( 'checkbox', array(), $value )->getElementById( 'acme.key' )->hasAttribute( 'checked' ) );
+	}
+
 	public function test_a_checkbox_with_a_desc_is_named_by_its_title_and_labeled_by_its_desc(): void {
 		$document = self::render(
 			'checkbox',

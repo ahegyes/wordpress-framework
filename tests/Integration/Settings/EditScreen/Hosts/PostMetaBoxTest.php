@@ -64,8 +64,8 @@ final class PostMetaBoxTest extends TestCase {
 
 	public static function silent_and_worded_rejections(): array {
 		return array(
-			'worded' => array( 'acme:reject', "Customer's <b>note</b> \\o/ was not saved, so it keeps its previous value. Use at most four characters." ),
-			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> \\o/ was not saved because its value is not valid, so it keeps its previous value." ),
+			'worded' => array( 'acme:reject', "Customer's <b>note</b> \\o/ was not saved and keeps its previous value. The other changes were saved. Use at most four characters." ),
+			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> \\o/ was not saved because its value is not valid, and keeps its previous value. The other changes were saved." ),
 		);
 	}
 
@@ -426,7 +426,7 @@ final class PostMetaBoxTest extends TestCase {
 		$saved = $this->save( $spec, $post_id, array(), array( $this->id => array( "_{$this->prefix}_color" => 'black' ) ) );
 
 		self::assertSame( array( 'red' ), $this->meta( $post_id, 'color' ) );
-		self::assertSame( array( 'Color was not saved, so it keeps its previous value. Choose one of the available options.' ), self::rejections( $this->follow( $spec, $saved )['body'] ) );
+		self::assertSame( array( 'Color was not saved and keeps its previous value. The other changes were saved. Choose one of the available options.' ), self::rejections( $this->follow( $spec, $saved )['body'] ) );
 	}
 
 	public function test_a_new_post_renders_defaults_and_saves_them_on_publish(): void {
@@ -682,7 +682,7 @@ final class PostMetaBoxTest extends TestCase {
 
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'note' ) );
 		self::assertNotNull( self::document( $redirected['body'] )->querySelector( 'form.metabox-base-form' ) );
-		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), \array_column( $delivered, 'content' ) );
+		self::assertSame( array( 'Note was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), \array_column( $delivered, 'content' ) );
 		self::assertSame( array(), self::rejections( $list['body'] ) );
 	}
 

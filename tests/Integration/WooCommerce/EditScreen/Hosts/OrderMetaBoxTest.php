@@ -58,8 +58,8 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public static function silent_and_worded_rejections(): array {
 		return array(
-			'worded' => array( 'acme:reject', "Customer's <b>note</b> \\o/ was not saved, so it keeps its previous value. Use at most four characters." ),
-			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> \\o/ was not saved because its value is not valid, so it keeps its previous value." ),
+			'worded' => array( 'acme:reject', "Customer's <b>note</b> \\o/ was not saved and keeps its previous value. The other changes were saved. Use at most four characters." ),
+			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> \\o/ was not saved because its value is not valid, and keeps its previous value. The other changes were saved." ),
 		);
 	}
 
@@ -404,7 +404,7 @@ final class OrderMetaBoxTest extends TestCase {
 		$saved = $this->posts_save( $spec, $order->get_id(), array( $this->control_name( 'note' ) => 'too long' ) );
 
 		self::assertSame( array( 'kept' ), $this->meta( $order->get_id(), 'note' ) );
-		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $this->follow( $spec, $saved )['body'] ) );
+		self::assertSame( array( 'Note was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), self::rejections( $this->follow( $spec, $saved )['body'] ) );
 	}
 
 	protected function spec( array $fields, array $form = array(), array $extra = array() ): array {

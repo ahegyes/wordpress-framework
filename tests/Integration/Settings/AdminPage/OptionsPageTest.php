@@ -146,7 +146,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
-		self::assertSame( array( 'Name was not saved, so it keeps its previous value. Use at most four characters.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
+		self::assertSame( array( 'Name was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	#[DataProvider( 'parents' )]
@@ -168,7 +168,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
-		self::assertSame( array( 'Name was not saved because its value is not valid, so it keeps its previous value.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
+		self::assertSame( array( 'Name was not saved because its value is not valid, and keeps its previous value. The other changes were saved.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_a_built_in_rejection_carries_what_to_enter(): void {
@@ -179,7 +179,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( array( 'email' => 'ops@example.com' ), get_option( $this->option ) );
-		self::assertSame( array( 'Email was not saved, so it keeps its previous value. Enter a valid email address, such as name@example.com.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
+		self::assertSame( array( 'Email was not saved and keeps its previous value. The other changes were saved. Enter a valid email address, such as name@example.com.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_titles_and_messages_print_as_text_and_an_untitled_field_is_labelled_and_named_by_its_id(): void {
@@ -208,8 +208,8 @@ final class OptionsPageTest extends TestCase {
 		self::assertNull( self::document( $form )->querySelector( 'form em' ) );
 		self::assertSame(
 			array(
-				'<em>Email</em> was not saved, so it keeps its previous value. Enter a valid email address, such as name@example.com.',
-				'site was not saved, so it keeps its previous value. Enter a valid URL, such as https://example.com.',
+				'<em>Email</em> was not saved and keeps its previous value. The other changes were saved. Enter a valid email address, such as name@example.com.',
+				'site was not saved and keeps its previous value. The other changes were saved. Enter a valid URL, such as https://example.com.',
 			),
 			self::notices( $page )
 		);

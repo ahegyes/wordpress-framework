@@ -28,7 +28,10 @@ final class FormsSanitizeValueTest extends TestCase {
 		return array(
 			'text-strips-tags-and-trims'        => array( 'text', '  <b>Hi</b> there ', 'Hi there' ),
 			'text-stringifies-an-int'           => array( 'text', 5, '5' ),
+			'text-keeps-a-lone-less-than'       => array( 'text', 'a < b', 'a < b' ),
+			'text-reads-a-typed-entity-as-text' => array( 'text', 'a &lt; b', 'a < b' ),
 			'textarea-keeps-newlines'           => array( 'textarea', "One\n<b>two</b>", "One\ntwo" ),
+			'textarea-keeps-a-lone-less-than'   => array( 'textarea', "1 < 2\nOne", "1 < 2\nOne" ),
 			'email-is-trimmed'                  => array( 'email', ' ops@example.com ', 'ops@example.com' ),
 			'email-cleared'                     => array( 'email', '', '' ),
 			'url-is-kept'                       => array( 'url', 'https://example.com/a?b=c', 'https://example.com/a?b=c' ),

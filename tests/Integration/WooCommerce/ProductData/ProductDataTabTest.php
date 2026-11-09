@@ -49,8 +49,8 @@ final class ProductDataTabTest extends TestCase {
 
 	public static function silent_and_worded_rejections(): array {
 		return array(
-			'worded' => array( 'acme:reject', "Customer's <b>note</b> was not saved, so it keeps its previous value. Use at most four characters." ),
-			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> was not saved because its value is not valid, so it keeps its previous value." ),
+			'worded' => array( 'acme:reject', "Customer's <b>note</b> was not saved and keeps its previous value. The other changes were saved. Use at most four characters." ),
+			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> was not saved because its value is not valid, and keeps its previous value. The other changes were saved." ),
 		);
 	}
 
@@ -481,7 +481,7 @@ final class ProductDataTabTest extends TestCase {
 	}
 
 	public function test_text_holding_html_entities_survives_an_unchanged_save(): void {
-		$stored  = 'Use &lt;b&gt;bold&lt;/b&gt; &amp; more';
+		$stored  = 'Use &quot;bold&quot; &gt; plain &amp; more';
 		$product = $this->make_product( array( "_{$this->prefix}_name" => $stored ) );
 		$spec    = $this->spec( array( $this->group( array( $this->field( 'text', 'name' ) ) ) ) );
 
@@ -535,7 +535,7 @@ final class ProductDataTabTest extends TestCase {
 		$this->save( $spec, $product->get_id(), array(), array( "_{$this->prefix}_color" => 'purple' ) );
 
 		self::assertSame( array( 'red' ), $this->meta( $product, 'color' ) );
-		self::assertSame( array( 'Color was not saved, so it keeps its previous value. Choose one of the available options.' ), $this->errors( $spec, $product ) );
+		self::assertSame( array( 'Color was not saved and keeps its previous value. The other changes were saved. Choose one of the available options.' ), $this->errors( $spec, $product ) );
 	}
 
 	#[DataProvider( 'silent_and_worded_rejections' )]
@@ -632,7 +632,7 @@ final class ProductDataTabTest extends TestCase {
 		$this->save( $spec, $product->get_id(), array(), array( "_{$this->prefix}_colors" => array( 'purple' ) ) );
 
 		self::assertSame( array( array( 'blue' ) ), $this->meta( $product, 'colors' ) );
-		self::assertSame( array( 'Colors was not saved, so it keeps its previous value. Choose one of the available options.' ), $this->errors( $spec, $product ) );
+		self::assertSame( array( 'Colors was not saved and keeps its previous value. The other changes were saved. Choose one of the available options.' ), $this->errors( $spec, $product ) );
 	}
 
 	public function test_a_custom_type_field_stores_its_validates_return_value_under_its_key(): void {
@@ -652,7 +652,7 @@ final class ProductDataTabTest extends TestCase {
 		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_widget" => 'v' ) );
 
 		self::assertSame( array( 'old' ), $this->meta( $product, 'widget' ) );
-		self::assertSame( array( 'Widget was not saved, so it keeps its previous value. This field cannot be saved because nothing validates its value.' ), $this->errors( $spec, $product ) );
+		self::assertSame( array( 'Widget was not saved and keeps its previous value. The other changes were saved. This field cannot be saved because nothing validates its value.' ), $this->errors( $spec, $product ) );
 	}
 
 	public function test_an_unsupported_product_never_saves_the_tabs_fields(): void {

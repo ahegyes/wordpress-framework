@@ -36,7 +36,7 @@ final class SettingsPersonaTest extends TestCase {
 		self::assertIsString( $saved['location'] );
 
 		$page = $this->consumer_request( 'GET', \explode( '/wp-admin/', $saved['location'], 2 )[1], $saved['user'], $saved['spec'] );
-		self::assertStringContainsString( 'Limit was not saved, so it keeps its previous value. Enter a whole number of at least 1.', $page['body'] );
+		self::assertStringContainsString( 'Limit was not saved and keeps its previous value. The other changes were saved. Enter a whole number of at least 1.', $page['body'] );
 	}
 
 	// Posts the settings tab as the browser submits it after the user typed the limit.
