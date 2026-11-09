@@ -99,7 +99,7 @@ final class OptionsPage {
 	 */
 	public function register_settings(): void {
 		foreach ( \array_unique( \array_column( $this->get_page()['tabs'], 'option' ) ) as $option ) {
-			register_setting( $option, $option );
+			register_setting( $option, $option, array( 'type' => 'object' ) );
 			add_filter( "option_page_capability_$option", array( $this, 'get_capability' ) );
 			add_filter( "pre_update_option_$option", array( $this, 'sanitize_submission' ), 10, 3 );
 		}

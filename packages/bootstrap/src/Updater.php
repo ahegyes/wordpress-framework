@@ -223,7 +223,7 @@ final class Updater {
 			}
 		}
 
-		$entry_file = null === $package ? null : self::get_response_body( "https://raw.githubusercontent.com/{$config['repository']}/" . \rawurlencode( $tag ) . "/{$config['file']}" );
+		$entry_file = null === $package ? null : self::get_response_body( "https://raw.githubusercontent.com/{$config['repository']}/" . \rawurlencode( $tag ) . "/{$config['file']}" ); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Reads the release's plugin headers, never served to visitors.
 		if ( null !== $entry_file ) {
 			// WordPress's get_file_data() reads only paths, so the fetched entry file is parsed with the same pattern.
 			$entry_file   = \str_replace( "\r", "\n", \substr( $entry_file, 0, 8 * KB_IN_BYTES ) );
