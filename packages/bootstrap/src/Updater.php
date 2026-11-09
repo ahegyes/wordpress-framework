@@ -9,6 +9,9 @@ namespace DeepWebSolutions\Framework\Bootstrap;
  *
  * @since   2.0.0
  * @version 2.0.0
+ *
+ * @phpstan-type Config array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, author: string, homepage: string, file: string}
+ * @phpstan-type Release array{version: string, package: string, url: string, body: string, last_updated: string, requires: string, requires_php: string, tested: string}
  */
 final class Updater {
 	// region MAGIC METHODS
@@ -120,7 +123,7 @@ final class Updater {
 	 *
 	 * @param   string $plugin_file The path to the plugin's entry file.
 	 *
-	 * @return  array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, author: string, homepage: string, file: string}|null
+	 * @return  Config|null
 	 */
 	protected static function get_updater_config( string $plugin_file ): ?array {
 		if ( ! \function_exists( 'get_plugin_data' ) ) {
@@ -183,9 +186,9 @@ final class Updater {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, author: string, homepage: string, file: string} $config The plugin's updater configuration.
+	 * @param   Config $config The plugin's updater configuration.
 	 *
-	 * @return  array{version: string, package: string, url: string, body: string, last_updated: string, requires: string, requires_php: string, tested: string}|null
+	 * @return  Release|null
 	 */
 	protected static function get_release( array $config ): ?array {
 		$transient = "{$config['slug']}_github_release_{$config['channel']}";
@@ -275,7 +278,7 @@ final class Updater {
 	 *
 	 * @param   mixed $value The candidate record.
 	 *
-	 * @return  array{version: string, package: string, url: string, body: string, last_updated: string, requires: string, requires_php: string, tested: string}|null
+	 * @return  Release|null
 	 */
 	protected static function read_release( $value ): ?array {
 		if ( ! \is_array( $value ) ) {
