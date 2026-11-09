@@ -1,3 +1,4 @@
+.wp-env*.override.json
 tests/.cache
 tests/Fixtures/consumer-a/vendor/
 tests/Fixtures/consumer-a/vendor-prefixed/
@@ -39,8 +40,7 @@ composer.phar
 .LSOverride
 
 # Icon must end with two \r
-Icon
-
+Icon
 
 # Thumbnails
 ._*
