@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\EditScreen\Stores;
 
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\WooCommerce\EditScreen\OrderFixturesTrait;
@@ -61,6 +62,39 @@ final class OrderMetaStoreTest extends TestCase {
 
 		self::assertSame( array( 'O\'Brien C:\\dir' ), $this->order_meta( $order->get_id(), "_{$this->prefix}_text" ) );
 		self::assertSame( array( array( 'red', 'teal' ) ), $this->order_meta( $order->get_id(), "_{$this->prefix}_list" ) );
+	}
+
+	public static function storages_and_unstorable_values(): array {
+		$object = (object) array( 'path' => 'C:\\reports' );
+
+		return array(
+			'order-tables-object'        => array( 'hpos', $object ),
+			'order-tables-nested-object' => array( 'hpos', array( 'red', array( $object ) ) ),
+			'posts-table-object'         => array( 'posts', $object ),
+			'posts-table-nested-object'  => array( 'posts', array( 'red', array( $object ) ) ),
+		);
+	}
+
+	#[DataProvider( 'storages_and_unstorable_values' )]
+	public function test_a_value_holding_anything_but_scalars_null_and_arrays_throws_before_any_key_is_written( string $storage, mixed $value ): void {
+		$this->use_order_storage( $storage );
+		$order = $this->make_order();
+
+		try {
+			( new OrderMetaStore() )->update_values(
+				$order->get_id(),
+				array(
+					"_{$this->prefix}_first" => 'Written first.',
+					"_{$this->prefix}_value" => $value,
+				)
+			);
+			self::fail( 'The store wrote a value it cannot keep.' );
+		} catch ( InvalidArgumentException $exception ) {
+			self::assertStringContainsString( "_{$this->prefix}_value", $exception->getMessage() );
+		}
+
+		self::assertSame( array(), $this->order_meta( $order->get_id(), "_{$this->prefix}_first" ) );
+		self::assertSame( array(), $this->order_meta( $order->get_id(), "_{$this->prefix}_value" ) );
 	}
 
 	#[DataProvider( 'order_storages' )]

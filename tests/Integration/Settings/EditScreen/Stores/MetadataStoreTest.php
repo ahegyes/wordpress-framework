@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Settings\EditScreen\Stores;
 
 use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\After;
@@ -75,6 +76,34 @@ final class MetadataStoreTest extends TestCase {
 
 		self::assertSame( array( 'O\'Brien C:\\dir' ), get_metadata( $meta_type, $object_id, "_{$this->prefix}_text", false ) );
 		self::assertSame( array( array( 'C:\\dir', 'red' ) ), get_metadata( $meta_type, $object_id, "_{$this->prefix}_list", false ) );
+	}
+
+	public static function unstorable_values(): array {
+		return array(
+			'object'        => array( (object) array( 'path' => 'C:\\reports' ) ),
+			'nested-object' => array( array( 'red', array( (object) array( 'path' => 'C:\\reports' ) ) ) ),
+		);
+	}
+
+	#[DataProvider( 'unstorable_values' )]
+	public function test_a_value_holding_anything_but_scalars_null_and_arrays_throws_before_any_key_is_written( mixed $value ): void {
+		$object_id = $this->make_object( 'post' );
+
+		try {
+			( new MetadataStore( 'post' ) )->update_values(
+				$object_id,
+				array(
+					"_{$this->prefix}_first" => 'Written first.',
+					"_{$this->prefix}_value" => $value,
+				)
+			);
+			self::fail( 'The store wrote a value it cannot keep.' );
+		} catch ( InvalidArgumentException $exception ) {
+			self::assertStringContainsString( "_{$this->prefix}_value", $exception->getMessage() );
+		}
+
+		self::assertSame( array(), get_metadata( 'post', $object_id, "_{$this->prefix}_first", false ) );
+		self::assertSame( array(), get_metadata( 'post', $object_id, "_{$this->prefix}_value", false ) );
 	}
 
 	#[DataProvider( 'meta_types' )]
