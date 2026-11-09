@@ -53,7 +53,7 @@
 		"wp-env:php74:update": "wp-env --config .wp-env.php74.json start --update",
 		"wp-env:php74:destroy": "wp-env --config .wp-env.php74.json destroy",
 
-		"audit": "composer audit && npm audit",
+		"audit": "composer audit --locked --abandoned=report && npm audit --omit=dev --audit-level=high",
 		"audit:fix": "npm audit fix",
 		"check:engines": "wp-scripts check-engines",
 		"check:licenses": "wp-scripts check-licenses",

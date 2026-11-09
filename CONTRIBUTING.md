@@ -16,8 +16,7 @@ npm run lint:scripts
 npm run test:e2e
 composer test:integration:lowest
 git checkout tests/Fixtures/consumer-a/composer.json tests/Fixtures/consumer-a/composer.lock
-composer audit --locked
-npm audit --omit=dev --audit-level=high
+npm run audit
 actionlint
 zizmor .github/
 ```

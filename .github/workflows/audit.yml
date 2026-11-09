@@ -17,7 +17,5 @@ permissions:
 jobs:
   audit:
     name: Audit
-    # Dev-dependency advisories surface through Dependabot alerts instead of failing this gate.
+    # npm's dev-dependency advisories surface through Dependabot alerts instead of failing this gate.
     uses: ahegyes/wordpress-configs/.github/workflows/reusable-supply-chain-audit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
-    with:
-      npm-audit-flags: '--omit=dev --audit-level=high'

@@ -66,7 +66,7 @@ composer test:integration:php74      # starts .wp-env.php74.json, then runs test
 composer test:integration:lowest     # starts .wp-env.tests.json, then runs test:integration:lowest:run: prefer-lowest.sh on consumer-a, its build, then its rows; rewrites its manifest and lock, which git checkout restores
 npm run lint:scripts            # ESLint over tests/EndToEnd and the Playwright and ESLint configs
 npm run test:e2e                # the Playwright spec on the running tests environment, which it starts when none listens
-composer audit --locked && npm audit --omit=dev --audit-level=high   # every Composer package, but only npm's runtime packages, of which there are none
+composer audit --locked --abandoned=report && npm audit --omit=dev --audit-level=high   # every Composer package, but only npm's runtime packages, of which there are none
 actionlint && zizmor .github/
 ```
 
