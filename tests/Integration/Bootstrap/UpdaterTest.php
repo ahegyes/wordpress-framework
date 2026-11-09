@@ -20,6 +20,8 @@ final class UpdaterTest extends TestCase {
 
 	protected array $requests = array();
 
+	protected array $accepts = array();
+
 	#[\Override]
 	public static function setUpBeforeClass(): void {
 		require_once \dirname( __DIR__, 3 ) . '/packages/bootstrap/load.php';
@@ -64,6 +66,7 @@ final class UpdaterTest extends TestCase {
 				},
 			),
 			'tag-not-a-version'       => array( static fn ( self $test ) => $test->stage_latest( $test->release( 'preview' ) ) ),
+			'unflagged-prerelease'    => array( static fn ( self $test ) => $test->stage_latest( $test->release( 'v2.1.0-beta.1' ) ) ),
 			'requirement-not-version' => array( static fn ( self $test ) => $test->stage_latest( $test->release( 'v2.0.0' ), '', array( 'Requires PHP' => '8.1<img src=x onerror=alert(1)>' ) ) ),
 		);
 	}
@@ -74,7 +77,8 @@ final class UpdaterTest extends TestCase {
 			'stable-successor'               => array( '1.2.0-beta.2', array( 'v1.2.0', 'v1.2.0-beta.2' ), '1.2.0' ),
 			'word-tag-listed'                => array( '1.1.0-beta.1', array( 'preview', 'v1.2.0-beta.1' ), '1.2.0-beta.1' ),
 			'unordered-label-listed'         => array( '2.1.0-beta.1', array( 'v2.1.0', 'v2.1.0-pre.1' ), '2.1.0' ),
-			'uppercase-label'                => array( '2.1.0-beta.1', array( 'v2.1.0-RC1' ), '2.1.0-RC1' ),
+			'uppercase-label-listed'         => array( '2.0.0-beta.1', array( 'v2.1.0-RC1', 'v2.0.0' ), '2.0.0' ),
+			'mixed-case-label-listed'        => array( '2.0.0-beta.1', array( 'v2.1.0-Beta.2', 'v2.0.0' ), '2.0.0' ),
 		);
 	}
 
@@ -276,7 +280,7 @@ final class UpdaterTest extends TestCase {
 	#[DataProvider( 'channel_switches' )]
 	public function test_each_channel_caches_separately_so_a_switch_never_serves_the_other_channels_release( string $first_version, string $first_path, string $second_version, string $second_path ): void {
 		Updater::register( $this->write_plugin( $this->slug, array( 'Version' => $first_version ) ) );
-		$this->stage_release_at( $first_path, $this->release( 'v3.0.0-beta.1' ) );
+		$this->stage_release_at( $first_path, $this->release( 'v3.0.0' ) );
 		$this->check_for_updates();
 
 		$this->write_plugin( $this->slug, array( 'Version' => $second_version ) );
@@ -289,12 +293,25 @@ final class UpdaterTest extends TestCase {
 	}
 
 	public function test_details_for_its_own_slug_show_the_cached_release_without_another_request(): void {
-		Updater::register( $this->write_plugin( $this->slug ) );
+		Updater::register(
+			$this->write_plugin(
+				$this->slug,
+				array(
+					'Author'     => 'Acme',
+					'Plugin URI' => 'https://example.org/acme-updater',
+				)
+			)
+		);
 		$requirements = array(
 			'Requires at least' => '6.0',
 			'Requires PHP'      => '8.1',
+			'Tested up to'      => '7.1',
 		);
-		$this->stage_latest( array( 'body' => "Fixes <b>the</b> widget.\nAdds a setting." ) + $this->release( 'v2.0.0' ), '', $requirements );
+		$release      = array(
+			'body_html'    => '<p>Fixes <b>the</b> widget.</p>',
+			'published_at' => '2026-11-02T09:30:00Z',
+		);
+		$this->stage_latest( $release + $this->release( 'v2.0.0' ), '', $requirements );
 		$this->check_for_updates();
 
 		$details = plugins_api( 'plugin_information', array( 'slug' => $this->slug ) );
@@ -306,9 +323,15 @@ final class UpdaterTest extends TestCase {
 		self::assertSame( $this->asset_url( 'v2.0.0' ), $details->download_link );
 		self::assertSame( '6.0', $details->requires );
 		self::assertSame( '8.1', $details->requires_php );
+		self::assertSame( '7.1', $details->tested );
+		self::assertSame( 'Acme', $details->author );
+		self::assertSame( 'https://example.org/acme-updater', $details->homepage );
+		self::assertSame( '2026-11-02T09:30:00Z', $details->last_updated );
 		self::assertTrue( $details->external );
-		self::assertSame( "Fixes &lt;b&gt;the&lt;/b&gt; widget.<br />\nAdds a setting.", $details->sections['changelog'] );
+		self::assertSame( '<p>Fixes <b>the</b> widget.</p>', $details->sections['changelog'] );
 		self::assertCount( 2, $this->requests );
+		self::assertSame( 'application/vnd.github.html+json', $this->accepts[ $this->api_url( 'releases/latest' ) ] ?? null );
+		self::assertSame( array( 'version', 'package', 'url', 'body', 'last_updated', 'requires', 'requires_php', 'tested' ), \array_keys( get_transient( "{$this->slug}_github_release_stable" ) ) );
 	}
 
 	public function test_details_for_its_own_slug_stay_local_without_a_release(): void {
@@ -384,6 +407,7 @@ final class UpdaterTest extends TestCase {
 		$requirements = array(
 			'Requires at least' => '5.8',
 			'Requires PHP'      => '99',
+			'Tested up to'      => '7.1',
 		);
 		$this->stage_latest( $this->release( 'v2.0.0' ), '', $requirements );
 
@@ -392,6 +416,16 @@ final class UpdaterTest extends TestCase {
 		self::assertIsObject( $offer );
 		self::assertSame( '5.8', $offer->requires );
 		self::assertSame( '99', $offer->requires_php );
+		self::assertSame( '7.1', $offer->tested );
+	}
+
+	public function test_a_tested_version_that_is_not_a_version_reaches_the_offer_as_it_is(): void {
+		Updater::register( $this->write_plugin( $this->slug ) );
+		$this->stage_latest( $this->release( 'v2.0.0' ), '', array( 'Tested up to' => '7.1 beta' ) );
+
+		$offer = $this->check_for_updates()->response[ $this->basename() ] ?? null;
+
+		self::assertSame( '7.1 beta', $offer->tested ?? null );
 	}
 
 	public function test_an_offer_needing_a_newer_wordpress_is_withheld(): void {
@@ -486,7 +520,8 @@ final class UpdaterTest extends TestCase {
 		}
 
 		if ( \in_array( wp_parse_url( $url, \PHP_URL_HOST ), array( 'api.github.com', 'raw.githubusercontent.com' ), true ) ) {
-			$this->requests[] = $url;
+			$this->requests[]      = $url;
+			$this->accepts[ $url ] = $args['headers']['Accept'] ?? null;
 		}
 
 		return $this->responses[ $url ] ?? new \WP_Error( 'http_request_failed', "Nothing answers $url." );
