@@ -39,9 +39,9 @@ jobs:
       - name: List the newest release of every branch from the floor up
         id: versions
         run: |
-          floor=$(jq -rs '[.[].extra["requires-wp"] // empty] | max_by(split(".") | map(tonumber)) // error("No package declares extra.requires-wp.")' packages/*/composer.json)
-          offers=$(curl -fsS https://api.wordpress.org/core/version-check/1.7/)
-          versions=$(printf '%s' "$offers" | jq -c --arg floor "$floor" '[.offers[].version | select((split(".")[0:2] | map(tonumber)) >= ($floor | split(".") | map(tonumber)))] | unique | if length == 0 then error("No WordPress release at or above \($floor).") else . end')
+          floor=$(jq -rs 'def v: split(".") | map(tonumber) | . + [0, 0] | .[0:3]; [.[].extra["requires-wp"] // empty] | max_by(v) // error("No package declares extra.requires-wp.")' packages/*/composer.json)
+          offers=$(curl -fsS --retry 3 --retry-all-errors --max-time 20 https://api.wordpress.org/core/version-check/1.7/)
+          versions=$(printf '%s' "$offers" | jq -c --arg floor "$floor" 'def v: split(".") | map(tonumber) | . + [0, 0] | .[0:3]; [.offers[].version | select(v >= ($floor | v))] | unique | if length == 0 then error("No WordPress release at or above \($floor).") else . end')
           echo "versions=$versions" >> "$GITHUB_OUTPUT"
 
   integration:
