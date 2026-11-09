@@ -103,11 +103,11 @@ $wp_filter['woocommerce_prevent_automatic_wizard_redirect'][10][] = array( // ph
 	'accepted_args' => 0,
 );
 
-// WordPress's update checks give WordPress.org a few seconds and warn when it answers late, which would fail the request's test, so they read an answer with no updates.
+// WordPress's update checks give WordPress.org a few seconds and warn when it answers late, which would fail the request's test, so they read an answer listing no updates, with every key wp_update_themes() reads unguarded.
 $wp_filter['pre_http_request'][10][] = array( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Hooks the request before WordPress loads.
 	'function'      => static fn ( mixed $response, array $args, string $url ): mixed => 1 === preg_match( '#^https?://api\.wordpress\.org/(core/version-check|plugins/update-check|themes/update-check)/#', $url ) ? array(
 		'headers'  => array(),
-		'body'     => '{}',
+		'body'     => '{"plugins":[],"themes":[],"no_update":[],"translations":[]}',
 		'response' => array(
 			'code'    => 200,
 			'message' => 'OK',
