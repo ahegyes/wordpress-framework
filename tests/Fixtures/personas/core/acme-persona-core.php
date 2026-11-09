@@ -20,11 +20,10 @@ defined( 'ABSPATH' ) || exit;
 define( 'ACME_PC_FILE', __FILE__ );
 
 $acme_pc_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
-if ( ! is_readable( $acme_pc_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
+if ( ! is_readable( $acme_pc_bootstrap ) || false === ( require_once $acme_pc_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
 	return;
 }
 
-require_once $acme_pc_bootstrap;
 if ( ! Requirements::check_floors( __FILE__ ) ) {
 	return;
 }

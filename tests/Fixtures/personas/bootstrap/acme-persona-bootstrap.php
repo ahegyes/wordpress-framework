@@ -20,11 +20,10 @@ use Acme\PersonaBootstrap\Scoped\DeepWebSolutions\Framework\Bootstrap\Updater;
 defined( 'ABSPATH' ) || exit;
 
 $acme_pb_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
-if ( ! is_readable( $acme_pb_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
+if ( ! is_readable( $acme_pb_bootstrap ) || false === ( require_once $acme_pb_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
 	return;
 }
 
-require_once $acme_pb_bootstrap;
 Updater::register( __FILE__ ); // Before the floor gate, so a release that lowers the floors still reaches a site below them.
 if ( ! Requirements::check_floors( __FILE__ ) ) {
 	return;
