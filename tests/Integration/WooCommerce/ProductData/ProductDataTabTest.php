@@ -310,6 +310,61 @@ final class ProductDataTabTest extends TestCase {
 		self::assertNull( $screen->querySelector( "input[type=hidden][name=\"_{$this->prefix}_flag\"]" ) );
 	}
 
+	public function test_a_disabled_radio_renders_every_choice_disabled_and_keeps_its_value(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_color" => 'blue' ) );
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						$this->field(
+							'radio',
+							'color',
+							array(
+								'options'           => self::COLORS,
+								'custom_attributes' => array( 'disabled' => 'disabled' ),
+							)
+						),
+					)
+				),
+			)
+		);
+
+		$screen = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
+		$inputs = \iterator_to_array( $screen->querySelectorAll( "fieldset.form-field input[type=radio][name=\"_{$this->prefix}_color\"]" ) );
+		$this->save( $spec, $product->get_id(), array( "_{$this->prefix}_color" => 'red' ) );
+
+		self::assertCount( \count( self::COLORS ), $inputs );
+		self::assertSame( array( true, true, true ), \array_map( static fn ( \Dom\Element $input ): bool => $input->hasAttribute( 'disabled' ), $inputs ) );
+		self::assertSame( array( 'blue' ), $this->meta( $product, 'color' ) );
+	}
+
+	public function test_a_stored_choice_that_is_disabled_renders_disabled_and_saves_without_a_rejection(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_color" => 'blue' ) );
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						$this->field(
+							'radio',
+							'color',
+							array(
+								'options'  => self::COLORS,
+								'disabled' => array( 'blue' ),
+							)
+						),
+					)
+				),
+			)
+		);
+
+		$screen = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
+		$this->save( $spec, $product->get_id() );
+
+		self::assertTrue( $screen->querySelector( "fieldset.form-field input[type=radio][name=\"_{$this->prefix}_color\"][value=\"blue\"]" )?->hasAttribute( 'disabled' ) );
+		self::assertSame( array( 'blue' ), $this->meta( $product, 'color' ) );
+		self::assertSame( array(), $this->errors( $spec, $product ) );
+	}
+
 	public function test_an_unlabelled_field_is_labelled_by_its_id(): void {
 		$product = $this->make_product();
 		$field   = $this->field( 'text', 'name' );
@@ -490,6 +545,42 @@ final class ProductDataTabTest extends TestCase {
 
 		self::assertSame( $stored, $this->control( $screen, 'name' )->getAttribute( 'value' ) );
 		self::assertSame( array( $stored ), $this->meta( $product, 'name' ) );
+	}
+
+	// An email address cannot hold a semicolon, so its value carries the ampersand and the quote that its markup escapes.
+	public static function values_holding_entities_and_quotes(): array {
+		return array(
+			'textarea' => array( 'textarea', 'Use "bold" &amp; more', array() ),
+			'radio'    => array(
+				'radio',
+				'Tom &amp; "Jerry"',
+				array(
+					'options' => array(
+						'plain'             => 'Plain',
+						'Tom &amp; "Jerry"' => 'Both',
+					),
+				),
+			),
+			'email'    => array( 'email', "o'neil&co@example.com", array() ),
+			'url'      => array( 'url', "https://example.com/?q='x'&amp;page=2", array() ),
+		);
+	}
+
+	#[DataProvider( 'values_holding_entities_and_quotes' )]
+	public function test_a_value_holding_entities_and_quotes_renders_and_survives_an_unchanged_save( string $type, string $stored, array $keys ): void {
+		$product = $this->make_product( array( "_{$this->prefix}_value" => $stored ) );
+		$spec    = $this->spec( array( $this->group( array( $this->field( $type, 'value', $keys ) ) ) ) );
+
+		$screen = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] );
+		$this->save( $spec, $product->get_id() );
+
+		$shown = match ( $type ) {
+			'textarea' => $this->control( $screen, 'value' )->textContent, // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+			'radio'    => $screen->querySelector( "input[type=radio][name=\"_{$this->prefix}_value\"][checked]" )?->getAttribute( 'value' ),
+			default    => $this->control( $screen, 'value' )->getAttribute( 'value' ),
+		};
+		self::assertSame( $stored, $shown );
+		self::assertSame( array( $stored ), $this->meta( $product, 'value' ) );
 	}
 
 	public function test_a_field_without_validate_is_sanitized_by_its_type(): void {

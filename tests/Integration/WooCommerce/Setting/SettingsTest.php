@@ -78,6 +78,33 @@ final class SettingsTest extends TestCase {
 		new SettingsSection( $id, $this->registered_section( 'products' ), $this->fields_definition() );
 	}
 
+	public static function ids_woocommerce_rewrites(): array {
+		return array(
+			'double-hyphen'   => array( 'acme--settings' ),
+			'trailing-hyphen' => array( 'acme-settings-' ),
+		);
+	}
+
+	#[DataProvider( 'ids_woocommerce_rewrites' )]
+	public function test_an_id_woocommerce_would_rewrite_is_rejected_as_a_tab_id_a_section_key_and_a_section_id( string $id ): void {
+		$builds = array(
+			'tab-id'      => fn (): SettingsTab => new SettingsTab( $id, $this->tab( array() ), $this->fields_definition() ),
+			'section-key' => fn (): SettingsTab => new SettingsTab( $this->prefix, $this->tab( array( $id => 'Acme' ) ), $this->fields_definition() ),
+			'section-id'  => fn (): SettingsSection => new SettingsSection( $id, $this->registered_section( 'products' ), $this->fields_definition() ),
+		);
+
+		$rejected = array();
+		foreach ( $builds as $kind => $build ) {
+			try {
+				$build();
+			} catch ( InvalidArgumentException ) {
+				$rejected[] = $kind;
+			}
+		}
+
+		self::assertSame( \array_keys( $builds ), $rejected );
+	}
+
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_tab_and_section_id( string $id ): void {
 		self::assertSame( $id, ( new SettingsTab( $id, $this->tab( array() ), $this->fields_definition() ) )->get_id() );
