@@ -1,4 +1,4 @@
-# The plugin runs on PHP 7.4 and WordPress 5.8, so it is analyzed there; the WordPress extensions are listed here because composer.json keeps them from installing themselves, and before configs' profile because wp-compat's neon resets WPCompat.requiresAtLeast to null.
+# The WordPress extensions are listed here because composer.json keeps them from installing themselves, and before configs' profile because wp-compat's neon resets WPCompat.requiresAtLeast to null.
 includes:
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 	- vendor/johnbillion/wp-compat/extension.neon
@@ -9,6 +9,7 @@ parameters:
 	paths:
 		- acme-persona-bootstrap.php
 		- functions.php
+	# The plugin is analyzed at its Requires PHP and Requires at least floors.
 	phpVersion: 70400
 	WPCompat:
 		requiresAtLeast: '5.8'
