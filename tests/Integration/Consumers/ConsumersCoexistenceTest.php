@@ -13,9 +13,9 @@ final class ConsumersCoexistenceTest extends TestCase {
 	use CreatesUsersTrait;
 	use InstallsConsumersTrait;
 
-	protected const array ROOTS = array(
-		'consumer_a' => array( 'Acme\\ConsumerA\\Scoped\\DeepWebSolutions\\Framework\\Core\\Scheduling\\Scheduler', 'Acme\\ConsumerA\\Scoped\\DeepWebSolutions\\Framework\\Core\\AdminNotice\\AdminNotices', 'Acme\\ConsumerA\\ProductData', 'Acme\\ConsumerA\\Exports' ),
-		'consumer_b' => array( 'Acme\\ConsumerB\\Scoped\\DeepWebSolutions\\Framework\\Core\\AdminNotice\\AdminNotices', 'Acme\\ConsumerB\\Settings' ),
+	protected const array SKIPPED = array(
+		'consumer_a' => array( 'Acme\\ConsumerA\\Reports\\Reports', 'Acme\\ConsumerA\\FaultInjector' ),
+		'consumer_b' => array(),
 	);
 
 	public static function activation_orders(): array {
@@ -59,10 +59,10 @@ final class ConsumersCoexistenceTest extends TestCase {
 
 		self::assertNull( $request['died'] );
 		self::assertStringContainsString( 'id="wpfooter"', $request['body'] );
-		foreach ( self::ROOTS as $consumer => $roots ) {
+		foreach ( self::SKIPPED as $consumer => $skipped ) {
 			self::assertSame( 'booted', $request['records'][ $consumer ]['status'] );
 			self::assertSame( 1, $request['records'][ $consumer ]['boot_succeeded'] );
-			self::assertSame( $roots, $request['records'][ $consumer ]['resolved'] );
+			self::assertSame( $skipped, $request['records'][ $consumer ]['skipped'] );
 		}
 	}
 }

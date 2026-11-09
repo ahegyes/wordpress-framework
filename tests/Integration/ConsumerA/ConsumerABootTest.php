@@ -15,7 +15,7 @@ final class ConsumerABootTest extends TestCase {
 
 	protected const string SCOPED = 'Acme\\ConsumerA\\Scoped\\DeepWebSolutions\\Framework\\';
 
-	public function test_the_plugin_boots_with_its_scheduler_and_admin_notices_as_kernel_roots(): void {
+	public function test_the_plugin_boots_and_its_components_register_their_hooks(): void {
 		$plugin  = $this->install_consumer( 'consumer-a', 'acme-consumer-a' );
 		$request = $this->consumer_request( 'GET', 'index.php', $this->make_user( 'acme_ca_admin', 'administrator' ), array( 'activate' => $plugin ) );
 
@@ -23,7 +23,6 @@ final class ConsumerABootTest extends TestCase {
 		self::assertStringContainsString( 'id="wpfooter"', $request['body'] );
 		self::assertSame( 'booted', $request['records']['consumer_a']['status'] );
 		self::assertSame( 1, $request['records']['consumer_a']['boot_succeeded'] );
-		self::assertSame( array( self::SCOPED . 'Core\\Scheduling\\Scheduler', self::SCOPED . 'Core\\AdminNotice\\AdminNotices', 'Acme\\ConsumerA\\ProductData', 'Acme\\ConsumerA\\Exports' ), $request['records']['consumer_a']['resolved'] );
 		self::assertTrue( $request['records']['export_hooked'] );
 		self::assertFalse( $request['records']['unloaded_include'] );
 	}

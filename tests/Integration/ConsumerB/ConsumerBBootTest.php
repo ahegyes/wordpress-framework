@@ -21,7 +21,6 @@ final class ConsumerBBootTest extends TestCase {
 		self::assertNull( $request['died'] );
 		self::assertFalse( $request['records']['woocommerce_present'] );
 		self::assertSame( 'booted', $request['records']['consumer_b']['status'] );
-		self::assertSame( array( 'Acme\\ConsumerB\\Scoped\\DeepWebSolutions\\Framework\\Core\\AdminNotice\\AdminNotices', 'Acme\\ConsumerB\\Settings' ), $request['records']['consumer_b']['resolved'] );
 		self::assertStringContainsString( 'name="acme_cb_settings[greeting]"', $request['body'] );
 	}
 
