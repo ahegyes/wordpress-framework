@@ -4,6 +4,18 @@
 	"type": "wordpress-plugin",
 	"license": "GPL-3.0-or-later",
 
+	"repositories": [
+		{
+			"type": "path",
+			"url": "../../../packages/*",
+			"options": { "symlink": false }
+		},
+		{
+			"type": "vcs",
+			"url": "https://github.com/ahegyes/wordpress-configs"
+		}
+	],
+
 	"require": {
 		"php": ">=8.5"
 	},
@@ -17,18 +29,6 @@
 		"laravel/serializable-closure": "^2.1",
 		"php-di/php-di": "^7.1.1"
 	},
-
-	"repositories": [
-		{
-			"type": "path",
-			"url": "../../../packages/*",
-			"options": { "symlink": false }
-		},
-		{
-			"type": "vcs",
-			"url": "https://github.com/ahegyes/wordpress-configs"
-		}
-	],
 
 	"minimum-stability": "dev",
 	"prefer-stable": true,

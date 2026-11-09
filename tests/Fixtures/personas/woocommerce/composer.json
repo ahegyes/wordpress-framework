@@ -4,16 +4,6 @@
 	"type": "wordpress-plugin",
 	"license": "GPL-3.0-or-later",
 
-	"require": {
-		"php": ">=8.5"
-	},
-	"require-dev": {
-		"ahegyes/wordpress-configs": "dev-trunk",
-		"ahegyes/wp-framework-woocommerce": "^2.0",
-		"humbug/php-scoper": "^0.18",
-		"php-stubs/woocommerce-stubs": "^11.2"
-	},
-
 	"repositories": [
 		{
 			"type": "path",
@@ -45,6 +35,16 @@
 			"url": "https://github.com/ahegyes/wordpress-configs"
 		}
 	],
+
+	"require": {
+		"php": ">=8.5"
+	},
+	"require-dev": {
+		"ahegyes/wordpress-configs": "dev-trunk",
+		"ahegyes/wp-framework-woocommerce": "^2.0",
+		"humbug/php-scoper": "^0.18",
+		"php-stubs/woocommerce-stubs": "^11.2"
+	},
 
 	"minimum-stability": "dev",
 	"prefer-stable": true,

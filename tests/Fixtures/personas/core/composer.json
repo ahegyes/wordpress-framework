@@ -4,17 +4,6 @@
 	"type": "wordpress-plugin",
 	"license": "GPL-3.0-or-later",
 
-	"require": {
-		"php": ">=8.5"
-	},
-	"require-dev": {
-		"ahegyes/wordpress-configs": "dev-trunk",
-		"ahegyes/wp-framework-core": "^2.0",
-		"humbug/php-scoper": "^0.18",
-		"laravel/serializable-closure": "^2.1",
-		"php-di/php-di": "^7.1.1"
-	},
-
 	"repositories": [
 		{
 			"type": "path",
@@ -38,6 +27,17 @@
 			"url": "https://github.com/ahegyes/wordpress-configs"
 		}
 	],
+
+	"require": {
+		"php": ">=8.5"
+	},
+	"require-dev": {
+		"ahegyes/wordpress-configs": "dev-trunk",
+		"ahegyes/wp-framework-core": "^2.0",
+		"humbug/php-scoper": "^0.18",
+		"laravel/serializable-closure": "^2.1",
+		"php-di/php-di": "^7.1.1"
+	},
 
 	"minimum-stability": "dev",
 	"prefer-stable": true,
