@@ -1,20 +1,20 @@
 {
-  "name": "ahegyes/wp-framework-shared",
-  "description": "The WordPress-free building blocks every framework package shares, kept portable enough to work unchanged in any PHP project.",
-  "type": "library",
-  "license": "GPL-3.0-or-later",
-  "homepage": "https://github.com/ahegyes/wordpress-framework",
-  "require": {
-    "php": ">=8.5"
-  },
-  "autoload": {
-    "psr-4": {
-      "DeepWebSolutions\\Framework\\Shared\\": "src/"
-    }
-  },
-  "extra": {
-    "branch-alias": {
-      "dev-trunk": "2.x-dev"
-    }
-  }
+	"name": "ahegyes/wp-framework-shared",
+	"description": "The WordPress-free building blocks every framework package shares, kept portable enough to work unchanged in any PHP project.",
+	"type": "library",
+	"license": "GPL-3.0-or-later",
+	"homepage": "https://github.com/ahegyes/wordpress-framework",
+	"require": {
+		"php": ">=8.5"
+	},
+	"autoload": {
+		"psr-4": {
+			"DeepWebSolutions\\Framework\\Shared\\": "src/"
+		}
+	},
+	"extra": {
+		"branch-alias": {
+			"dev-trunk": "2.x-dev"
+		}
+	}
 }

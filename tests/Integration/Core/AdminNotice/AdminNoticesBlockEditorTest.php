@@ -107,9 +107,8 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		self::assertCount( 1, $notices->get_notices( NoticeScope::User, $this->admin ) );
 	}
 
-	public function test_the_script_fetches_the_notices_as_html_on_load_when_they_wait_and_after_each_save_but_autosaves_after_the_meta_boxes(): void {
+	public function test_the_script_loads_after_its_dependencies_with_the_delivery_path_and_whether_notices_wait(): void {
 		$settings = $this->load_editor( $this->admin );
-		$script   = \implode( "\n", wp_scripts()->get_data( $this->script_handle(), 'after' ) );
 
 		self::assertTrue( wp_script_is( $this->script_handle() ) );
 		self::assertSame( array( 'wp-api-fetch', 'wp-data', 'wp-hooks', 'wp-notices' ), wp_scripts()->registered[ $this->script_handle() ]->deps );
@@ -121,13 +120,6 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 			),
 			$settings
 		);
-		self::assertStringContainsString( "wp.apiFetch( { path: settings.path, method: 'POST' } ).then(", $script );
-		self::assertSame( 1, \preg_match( "/wp\\.data\\.dispatch\\( 'core\\/notices' \\)\\.createNotice\\( notice\\.status, notice\\.content, \\{\\s*id: notice\\.id,\\s*isDismissible: notice\\.isDismissible,\\s*__unstableHTML: true\\s*\\} \\);/", $script ) );
-		self::assertStringContainsString( '} ).catch( function ( error ) {', $script );
-		self::assertSame( 1, \preg_match( '/if \( settings\.waiting \) \{\s*deliver\(\);\s*\}/', $script ) );
-		self::assertStringContainsString( "wp.hooks.addAction( 'editor.savePost', settings.prefix + '/notices'", $script );
-		self::assertSame( 1, \preg_match( '/if \( ! \( options && options\.isAutosave \) \) \{\s*deliver\(\);\s*\}/', $script ) );
-		self::assertSame( 1, \preg_match( '/\}, 20 \);\s*\}\s*\)\(/', $script ) );
 	}
 
 	public function test_registered_hooks_load_the_script_on_the_editors_assets_and_add_the_delivery_endpoint(): void {

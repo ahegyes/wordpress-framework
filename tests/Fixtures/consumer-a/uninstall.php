@@ -33,7 +33,7 @@ try {
 	$acme_ca_meta_types = MetaTypes::DEFINITIONS;
 } catch ( Throwable $error ) {
 	// WP-CLI then fails and keeps the files for a rerun on a complete build, while a web request deletes them and leaves the data.
-	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
 		throw $error;
 	}
 

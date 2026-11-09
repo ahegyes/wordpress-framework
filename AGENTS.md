@@ -34,20 +34,24 @@ wordpress-framework/
 │       ├── ProductData/{ProductDataTab, ProductDataTabDefinitionInterface, ProductMeta}
 │       ├── Setting/{SettingsTab, SettingsSection, SectionFieldsDefinitionInterface, Fields (@internal)}
 │       └── Uninstall/MetaTypes
-├── tests/{Unit, PHPStan, Integration, Php74, Support, bin, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b, personas}}
+├── tests/{Unit, PHPStan, Integration, Php74, EndToEnd, Support, bin, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b, personas, end-to-end}}
 │                          consumer-a: a WooCommerce plugin on all five packages, scoped through configs by its own composer.json
 │                          consumer-b: a plugin on bootstrap, shared, core and settings, without WooCommerce, scoped the same way
 │                          personas/{bootstrap, shared, core, settings, woocommerce}: one plugin per stack, shared a plain PHP project, each requiring only its top package, scoped the same way; each lists its stack's mirrors as `vcs` repositories after the path repository, the set its package README copies
+│                          end-to-end: an unscoped plugin on the root autoloader, which .wp-env.tests.json maps into the plugins directory, with a dismissible notice and an object form for the Playwright spec
+│                          bin/build-fixture.sh: builds one fixture as fixtures:build:<name> calls it: a development install that scopes, its PHPStan, then its production install
 │                          bin/prefer-lowest.sh: locks a fixture's runtime packages at their lowest allowed versions; a persona keeps only the tested package on its path repository, and every other framework package must lock from its mirror at a tag
-├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the packages' highest `extra.requires-wp` up, as WordPress's version API lists them; tests-nightly.yml runs WordPress trunk daily, never on pull requests
+├── .github/workflows/     tests.yml runs Integration once per WordPress branch from the packages' highest `extra.requires-wp` up, as WordPress's version API lists them; tests-nightly.yml runs WordPress trunk and WooCommerce's trunk build daily, never on pull requests; the end-to-end spec runs in tests.yml beside Integration
 ├── CHANGELOG.md           the one changelog of the lockstep releases, written at release from the fragments `composer changelog:add` stages in changelog/
 ├── phpcs.dist.xml         PHPCS over production code; phpcs.tests.dist.xml lints tests/
+├── playwright.config.js   Playwright over tests/EndToEnd on .wp-env.tests.json's port, from configs' base; eslint.config.mjs lints the spec and both configs
 ├── phpstan.shared.neon    PHPStan over packages/shared and tests/PHPStan/Shared, with no WordPress symbol known
 ├── phpstan.wordpress.neon PHPStan over packages/core and packages/settings, with the WordPress stubs and extensions
 ├── phpstan.woocommerce.neon PHPStan over packages/woocommerce/src, with the WordPress and WooCommerce stubs
 ├── phpstan.bootstrap.neon PHPStan over packages/bootstrap and consumer-a's safeguard at the oldest PHP and WordPress the bootstrap package runs on, which its `phpVersion` and `WPCompat.requiresAtLeast` set
 ├── .wp-env.json           developer environment, as local, on port 8800; .wp-env.tests.json the Integration environment, as production; both single sites with WooCommerce
 ├── .wp-env.multisite.json a network without WooCommerce for the `multisite` and `without-woocommerce` groups; .wp-env.php74.json a site on PHP 7.4 with WordPress 6.3 for the `Php74` suite; both as production
+├── .wp-env.woocommerce-nightly.json the tests environment with WooCommerce's trunk build, on port 8804, for the nightly lane
 └── composer.json          one `packages/*` path repository
 ```
 
@@ -61,8 +65,11 @@ composer fixtures:build         # builds consumer-a, consumer-b, then the five p
 composer test:integration       # starts .wp-env.tests.json, then runs test:integration:run: fixtures:build, then Integration tests without the multisite and without-woocommerce groups; WP_ENVIRONMENT_TYPE=production
 composer test:integration:multisite  # starts .wp-env.multisite.json, then runs test:integration:multisite:run: fixtures:build, then the multisite and without-woocommerce groups
 composer test:integration:php74      # starts .wp-env.php74.json, then runs test:integration:php74:run: consumer-a's and the bootstrap persona's builds, then the Php74 suite with the host's PHP
+composer test:integration:woocommerce-nightly  # starts .wp-env.woocommerce-nightly.json, then runs test:integration:woocommerce-nightly:run: test:integration:run's rows on WooCommerce's trunk build
 composer test:integration:lowest     # starts .wp-env.tests.json, then runs test:integration:lowest:run: prefer-lowest.sh on consumer-a, its build, then its rows; rewrites its manifest and lock, which git checkout restores
-composer audit --locked && npm audit --omit=dev --audit-level=high   # every Composer package, but only npm's runtime packages, of which there are none
+npm run lint:scripts            # ESLint over tests/EndToEnd and the Playwright and ESLint configs
+npm run test:e2e                # the Playwright spec on the running tests environment, which it starts when none listens
+composer audit --locked --abandoned=report && npm audit --omit=dev --audit-level=high   # every Composer package, but only npm's runtime packages, of which there are none
 actionlint && zizmor .github/
 ```
 
@@ -77,7 +84,7 @@ actionlint && zizmor .github/
 7. **Migration steps.** Append-only; a retired step keeps its code or throws. Converge from any partial state; verify writes and throw on failure, including a scheduler write that returns `WP_Error`. Role capabilities are granted by `Permission\CapabilityGrants`, never by a step. Create resources resumably (lookup marker, explicit `post_author`). Use WC CRUD for orders and products. A plain step finishes well under 10 minutes; bulk work is a `BatchedMigrationStepInterface` step, run only from the runner's scheduled hook, at about 1–2 s per batch. Steps run on `wp_loaded`, so every `init` registration exists. One linear list serves every build variant.
 8. **Settings.** Full keys are the plugin's prefixed option constants; WC ids are flat. Boot-time defaults are constants; translated defaults come from the plugin's text reader after `init`. Validate on write, and guard every typed read: `filter_var( $raw, FILTER_VALIDATE_*, FILTER_NULL_ON_FAILURE ) ?? $default`, or a strict `in_array()` for a choice. Direct meta writes go through `wp_slash()`. The framework detects a failed query only where it runs the query itself; a WordPress or Action Scheduler API's failure is accepted as the API reports it. The uninstall engine is the exception, because it keeps consent until a pass runs clean. Framework components store data only under the consumer's `{prefix}_`, so the plugin's footprint covers it; a `TransientCache` prefix and any generation option it names start with it, so the footprint covers the generation option, and its entries, transients that all carry a timeout, expire on their own. An `ObjectCache` group starts with it too, which keeps it apart from core's and other plugins' groups. The bootstrap updater's release caches carry the text domain instead and expire on their own. WooCommerce multiselect option keys are truthy, because WooCommerce's save drops `'0'` and `''`.
 9. **Object forms** render through `Forms::render_control()`, print their nonce bound to the object and verify it before they evaluate their definition; every framework saver goes through `Forms::sanitize_fields()` and leaves absent (unrendered or disabled) fields untouched, but for limitation 4's WooCommerce checkboxes and multiselects.
-10. **Translation, by-path files, Plugin Check.** Never translate at include or registration time. Framework strings use only the `'wp-framework'` domain, owned by core, settings and woocommerce; bootstrap and shared ship none, so a boot notice builds its translated message in its render callback and prints it through `Requirements::print_admin_notice()`. The bootstrap package stays 7.4-parseable, loaded by path, outside every `autoload` key, and defines code only as final classes with public static entry points; consumers require only its `load.php`, whose path is public API. Code is Plugin-Check-clean, using inline `phpcs:ignore` with a reason; local PHPCS runs the full `WordPress` standard, which covers the WordPress sniffs Plugin Check runs (its own `PluginCheck` sniffs and file checks run only at release).
+10. **Translation, by-path files, Plugin Check.** Never translate at include or registration time. Framework strings use only the `'wp-framework'` domain, owned by core, settings and woocommerce; bootstrap and shared ship none, so a boot notice builds its translated message in its render callback and prints it through `Requirements::print_admin_notice()`. The bootstrap package stays 7.4-parseable, loaded by path, outside every `autoload` key, and defines code only as final classes with public static entry points; consumers require only its `load.php`, whose path is public API. Code is Plugin-Check-clean, using inline `phpcs:ignore` with a reason; local PHPCS runs the full `WordPress` standard, which covers the WordPress sniffs Plugin Check runs, and Plugin Check's own `PluginCheck` sniffs over the packages, which Plugin Check skips in a plugin's `vendor-prefixed/` (its file checks run only at release).
 
 ## Contract
 

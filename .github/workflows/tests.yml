@@ -6,13 +6,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
   unit:
     name: Unit
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       php-version: '8.5'
       composer-script: 'test:unit'
@@ -35,9 +39,9 @@ jobs:
       - name: List the newest release of every branch from the floor up
         id: versions
         run: |
-          floor=$(jq -rs '[.[].extra["requires-wp"] // empty] | max_by(split(".") | map(tonumber)) // error("No package declares extra.requires-wp.")' packages/*/composer.json)
-          offers=$(curl -fsS https://api.wordpress.org/core/version-check/1.7/)
-          versions=$(printf '%s' "$offers" | jq -c --arg floor "$floor" '[.offers[].version | select((split(".")[0:2] | map(tonumber)) >= ($floor | split(".") | map(tonumber)))] | unique | if length == 0 then error("No WordPress release at or above \($floor).") else . end')
+          floor=$(jq -rs 'def v: split(".") | map(tonumber) | . + [0, 0] | .[0:3]; [.[].extra["requires-wp"] // empty] | max_by(v) // error("No package declares extra.requires-wp.")' packages/*/composer.json)
+          offers=$(curl -fsS --retry 3 --retry-all-errors --max-time 20 https://api.wordpress.org/core/version-check/1.7/)
+          versions=$(printf '%s' "$offers" | jq -c --arg floor "$floor" 'def v: split(".") | map(tonumber) | . + [0, 0] | .[0:3]; [.offers[].version | select(v >= ($floor | v))] | unique | if length == 0 then error("No WordPress release at or above \($floor).") else . end')
           echo "versions=$versions" >> "$GITHUB_OUTPUT"
 
   integration:
@@ -47,7 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         wp: ${{ fromJSON(needs.wordpress.outputs.versions) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       php-version: '8.5'
       wp-version: ${{ matrix.wp }}
@@ -61,16 +65,31 @@ jobs:
       fail-fast: false
       matrix:
         wp: ${{ fromJSON(needs.wordpress.outputs.versions) }}
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       php-version: '8.5'
       wp-version: ${{ matrix.wp }}
       composer-script: 'test:integration:multisite:run'
       wp-env-config-file: '.wp-env.multisite.json'
 
+  e2e:
+    name: E2E
+    needs: wordpress
+    strategy:
+      fail-fast: false
+      matrix:
+        wp: ${{ fromJSON(needs.wordpress.outputs.versions) }}
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-playwright-e2e.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    with:
+      artifact-slug: wp-${{ matrix.wp }}
+      php-version: '8.5'
+      wp-version: ${{ matrix.wp }}
+      build-script: ''
+      wp-env-config-file: '.wp-env.tests.json'
+
   integration-php74:
     name: Integration (PHP 7.4)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       php-version: '8.5'
       composer-script: 'test:integration:php74:run'
@@ -78,7 +97,7 @@ jobs:
 
   prefer-lowest:
     name: Prefer lowest
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       php-version: '8.5'
       composer-script: 'test:integration:lowest:run'

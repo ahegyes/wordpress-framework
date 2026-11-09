@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/squizlabs/php_codesniffer/phpcs.xsd">
 	<rule ref="./vendor/ahegyes/wordpress-configs/php/quality-assurance/phpcs.dist.xml"/>
+	<!-- Plugin Check skips a plugin's vendor-prefixed/, where the framework ships, so its own sniffs run here; composer.json's autoload-dev loads their helpers. -->
+	<rule ref="./vendor/wp-plugin/plugin-check/vendor/plugin-check/phpcs-sniffs/PluginCheck/ruleset.xml"/>
 
 	<rule ref="WordPress.WP.I18n">
 		<properties>

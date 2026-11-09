@@ -1,6 +1,6 @@
 name: Tests (nightly)
 
-# WordPress trunk changes daily without a commit here, so this runs on a schedule instead of blocking pull requests.
+# WordPress trunk and WooCommerce's trunk build change daily without a commit here, so this runs on a schedule instead of blocking pull requests.
 on:
   schedule:
     - cron: '0 5 * * *'
@@ -12,7 +12,7 @@ permissions:
 jobs:
   integration:
     name: Integration
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       php-version: '8.5'
       wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
@@ -21,9 +21,17 @@ jobs:
 
   integration-multisite:
     name: Integration (multisite)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@3cbd985255e76f8026644ccdee5be0b2b2da312b
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
     with:
       php-version: '8.5'
       wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
       composer-script: 'test:integration:multisite:run'
       wp-env-config-file: '.wp-env.multisite.json'
+
+  integration-woocommerce-nightly:
+    name: Integration (WooCommerce nightly)
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    with:
+      php-version: '8.5'
+      composer-script: 'test:integration:woocommerce-nightly:run'
+      wp-env-config-file: '.wp-env.woocommerce-nightly.json'

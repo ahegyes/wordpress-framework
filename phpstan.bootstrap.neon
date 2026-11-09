@@ -1,14 +1,15 @@
-# The bootstrap package and consumer-a's safeguard run before any floor is checked, so they are analyzed at the oldest PHP and WordPress the bootstrap package supports; the WordPress extensions are listed because composer.json keeps them from installing themselves.
+# The WordPress extensions are listed here because composer.json keeps them from installing themselves.
 includes:
-    - vendor/szepeviktor/phpstan-wordpress/extension.neon
-    - vendor/johnbillion/wp-compat/extension.neon
-    - vendor/swissspidy/phpstan-no-private/rules.neon
-    - vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+	- vendor/johnbillion/wp-compat/extension.neon
+	- vendor/swissspidy/phpstan-no-private/rules.neon
+	- vendor/ahegyes/wordpress-configs/php/quality-assurance/phpstan.dist.neon
 
 parameters:
-    paths:
-        - packages/bootstrap
-        - tests/Fixtures/consumer-a/includes/safeguards.php
-    phpVersion: 70400
-    WPCompat:
-        requiresAtLeast: '5.2'
+	paths:
+		- packages/bootstrap
+		- tests/Fixtures/consumer-a/includes/safeguards.php
+	# The bootstrap package and consumer-a's safeguard run before any floor is checked, so they are analyzed at the oldest PHP and WordPress the bootstrap package runs on.
+	phpVersion: 70400
+	WPCompat:
+		requiresAtLeast: '5.2'
