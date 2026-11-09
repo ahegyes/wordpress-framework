@@ -32,6 +32,7 @@ trait ProvidesLogMessagesTrait {
 			'missing-key'  => array( 'Hello {name}.', array(), 'Hello {name}.' ),
 			'unprintable'  => array( 'from {object}', array( 'object' => $unprintable ), 'from {object}' ),
 			'type-error'   => array( 'from {object}', array( 'object' => $erroring ), 'from {object}' ),
+			'line-breaks'  => array( 'Hello {name}.', array( 'name' => "world\r\n[acme.error] Forged." ), 'Hello world\r\n[acme.error] Forged..' ),
 		);
 	}
 }
