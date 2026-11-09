@@ -15,7 +15,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  * @version 2.0.0
  *
  * @phpstan-type Field array{type: string, id?: string, title?: string, desc?: string, desc_tip?: bool|string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, css?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): (scalar|array<mixed>|\WP_Error|null), render?: callable(array<string, mixed>, mixed, string, string): string}
- * @phpstan-type FieldRow array{field: Field, value: mixed, name: string, id: string, label_for?: string}
+ * @phpstan-type FieldRow array{field: Field&array{id: string, title: string}, value: mixed, name: string, id: string, label_for?: string}
  */
 final class Forms {
 	// region FIELDS AND CONSTANTS

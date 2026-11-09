@@ -174,7 +174,7 @@ final class ObjectForm {
 			$control = Forms::render_control( $row['field'], $row['value'], $row['name'], $row['id'] );
 			if ( '' !== $control ) {
 				$rows[] = array(
-					'title'     => esc_html( $row['field']['title'] ?? '' ),
+					'title'     => esc_html( $row['field']['title'] ),
 					'label_for' => $row['label_for'] ?? null,
 					'control'   => $control,
 				);
