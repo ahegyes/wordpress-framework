@@ -47,10 +47,10 @@ final class Requirements {
 			return true;
 		}
 
-		$basename = plugin_basename( $plugin_file );
 		add_action(
 			'all_admin_notices',
-			static function () use ( $basename ): void {
+			static function () use ( $plugin_file ): void {
+				$basename = plugin_basename( $plugin_file );
 				if ( ! \is_file( WP_PLUGIN_DIR . "/$basename" ) ) {
 					return; // Core reads the headers from the plugins directory, so it has no message for a plugin loaded from elsewhere.
 				}
