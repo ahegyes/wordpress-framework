@@ -123,8 +123,9 @@ final class Forms {
 		}
 
 		return match ( $field['type'] ) {
-			'text'                      => self::is_text( $raw ) ? sanitize_text_field( (string) $raw ) : self::reject( 'invalid_value' ),
-			'textarea'                  => self::is_text( $raw ) ? sanitize_textarea_field( (string) $raw ) : self::reject( 'invalid_value' ),
+			// The sanitizers encode a lone '<' that every output escapes again, so the stored text turns it back.
+			'text'                      => self::is_text( $raw ) ? \str_replace( '&lt;', '<', sanitize_text_field( (string) $raw ) ) : self::reject( 'invalid_value' ),
+			'textarea'                  => self::is_text( $raw ) ? \str_replace( '&lt;', '<', sanitize_textarea_field( (string) $raw ) ) : self::reject( 'invalid_value' ),
 			'email'                     => self::sanitize_email( $raw ),
 			'url'                       => self::sanitize_url( $raw ),
 			'number'                    => self::sanitize_number( $raw ),
@@ -230,11 +231,11 @@ final class Forms {
 		$message = $error->get_error_message();
 		if ( '' === $message ) {
 			/* translators: %s: The field's title. */
-			return \sprintf( __( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $title );
+			return \sprintf( __( '%s was not saved because its value is not valid, and keeps its previous value. The other changes were saved.', 'wp-framework' ), $title );
 		}
 
 		/* translators: 1: The field's title. 2: What to enter instead. */
-		return \sprintf( __( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $title, $message );
+		return \sprintf( __( '%1$s was not saved and keeps its previous value. The other changes were saved. %2$s', 'wp-framework' ), $title, $message );
 	}
 
 	/**
@@ -420,7 +421,7 @@ final class Forms {
 			'value'            => 'yes',
 			'class'            => $field['class'] ?? null,
 			'style'            => $field['css'] ?? null,
-			'checked'          => 'yes' === $value,
+			'checked'          => 'yes' === self::sanitize_checkbox( $value ),
 			'disabled'         => $disabled,
 			'aria-describedby' => self::get_described_by( $help ),
 		);
