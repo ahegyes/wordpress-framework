@@ -14,7 +14,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  * @since   2.0.0
  * @version 2.0.0
  *
- * @phpstan-type Field array{type: string, id?: string, title?: string, desc?: string, desc_tip?: bool|string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, css?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): mixed, render?: callable(array<string, mixed>, mixed, string, string): string}
+ * @phpstan-type Field array{type: string, id?: string, title?: string, desc?: string, desc_tip?: bool|string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, css?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): (scalar|array<mixed>|\WP_Error|null), render?: callable(array<string, mixed>, mixed, string, string): string}
  * @phpstan-type FieldRow array{field: Field, value: mixed, name: string, id: string, label_for?: string}
  */
 final class Forms {
@@ -107,7 +107,7 @@ final class Forms {
 	 * @param   Field $field The field.
 	 * @param   mixed $raw   The unslashed submission, in which a cleared multi-value field is an empty string.
 	 *
-	 * @return  mixed|\WP_Error
+	 * @return  scalar|array<mixed>|\WP_Error|null
 	 */
 	#[\NoDiscard]
 	public static function sanitize_value( array $field, mixed $raw ): mixed {
@@ -146,7 +146,7 @@ final class Forms {
 	 * @param   list<Field>             $fields    The fields.
 	 * @param   array<array-key, mixed> $submitted The unslashed submission, keyed by field id.
 	 *
-	 * @return  array{values: array<string, mixed>, errors: array<string, \WP_Error>}
+	 * @return  array{values: array<string, scalar|array<mixed>|null>, errors: array<string, \WP_Error>}
 	 */
 	#[\NoDiscard]
 	public static function sanitize_fields( array $fields, array $submitted ): array {

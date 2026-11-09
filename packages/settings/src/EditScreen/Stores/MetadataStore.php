@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\Framework\Settings\EditScreen\Stores;
 
+use DeepWebSolutions\Framework\Core\Storage\StoredData;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -55,9 +57,12 @@ final class MetadataStore implements ObjectStoreInterface {
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
+	 *
+	 * @throws  InvalidArgumentException Thrown when a value holds anything but scalars, null and arrays, before any value is stored.
 	 */
 	#[\Override]
 	public function update_values( int $object_id, array $values ): void {
+		StoredData::check_values( $values ); // The metadata API rewrites an object's public properties as it unslashes them.
 		foreach ( $values as $key => $value ) {
 			update_metadata( $this->meta_type, $object_id, $key, wp_slash( $value ) ); // The metadata API unslashes what it is given, which would strip a value's own backslashes.
 		}
