@@ -113,7 +113,6 @@ final class RequirementsTest extends TestCase {
 		$plugin_file = $this->write_plugin( untrailingslashit( get_temp_dir() ), array( 'Requires PHP' => '99' ) );
 		self::assertFalse( Requirements::check_floors( $plugin_file ) );
 
-		// Core reads the headers from the plugins directory, so it warns about the missing file and reports the requirements as met.
 		$warnings = array();
 		\set_error_handler(
 			static function ( int $level, string $message ) use ( &$warnings ): bool {
@@ -130,8 +129,7 @@ final class RequirementsTest extends TestCase {
 		}
 
 		self::assertSame( '', $html );
-		self::assertCount( 1, $warnings );
-		self::assertStringContainsString( 'Failed to open stream', $warnings[0] );
+		self::assertSame( array(), $warnings );
 	}
 
 	public function test_an_error_prints_its_message_without_a_paragraph_wrap(): void {

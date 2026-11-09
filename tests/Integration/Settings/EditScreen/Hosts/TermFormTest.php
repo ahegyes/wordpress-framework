@@ -114,7 +114,7 @@ final class TermFormTest extends TestCase {
 
 		self::assertSame( array( 'O\'Brien C:\\dir' ), $this->meta( $term_id, 'name' ) );
 		self::assertSame( array( 'kept' ), $this->meta( $term_id, 'note' ) );
-		self::assertSame( array( 'Note was not saved, so it keeps its previous value. Use at most four characters.' ), self::rejections( $next['body'] ) );
+		self::assertSame( array( 'Note was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), self::rejections( $next['body'] ) );
 		self::assertSame( array(), self::rejections( $after['body'] ) );
 	}
 

@@ -16,7 +16,7 @@ jobs:
     name: Lint PHP
     permissions:
       contents: read
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       scripts: '["lint:php:phpcs", "lint:php:phpcs:tests", "lint:php:phpstan", "changelog:validate"]'
 
@@ -24,7 +24,7 @@ jobs:
     name: Lint scripts
     permissions:
       contents: read
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-scripts-styles-lint.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       scripts: '["lint:scripts"]'
 
@@ -32,7 +32,7 @@ jobs:
     name: PHP 7.4 syntax (bootstrap)
     permissions:
       contents: read
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       php-versions: '["7.4"]'
       paths: '["packages/bootstrap"]'
@@ -76,7 +76,7 @@ jobs:
     needs: consumer-a-build
     permissions:
       contents: read
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-plugin-check.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-plugin-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       artifact: consumer-a
       plugin-slug: acme-consumer-a
@@ -88,7 +88,7 @@ jobs:
     needs: consumer-a-build
     permissions:
       contents: read
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-php-syntax-check.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       artifact: consumer-a
       php-versions: '["7.4"]'

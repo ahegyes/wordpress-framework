@@ -12,7 +12,7 @@ permissions:
 jobs:
   integration:
     name: Integration
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       php-version: '8.5'
       wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
@@ -21,7 +21,7 @@ jobs:
 
   integration-multisite:
     name: Integration (multisite)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       php-version: '8.5'
       wp-env-core: 'https://wordpress.org/nightly-builds/wordpress-latest.zip'
@@ -30,7 +30,7 @@ jobs:
 
   integration-woocommerce-nightly:
     name: Integration (WooCommerce nightly)
-    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@c944e73ab2656633397e7736ea104bbe72726ffd
+    uses: ahegyes/wordpress-configs/.github/workflows/reusable-phpunit.yml@b107001cce9f2960495d9d50481c8540d228f60c
     with:
       php-version: '8.5'
       composer-script: 'test:integration:woocommerce-nightly:run'

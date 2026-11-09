@@ -15,7 +15,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  * @since   2.0.0
  * @version 2.0.0
  *
- * @phpstan-type ProductField array{type: string, id?: string, label?: string, description?: string, desc_tip?: bool, name?: string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, style?: string, wrapper_class?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): mixed, render?: callable(array<string, mixed>, mixed, string, string): string}
+ * @phpstan-type ProductField array{type: string, id?: string, label?: string, description?: string, desc_tip?: bool, name?: string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, style?: string, wrapper_class?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): (scalar|array<mixed>|\WP_Error|null), render?: callable(array<string, mixed>, mixed, string, string): string}
  * @phpstan-type Group array{class?: list<string>, fields: list<ProductField>}
  * @phpstan-type Tab array{label: string, priority?: int, class?: list<string>, groups: list<Group>}
  */
@@ -222,7 +222,7 @@ final class ProductDataTab {
 	}
 
 	/**
-	 * Prints the field's row with its stored value, through WooCommerce's function for its type, or through Forms::render_control() for a render callable or a checkboxes group.
+	 * Prints the field's row with its stored value, through WooCommerce's function for its type, or through Forms::render_control() for a render callable, radios or checkboxes.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -245,10 +245,15 @@ final class ProductDataTab {
 		$field['value'] = ProductMeta::get_value( $product, $key, $field['default'] ?? '', 'edit' );
 		$row_class      = \trim( "form-field {$id}_field " . ( $field['wrapper_class'] ?? '' ) );
 
-		if ( isset( $field['render'] ) ) {
-			$group = Forms::is_group( $field );
+		if ( isset( $field['render'] ) || \in_array( $field['type'], array( 'radio', 'checkboxes' ), true ) ) {
+			// The row's legend names a group, so Forms draws its choices without one of their own and with the description as their help.
+			$control = isset( $field['render'] ) ? $field : array(
+				'title' => '',
+				'desc'  => $field['description'] ?? '',
+			) + $field;
+			$group   = Forms::is_group( $field );
 			echo $group ? '<fieldset class="' . esc_attr( $row_class ) . '"><legend>' . wp_kses_post( $field['label'] ) . '</legend>' : '<p class="' . esc_attr( $row_class ) . '"><label for="' . esc_attr( $id ) . '">' . wp_kses_post( $field['label'] ) . '</label>';
-			echo Forms::render_control( $field, $field['value'], $key, $id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The render callable escapes its control.
+			echo Forms::render_control( $control, $field['value'], $key, $id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control, and a render callable its own.
 			echo $group ? '</fieldset>' : '</p>';
 			return;
 		}
@@ -285,19 +290,6 @@ final class ProductDataTab {
 				$field['name']              = "{$key}[]";
 				$field['custom_attributes'] = ( $field['custom_attributes'] ?? array() ) + array( 'multiple' => 'multiple' );
 				woocommerce_wp_select( $field );
-				break;
-			case 'radio':
-				woocommerce_wp_radio( $field );
-				break;
-			case 'checkboxes':
-				// The row's legend names the group, so Forms draws the choices without one of its own and with the description as their help.
-				$group = array(
-					'title' => '',
-					'desc'  => $field['description'] ?? '',
-				) + $field;
-				echo '<fieldset class="' . esc_attr( $row_class ) . '"><legend>' . wp_kses_post( $field['label'] ) . '</legend>';
-				echo Forms::render_control( $group, $field['value'], $key, $id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control.
-				echo '</fieldset>';
 				break;
 		}
 	}

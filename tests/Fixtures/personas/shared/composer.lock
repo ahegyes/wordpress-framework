@@ -12,13 +12,13 @@
             "version": "dev-trunk",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ahegyes/wordpress-configs.git",
-                "reference": "c944e73ab2656633397e7736ea104bbe72726ffd"
+                "url": "https://github.com/ahegyes/wordpress-configs.git",
+                "reference": "b107001cce9f2960495d9d50481c8540d228f60c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/c944e73ab2656633397e7736ea104bbe72726ffd",
-                "reference": "c944e73ab2656633397e7736ea104bbe72726ffd",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/b107001cce9f2960495d9d50481c8540d228f60c",
+                "reference": "b107001cce9f2960495d9d50481c8540d228f60c",
                 "shasum": ""
             },
             "require": {
@@ -142,7 +142,11 @@
                 }
             ],
             "description": "Shared tooling that lets WordPress projects be checked, scoped and released the same way.",
-            "time": "2026-11-07T10:23:14+00:00"
+            "support": {
+                "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
+                "issues": "https://github.com/ahegyes/wordpress-configs/issues"
+            },
+            "time": "2026-11-09T15:51:41+00:00"
         },
         {
             "name": "ahegyes/wp-framework-shared",
@@ -150,7 +154,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../../../packages/shared",
-                "reference": "36f6c7a8ce0f9669d025e8935b6310ae2131537e"
+                "reference": "0d30eb24a6ff8c14fd8ae445ee4fc7efb8cd2dbf"
             },
             "require": {
                 "php": ">=8.5"

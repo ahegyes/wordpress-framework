@@ -49,13 +49,23 @@ abstract readonly class Money extends AbstractValueObject {
 
 final readonly class Euro extends Money {}
 
+final readonly class Dollar extends Money {}
+
+final class Lenient implements ValueObjectInterface {
+	#[\Override]
+	public function equals( ValueObjectInterface $other ): bool {
+		return true;
+	}
+}
+
 #[CoversClass( AbstractValueObject::class )]
 final class AbstractValueObjectTest extends TestCase {
 	public static function pairs(): array {
-		$keyed = array(
+		$keyed  = array(
 			'a' => 1,
 			'b' => 2,
 		);
+		$shared = new \stdClass();
 
 		return array(
 			'dates-half-a-second-apart'           => array( new Box( new \DateTimeImmutable( '2026-01-01 12:00:00.000000 UTC' ) ), new Box( new \DateTimeImmutable( '2026-01-01 12:00:00.500000 UTC' ) ), false ),
@@ -72,6 +82,11 @@ final class AbstractValueObjectTest extends TestCase {
 			'differing-private-property'          => array( new Sealed( 1, 2 ), new Sealed( 1, 9 ), false ),
 			'differing-private-parent-property'   => array( new Euro( 1 ), new Euro( 2 ), false ),
 			'different-classes-with-equal-values' => array( new Weight( 5 ), new Length( 5 ), false ),
+			'sibling-classes-with-equal-values'   => array( new Euro( 1 ), new Dollar( 1 ), false ),
+			'nested-lenient-and-another-class'    => array( new Box( new Lenient() ), new Box( new Weight( 5 ) ), false ),
+			'integer-and-numeric-string'          => array( new Box( 1 ), new Box( '1' ), false ),
+			'distinct-objects-of-equal-state'     => array( new Box( new \stdClass() ), new Box( new \stdClass() ), false ),
+			'one-object-in-both'                  => array( new Box( $shared ), new Box( $shared ), true ),
 		);
 	}
 

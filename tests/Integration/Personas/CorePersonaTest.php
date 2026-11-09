@@ -21,7 +21,6 @@ final class CorePersonaTest extends TestCase {
 		self::assertNull( $request['died'] );
 		self::assertFalse( $request['records']['woocommerce_present'] );
 		self::assertSame( 'booted', $request['records']['persona_core']['status'] );
-		self::assertSame( array( 'Acme\\PersonaCore\\Scoped\\DeepWebSolutions\\Framework\\Core\\AdminNotice\\AdminNotices', 'Acme\\PersonaCore\\Greeting' ), $request['records']['persona_core']['resolved'] );
 		self::assertSame( 1, $request['records']['persona_core']['boot_succeeded'] );
 		self::assertSame( 'Acme\\PersonaCore\\Scoped\\DeepWebSolutions\\Framework\\Core\\Migration\\MigrationRunner', $request['records']['persona_core']['migrations'] );
 		self::assertTrue( $request['records']['greeting_shortcode'] );

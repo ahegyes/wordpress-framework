@@ -294,6 +294,14 @@ final class AdminNoticesTest extends TestCase {
 		self::assertSame( array(), $notices->get_notices( NoticeScope::Request ) );
 	}
 
+	public function test_a_notice_that_has_not_expired_yet_is_listed_and_shows(): void {
+		$notices = $this->notices();
+		$notices->add( $this->notice( 'new', NoticeScope::Site, persistent: true, expires_at: \time() + HOUR_IN_SECONDS ) );
+
+		self::assertSame( array( 'new' ), self::ids( $notices->get_notices( NoticeScope::Site ) ) );
+		self::assertSame( array( $this->dom_id( 'site', 'new' ) ), \array_keys( self::notices_in( $this->render( $this->admin, $notices ) ) ) );
+	}
+
 	public function test_the_visibility_filter_hides_a_notice_without_consuming_it_unless_it_returns_true(): void {
 		$calls = array();
 		add_filter(

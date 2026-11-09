@@ -115,6 +115,19 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 		self::assertSame( array(), $this->doing_it_wrong );
 	}
 
+	public function test_a_switch_to_the_site_that_loaded_the_plugin_still_schedules(): void {
+		$scheduler = $this->make_scheduler();
+		$hook      = new ScheduledHook( $this->hook );
+		switch_to_blog( get_current_blog_id() );
+
+		$enqueued = $scheduler->enqueue( $hook );
+		restore_current_blog();
+
+		self::assertTrue( $enqueued );
+		self::assertSame( array( get_main_site_id() ), $this->writes );
+		self::assertSame( array(), $this->doing_it_wrong );
+	}
+
 	// The network carries no WooCommerce, so the default backends resolve to WP-Cron alone.
 	protected function make_scheduler(): Scheduler {
 		$scheduler = new Scheduler( 'acme' );

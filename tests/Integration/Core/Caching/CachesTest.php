@@ -211,6 +211,40 @@ final class CachesTest extends TestCase {
 		self::assertSame( array( 'key' => 'Default.' ), $cache->getMultiple( array( 'key' ), 'Default.' ) );
 	}
 
+	public static function unloadable_classes(): array {
+		$object = \sprintf( 'O:%d:"%s":0:{}', \strlen( 'Acme\\Caching\\Missing' ), 'Acme\\Caching\\Missing' );
+		$case   = 'Acme\\Caching\\MissingSuit:Hearts';
+
+		return array(
+			'top-level'       => array( $object ),
+			'nested-in-array' => array( "a:1:{s:4:\"item\";$object}" ),
+			'inside-object'   => array( "O:8:\"stdClass\":1:{s:5:\"inner\";$object}" ),
+			'enum-case'       => array( \sprintf( 'E:%d:"%s";', \strlen( $case ), $case ) ),
+		);
+	}
+
+	public static function kinds_and_unloadable_classes(): array {
+		return self::cross( self::unloadable_classes() );
+	}
+
+	#[DataProvider( 'kinds_and_unloadable_classes' )]
+	public function test_an_entry_naming_a_class_that_no_longer_loads_reads_as_a_miss( string $kind, string $stored ): void {
+		$cache = $this->cache( $kind );
+		$cache->set( 'other', 'Value.' );
+		$this->plant(
+			$kind,
+			'key',
+			array(
+				'value'      => $stored,
+				'generation' => $this->generation( $kind ),
+			)
+		);
+
+		self::assertSame( 'Default.', $cache->get( 'key', 'Default.' ) );
+		self::assertFalse( $cache->has( 'key' ) );
+		self::assertSame( array( 'key' => 'Default.' ), $cache->getMultiple( array( 'key' ), 'Default.' ) );
+	}
+
 	public static function expired_lifetimes(): array {
 		$inverted         = new \DateInterval( 'PT1M' );
 		$inverted->invert = 1;

@@ -77,6 +77,45 @@ final class SchedulerTest extends TestCase {
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE hook LIKE %s', $wpdb->actionscheduler_actions, $wpdb->esc_like( $this->hook ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the rows the test created.
 	}
 
+	public static function valid_groups(): array {
+		return array(
+			'one-letter'        => array( 'a' ),
+			'hook-prefix'       => array( 'dws_tpl' ),
+			'mixed-case-hyphen' => array( 'Acme-2_tpl' ),
+			'190-bytes'         => array( \str_repeat( 'a', 190 ) ),
+		);
+	}
+
+	#[DataProvider( 'valid_groups' )]
+	public function test_a_valid_group_constructs_a_scheduler( string $group ): void {
+		self::assertInstanceOf( Scheduler::class, new Scheduler( $group ) );
+	}
+
+	public static function invalid_groups(): array {
+		return array(
+			'empty'          => array( '' ),
+			'zero'           => array( '0' ),
+			'leading-digit'  => array( '1acme' ),
+			'space'          => array( 'acme tpl' ),
+			'dot'            => array( 'acme.tpl' ),
+			'trailing-break' => array( "acme\n" ),
+			'191-bytes'      => array( \str_repeat( 'a', 191 ) ),
+		);
+	}
+
+	#[DataProvider( 'invalid_groups' )]
+	public function test_an_invalid_group_is_rejected( string $group ): void {
+		$this->expectException( InvalidArgumentException::class );
+
+		new Scheduler( $group );
+	}
+
+	public function test_unscheduling_a_hook_rejects_an_empty_hook_name(): void {
+		$this->expectException( InvalidArgumentException::class );
+
+		( new Scheduler( 'acme' ) )->unschedule_hook( '' );
+	}
+
 	public static function schedulers(): array {
 		return array(
 			'action-scheduler' => array( 'production' ),
@@ -249,7 +288,8 @@ final class SchedulerTest extends TestCase {
 	public function test_a_write_before_action_scheduler_initializes_is_an_error_that_writes_nothing( \Closure $write ): void {
 		$scheduler = $this->make_scheduler( 'production' );
 		unset( $GLOBALS['wp_actions']['action_scheduler_init'] );
-		$this->writes = array();
+		$GLOBALS['wp_current_filter'][] = 'init';
+		$this->writes                   = array();
 
 		$result = $write( $scheduler, new ScheduledHook( $this->hook ) );
 
@@ -574,6 +614,7 @@ final class SchedulerTest extends TestCase {
 		$scheduler = $this->make_scheduler( 'production' );
 		wp_schedule_single_event( \time() + 3600, $this->hook );
 		unset( $GLOBALS['wp_actions']['action_scheduler_init'] );
+		$GLOBALS['wp_current_filter'][] = 'init';
 
 		self::assertFalse( $scheduler->is_scheduled( new ScheduledHook( $this->hook ) ) );
 		self::assertCount( 1, $this->doing_it_wrong );
@@ -707,6 +748,17 @@ final class SchedulerTest extends TestCase {
 		self::assertSame( array(), $this->cron_events() );
 	}
 
+	public function test_an_action_scheduler_that_never_initialized_by_the_end_of_init_is_unsupported(): void {
+		$scheduler = $this->make_scheduler( 'production' );
+		$this->report_action_scheduler_versions( array( '3.5.4' ) );
+		unset( $GLOBALS['wp_actions']['action_scheduler_init'] );
+
+		self::assertTrue( $scheduler->enqueue( new ScheduledHook( $this->hook ) ) );
+
+		self::assertSame( array(), $this->pending_action_ids() );
+		self::assertCount( 1, $this->cron_events() );
+	}
+
 	public function test_action_scheduler_below_the_floor_is_still_read_and_cleared(): void {
 		$scheduler = $this->make_scheduler( 'production' );
 		$hook      = new ScheduledHook( $this->hook );
@@ -724,6 +776,7 @@ final class SchedulerTest extends TestCase {
 		$hook      = new ScheduledHook( $this->hook );
 		$ready     = $GLOBALS['wp_actions']['action_scheduler_init'];
 		unset( $GLOBALS['wp_actions']['action_scheduler_init'] );
+		$GLOBALS['wp_current_filter'][] = 'init';
 
 		self::assert_wp_error( $scheduler->enqueue( $hook ), 'scheduler_not_ready' );
 		$GLOBALS['wp_actions']['action_scheduler_init'] = $ready;
@@ -762,6 +815,17 @@ final class SchedulerTest extends TestCase {
 		'production' === $kind ? $this->run_due_actions() : $this->run_due_cron_events();
 
 		self::assertSame( array( $args ), $received );
+	}
+
+	public function test_ensuring_replaces_a_cron_expression_chain_with_one_interval_chain(): void {
+		as_schedule_cron_action( \time(), '0 * * * *', $this->hook, array(), self::GROUP );
+
+		self::assertTrue( $this->make_scheduler( 'production' )->ensure_recurring( new ScheduledHook( $this->hook ), Recurrence::from_interval( 3600 ) ) );
+
+		$pending = $this->pending_action_ids();
+		self::assertCount( 1, $pending );
+		self::assertInstanceOf( \ActionScheduler_IntervalSchedule::class, \ActionScheduler::store()->fetch_action( $pending[0] )->get_schedule() );
+		self::assertSame( 3600, \ActionScheduler::store()->fetch_action( $pending[0] )->get_schedule()->get_recurrence() );
 	}
 
 	protected static function assert_wp_error( mixed $actual, string $code ): void {

@@ -146,7 +146,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
-		self::assertSame( array( 'Name was not saved, so it keeps its previous value. Use at most four characters.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
+		self::assertSame( array( 'Name was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	#[DataProvider( 'parents' )]
@@ -168,7 +168,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
-		self::assertSame( array( 'Name was not saved because its value is not valid, so it keeps its previous value.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
+		self::assertSame( array( 'Name was not saved because its value is not valid, and keeps its previous value. The other changes were saved.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_a_built_in_rejection_carries_what_to_enter(): void {
@@ -179,7 +179,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( array( 'email' => 'ops@example.com' ), get_option( $this->option ) );
-		self::assertSame( array( 'Email was not saved, so it keeps its previous value. Enter a valid email address, such as name@example.com.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
+		self::assertSame( array( 'Email was not saved and keeps its previous value. The other changes were saved. Enter a valid email address, such as name@example.com.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_titles_and_messages_print_as_text_and_an_untitled_field_is_labelled_and_named_by_its_id(): void {
@@ -208,8 +208,8 @@ final class OptionsPageTest extends TestCase {
 		self::assertNull( self::document( $form )->querySelector( 'form em' ) );
 		self::assertSame(
 			array(
-				'<em>Email</em> was not saved, so it keeps its previous value. Enter a valid email address, such as name@example.com.',
-				'site was not saved, so it keeps its previous value. Enter a valid URL, such as https://example.com.',
+				'<em>Email</em> was not saved and keeps its previous value. The other changes were saved. Enter a valid email address, such as name@example.com.',
+				'site was not saved and keeps its previous value. The other changes were saved. Enter a valid URL, such as https://example.com.',
 			),
 			self::notices( $page )
 		);
@@ -584,6 +584,29 @@ final class OptionsPageTest extends TestCase {
 		self::assertSame( $this->option, $unknown->querySelector( 'form input[name="option_page"]' )?->getAttribute( 'value' ) );
 		self::assertSame( 'General', $unknown->querySelector( '.nav-tab[aria-current="page"]' )?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNull( $single->querySelector( '.nav-tab' ) );
+	}
+
+	public function test_saving_the_second_of_two_tabs_on_one_option_keeps_the_first_tabs_field(): void {
+		$spec = $this->spec(
+			array( self::field( 'text', 'name' ) ),
+			array(
+				'tabs' => array(
+					self::tab( 'general', $this->option, array( self::field( 'text', 'name' ) ) ),
+					self::tab( 'second', $this->option, array( self::field( 'text', 'other' ) ) ),
+				),
+			)
+		);
+		$this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'first' ) ) );
+
+		$this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin, 'second' )['body'], array( "{$this->option}[other]" => 'second' ) ) );
+
+		self::assertSame(
+			array(
+				'name'  => 'first',
+				'other' => 'second',
+			),
+			get_option( $this->option )
+		);
 	}
 
 	protected function spec( array $fields, array $page = array(), array $extra = array() ): array {

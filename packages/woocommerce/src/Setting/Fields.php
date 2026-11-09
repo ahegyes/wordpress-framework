@@ -2,7 +2,9 @@
 
 namespace DeepWebSolutions\Framework\WooCommerce\Setting;
 
+use DeepWebSolutions\Framework\Core\Storage\StoredData;
 use DeepWebSolutions\Framework\Settings\Forms;
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -39,10 +41,10 @@ final class Fields {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<string, mixed> $sections The helper's sections, keyed by id.
+	 * @param   list<string> $section_ids The ids of the helper's sections.
 	 */
 	public function __construct(
-		protected array $sections
+		protected array $section_ids
 	) {}
 
 	// endregion
@@ -64,6 +66,24 @@ final class Fields {
 		add_filter( 'woocommerce_admin_settings_sanitize_option', array( $this, 'sanitize_option' ), 10, 3 );
 	}
 
+	/**
+	 * Throws unless WooCommerce keeps the tab or section id as it is, because it passes the ids through sanitize_title() and the fields are claimed by the ids it passes.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $id The tab or section id.
+	 *
+	 * @throws  InvalidArgumentException Thrown when sanitize_title() changes the id.
+	 *
+	 * @return  void
+	 */
+	public static function check_id( string $id ): void {
+		if ( sanitize_title( $id ) !== $id ) {
+			throw new InvalidArgumentException( "Id '$id' is not one that WooCommerce's sanitize_title() keeps as it is." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+		}
+	}
+
 	// endregion
 
 	// region HOOKS
@@ -80,7 +100,7 @@ final class Fields {
 	 * @return  array<mixed>
 	 */
 	public function claim( array $settings, string $section_id ): array {
-		if ( ! isset( $this->sections[ $section_id ] ) ) {
+		if ( ! \in_array( $section_id, $this->section_ids, true ) ) {
 			return $settings;
 		}
 
@@ -101,7 +121,7 @@ final class Fields {
 	/**
 	 * Returns the value to store for an owned field's submission, or null, under which WooCommerce keeps the stored value, and any other option's value unchanged.
 	 *
-	 * A disabled field and a field the form did not post are never saved. The submission goes through Forms::sanitize_fields(), where a field without validate, a render callable or the checkboxes type keeps WooCommerce's value, and a rejection becomes one of WooCommerce's settings errors.
+	 * A disabled field and a field the form did not post are never saved. The submission goes through Forms::sanitize_fields(), where a field without validate, a render callable or the checkboxes type keeps WooCommerce's value when it holds only scalars, null and arrays, and a rejection becomes one of WooCommerce's settings errors.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -125,7 +145,7 @@ final class Fields {
 			default                                 => null,
 		};
 		if ( ! isset( $field['validate'] ) && ! self::is_drawn_by_forms( $field ) ) {
-			$field['validate'] = static fn (): mixed => $value;
+			$field['validate'] = static fn (): mixed => StoredData::is_storable_data( $value ) ? $value : null;
 		}
 
 		$id     = $field['id'] ?? '';

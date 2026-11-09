@@ -148,7 +148,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/woocommerce",
-                "reference": "657eb2dbc0484dae31ff8c97c7786716c9090c17"
+                "reference": "390b60d89ae0ec911501d74ebd77e7255cafc462"
             },
             "require": {
                 "ahegyes/wp-framework-settings": "^2.0",
@@ -159,14 +159,14 @@
                 "branch-alias": {
                     "dev-trunk": "2.x-dev"
                 },
-                "scoping-stubs": [
-                    "php-stubs/woocommerce-stubs"
-                ],
-                "scoping-text-domain": "wp-framework",
                 "requires-wp": "7.1",
                 "requires-plugins": [
                     "woocommerce"
-                ]
+                ],
+                "scoping-stubs": [
+                    "php-stubs/woocommerce-stubs"
+                ],
+                "scoping-text-domain": "wp-framework"
             },
             "autoload": {
                 "psr-4": {
@@ -397,12 +397,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ahegyes/wordpress-configs.git",
-                "reference": "c944e73ab2656633397e7736ea104bbe72726ffd"
+                "reference": "b107001cce9f2960495d9d50481c8540d228f60c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/c944e73ab2656633397e7736ea104bbe72726ffd",
-                "reference": "c944e73ab2656633397e7736ea104bbe72726ffd",
+                "url": "https://api.github.com/repos/ahegyes/wordpress-configs/zipball/b107001cce9f2960495d9d50481c8540d228f60c",
+                "reference": "b107001cce9f2960495d9d50481c8540d228f60c",
                 "shasum": ""
             },
             "require": {
@@ -530,7 +530,7 @@
                 "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
                 "issues": "https://github.com/ahegyes/wordpress-configs/issues"
             },
-            "time": "2026-11-07T10:23:14+00:00"
+            "time": "2026-11-09T15:51:41+00:00"
         },
         {
             "name": "automattic/jetpack-changelogger",

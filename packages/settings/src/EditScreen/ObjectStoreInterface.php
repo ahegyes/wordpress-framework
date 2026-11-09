@@ -2,6 +2,8 @@
 
 namespace DeepWebSolutions\Framework\Settings\EditScreen;
 
+use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+
 \defined( 'ABSPATH' ) || exit;
 
 /**
@@ -25,13 +27,15 @@ interface ObjectStoreInterface {
 	public function get_values( int $object_id, array $keys ): array;
 
 	/**
-	 * Stores the values under their keys for the object, each as given.
+	 * Stores the values under their keys for the object, each as given and each a scalar, null or an array of them.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   int                  $object_id The object's id.
-	 * @param   array<string, mixed> $values    The values, keyed by their keys.
+	 * @param   int                                     $object_id The object's id.
+	 * @param   array<string, scalar|array<mixed>|null> $values    The values, keyed by their keys.
+	 *
+	 * @throws  InvalidArgumentException Thrown when a value holds anything but scalars, null and arrays, before any value is stored.
 	 *
 	 * @return  void
 	 */

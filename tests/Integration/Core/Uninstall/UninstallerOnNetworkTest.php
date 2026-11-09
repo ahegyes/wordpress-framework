@@ -65,6 +65,70 @@ final class UninstallerOnNetworkTest extends TestCase {
 		self::assertSame( array( "cleanup:site:$this->other_site" ), $this->summarize_calls() );
 	}
 
+	public function test_a_subsite_pass_leaves_the_main_sites_prefixed_options_site_user_meta_meta_tables_and_tables_alone(): void {
+		$p     = $this->prefix;
+		$sites = array( $this->main_site, $this->other_site );
+		$state = fn ( int $site_id ): array => $this->on_site(
+			$site_id,
+			function () use ( $p ): array {
+				global $wpdb;
+
+				return array(
+					$this->option_exists( "{$p}_cache_a" ),
+					$this->user_meta_exists( $wpdb->get_blog_prefix() . "{$p}_site_a" ),
+					'0' !== $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE meta_key = %s', "$wpdb->prefix{$p}_itemmeta", "{$p}_flag" ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads the test's own table.
+					$this->table_exists( "{$p}_log" ),
+				);
+			}
+		);
+		foreach ( $sites as $site_id ) {
+			$this->on_site(
+				$site_id,
+				function () use ( $p ): void {
+					global $wpdb;
+
+					update_option( "{$p}_cache_a", 'x' );
+					add_user_meta( $this->user, $wpdb->get_blog_prefix() . "{$p}_site_a", 'x' );
+					$wpdb->query( $wpdb->prepare( 'CREATE TABLE %i ( id INT )', "$wpdb->prefix{$p}_log" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Creates the test's own table.
+					$wpdb->query( $wpdb->prepare( 'CREATE TABLE %i ( meta_id INT, meta_key VARCHAR(255) )', "$wpdb->prefix{$p}_itemmeta" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Creates the test's own table.
+					$wpdb->insert( "$wpdb->prefix{$p}_itemmeta", array( 'meta_key' => "{$p}_flag" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Seeds the test's own table.
+				}
+			);
+		}
+		$this->on_site( $this->other_site, fn (): bool => update_option( "{$p}_remove_data", 'yes' ) );
+
+		try {
+			Uninstaller::run(
+				self::PLUGIN_FILE,
+				array(
+					'option_prefixes'         => array( "{$p}_cache_" ),
+					'meta'                    => array( 'item' => array( "{$p}_flag" ) ),
+					'user_meta_site_prefixes' => array( "{$p}_site_" ),
+					'tables'                  => array( "{$p}_log" ),
+				),
+				array( 'meta_types' => array( 'item' => array( 'meta_tables' => array( "{$p}_itemmeta" ) ) ) ) + $this->args()
+			);
+			$main  = $state( $this->main_site );
+			$other = $state( $this->other_site );
+		} finally {
+			foreach ( $sites as $site_id ) {
+				$this->on_site(
+					$site_id,
+					function () use ( $p ): void {
+						global $wpdb;
+
+						foreach ( array( "{$p}_log", "{$p}_itemmeta" ) as $table ) {
+							$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Drops the test's own tables.
+						}
+					}
+				);
+			}
+		}
+
+		self::assertSame( array( true, true, true, true ), $main );
+		self::assertSame( array( false, false, false, false ), $other );
+	}
+
 	public static function constant_consents(): array {
 		return array(
 			'with-the-constant'    => array( true ),
@@ -96,6 +160,18 @@ final class UninstallerOnNetworkTest extends TestCase {
 		self::assertSame( $expected, $this->summarize_calls() );
 		self::assertSame( ! $constant, $this->user_meta_exists( "{$this->prefix}_global_state" ) );
 		self::assertSame( ! $constant, $this->network_option_exists( "{$this->prefix}_network_settings" ) );
+	}
+
+	public function test_the_network_pass_reads_a_global_user_meta_key_in_pages_and_deletes_every_row(): void {
+		for ( $row = 0; $row <= 1000; ++$row ) {
+			add_user_meta( $this->user, "{$this->prefix}_global_state", (string) $row );
+		}
+		$this->record_id_reads();
+
+		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( true ) );
+
+		self::assertFalse( $this->user_meta_exists( "{$this->prefix}_global_state" ) );
+		$this->assert_id_reads_paged();
 	}
 
 	public function test_the_network_pass_keeps_a_network_option_that_differs_only_in_letter_case(): void {

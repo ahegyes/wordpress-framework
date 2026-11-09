@@ -79,13 +79,13 @@ if ( ! Requirements::check_floors( __FILE__ ) ) {
 require_once __DIR__ . '/functions.php';
 ```
 
-The updater offers the plugin's GitHub releases through WordPress's own update screens while the plugin's `Update URI` header points at its github.com repository. It installs the release asset named after the plugin's text domain, such as `acme-persona-bootstrap.zip`, and the `dws_github_updater/config/{text-domain}` filter changes the repository, the asset or the channel, or turns updates off. It offers only tags such as `v2.1.0` or `v2.1.0-rc.1`, whose optional suffix is `-dev`, `-alpha`, `-beta` or `-rc` in any letter case, optionally numbered, because PHP's `version_compare()` ranks other suffixes above their release.
+The updater offers the plugin's GitHub releases through WordPress's own update screens while the plugin's `Update URI` header points at its github.com repository. It installs the release asset named after the plugin's text domain, such as `acme-persona-bootstrap.zip`, and the `dws_github_updater/config/{text-domain}` filter changes the repository, the asset or the channel, or turns updates off. It offers only tags such as `v2.1.0` or `v2.1.0-rc.1`, whose optional suffix is `-dev`, `-alpha`, `-beta` or `-rc` in lowercase, optionally numbered, because PHP's `version_compare()` ranks other suffixes above their release.
 
 ## Contract and versioning
 
 The five packages release together under one version, which the [changelog](https://github.com/ahegyes/wordpress-framework/blob/trunk/CHANGELOG.md) records.
 
-The 2.x contract is every public class, interface, enum, method and constant, the protected members of non-final classes, and the hook and priority each public callback method is registered on, unless tagged `@internal`. `@internal`, `private` and protected-on-final members are not contract, and an `@internal` symbol serves only its own package, because a caret edge installs a package beside an older or newer release of another. Hook names and their arguments, option and meta keys, REST routes and the path of bootstrap's `load.php` are contract too.
+The 2.x contract is every public class, interface, enum, method, property and constant, the protected members of non-final classes, and the hook and priority each public callback method is registered on, unless tagged `@internal`. A `protected(set)` property is contract for reading, by its name and declared type. `@internal`, `private` and protected-on-final members are not contract, and an `@internal` symbol serves only its own package, because a caret edge installs a package beside an older or newer release of another. Hook names and their arguments, option and meta keys, REST routes and the path of bootstrap's `load.php` are contract too.
 
 Releases follow SemVer on this contract from the first tag: a break of it ships as the next major, and internals change in any release. Plugins on different majors run side by side, because each ships its own prefixed copy.
 

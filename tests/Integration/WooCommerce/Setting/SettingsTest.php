@@ -59,8 +59,8 @@ final class SettingsTest extends TestCase {
 
 	public static function silent_and_worded_rejections(): array {
 		return array(
-			'worded' => array( 'acme:reject', "Customer's <b>note</b> was not saved, so it keeps its previous value. Use at most four characters." ),
-			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> was not saved because its value is not valid, so it keeps its previous value." ),
+			'worded' => array( 'acme:reject', "Customer's <b>note</b> was not saved and keeps its previous value. The other changes were saved. Use at most four characters." ),
+			'silent' => array( 'acme:reject-silently', "Customer's <b>note</b> was not saved because its value is not valid, and keeps its previous value. The other changes were saved." ),
 		);
 	}
 
@@ -76,6 +76,33 @@ final class SettingsTest extends TestCase {
 		$this->expectException( InvalidArgumentException::class );
 
 		new SettingsSection( $id, $this->registered_section( 'products' ), $this->fields_definition() );
+	}
+
+	public static function ids_woocommerce_rewrites(): array {
+		return array(
+			'double-hyphen'   => array( 'acme--settings' ),
+			'trailing-hyphen' => array( 'acme-settings-' ),
+		);
+	}
+
+	#[DataProvider( 'ids_woocommerce_rewrites' )]
+	public function test_an_id_woocommerce_would_rewrite_is_rejected_as_a_tab_id_a_section_key_and_a_section_id( string $id ): void {
+		$builds = array(
+			'tab-id'      => fn (): SettingsTab => new SettingsTab( $id, $this->tab( array() ), $this->fields_definition() ),
+			'section-key' => fn (): SettingsTab => new SettingsTab( $this->prefix, $this->tab( array( $id => 'Acme' ) ), $this->fields_definition() ),
+			'section-id'  => fn (): SettingsSection => new SettingsSection( $id, $this->registered_section( 'products' ), $this->fields_definition() ),
+		);
+
+		$rejected = array();
+		foreach ( $builds as $kind => $build ) {
+			try {
+				$build();
+			} catch ( InvalidArgumentException ) {
+				$rejected[] = $kind;
+			}
+		}
+
+		self::assertSame( \array_keys( $builds ), $rejected );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
@@ -454,7 +481,7 @@ final class SettingsTest extends TestCase {
 		$saved = self::document( $this->save( $spec, '', array( "{$this->prefix}_widget" => 'w' ) )['body'] );
 
 		self::assertSame( 'old', get_option( "{$this->prefix}_widget" ) );
-		self::assertSame( array( 'Widget was not saved, so it keeps its previous value. This field cannot be saved because nothing validates its value.' ), self::texts( $saved, '#message.error' ) );
+		self::assertSame( array( 'Widget was not saved and keeps its previous value. The other changes were saved. This field cannot be saved because nothing validates its value.' ), self::texts( $saved, '#message.error' ) );
 	}
 
 	public function test_a_custom_type_field_the_helper_does_not_own_is_not_printed(): void {
@@ -503,7 +530,7 @@ final class SettingsTest extends TestCase {
 		$saved = self::document( $this->save( $spec, '', array(), array( "{$this->prefix}_colors" => array( 'pink' ) ) )['body'] );
 
 		self::assertSame( array( 'red' ), get_option( "{$this->prefix}_colors" ) );
-		self::assertSame( array( 'Colors was not saved, so it keeps its previous value. Choose one of the available options.' ), self::texts( $saved, '#message.error' ) );
+		self::assertSame( array( 'Colors was not saved and keeps its previous value. The other changes were saved. Choose one of the available options.' ), self::texts( $saved, '#message.error' ) );
 	}
 
 	protected function tab_spec( array $sections ): array {

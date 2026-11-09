@@ -27,7 +27,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	// region HELPERS
 
 	/**
-	 * Returns whether two property values are equal, comparing dates by instant.
+	 * Returns whether two property values are equal, comparing dates by instant and value objects of one class through their own equals().
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -39,7 +39,7 @@ abstract readonly class AbstractValueObject implements ValueObjectInterface {
 	 */
 	private static function are_equal( mixed $value, mixed $other ): bool {
 		return match ( true ) {
-			$value instanceof ValueObjectInterface => $other instanceof ValueObjectInterface && $value->equals( $other ),
+			$value instanceof ValueObjectInterface => $other instanceof ValueObjectInterface && $value::class === $other::class && $value->equals( $other ),
 			$value instanceof \DateTimeInterface   => $other instanceof \DateTimeInterface && $value->format( 'U.u' ) === $other->format( 'U.u' ),
 			\is_array( $value )                    => \is_array( $other ) && \array_keys( $value ) === \array_keys( $other ) && \array_all( $value, static fn ( mixed $item, int|string $key ): bool => self::are_equal( $item, $other[ $key ] ) ),
 			default                                => $value === $other,

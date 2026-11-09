@@ -17,8 +17,6 @@ use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
  *
  * @since   2.0.0
  * @version 2.0.0
- *
- * @phpstan-import-type Row from ObjectFormHostInterface
  */
 final class TermForm implements ObjectFormHostInterface {
 	// region FIELDS AND CONSTANTS

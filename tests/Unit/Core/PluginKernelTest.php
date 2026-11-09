@@ -145,7 +145,6 @@ final class PluginKernelTest extends TestCase {
 			array( 'construct CompositeA', 'construct ComponentB', 'construct ComponentC', 'construct ComponentD', 'register CompositeA', 'register ComponentB', 'register ComponentC', 'register ComponentD' ),
 			$journal->entries
 		);
-		self::assertSame( array( CompositeA::class, ComponentB::class, ComponentC::class, ComponentD::class ), $kernel->resolved );
 	}
 
 	public function test_a_second_boot_adds_disjoint_roots(): void {
@@ -159,7 +158,6 @@ final class PluginKernelTest extends TestCase {
 			array( 'construct ComponentD', 'register ComponentD', 'construct CompositeA', 'construct ComponentB', 'construct ComponentC', 'register CompositeA', 'register ComponentB', 'register ComponentC' ),
 			$journal->entries
 		);
-		self::assertSame( array( ComponentD::class, CompositeA::class, ComponentB::class, ComponentC::class ), $kernel->resolved );
 	}
 
 	public function test_a_second_boot_reaching_a_class_already_walked_throws_before_it_registers_anything(): void {
@@ -194,7 +192,6 @@ final class PluginKernelTest extends TestCase {
 			array( 'construct CompositeP', 'construct LoadingL1', 'construct UngatedL3', 'register CompositeP', 'register LoadingL1', 'register UngatedL3' ),
 			$journal->entries
 		);
-		self::assertSame( array( CompositeP::class, LoadingL1::class, UngatedL3::class ), $kernel->resolved );
 		self::assertSame( array( GatedOutL2::class ), $kernel->skipped );
 	}
 

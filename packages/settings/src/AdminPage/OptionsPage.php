@@ -190,7 +190,7 @@ final class OptionsPage {
 		$option = $tab['option'];
 		$stored = get_option( $option );
 		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
-			add_settings_field( $row['field']['id'] ?? '', esc_html( $row['field']['title'] ?? '' ), array( $this, 'render_field' ), $this->id, 'default', $row );
+			add_settings_field( $row['field']['id'], esc_html( $row['field']['title'] ), array( $this, 'render_field' ), $this->id, 'default', $row );
 		}
 
 		echo '<form action="options.php" method="post">';

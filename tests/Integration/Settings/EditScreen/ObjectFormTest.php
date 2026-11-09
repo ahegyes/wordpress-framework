@@ -164,7 +164,7 @@ final class ObjectFormTest extends TestCase {
 
 		$stored = $notices->get_notices( NoticeScope::User, $this->author_id );
 		self::assertCount( 1, $stored );
-		self::assertSame( 'Note &amp; more was not saved, so it keeps its previous value. Use at most four characters.', $stored[0]->message );
+		self::assertSame( 'Note &amp; more was not saved and keeps its previous value. The other changes were saved. Use at most four characters.', $stored[0]->message );
 		self::assertSame( NoticeType::Error, $stored[0]->type );
 		self::assertFalse( $stored[0]->persistent );
 		self::assertSame( 'Saved.', get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
@@ -182,7 +182,7 @@ final class ObjectFormTest extends TestCase {
 		$stored = $notices->get_notices( NoticeScope::User, $this->author_id );
 		self::assertCount( 1, $stored );
 		self::assertSame( 'rejection-' . \md5( "{$this->prefix}_details|_{$this->prefix}_note" ), $stored[0]->id );
-		self::assertSame( 'Renamed note was not saved, so it keeps its previous value. Use at most four characters.', $stored[0]->message );
+		self::assertSame( 'Renamed note was not saved and keeps its previous value. The other changes were saved. Use at most four characters.', $stored[0]->message );
 	}
 
 	public function test_a_rejection_whose_notice_cannot_be_stored_is_logged_and_keeps_the_accepted_values(): void {

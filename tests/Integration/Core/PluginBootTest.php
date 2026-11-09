@@ -144,6 +144,7 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( 'error', $this->logger->records[0][0] );
 		self::assertSame( 'Boot failed; the plugin did not finish starting: {message}', $this->logger->records[0][1] );
 		self::assertSame( 'first failure', $this->logger->records[0][2]['message'] );
+		self::assertEqualsWithDelta( \time() + HOUR_IN_SECONDS, (int) get_option( '_transient_timeout_acme_boot_failure_' . \md5( 'first failure' ) ), 5 );
 	}
 
 	public function test_distinct_failures_are_each_logged_once(): void {

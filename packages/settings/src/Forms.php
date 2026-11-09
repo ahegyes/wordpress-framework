@@ -14,8 +14,8 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  * @since   2.0.0
  * @version 2.0.0
  *
- * @phpstan-type Field array{type: string, id?: string, title?: string, desc?: string, desc_tip?: bool|string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, css?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): mixed, render?: callable(array<string, mixed>, mixed, string, string): string}
- * @phpstan-type FieldRow array{field: Field, value: mixed, name: string, id: string, label_for?: string}
+ * @phpstan-type Field array{type: string, id?: string, title?: string, desc?: string, desc_tip?: bool|string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, css?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): (scalar|array<mixed>|\WP_Error|null), render?: callable(array<string, mixed>, mixed, string, string): string}
+ * @phpstan-type FieldRow array{field: Field&array{id: string, title: string}, value: mixed, name: string, id: string, label_for?: string}
  */
 final class Forms {
 	// region FIELDS AND CONSTANTS
@@ -97,56 +97,17 @@ final class Forms {
 	}
 
 	/**
-	 * Returns the value to store for the field's submission, or a WP_Error under which the host keeps the stored value.
-	 *
-	 * A field with validate hands the submission, alone, to the callable, which returns the value to store or a WP_Error and owns the field's allowed values, so no type sanitizer runs before or after it. Without validate, the field's type sanitizes the submission and checks its choices, and a rejection carries a code and a message that tells the user what to enter, which a host may replace by the code. Every WP_Error message is plain text, which the host escapes.
-	 *
-	 * @since   2.0.0
-	 * @version 2.0.0
-	 *
-	 * @param   Field $field The field.
-	 * @param   mixed $raw   The unslashed submission, in which a cleared multi-value field is an empty string.
-	 *
-	 * @return  mixed|\WP_Error
-	 */
-	#[\NoDiscard]
-	public static function sanitize_value( array $field, mixed $raw ): mixed {
-		if ( '' === $raw && \in_array( $field['type'], array( 'multiselect', 'checkboxes' ), true ) ) {
-			$raw = array();
-		}
-
-		if ( isset( $field['validate'] ) ) {
-			return $field['validate']( $raw );
-		}
-		if ( isset( $field['render'] ) ) {
-			return self::reject( 'missing_validate' );
-		}
-
-		return match ( $field['type'] ) {
-			'text'                      => self::is_text( $raw ) ? sanitize_text_field( (string) $raw ) : self::reject( 'invalid_value' ),
-			'textarea'                  => self::is_text( $raw ) ? sanitize_textarea_field( (string) $raw ) : self::reject( 'invalid_value' ),
-			'email'                     => self::sanitize_email( $raw ),
-			'url'                       => self::sanitize_url( $raw ),
-			'number'                    => self::sanitize_number( $raw ),
-			'checkbox'                  => self::sanitize_checkbox( $raw ),
-			'select', 'radio'           => self::sanitize_choice( $field, $raw ),
-			'multiselect', 'checkboxes' => self::sanitize_choices( $field, $raw ),
-			default                     => self::reject( 'unknown_type' ),
-		};
-	}
-
-	/**
 	 * Returns the accepted values and the rejections of a submission, keyed by field id, for the defined, present and enabled fields only.
 	 *
-	 * Callers merge the values onto the stored row with array_replace( $stored, $result['values'] ) and report the errors, so a submission writes no id outside the definition, and every stored id it leaves out, including those of rejected fields and of fields absent from the definition, keeps its value.
+	 * Callers merge the values onto the stored row with array_replace( $stored, $result['values'] ) and report the errors, so a submission writes no id outside the definition, and every stored id it leaves out, including those of rejected fields and of fields absent from the definition, keeps its value. A field with validate hands its submission, alone, to the callable, which returns the value to store or a WP_Error and owns the field's allowed values, so no type sanitizer runs before or after it. Without validate, the field's type sanitizes the submission and checks its choices, and a rejection carries a code and a message that tells the user what to enter, which a host may replace by the code. Every WP_Error message is plain text, which the host escapes.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @param   list<Field>             $fields    The fields.
-	 * @param   array<array-key, mixed> $submitted The unslashed submission, keyed by field id.
+	 * @param   array<array-key, mixed> $submitted The unslashed submission, keyed by field id, in which a cleared multi-value field is an empty string.
 	 *
-	 * @return  array{values: array<string, mixed>, errors: array<string, \WP_Error>}
+	 * @return  array{values: array<string, scalar|array<mixed>|null>, errors: array<string, \WP_Error>}
 	 */
 	#[\NoDiscard]
 	public static function sanitize_fields( array $fields, array $submitted ): array {
@@ -160,7 +121,30 @@ final class Forms {
 				continue;
 			}
 
-			$value = self::sanitize_value( $field, $submitted[ $id ] );
+			$raw = $submitted[ $id ];
+			if ( '' === $raw && \in_array( $field['type'], array( 'multiselect', 'checkboxes' ), true ) ) {
+				$raw = array();
+			}
+
+			if ( isset( $field['validate'] ) ) {
+				$value = $field['validate']( $raw );
+			} elseif ( isset( $field['render'] ) ) {
+				$value = self::reject( 'missing_validate' );
+			} else {
+				$value = match ( $field['type'] ) {
+					// The sanitizers encode a lone '<' that every output escapes again, so the stored text turns it back.
+					'text'                      => self::is_text( $raw ) ? \str_replace( '&lt;', '<', sanitize_text_field( (string) $raw ) ) : self::reject( 'invalid_value' ),
+					'textarea'                  => self::is_text( $raw ) ? \str_replace( '&lt;', '<', sanitize_textarea_field( (string) $raw ) ) : self::reject( 'invalid_value' ),
+					'email'                     => self::sanitize_email( $raw ),
+					'url'                       => self::sanitize_url( $raw ),
+					'number'                    => self::sanitize_number( $raw ),
+					'checkbox'                  => self::sanitize_checkbox( $raw ),
+					'select', 'radio'           => self::sanitize_choice( $field, $raw ),
+					'multiselect', 'checkboxes' => self::sanitize_choices( $field, $raw ),
+					default                     => self::reject( 'unknown_type' ),
+				};
+			}
+
 			if ( is_wp_error( $value ) ) {
 				$result['errors'][ $id ] = $value;
 			} else {
@@ -230,11 +214,11 @@ final class Forms {
 		$message = $error->get_error_message();
 		if ( '' === $message ) {
 			/* translators: %s: The field's title. */
-			return \sprintf( __( '%s was not saved because its value is not valid, so it keeps its previous value.', 'wp-framework' ), $title );
+			return \sprintf( __( '%s was not saved because its value is not valid, and keeps its previous value. The other changes were saved.', 'wp-framework' ), $title );
 		}
 
 		/* translators: 1: The field's title. 2: What to enter instead. */
-		return \sprintf( __( '%1$s was not saved, so it keeps its previous value. %2$s', 'wp-framework' ), $title, $message );
+		return \sprintf( __( '%1$s was not saved and keeps its previous value. The other changes were saved. %2$s', 'wp-framework' ), $title, $message );
 	}
 
 	/**
@@ -420,7 +404,7 @@ final class Forms {
 			'value'            => 'yes',
 			'class'            => $field['class'] ?? null,
 			'style'            => $field['css'] ?? null,
-			'checked'          => 'yes' === $value,
+			'checked'          => 'yes' === self::sanitize_checkbox( $value ),
 			'disabled'         => $disabled,
 			'aria-describedby' => self::get_described_by( $help ),
 		);
