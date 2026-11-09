@@ -47,13 +47,18 @@ final class Requirements {
 			return true;
 		}
 
+		$basename = plugin_basename( $plugin_file );
 		add_action(
 			'all_admin_notices',
-			static function () use ( $plugin_file ): void {
+			static function () use ( $basename ): void {
+				if ( ! \is_file( WP_PLUGIN_DIR . "/$basename" ) ) {
+					return; // Core reads the headers from the plugins directory, so it has no message for a plugin loaded from elsewhere.
+				}
+
 				// Core translates the plugin's headers while it builds the message, so the message waits until the notice renders.
-				$requirements = validate_plugin_requirements( plugin_basename( $plugin_file ) );
+				$requirements = validate_plugin_requirements( $basename );
 				if ( ! is_wp_error( $requirements ) ) {
-					return; // Core reads the headers from the plugins directory, so a plugin loaded from elsewhere reads as compatible.
+					return;
 				}
 
 				self::print_admin_notice( $requirements );

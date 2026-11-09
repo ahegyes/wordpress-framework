@@ -59,6 +59,7 @@ final class Updater {
 					'package'      => $release['package'],
 					'requires'     => $release['requires'],
 					'requires_php' => $release['requires_php'],
+					'tested'       => $release['tested'],
 				);
 			},
 			10,
@@ -82,6 +83,8 @@ final class Updater {
 					'name'     => $config['name'],
 					'slug'     => $config['slug'],
 					'version'  => $config['version'],
+					'author'   => $config['author'],
+					'homepage' => $config['homepage'],
 					'sections' => array(), // WordPress's details screen reads the sections without a guard.
 				);
 
@@ -92,7 +95,9 @@ final class Updater {
 						'download_link' => $release['package'],
 						'requires'      => $release['requires'],
 						'requires_php'  => $release['requires_php'],
-						'sections'      => array( 'changelog' => \nl2br( esc_html( $release['body'] ) ) ),
+						'tested'        => $release['tested'],
+						'last_updated'  => $release['last_updated'],
+						'sections'      => array( 'changelog' => $release['body'] ), // GitHub renders the notes as HTML, which WordPress's details screen passes through kses.
 					) + $information;
 				}
 
@@ -115,7 +120,7 @@ final class Updater {
 	 *
 	 * @param   string $plugin_file The path to the plugin's entry file.
 	 *
-	 * @return  array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, file: string}|null
+	 * @return  array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, author: string, homepage: string, file: string}|null
 	 */
 	protected static function get_updater_config( string $plugin_file ): ?array {
 		if ( ! \function_exists( 'get_plugin_data' ) ) {
@@ -164,6 +169,8 @@ final class Updater {
 			'slug'       => $slug,
 			'name'       => $headers['Name'],
 			'version'    => $headers['Version'],
+			'author'     => $headers['Author'],
+			'homepage'   => $headers['PluginURI'],
 			'file'       => \basename( $plugin_file ),
 		);
 	}
@@ -176,9 +183,9 @@ final class Updater {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, file: string} $config The plugin's updater configuration.
+	 * @param   array{repository: string, asset: string, channel: 'stable'|'prerelease', slug: string, name: string, version: string, author: string, homepage: string, file: string} $config The plugin's updater configuration.
 	 *
-	 * @return  array{version: string, tag: string, package: string, url: string, body: string, requires: string, requires_php: string}|null
+	 * @return  array{version: string, package: string, url: string, body: string, last_updated: string, requires: string, requires_php: string, tested: string}|null
 	 */
 	protected static function get_release( array $config ): ?array {
 		$transient = "{$config['slug']}_github_release_{$config['channel']}";
@@ -192,7 +199,7 @@ final class Updater {
 			return $release;
 		}
 
-		$body     = self::get_response_body( "https://api.github.com/repos/{$config['repository']}/" . ( 'prerelease' === $config['channel'] ? 'releases?per_page=10' : 'releases/latest' ) );
+		$body     = self::get_response_body( "https://api.github.com/repos/{$config['repository']}/" . ( 'prerelease' === $config['channel'] ? 'releases?per_page=10' : 'releases/latest' ), array( 'Accept' => 'application/vnd.github.html+json' ) );
 		$releases = null === $body ? null : \json_decode( $body, true );
 
 		$newest  = array();
@@ -204,7 +211,11 @@ final class Updater {
 			}
 
 			$candidate_version = \ltrim( $candidate['tag_name'], 'v' );
-			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-(?:dev|alpha|beta|rc)(?:\.?\d+)?)?$/i', $candidate_version ) ) { // PHP's version_compare() orders only these labels below their release, and ranks others, such as 'pre' or 'patch', above it.
+			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-(?:dev|alpha|beta|rc)(?:\.?\d+)?)?$/', $candidate_version ) ) { // PHP's version_compare() orders only these labels below their release as their names say, and misorders others, such as 'pre', 'patch' or 'Beta'.
+				continue;
+			}
+
+			if ( 'stable' === $config['channel'] && false !== \strpos( $candidate_version, '-' ) ) { // GitHub's prerelease flag is set by hand, so a suffixed tag can be the latest release.
 				continue;
 			}
 
@@ -230,21 +241,23 @@ final class Updater {
 			$headers      = array(
 				'requires'     => 'Requires at least',
 				'requires_php' => 'Requires PHP',
+				'tested'       => 'Tested up to',
 			);
 			$requirements = array();
 			foreach ( $headers as $field => $header ) {
 				$requirements[ $field ] = 1 === \preg_match( '/^(?:[ \t]*<\?(?:php)?)?[ \t\/*#@]*' . \preg_quote( $header, '/' ) . ':(.*)$/mi', $entry_file, $match ) ? \trim( (string) \preg_replace( '/\s*(?:\*\/|\?>).*/', '', $match[1] ) ) : '';
 			}
 
-			// WordPress prints the PHP requirement unescaped on its details screen, so anything but a version makes the release unusable.
-			if ( \preg_grep( '/^(?:\d+(?:\.\d+)*)?$/', $requirements ) === $requirements ) {
+			// WordPress prints the PHP requirement unescaped on its details screen, so a requirement that is not a version makes the release unusable, while the tested version passes through core's kses.
+			$checked = \array_diff_key( $requirements, array( 'tested' => true ) );
+			if ( \preg_grep( '/^(?:\d+(?:\.\d+)*)?$/', $checked ) === $checked ) {
 				$release = self::read_release(
 					array(
-						'version' => $version,
-						'tag'     => $tag,
-						'package' => $package,
-						'url'     => $newest['html_url'] ?? null,
-						'body'    => $newest['body'] ?? '',
+						'version'      => $version,
+						'package'      => $package,
+						'url'          => $newest['html_url'] ?? null,
+						'body'         => $newest['body_html'] ?? '',
+						'last_updated' => $newest['published_at'] ?? '',
 					) + $requirements
 				);
 			}
@@ -262,7 +275,7 @@ final class Updater {
 	 *
 	 * @param   mixed $value The candidate record.
 	 *
-	 * @return  array{version: string, tag: string, package: string, url: string, body: string, requires: string, requires_php: string}|null
+	 * @return  array{version: string, package: string, url: string, body: string, last_updated: string, requires: string, requires_php: string, tested: string}|null
 	 */
 	protected static function read_release( $value ): ?array {
 		if ( ! \is_array( $value ) ) {
@@ -270,7 +283,7 @@ final class Updater {
 		}
 
 		$release = array();
-		foreach ( array( 'version', 'tag', 'package', 'url', 'body', 'requires', 'requires_php' ) as $field ) {
+		foreach ( array( 'version', 'package', 'url', 'body', 'last_updated', 'requires', 'requires_php', 'tested' ) as $field ) {
 			$release[ $field ] = $value[ $field ] ?? '';
 			if ( ! \is_string( $release[ $field ] ) ) {
 				return null;
@@ -286,12 +299,13 @@ final class Updater {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string $url The URL.
+	 * @param   string                $url     The URL.
+	 * @param   array<string, string> $headers Optional. The request's headers. Default none.
 	 *
 	 * @return  string|null
 	 */
-	protected static function get_response_body( string $url ): ?string {
-		$response = wp_remote_get( $url );
+	protected static function get_response_body( string $url, array $headers = array() ): ?string {
+		$response = wp_remote_get( $url, array( 'headers' => $headers ) );
 		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			return null;
 		}
