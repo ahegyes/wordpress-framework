@@ -15,7 +15,7 @@ add_filter( 'option_active_plugins', static fn ( array $plugins ): array => arra
 add_action(
 	'admin_init',
 	static function () use ( $spec ): void {
-		$GLOBALS['acme_outcome']['records']['woocommerce loaded'] = class_exists( 'WooCommerce', false );
+		$GLOBALS['acme_outcome']['records']['woocommerce_loaded'] = class_exists( 'WooCommerce', false );
 		Uninstaller::run(
 			$spec['plugin_file'],
 			$spec['footprint'],

@@ -7,11 +7,10 @@ use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InspectsObjectFormsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
-use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
-use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -21,18 +20,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( UserProfile::class )]
 final class UserProfileTest extends TestCase {
 	use CreatesUsersTrait;
+	use InspectsObjectFormsTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
-	use RunsAdminRequestsTrait;
-	use SerializesFormsTrait;
-
-	protected const string FIXTURE = __DIR__ . '/../../../../Fixtures/Settings/acme-object-forms.php';
-
-	protected const array COLORS = array(
-		'red'  => 'Red',
-		'blue' => 'Blue',
-		'teal' => 'Teal',
-	);
 
 	protected int $admin;
 	protected int $subscriber;
@@ -61,7 +51,7 @@ final class UserProfileTest extends TestCase {
 
 	public function test_the_host_registers_on_both_profile_screens(): void {
 		$host = new UserProfile();
-		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 
 		self::assertSame( 10, has_action( 'show_user_profile', array( $host, 'render_section' ) ) );
 		self::assertSame( 10, has_action( 'edit_user_profile', array( $host, 'render_section' ) ) );
@@ -78,8 +68,8 @@ final class UserProfileTest extends TestCase {
 		$section = $form?->querySelector( "input[type=hidden][name=\"{$this->id}_nonce\"] ~ h2 + table.form-table" );
 		self::assertNotNull( $section );
 		self::assertSame( 'Acme profile', \trim( (string) $section->previousElementSibling?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertSame( 'Name', \trim( (string) $section->querySelector( "tr > th[scope=row] > label[for=\"{$this->id}._{$this->prefix}_name\"]" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertNotNull( $section->querySelector( "tr > td > input[id=\"{$this->id}._{$this->prefix}_name\"][name=\"{$this->id}[_{$this->prefix}_name]\"]" ) );
+		self::assertSame( 'Name', \trim( (string) $section->querySelector( "tr > th[scope=row] > label[for=\"$this->id._{$this->prefix}_name\"]" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertNotNull( $section->querySelector( "tr > td > input[id=\"$this->id._{$this->prefix}_name\"][name=\"{$this->id}[_{$this->prefix}_name]\"]" ) );
 		self::assertSame( 'Color', \trim( (string) $section->querySelector( 'tr:nth-child(2) > th[scope=row]' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'Color', \trim( (string) $section->querySelector( 'tr:nth-child(2) > td > fieldset > legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertCount( 1, $section->querySelectorAll( 'tr:nth-child(2) legend' ) );
@@ -92,7 +82,7 @@ final class UserProfileTest extends TestCase {
 		$section = self::document( $this->open( $spec, 'own' )['body'] )->querySelector( "form#your-profile input[name=\"{$this->id}_nonce\"] ~ h2 + table.form-table" );
 
 		$id = (string) $section?->querySelector( 'td > input[type=text]' )?->getAttribute( 'id' );
-		self::assertSame( "{$this->id}._{$this->prefix}_r&amp;d", $id );
+		self::assertSame( "$this->id._{$this->prefix}_r&amp;d", $id );
 		self::assertSame( $id, $section?->querySelector( 'th > label' )?->getAttribute( 'for' ) );
 	}
 
@@ -107,8 +97,9 @@ final class UserProfileTest extends TestCase {
 			)
 		);
 
-		$form = self::document( $this->open( $spec, 'other' )['body'] );
+		$form = self::document( $this->open( $spec, 'other' )['body'] )->querySelector( 'form#your-profile' );
 
+		self::assertNotNull( $form );
 		self::assertSame( 'stored', $this->control( $form, 'name' )->getAttribute( 'value' ) );
 		self::assertSame( '', $this->control( $form, 'empty' )->getAttribute( 'value' ) );
 		self::assertSame( 'fresh', $this->control( $form, 'absent' )->getAttribute( 'value' ) );
@@ -257,50 +248,16 @@ final class UserProfileTest extends TestCase {
 		);
 	}
 
-	protected function field( string $type, string $name, array $keys = array() ): array {
-		return $keys + array(
-			'type'  => $type,
-			'id'    => "_{$this->prefix}_$name",
-			'title' => \ucfirst( $name ),
-		);
-	}
-
-	protected function control_name( string $name ): string {
-		return "{$this->id}[_{$this->prefix}_$name]";
-	}
-
 	// The administrator opens their own profile, or the subscriber's.
 	protected function open( array $spec, string $screen ): array {
-		return $this->admin_request( 'GET', 'own' === $screen ? 'profile.php' : "user-edit.php?user_id={$this->subscriber}", $this->admin, self::FIXTURE, $spec );
+		return $this->admin_request( 'GET', 'own' === $screen ? 'profile.php' : "user-edit.php?user_id=$this->subscriber", $this->admin, self::FIXTURE, $spec );
 	}
 
 	protected function save( array $spec, string $screen, array $changes ): array {
 		return $this->admin_request( 'POST', 'own' === $screen ? 'profile.php' : 'user-edit.php', $this->admin, self::FIXTURE, $spec, self::serialize_form( $this->open( $spec, $screen )['body'], 'form#your-profile', $changes ) );
 	}
 
-	protected function follow( array $spec, array $saved ): array {
-		self::assertIsString( $saved['location'] );
-
-		return $this->admin_request( 'GET', \explode( '/wp-admin/', $saved['location'], 2 )[1], $this->admin, self::FIXTURE, $spec );
-	}
-
 	protected function meta( int $user_id, string $name ): array {
 		return get_user_meta( $user_id, "_{$this->prefix}_$name", false );
-	}
-
-	protected function control( \Dom\HTMLDocument $screen, string $name ): \Dom\Element {
-		$control = $screen->querySelector( "form#your-profile [id=\"{$this->id}._{$this->prefix}_$name\"]" );
-		self::assertNotNull( $control, "The profile printed no _{$this->prefix}_$name." );
-
-		return $control;
-	}
-
-	protected static function rejections( string $html ): array {
-		$messages = array();
-		foreach ( self::document( $html )->querySelectorAll( 'div.notice-error.is-dismissible > p' ) as $message ) {
-			$messages[] = \trim( $message->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		}
-
-		return $messages;
 	}
 }

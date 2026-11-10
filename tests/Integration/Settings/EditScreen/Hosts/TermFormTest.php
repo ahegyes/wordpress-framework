@@ -7,11 +7,10 @@ use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\TermForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InspectsObjectFormsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
-use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
-use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -20,18 +19,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( TermForm::class )]
 final class TermFormTest extends TestCase {
 	use CreatesUsersTrait;
+	use InspectsObjectFormsTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
-	use RunsAdminRequestsTrait;
-	use SerializesFormsTrait;
-
-	protected const string FIXTURE = __DIR__ . '/../../../../Fixtures/Settings/acme-object-forms.php';
-
-	protected const array COLORS = array(
-		'red'  => 'Red',
-		'blue' => 'Blue',
-		'teal' => 'Teal',
-	);
 
 	protected int $admin;
 	protected int $editor;
@@ -47,7 +37,7 @@ final class TermFormTest extends TestCase {
 
 	public function test_the_host_registers_on_each_of_its_taxonomies(): void {
 		$host = new TermForm( array( 'category', 'post_tag' ) );
-		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 
 		foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
 			self::assertSame( 10, has_action( "{$taxonomy}_edit_form", array( $host, 'render_section' ) ) );
@@ -66,7 +56,7 @@ final class TermFormTest extends TestCase {
 		$section = $edit->querySelector( "form#edittag > table.form-table ~ input[type=hidden][name=\"{$this->id}_nonce\"] + h2 + table.form-table" );
 		self::assertNotNull( $section );
 		self::assertSame( 'Acme term', \trim( (string) $section->previousElementSibling?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertSame( 'Name', \trim( (string) $section->querySelector( "tr > th[scope=row] > label[for=\"{$this->id}._{$this->prefix}_name\"]" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Name', \trim( (string) $section->querySelector( "tr > th[scope=row] > label[for=\"$this->id._{$this->prefix}_name\"]" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'Color', \trim( (string) $section->querySelector( 'tr:nth-child(2) > td > fieldset > legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertCount( 1, $section->querySelectorAll( 'tr:nth-child(2) fieldset' ) );
 		self::assertNotNull( $other->querySelector( 'form#edittag' ) );
@@ -80,8 +70,8 @@ final class TermFormTest extends TestCase {
 
 		$edit = self::document( $this->edit_screen( $spec, 'category', $term_id )['body'] );
 
-		self::assertSame( 'stored', $edit->querySelector( "[id=\"{$this->id}._{$this->prefix}_name\"]" )?->getAttribute( 'value' ) );
-		self::assertSame( 'fresh', $edit->querySelector( "[id=\"{$this->id}._{$this->prefix}_absent\"]" )?->getAttribute( 'value' ) );
+		self::assertSame( 'stored', $edit->querySelector( "[id=\"$this->id._{$this->prefix}_name\"]" )?->getAttribute( 'value' ) );
+		self::assertSame( 'fresh', $edit->querySelector( "[id=\"$this->id._{$this->prefix}_absent\"]" )?->getAttribute( 'value' ) );
 	}
 
 	public function test_a_user_lacking_the_forms_capability_gets_no_section(): void {
@@ -135,13 +125,13 @@ final class TermFormTest extends TestCase {
 				'_inline_edit' => (string) $list->querySelector( 'input#_inline_edit' )?->getAttribute( 'value' ),
 				'taxonomy'     => 'category',
 				'tax_ID'       => (string) $term_id,
-				'name'         => "{$this->prefix} quick",
-				'slug'         => "{$this->prefix}-quick",
+				'name'         => "$this->prefix quick",
+				'slug'         => "$this->prefix-quick",
 				$this->id      => array( "_{$this->prefix}_name" => 'quick' ),
 			)
 		);
 
-		self::assertSame( "{$this->prefix} quick", get_term( $term_id )->name );
+		self::assertSame( "$this->prefix quick", get_term( $term_id )->name );
 		self::assertSame( array( 'kept' ), $this->meta( $term_id, 'name' ) );
 	}
 
@@ -165,13 +155,13 @@ final class TermFormTest extends TestCase {
 		$_POST[ $this->id ] = array( "_{$this->prefix}_name" => 'programmatic' );
 
 		try {
-			wp_update_term( $term_id, 'category', array( 'name' => "{$this->prefix} in code" ) );
+			wp_update_term( $term_id, 'category', array( 'name' => "$this->prefix in code" ) );
 		} finally {
 			unset( $_POST[ $this->id ] );
 			wp_set_current_user( 0 );
 		}
 
-		self::assertSame( "{$this->prefix} in code", get_term( $term_id )->name );
+		self::assertSame( "$this->prefix in code", get_term( $term_id )->name );
 		self::assertSame( array( 'kept' ), $this->meta( $term_id, 'name' ) );
 	}
 
@@ -188,20 +178,8 @@ final class TermFormTest extends TestCase {
 		);
 	}
 
-	protected function field( string $type, string $name, array $keys = array() ): array {
-		return $keys + array(
-			'type'  => $type,
-			'id'    => "_{$this->prefix}_$name",
-			'title' => \ucfirst( $name ),
-		);
-	}
-
-	protected function control_name( string $name ): string {
-		return "{$this->id}[_{$this->prefix}_$name]";
-	}
-
 	protected function make_term( string $taxonomy ): int {
-		$term = wp_insert_term( "{$this->prefix} " . \count( $this->terms ), $taxonomy );
+		$term = wp_insert_term( "$this->prefix " . \count( $this->terms ), $taxonomy );
 		self::assertIsArray( $term );
 		$this->terms[] = array( (int) $term['term_id'], $taxonomy );
 
@@ -214,15 +192,6 @@ final class TermFormTest extends TestCase {
 
 	protected function meta( int $term_id, string $name ): array {
 		return get_term_meta( $term_id, "_{$this->prefix}_$name", false );
-	}
-
-	protected static function rejections( string $html ): array {
-		$messages = array();
-		foreach ( self::document( $html )->querySelectorAll( 'div.notice-error.is-dismissible > p' ) as $message ) {
-			$messages[] = \trim( $message->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		}
-
-		return $messages;
 	}
 
 	#[After]

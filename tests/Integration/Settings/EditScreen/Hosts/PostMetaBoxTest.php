@@ -8,12 +8,11 @@ use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InspectsObjectFormsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
-use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
-use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -23,19 +22,10 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( PostMetaBox::class )]
 final class PostMetaBoxTest extends TestCase {
 	use CreatesUsersTrait;
+	use InspectsObjectFormsTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 	use ProvidesHelperIdsTrait;
-	use RunsAdminRequestsTrait;
-	use SerializesFormsTrait;
-
-	protected const string FIXTURE = __DIR__ . '/../../../../Fixtures/Settings/acme-object-forms.php';
-
-	protected const array COLORS = array(
-		'red'  => 'Red',
-		'blue' => 'Blue',
-		'teal' => 'Teal',
-	);
 
 	protected int $admin;
 	protected int $editor;
@@ -85,11 +75,9 @@ final class PostMetaBoxTest extends TestCase {
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_form_id( string $id ): void {
-		$host = new PostMetaBox( array( 'post' ) );
-		$form = new ObjectForm( $id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
-		$form->register_hooks();
+		$form = new ObjectForm( $id, new RecordedDefinition( static fn (): array => array() ), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 
-		self::assertSame( 10, has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
+		self::assertSame( $id, $form->get_id() );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_a_screen_needs_it(): void {
@@ -115,9 +103,9 @@ final class PostMetaBoxTest extends TestCase {
 		$post = self::document( $this->edit_screen( $spec, $post_id )['body'] );
 		$page = self::document( $this->edit_screen( $spec, $page_id )['body'] );
 
-		self::assertSame( 'Acme details', \trim( (string) $post->querySelector( "form#post div.postbox[id=\"{$this->id}\"] h2.hndle" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Acme details', \trim( (string) $post->querySelector( "form#post div.postbox[id=\"$this->id\"] h2.hndle" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNotNull( $this->box( $post )->querySelector( "input[type=hidden][name=\"{$this->id}_nonce\"]" ) );
-		self::assertNull( $page->querySelector( "div.postbox[id=\"{$this->id}\"]" ) );
+		self::assertNull( $page->querySelector( "div.postbox[id=\"$this->id\"]" ) );
 	}
 
 	public function test_the_box_sits_in_its_context(): void {
@@ -135,7 +123,7 @@ final class PostMetaBoxTest extends TestCase {
 
 		$screen = self::document( $this->edit_screen( $spec, $post_id )['body'] );
 
-		self::assertNotNull( $screen->querySelector( "#side-sortables div.postbox[id=\"{$this->id}\"]" ) );
+		self::assertNotNull( $screen->querySelector( "#side-sortables div.postbox[id=\"$this->id\"]" ) );
 	}
 
 	public function test_a_user_lacking_the_forms_capability_gets_no_box(): void {
@@ -145,7 +133,7 @@ final class PostMetaBoxTest extends TestCase {
 		$screen = self::document( $this->edit_screen( $spec, $post_id, $this->editor )['body'] );
 
 		self::assertNotNull( $screen->querySelector( 'form#post' ) );
-		self::assertNull( $screen->querySelector( "div.postbox[id=\"{$this->id}\"]" ) );
+		self::assertNull( $screen->querySelector( "div.postbox[id=\"$this->id\"]" ) );
 	}
 
 	public function test_a_single_control_is_labelled_by_its_row(): void {
@@ -154,10 +142,10 @@ final class PostMetaBoxTest extends TestCase {
 
 		$box = $this->box( self::document( $this->edit_screen( $spec, $post_id )['body'] ) );
 
-		$label = $box->querySelector( "div.form-field > p.post-attributes-label-wrapper > label.post-attributes-label[for=\"{$this->id}._{$this->prefix}_name\"]" );
+		$label = $box->querySelector( "div.form-field > p.post-attributes-label-wrapper > label.post-attributes-label[for=\"$this->id._{$this->prefix}_name\"]" );
 		self::assertNotNull( $label );
 		self::assertSame( 'Name', \trim( $label->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertNotNull( $box->querySelector( "div.form-field > input[type=text][id=\"{$this->id}._{$this->prefix}_name\"][name=\"{$this->id}[_{$this->prefix}_name]\"]" ) );
+		self::assertNotNull( $box->querySelector( "div.form-field > input[type=text][id=\"$this->id._{$this->prefix}_name\"][name=\"{$this->id}[_{$this->prefix}_name]\"]" ) );
 	}
 
 	public function test_a_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
@@ -167,7 +155,7 @@ final class PostMetaBoxTest extends TestCase {
 		$box = $this->box( self::document( $this->edit_screen( $spec, $post_id )['body'] ) );
 
 		$id = (string) $box->querySelector( 'input[type=text]' )?->getAttribute( 'id' );
-		self::assertSame( "{$this->id}._{$this->prefix}_r&amp;d", $id );
+		self::assertSame( "$this->id._{$this->prefix}_r&amp;d", $id );
 		self::assertSame( $id, $box->querySelector( 'label.post-attributes-label' )?->getAttribute( 'for' ) );
 	}
 
@@ -183,7 +171,7 @@ final class PostMetaBoxTest extends TestCase {
 		self::assertCount( 1, $box->querySelectorAll( 'fieldset' ) );
 		self::assertSame( 'Color', \trim( (string) $fieldset->querySelector( 'legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'Color', \trim( (string) $fieldset->parentElement?->querySelector( 'p.post-attributes-label-wrapper > span.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertNull( $box->querySelector( "label.post-attributes-label[for=\"{$this->id}._{$this->prefix}_color\"]" ) );
+		self::assertNull( $box->querySelector( "label.post-attributes-label[for=\"$this->id._{$this->prefix}_color\"]" ) );
 		self::assertNotNull( $fieldset->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
 	}
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
@@ -265,16 +253,16 @@ final class PostMetaBoxTest extends TestCase {
 		$request = $this->edit_screen( $spec, $post_id );
 		$box     = $this->box( self::document( $request['body'] ) );
 
-		self::assertContains( array( 'render', "_{$this->prefix}_widget", 'stored', "{$this->id}[_{$this->prefix}_widget]", "{$this->id}._{$this->prefix}_widget" ), $request['records'] );
-		self::assertNotNull( $box->querySelector( "label[for=\"{$this->id}._{$this->prefix}_widget\"]" ) );
-		self::assertNotNull( $box->querySelector( "input.acme-widget[id=\"{$this->id}._{$this->prefix}_widget\"]" ) );
+		self::assertContains( array( 'render', "_{$this->prefix}_widget", 'stored', "{$this->id}[_{$this->prefix}_widget]", "$this->id._{$this->prefix}_widget" ), $request['records'] );
+		self::assertNotNull( $box->querySelector( "label[for=\"$this->id._{$this->prefix}_widget\"]" ) );
+		self::assertNotNull( $box->querySelector( "input.acme-widget[id=\"$this->id._{$this->prefix}_widget\"]" ) );
 	}
 
 	public function test_titles_print_as_text(): void {
 		$post_id = $this->make_post();
 		$spec    = $this->spec( array( $this->field( 'text', 'note', array( 'title' => 'Customer\'s <b>note</b>' ) ) ) );
 
-		$label = $this->box( self::document( $this->edit_screen( $spec, $post_id )['body'] ) )->querySelector( "label[for=\"{$this->id}._{$this->prefix}_note\"]" );
+		$label = $this->box( self::document( $this->edit_screen( $spec, $post_id )['body'] ) )->querySelector( "label[for=\"$this->id._{$this->prefix}_note\"]" );
 
 		self::assertSame( 'Customer\'s <b>note</b>', \trim( (string) $label?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNull( $label?->querySelector( 'b' ) );
@@ -284,7 +272,7 @@ final class PostMetaBoxTest extends TestCase {
 		$post_id = $this->make_post();
 		$spec    = $this->spec( array( $this->field( 'text', 'name', array( 'title' => '' ) ) ) );
 
-		$label = $this->box( self::document( $this->edit_screen( $spec, $post_id )['body'] ) )->querySelector( "label[for=\"{$this->id}._{$this->prefix}_name\"]" );
+		$label = $this->box( self::document( $this->edit_screen( $spec, $post_id )['body'] ) )->querySelector( "label[for=\"$this->id._{$this->prefix}_name\"]" );
 
 		self::assertSame( "_{$this->prefix}_name", \trim( (string) $label?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 	}
@@ -688,7 +676,7 @@ final class PostMetaBoxTest extends TestCase {
 		$saved      = $this->block_editor_save( $spec, $post_id, array( $this->control_name( 'note' ) => 'too long' ) );
 		$redirected = $this->follow( $spec, $saved );
 		wp_set_current_user( $this->admin );
-		$delivered = ( new AdminNotices( $this->id, new ErrorLogLogger( 'acme' ) ) )->rest_deliver();
+		$delivered = new AdminNotices( $this->id, new ErrorLogLogger( 'acme' ) )->rest_deliver();
 		$list      = $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec );
 
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'note' ) );
@@ -749,18 +737,6 @@ final class PostMetaBoxTest extends TestCase {
 		);
 	}
 
-	protected function field( string $type, string $name, array $keys = array() ): array {
-		return $keys + array(
-			'type'  => $type,
-			'id'    => "_{$this->prefix}_$name",
-			'title' => \ucfirst( $name ),
-		);
-	}
-
-	protected function control_name( string $name ): string {
-		return "{$this->id}[_{$this->prefix}_$name]";
-	}
-
 	// The form posts as the Update button submits it, after the user set the named controls; tampering replaces posted keys and removes posted keys or a key of the form's array.
 	protected function save( array $spec, int $post_id, array $changes = array(), array $tampered = array(), array $removed = array() ): array {
 		$data = \array_replace_recursive( self::serialize_form( $this->edit_screen( $spec, $post_id )['body'], 'form#post', $changes ), $tampered ) + array( 'save' => 'Update' );
@@ -776,27 +752,8 @@ final class PostMetaBoxTest extends TestCase {
 		return $this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
 	}
 
-	protected function follow( array $spec, array $saved ): array {
-		self::assertIsString( $saved['location'] );
-
-		return $this->admin_request( 'GET', \explode( '/wp-admin/', $saved['location'], 2 )[1], $this->admin, self::FIXTURE, $spec );
-	}
-
 	protected function meta( int $post_id, string $name ): array {
 		return get_post_meta( $post_id, "_{$this->prefix}_$name", false );
-	}
-
-	protected function records( array $request, string $kind ): array {
-		return \array_values( \array_filter( $request['records'], static fn ( array $record ): bool => $kind === $record[0] ) );
-	}
-
-	protected static function rejections( string $html ): array {
-		$messages = array();
-		foreach ( self::document( $html )->querySelectorAll( 'div.notice-error.is-dismissible > p' ) as $message ) {
-			$messages[] = \trim( $message->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		}
-
-		return $messages;
 	}
 
 	// The block editor posts its meta box forms with the base form to the meta box loader's URL, as its requestMetaBoxUpdates() does.
@@ -866,29 +823,6 @@ final class PostMetaBoxTest extends TestCase {
 
 	protected function edit_screen( array $spec, int $post_id, ?int $user_id = null ): array {
 		return $this->admin_request( 'GET', "post.php?post=$post_id&action=edit", $user_id ?? $this->admin, self::FIXTURE, $spec );
-	}
-
-	protected function box( \Dom\HTMLDocument $screen ): \Dom\Element {
-		$box = $screen->querySelector( "div.postbox[id=\"{$this->id}\"] div.inside" );
-		self::assertNotNull( $box, "The screen printed no {$this->id} box." );
-
-		return $box;
-	}
-
-	protected function control( \Dom\Element $box, string $name ): \Dom\Element {
-		$control = $box->querySelector( "[id=\"{$this->id}._{$this->prefix}_$name\"]" );
-		self::assertNotNull( $control, "The box printed no _{$this->prefix}_$name." );
-
-		return $control;
-	}
-
-	protected function selected( \Dom\Element $box, string $name ): array {
-		$values = array();
-		foreach ( $this->control( $box, $name )->querySelectorAll( 'option[selected]' ) as $option ) {
-			$values[] = (string) $option->getAttribute( 'value' );
-		}
-
-		return $values;
 	}
 
 	#[After]

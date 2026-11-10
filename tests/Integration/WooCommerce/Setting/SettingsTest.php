@@ -9,6 +9,7 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordsDoingItWrongTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use DeepWebSolutions\Framework\WooCommerce\Setting\Fields;
@@ -26,6 +27,7 @@ final class SettingsTest extends TestCase {
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 	use ProvidesHelperIdsTrait;
+	use RecordsDoingItWrongTrait;
 	use RunsAdminRequestsTrait;
 	use SerializesFormsTrait;
 
@@ -178,8 +180,8 @@ final class SettingsTest extends TestCase {
 	public function test_a_tab_field_round_trips_through_woocommerces_rest_api(): void {
 		$this->add_tab_in_process( array( '' => $this->in_process_section( array( $this->field( 'text', 'name' ) ) ) ) );
 
-		$updated = $this->rest( 'PUT', "/wc/v3/settings/{$this->prefix}/{$this->prefix}_name", array( 'value' => 'via rest' ) );
-		$listed  = $this->rest( 'GET', "/wc/v3/settings/{$this->prefix}" );
+		$updated = $this->rest( 'PUT', "/wc/v3/settings/$this->prefix/{$this->prefix}_name", array( 'value' => 'via rest' ) );
+		$listed  = $this->rest( 'GET', "/wc/v3/settings/$this->prefix" );
 
 		self::assertSame( 200, $updated->get_status() );
 		self::assertSame( 'via rest', get_option( "{$this->prefix}_name" ) );
@@ -218,19 +220,12 @@ final class SettingsTest extends TestCase {
 	}
 
 	public function test_a_section_whose_id_is_taken_is_rejected_by_the_registry(): void {
-		$wrong    = array();
 		$registry = SettingsSectionRegistry::get_instance();
-		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		add_action(
-			'doing_it_wrong_run',
-			static function ( string $function_name ) use ( &$wrong ): void {
-				$wrong[] = $function_name;
-			}
-		);
+		$this->record_doing_it_wrong();
 
 		self::assertTrue( $registry->register( new SettingsSection( $this->prefix, $this->registered_section( 'products' ), $this->fields_definition() ) ) );
 		self::assertFalse( $registry->register( new SettingsSection( $this->prefix, $this->registered_section( 'products' ), $this->fields_definition() ) ) );
-		self::assertSame( array( SettingsSectionRegistry::class . '::register' ), $wrong );
+		self::assertSame( array( SettingsSectionRegistry::class . '::register' ), $this->doing_it_wrong );
 	}
 
 	public function test_a_disabled_field_is_never_saved_even_when_its_value_is_posted(): void {
@@ -388,7 +383,7 @@ final class SettingsTest extends TestCase {
 			)
 		);
 
-		$this->rest( 'PUT', "/wc/v3/settings/{$this->prefix}/{$this->prefix}_name", array( 'value' => ' <b>bold</b><script>x</script> ' ) );
+		$this->rest( 'PUT', "/wc/v3/settings/$this->prefix/{$this->prefix}_name", array( 'value' => ' <b>bold</b><script>x</script> ' ) );
 
 		$normalized = wp_kses_post( '<b>bold</b><script>x</script>' );
 

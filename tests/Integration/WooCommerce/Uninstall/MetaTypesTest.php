@@ -80,7 +80,7 @@ final class MetaTypesTest extends TestCase {
 			)
 		);
 
-		self::assertSame( array( 'woocommerce loaded' => false ), $request['records'] );
+		self::assertSame( array( 'woocommerce_loaded' => false ), $request['records'] );
 		self::assertSame( $this->kept_order_meta_keys(), $this->meta_keys_in( 'postmeta' ) );
 		self::assertSame( $this->kept_order_meta_keys(), $this->meta_keys_in( 'wc_orders_meta' ) );
 		self::assertSame( $this->kept_order_item_meta_keys(), $this->meta_keys_in( 'woocommerce_order_itemmeta' ) );

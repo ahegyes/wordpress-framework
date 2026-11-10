@@ -490,7 +490,7 @@ final class FormsRenderControlTest extends TestCase {
 			)
 		);
 
-		self::assertSame( $printed, null !== $document->querySelector( '[placeholder]' ) );
+		self::assertSame( $printed, ! \is_null( $document->querySelector( '[placeholder]' ) ) );
 	}
 
 	public static function sizing_classes(): array {

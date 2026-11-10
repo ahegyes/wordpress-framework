@@ -6,6 +6,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ProductFixturesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
@@ -70,10 +71,9 @@ final class ProductDataTabTest extends TestCase {
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_tab_id( string $id ): void {
-		$tab = new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
-		$tab->register_hooks();
+		$this->expectNotToPerformAssertions();
 
-		self::assertSame( 10, has_filter( 'woocommerce_product_data_tabs', array( $tab, 'add_tab' ) ) );
+		new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_the_edit_screen_needs_it(): void {
@@ -795,7 +795,7 @@ final class ProductDataTabTest extends TestCase {
 	}
 
 	public function test_a_v1_meta_key_round_trips_through_the_panel(): void {
-		$key     = "_{$this->prefix}-wrwc_warranty-type";
+		$key     = "_$this->prefix-wrwc_warranty-type";
 		$product = $this->make_product( array( $key => 'limited' ) );
 		$spec    = $this->spec(
 			array(

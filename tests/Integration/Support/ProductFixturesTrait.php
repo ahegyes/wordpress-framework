@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\ProductData;
+namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 
 use PHPUnit\Framework\Attributes\After;
 

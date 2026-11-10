@@ -210,21 +210,25 @@ final class ObjectFormTest extends TestCase {
 
 		$this->expectException( LogicException::class );
 
-		( new ObjectForm( "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		new ObjectForm( "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 	}
 
 	public function test_a_host_the_consumer_writes_serves_one_form_too(): void {
 		$host = new class() implements ObjectFormHostInterface {
+			#[\Override]
 			public function register_hooks( ObjectForm $form ): void {}
 
+			#[\Override]
 			public function get_object_capability(): string {
 				return 'edit_post';
 			}
 
+			#[\Override]
 			public function get_default_store(): ObjectStoreInterface {
 				return new MetadataStore( 'post' );
 			}
 
+			#[\Override]
 			public function render_rows( string $title, array $rows ): void {}
 		};
 		$form = $this->form( $host );
@@ -233,7 +237,7 @@ final class ObjectFormTest extends TestCase {
 
 		$this->expectException( LogicException::class );
 
-		( new ObjectForm( "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		new ObjectForm( "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 	}
 
 	protected function form( ObjectFormHostInterface $host, string $capability = 'edit_posts' ): ObjectForm {

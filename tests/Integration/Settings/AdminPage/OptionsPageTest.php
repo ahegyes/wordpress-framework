@@ -86,7 +86,9 @@ final class OptionsPageTest extends TestCase {
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_id( string $id ): void {
-		self::assertInstanceOf( OptionsPage::class, new OptionsPage( $id, new RecordedDefinition( static fn (): array => array() ) ) );
+		$this->expectNotToPerformAssertions();
+
+		new OptionsPage( $id, new RecordedDefinition( static fn (): array => array() ) );
 	}
 
 	public function test_the_definition_is_evaluated_neither_at_construction_nor_at_registration(): void {
@@ -123,7 +125,7 @@ final class OptionsPageTest extends TestCase {
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( array( 'name' => 'v!' ), get_option( $this->option ) );
-		self::assertSame( array( array( 'name', 'v' ) ), $saved['records'] );
+		self::assertSame( array( array( 'validate', 'name', 'v' ) ), $saved['records'] );
 		self::assertSame( array( 'Settings saved.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
@@ -131,7 +133,7 @@ final class OptionsPageTest extends TestCase {
 		$value = array( 'name' => ' <b>raw</b> ' );
 		$spec  = $this->spec( array( self::field( 'text', 'name', array( 'validate' => 'acme:append' ) ) ), array(), array( 'update' => array( $this->option => $value ) ) );
 
-		$request = $this->admin_request( 'GET', "admin-post.php?option_page={$this->option}", $this->admin, self::FIXTURE, $spec );
+		$request = $this->admin_request( 'GET', "admin-post.php?option_page=$this->option", $this->admin, self::FIXTURE, $spec );
 
 		self::assertSame( $value, get_option( $this->option ) );
 		self::assertSame( array(), $request['records'] );
@@ -204,7 +206,7 @@ final class OptionsPageTest extends TestCase {
 		$page = $this->follow( $spec, $this->admin, $this->save( $spec, $this->admin, $data ) )['body'];
 
 		self::assertSame( array( '<em>Email</em>', 'site' ), self::row_titles( $form ) );
-		self::assertSame( "{$this->option}.site", self::document( $form )->querySelectorAll( 'form tr' )->item( 1 )?->querySelector( 'th label' )?->getAttribute( 'for' ) );
+		self::assertSame( "$this->option.site", self::document( $form )->querySelectorAll( 'form tr' )->item( 1 )?->querySelector( 'th label' )?->getAttribute( 'for' ) );
 		self::assertNull( self::document( $form )->querySelector( 'form em' ) );
 		self::assertSame(
 			array(
@@ -360,7 +362,7 @@ final class OptionsPageTest extends TestCase {
 			unset( $data['option_page'] );
 			$query = '?option_page=' . \rawurlencode( $this->option );
 		} else {
-			$data['option_page'] = " {$this->option} ";
+			$data['option_page'] = " $this->option ";
 		}
 
 		$saved = $this->save( $spec, $this->admin, $data, $query );
@@ -398,7 +400,7 @@ final class OptionsPageTest extends TestCase {
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( array( 'colors', array() ) ), $saved['records'] );
+		self::assertSame( array( array( 'validate', 'colors', array() ) ), $saved['records'] );
 		self::assertSame( array( 'colors' => array() ), get_option( $this->option ) );
 	}
 
@@ -443,7 +445,7 @@ final class OptionsPageTest extends TestCase {
 		$form = self::document( $this->open( $this->spec( array( self::field( 'text', 'r&amp;d' ) ) ), $this->admin )['body'] )->querySelector( 'form[action="options.php"]' );
 
 		$id = (string) $form?->querySelector( 'td input[type=text]' )?->getAttribute( 'id' );
-		self::assertSame( "{$this->option}.r&amp;d", $id );
+		self::assertSame( "$this->option.r&amp;d", $id );
 		self::assertSame( $id, $form?->querySelector( 'th label' )?->getAttribute( 'for' ) );
 	}
 
@@ -494,16 +496,16 @@ final class OptionsPageTest extends TestCase {
 		}
 		self::assertSame(
 			array(
-				'Name'   => "{$this->option}.name",
-				'Count'  => "{$this->option}.count",
-				'Email'  => "{$this->option}.email",
-				'Site'   => "{$this->option}.site",
-				'Notes'  => "{$this->option}.notes",
-				'On'     => "{$this->option}.on",
-				'Off'    => "{$this->option}.off",
-				'Size'   => "{$this->option}.size",
+				'Name'   => "$this->option.name",
+				'Count'  => "$this->option.count",
+				'Email'  => "$this->option.email",
+				'Site'   => "$this->option.site",
+				'Notes'  => "$this->option.notes",
+				'On'     => "$this->option.on",
+				'Off'    => "$this->option.off",
+				'Size'   => "$this->option.size",
 				'Tone'   => null,
-				'Colors' => "{$this->option}.colors",
+				'Colors' => "$this->option.colors",
 				'Days'   => null,
 				'Agree'  => null,
 			),
@@ -634,7 +636,7 @@ final class OptionsPageTest extends TestCase {
 		$parent_slug = $spec['page']['parent'];
 		$file        = \str_ends_with( $parent_slug, '.php' ) ? $parent_slug : 'admin.php';
 
-		return $this->admin_request( 'GET', "$file?page={$this->id}" . ( '' === $tab ? '' : "&tab=$tab" ), $user_id, self::FIXTURE, $spec );
+		return $this->admin_request( 'GET', "$file?page=$this->id" . ( '' === $tab ? '' : "&tab=$tab" ), $user_id, self::FIXTURE, $spec );
 	}
 
 	protected function save( array $spec, int $user_id, array $data, string $query = '' ): array {
