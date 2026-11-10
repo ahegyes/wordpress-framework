@@ -42,7 +42,7 @@ add_action(
 			}
 		);
 
-		( new ProductDataTab( $spec['id'], $definition ) )->register_hooks();
+		new ProductDataTab( $spec['id'], $definition )->register_hooks();
 	}
 );
 

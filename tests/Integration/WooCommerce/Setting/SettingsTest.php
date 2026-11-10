@@ -109,8 +109,8 @@ final class SettingsTest extends TestCase {
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_tab_and_section_id( string $id ): void {
-		self::assertSame( $id, ( new SettingsTab( $id, $this->tab( array() ), $this->fields_definition() ) )->get_id() );
-		self::assertSame( $id, ( new SettingsSection( $id, $this->registered_section( 'products' ), $this->fields_definition() ) )->get_id() );
+		self::assertSame( $id, new SettingsTab( $id, $this->tab( array() ), $this->fields_definition() )->get_id() );
+		self::assertSame( $id, new SettingsSection( $id, $this->registered_section( 'products' ), $this->fields_definition() )->get_id() );
 	}
 
 	public function test_a_section_builds_its_fields_only_when_woocommerce_asks_for_them(): void {
@@ -620,7 +620,7 @@ final class SettingsTest extends TestCase {
 		add_action(
 			'rest_api_init',
 			static function (): void {
-				( new \WC_REST_Setting_Options_Controller() )->register_routes();
+				new \WC_REST_Setting_Options_Controller()->register_routes();
 			}
 		);
 		$GLOBALS['wp_rest_server'] = null;

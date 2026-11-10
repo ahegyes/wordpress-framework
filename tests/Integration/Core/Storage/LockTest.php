@@ -53,7 +53,7 @@ final class LockTest extends TestCase {
 	}
 
 	public function test_expiry_is_judged_by_the_ttl_the_row_holds(): void {
-		( new Lock( "{$this->prefix}_lock", 600, $this->clock ) )->acquire( 'first' );
+		new Lock( "{$this->prefix}_lock", 600, $this->clock )->acquire( 'first' );
 		$this->clock->advance( 61 );
 
 		self::assertSame( LockClaim::Busy, $this->make_lock()->acquire( 'second' ) );
@@ -219,7 +219,7 @@ final class LockTest extends TestCase {
 
 	public function test_without_a_clock_the_lock_reads_the_system_time(): void {
 		$before = \time();
-		( new Lock( "{$this->prefix}_lock", 60 ) )->acquire( 'first' );
+		new Lock( "{$this->prefix}_lock", 60 )->acquire( 'first' );
 
 		$time = $this->stored()['time'] ?? 0;
 		self::assertGreaterThanOrEqual( $before, $time );
@@ -231,7 +231,7 @@ final class LockTest extends TestCase {
 			'zero-ttl'     => array( static fn (): mixed => new Lock( 'acme_lock', 0 ) ),
 			'negative-ttl' => array( static fn (): mixed => new Lock( 'acme_lock', -60 ) ),
 			'empty-name'   => array( static fn (): mixed => new Lock( '', 60 ) ),
-			'empty-owner'  => array( static fn (): mixed => ( new Lock( 'acme_lock', 60 ) )->acquire( '' ) ),
+			'empty-owner'  => array( static fn (): mixed => new Lock( 'acme_lock', 60 )->acquire( '' ) ),
 		);
 	}
 

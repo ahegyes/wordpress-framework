@@ -109,7 +109,7 @@ final class CapabilityGrantsTest extends TestCase {
 			$this->stored_caps( $editor )
 		);
 		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $author ) );
-		self::assertTrue( ( new \WP_User( $user ) )->has_cap( $this->cap( 'a' ) ) );
+		self::assertTrue( new \WP_User( $user )->has_cap( $this->cap( 'a' ) ) );
 		self::assertEquals( $declared, $this->ledger() );
 	}
 

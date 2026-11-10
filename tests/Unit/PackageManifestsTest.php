@@ -150,8 +150,8 @@ final class PackageManifestsTest extends TestCase {
 			$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory() . "/$package", \FilesystemIterator::SKIP_DOTS ) );
 			foreach ( new \RegexIterator( $files, '#(?<!/index)\.php$#' ) as $file ) {
 				$code      = (string) \file_get_contents( $file->getPathname() );
-				$nodes     = ( new ParserFactory() )->createForHostVersion()->parse( $code );
-				$namespace = ( new NodeFinder() )->findFirstInstanceOf( $nodes, Namespace_::class );
+				$nodes     = new ParserFactory()->createForHostVersion()->parse( $code );
+				$namespace = new NodeFinder()->findFirstInstanceOf( $nodes, Namespace_::class );
 				$statement = \current( \array_filter( $namespace?->stmts ?? $nodes, static fn ( Node $node ): bool => ! $node instanceof Declare_ && ! $node instanceof Use_ && ! $node instanceof GroupUse ) );
 				$guard     = \is_null( $namespace ) ? "defined( 'ABSPATH' ) || exit;" : "\\defined( 'ABSPATH' ) || exit;";
 				if ( false === $statement || \substr( $code, $statement->getStartFilePos(), $statement->getEndFilePos() - $statement->getStartFilePos() + 1 ) !== $guard ) {
@@ -211,11 +211,11 @@ final class PackageManifestsTest extends TestCase {
 		foreach ( new \RegexIterator( $files, '/\.php$/' ) as $file ) {
 			$path     = \substr( $file->getPathname(), \strlen( $directory ) + 1 );
 			$expected = $prefix . \str_replace( '/', '\\', \substr( $path, 0, -4 ) );
-			$nodes    = ( new ParserFactory() )->createForHostVersion()->parse( \file_get_contents( $file->getPathname() ) );
+			$nodes    = new ParserFactory()->createForHostVersion()->parse( \file_get_contents( $file->getPathname() ) );
 			// A file without a namespace declaration holds its classes in the global namespace.
-			$namespaces = ( new NodeFinder() )->findInstanceOf( $nodes, Namespace_::class ) ?: array( new Namespace_( null, $nodes ) );
+			$namespaces = new NodeFinder()->findInstanceOf( $nodes, Namespace_::class ) ?: array( new Namespace_( null, $nodes ) );
 			foreach ( $namespaces as $namespace ) {
-				foreach ( ( new NodeFinder() )->findInstanceOf( $namespace->stmts, ClassLike::class ) as $class ) {
+				foreach ( new NodeFinder()->findInstanceOf( $namespace->stmts, ClassLike::class ) as $class ) {
 					$name = \ltrim( $namespace->name?->toString() . '\\' . $class->name?->toString(), '\\' );
 					if ( ! \is_null( $class->name ) && $expected !== $name ) {
 						$misplaced[] = "$path: $name";
@@ -242,9 +242,9 @@ final class PackageManifestsTest extends TestCase {
 
 	protected static function referenced_names( string $file ): array {
 		// Names built from strings at runtime and types named only in docblocks are not seen.
-		$nodes = ( new NodeTraverser( new NameResolver() ) )->traverse( ( new ParserFactory() )->createForHostVersion()->parse( \file_get_contents( $file ) ) );
+		$nodes = new NodeTraverser( new NameResolver() )->traverse( new ParserFactory()->createForHostVersion()->parse( \file_get_contents( $file ) ) );
 
-		return \array_map( static fn ( Name $name ): string => $name->toString(), ( new NodeFinder() )->findInstanceOf( $nodes, Name::class ) );
+		return \array_map( static fn ( Name $name ): string => $name->toString(), new NodeFinder()->findInstanceOf( $nodes, Name::class ) );
 	}
 
 	protected static function is_foreign( string $name, array $allowed ): bool {

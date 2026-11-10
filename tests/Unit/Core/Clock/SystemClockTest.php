@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 final class SystemClockTest extends TestCase {
 	public function test_now_is_the_current_time(): void {
 		$before = \microtime( true );
-		$now    = ( new SystemClock() )->now();
+		$now    = new SystemClock()->now();
 		$after  = \microtime( true );
 
 		self::assertGreaterThanOrEqual( $before, (float) $now->format( 'U.u' ) );

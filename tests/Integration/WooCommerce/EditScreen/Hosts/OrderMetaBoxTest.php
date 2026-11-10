@@ -55,7 +55,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_is_added_on_add_meta_boxes(): void {
 		$host = new OrderMetaBox();
-		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 
 		self::assertSame( 10, has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
@@ -202,7 +202,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_saves_before_woocommerces_order_data(): void {
 		$host = new OrderMetaBox();
-		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 
 		self::assertSame( 35, has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
 	}

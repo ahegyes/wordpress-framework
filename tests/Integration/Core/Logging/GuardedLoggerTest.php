@@ -31,7 +31,7 @@ final class GuardedLoggerTest extends TestCase {
 	public function test_a_record_passes_to_the_wrapped_logger_unchanged_and_skips_the_error_log(): void {
 		$inner = new RecordingLogger();
 
-		( new GuardedLogger( $inner, 'acme' ) )->log( PsrLogLevel::INFO, 'Cache {name} is cold.', array( 'name' => 'acme' ) );
+		new GuardedLogger( $inner, 'acme' )->log( PsrLogLevel::INFO, 'Cache {name} is cold.', array( 'name' => 'acme' ) );
 
 		self::assertSame( array( array( PsrLogLevel::INFO, 'Cache {name} is cold.', array( 'name' => 'acme' ) ) ), $inner->records );
 		self::assertSame( '', \file_get_contents( $this->log_file ) );
@@ -41,7 +41,7 @@ final class GuardedLoggerTest extends TestCase {
 		$exception = new \RuntimeException( 'Cache is cold.' );
 		$failure   = new \UnexpectedValueException( 'The log is not writable.' );
 
-		( new GuardedLogger( new ThrowingLogger( $failure ), 'acme' ) )->error(
+		new GuardedLogger( new ThrowingLogger( $failure ), 'acme' )->error(
 			'Warm-up of {name} failed.',
 			array(
 				'name'      => 'acme',
@@ -58,7 +58,7 @@ final class GuardedLoggerTest extends TestCase {
 		$inner = new RecordingLogger();
 
 		try {
-			( new GuardedLogger( $inner, 'acme' ) )->log( 'verbose', 'Cache is cold.' );
+			new GuardedLogger( $inner, 'acme' )->log( 'verbose', 'Cache is cold.' );
 			self::fail( 'The level was accepted.' );
 		} catch ( PsrInvalidArgumentException $exception ) {
 			self::assertSame( "Log level 'verbose' is not a PSR-3 level.", $exception->getMessage() );

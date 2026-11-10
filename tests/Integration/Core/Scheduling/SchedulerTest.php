@@ -109,7 +109,7 @@ final class SchedulerTest extends TestCase {
 	public function test_unscheduling_a_hook_rejects_an_empty_hook_name(): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		( new Scheduler( 'acme' ) )->unschedule_hook( '' );
+		new Scheduler( 'acme' )->unschedule_hook( '' );
 	}
 
 	public static function schedulers(): array {

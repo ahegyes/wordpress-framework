@@ -28,7 +28,7 @@ final class OrderMetaStoreTest extends TestCase {
 			)
 		);
 
-		$values = ( new OrderMetaStore() )->get_values( $order->get_id(), array( "_{$this->prefix}_text", "_{$this->prefix}_empty", "_{$this->prefix}_list", "_{$this->prefix}_absent" ) );
+		$values = new OrderMetaStore()->get_values( $order->get_id(), array( "_{$this->prefix}_text", "_{$this->prefix}_empty", "_{$this->prefix}_list", "_{$this->prefix}_absent" ) );
 
 		self::assertSame(
 			array(
@@ -44,7 +44,7 @@ final class OrderMetaStoreTest extends TestCase {
 		$order = $this->make_order( array( "_{$this->prefix}_text" => 'stored' ) );
 		add_filter( "woocommerce_order_get__{$this->prefix}_text", static fn (): string => 'filtered' );
 
-		self::assertSame( array( "_{$this->prefix}_text" => 'stored' ), ( new OrderMetaStore() )->get_values( $order->get_id(), array( "_{$this->prefix}_text" ) ) );
+		self::assertSame( array( "_{$this->prefix}_text" => 'stored' ), new OrderMetaStore()->get_values( $order->get_id(), array( "_{$this->prefix}_text" ) ) );
 	}
 
 	#[DataProvider( 'order_storages' )]
@@ -52,7 +52,7 @@ final class OrderMetaStoreTest extends TestCase {
 		$this->use_order_storage( $storage );
 		$order = $this->make_order( array( "_{$this->prefix}_text" => 'old' ) );
 
-		( new OrderMetaStore() )->update_values(
+		new OrderMetaStore()->update_values(
 			$order->get_id(),
 			array(
 				"_{$this->prefix}_text" => 'O\'Brien C:\\dir',
@@ -81,7 +81,7 @@ final class OrderMetaStoreTest extends TestCase {
 		$order = $this->make_order();
 
 		try {
-			( new OrderMetaStore() )->update_values(
+			new OrderMetaStore()->update_values(
 				$order->get_id(),
 				array(
 					"_{$this->prefix}_first" => 'Written first.',
@@ -158,7 +158,7 @@ final class OrderMetaStoreTest extends TestCase {
 			}
 		);
 
-		( new OrderMetaStore() )->update_values(
+		new OrderMetaStore()->update_values(
 			$order->get_id(),
 			array(
 				"_{$this->prefix}_a" => 'one',

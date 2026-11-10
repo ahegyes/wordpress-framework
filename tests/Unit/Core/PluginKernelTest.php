@@ -48,7 +48,7 @@ abstract class RecordingComponent implements ComponentInterface {
 	}
 
 	protected function record( string $event ): void {
-		$this->journal->entries[] = "$event " . ( new \ReflectionClass( $this ) )->getShortName();
+		$this->journal->entries[] = "$event " . new \ReflectionClass( $this )->getShortName();
 	}
 }
 
@@ -208,7 +208,7 @@ final class PluginKernelTest extends TestCase {
 	public function test_a_class_that_implements_only_the_conditional_interface_boots_as_a_component(): void {
 		$journal = new Journal();
 
-		( new PluginKernel( new FakeContainer( $journal ) ) )->boot( array( ConditionalOnly::class ) );
+		new PluginKernel( new FakeContainer( $journal ) )->boot( array( ConditionalOnly::class ) );
 
 		self::assertSame( array( 'register ConditionalOnly' ), $journal->entries );
 	}

@@ -14,7 +14,7 @@ final class ErrorLogLoggerTest extends TestCase {
 		$previous = \ini_set( 'error_log', $log_file );
 
 		try {
-			( new ErrorLogLogger( 'acme' ) )->info( 'Cache is cold.' );
+			new ErrorLogLogger( 'acme' )->info( 'Cache is cold.' );
 			$log = \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
