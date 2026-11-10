@@ -3,17 +3,18 @@
 namespace DeepWebSolutions\Framework\Tests\Php74\Support;
 
 use DeepWebSolutions\Framework\Tests\Support\CopiesFixturesTrait;
+use DeepWebSolutions\Framework\Tests\Support\RunsProcessesTrait;
 use PHPUnit\Framework\Attributes\After;
 
 trait RunsPhp74SiteTrait {
 	use CopiesFixturesTrait;
+	use RunsProcessesTrait;
 
 	protected const string ROOT = __DIR__ . '/../../..';
 
 	// .wp-env.php74.json points WP_PLUGIN_DIR here, inside the repository the environment maps.
 	protected const string PLUGINS = self::ROOT . '/tests/.cache/php74-plugins';
 
-	// Copies a built fixture plugin into the PHP 7.4 site's plugins directory and returns its plugin file.
 	protected function install_on_php74( string $fixture, string $dir, array $headers = array() ): string {
 		return "$dir/" . self::copy_fixture( $fixture, self::PLUGINS . "/$dir", array(), $headers );
 	}
@@ -28,17 +29,8 @@ trait RunsPhp74SiteTrait {
 	}
 
 	protected function wp_cli( string ...$args ): string {
-		$descriptors = array(
-			1 => array( 'pipe', 'w' ),
-			2 => array( 'pipe', 'w' ),
-		);
-		$process     = \proc_open( array( self::ROOT . '/node_modules/.bin/wp-env', '--config', '.wp-env.php74.json', 'run', 'cli', 'wp', ...$args ), $descriptors, $pipes, self::ROOT, array( 'CI' => '1' ) + \getenv() ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Runs WP-CLI in the PHP 7.4 environment.
-		self::assertIsResource( $process );
-		$output = (string) \stream_get_contents( $pipes[1] );
-		$errors = (string) \stream_get_contents( $pipes[2] );
-		\fclose( $pipes[1] );
-		\fclose( $pipes[2] );
-		self::assertSame( 0, \proc_close( $process ), "Start the PHP 7.4 environment with `composer test:integration:php74`.\n$errors$output" );
+		list( $exit_code, $output, $errors ) = self::run_process( array( self::ROOT . '/node_modules/.bin/wp-env', '--config', '.wp-env.php74.json', 'run', 'cli', 'wp', ...$args ), self::ROOT, array( 'CI' => '1' ) + \getenv() );
+		self::assertSame( 0, $exit_code, "Start the PHP 7.4 environment with `composer test:integration:php74`.\n$errors$output" );
 
 		return $output;
 	}

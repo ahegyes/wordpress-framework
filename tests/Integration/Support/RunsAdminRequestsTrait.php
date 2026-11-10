@@ -2,9 +2,12 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 
+use DeepWebSolutions\Framework\Tests\Support\RunsProcessesTrait;
 use PHPUnit\Framework\Attributes\After;
 
 trait RunsAdminRequestsTrait {
+	use RunsProcessesTrait;
+
 	protected array $session_cookies = array();
 	protected array $session_tokens  = array();
 
@@ -26,11 +29,10 @@ trait RunsAdminRequestsTrait {
 			'-dopcache.record_warnings=1',
 			__DIR__ . '/admin-request.php',
 		);
-		$process = \proc_open( $command, array( array( 'pipe', 'r' ), array( 'pipe', 'w' ), array( 'pipe', 'w' ) ), $pipes ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Runs the request in its own process.
-		self::assertIsResource( $process );
-		\fwrite(
-			$pipes[0],
-			\serialize( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- The request process reads it.
+
+		list( , $body, $stderr ) = self::run_process(
+			$command,
+			input: \serialize( // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- The request process reads it.
 				array(
 					'method'  => $method,
 					'host'    => (string) \parse_url( home_url(), \PHP_URL_HOST ) . ( \is_int( \parse_url( home_url(), \PHP_URL_PORT ) ) ? ':' . \parse_url( home_url(), \PHP_URL_PORT ) : '' ),
@@ -45,12 +47,6 @@ trait RunsAdminRequestsTrait {
 				)
 			)
 		);
-		\fclose( $pipes[0] );
-		$body   = (string) \stream_get_contents( $pipes[1] );
-		$stderr = (string) \stream_get_contents( $pipes[2] );
-		\fclose( $pipes[1] );
-		\fclose( $pipes[2] );
-		\proc_close( $process );
 
 		$outcome = \unserialize( (string) \file_get_contents( $result ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- The request process wrote it.
 		\unlink( $result );
