@@ -27,7 +27,7 @@ final class WooCommerceRequirementTest extends TestCase {
 		$headers = \is_null( $floor ) ? array() : array( 'WC requires at least' => 'installed' === $floor ? WC_VERSION : $floor );
 
 		self::assertTrue( WooCommerceRequirement::check( $this->write_plugin( $headers + array( 'Requires Plugins' => 'woocommerce' ) ) ) );
-		self::assertSame( '', $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) ) );
+		self::assertSame( '', $this->render_all_admin_notices( $this->make_user( 'acme_requirement_admin', 'administrator' ) ) );
 	}
 
 	public function test_woocommerce_below_the_floor_fails_and_only_users_who_can_activate_plugins_are_told_to_update_it(): void {
@@ -40,10 +40,10 @@ final class WooCommerceRequirementTest extends TestCase {
 
 		self::assertFalse( WooCommerceRequirement::check( $plugin_file ) );
 
-		$notice = \Dom\HTMLDocument::createFromString( $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
+		$notice = \Dom\HTMLDocument::createFromString( $this->render_all_admin_notices( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
 		self::assertNotNull( $notice );
 		self::assertSame( 'Acme Shop needs WooCommerce 99.1 or later, so its features stay off until WooCommerce is updated.', \trim( $notice->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertSame( '', $this->render_notices_as( $this->make_user( 'acme_requirement_editor', 'editor' ) ) );
+		self::assertSame( '', $this->render_all_admin_notices( $this->make_user( 'acme_requirement_editor', 'editor' ) ) );
 	}
 
 	public function test_the_notice_prints_the_plugins_name_and_floor_as_text(): void {
@@ -55,7 +55,7 @@ final class WooCommerceRequirementTest extends TestCase {
 		);
 		WooCommerceRequirement::check( $plugin_file );
 
-		$notice = \Dom\HTMLDocument::createFromString( $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
+		$notice = \Dom\HTMLDocument::createFromString( $this->render_all_admin_notices( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
 
 		// WordPress core strips tags from the plugin's name, while the header's version reaches the notice as written.
 		self::assertNotNull( $notice );
@@ -78,7 +78,7 @@ final class WooCommerceRequirementTest extends TestCase {
 		WooCommerceRequirement::check( $plugin_file );
 		self::assertSame( 0, $translations );
 
-		$this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) );
+		$this->render_all_admin_notices( $this->make_user( 'acme_requirement_admin', 'administrator' ) );
 		self::assertGreaterThan( 0, $translations );
 	}
 }

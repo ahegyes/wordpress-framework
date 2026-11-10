@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
 
 use DeepWebSolutions\Framework\Bootstrap\Updater;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\WritesPluginFilesTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -11,10 +12,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( Updater::class )]
 final class UpdaterTest extends TestCase {
 	use IsolatesHooksTrait;
+	use WritesPluginFilesTrait;
 
 	protected string $slug;
-
-	protected array $plugin_files = array();
 
 	protected array $responses = array();
 
@@ -40,34 +40,22 @@ final class UpdaterTest extends TestCase {
 			$slug = \basename( $plugin_file, '.php' );
 			delete_transient( "{$slug}_github_release_stable" );
 			delete_transient( "{$slug}_github_release_prerelease" );
-			wp_delete_file( $plugin_file );
-			\rmdir( \dirname( $plugin_file ) );
 		}
 		delete_site_transient( 'update_plugins' );
 		wp_clean_plugins_cache( false );
 	}
 
+	// A latest-release status of 0 leaves the request unanswered, and a null asset count keeps every asset.
 	public static function unusable_releases(): array {
 		return array(
-			'failed-fetch'            => array( static fn ( self $test ) => $test->stage( $test->api_url( 'releases/latest' ), 500, '' ) ),
-			'unreachable-api'         => array( static fn ( self $test ) => null ),
-			'release-without-assets'  => array( static fn ( self $test ) => $test->stage_latest( array( 'assets' => array() ) + $test->release( 'v2.0.0' ) ) ),
-			'release-without-the-zip' => array(
-				static function ( self $test ): void {
-					$release           = $test->release( 'v2.0.0' );
-					$release['assets'] = \array_slice( $release['assets'], 0, 1 );
-					$test->stage_latest( $release );
-				},
-			),
-			'unreadable-requirements' => array(
-				static function ( self $test ): void {
-					$test->stage_latest( $test->release( 'v2.0.0' ) );
-					$test->stage( $test->raw_url( 'v2.0.0' ), 404, '404: Not Found' );
-				},
-			),
-			'tag-not-a-version'       => array( static fn ( self $test ) => $test->stage_latest( $test->release( 'preview' ) ) ),
-			'unflagged-prerelease'    => array( static fn ( self $test ) => $test->stage_latest( $test->release( 'v2.1.0-beta.1' ) ) ),
-			'requirement-not-version' => array( static fn ( self $test ) => $test->stage_latest( $test->release( 'v2.0.0' ), '', array( 'Requires PHP' => '8.1<img src=x onerror=alert(1)>' ) ) ),
+			'failed-fetch'            => array( 500 ),
+			'unreachable-api'         => array( 0 ),
+			'release-without-assets'  => array( 200, 'v2.0.0', 0 ),
+			'release-without-the-zip' => array( 200, 'v2.0.0', 1 ),
+			'unreadable-requirements' => array( 200, 'v2.0.0', null, 404 ),
+			'tag-not-a-version'       => array( 200, 'preview' ),
+			'unflagged-prerelease'    => array( 200, 'v2.1.0-beta.1' ),
+			'requirement-not-version' => array( 200, 'v2.0.0', null, 200, array( 'Requires PHP' => '8.1<img src=x onerror=alert(1)>' ) ),
 		);
 	}
 
@@ -174,9 +162,18 @@ final class UpdaterTest extends TestCase {
 	}
 
 	#[DataProvider( 'unusable_releases' )]
-	public function test_an_unusable_release_offers_nothing_and_is_fetched_again_after_five_minutes( \Closure $stage ): void {
+	public function test_an_unusable_release_offers_nothing_and_is_fetched_again_after_five_minutes( int $latest_status, string $tag = '', ?int $assets = null, int $entry_status = 200, array $requirements = array() ): void {
 		Updater::register( $this->write_plugin( $this->slug ) );
-		$stage( $this );
+		if ( 200 === $latest_status ) {
+			$release           = $this->release( $tag );
+			$release['assets'] = \array_slice( $release['assets'], 0, $assets );
+			$this->stage_latest( $release, '', $requirements );
+		} elseif ( 0 !== $latest_status ) {
+			$this->stage( $this->api_url( 'releases/latest' ), $latest_status, '' );
+		}
+		if ( 200 !== $entry_status ) {
+			$this->stage( $this->raw_url( $tag ), $entry_status, "$entry_status: Not Found" );
+		}
 
 		$updates  = $this->check_for_updates();
 		$requests = $this->requests;
@@ -527,7 +524,7 @@ final class UpdaterTest extends TestCase {
 		return $this->responses[ $url ] ?? new \WP_Error( 'http_request_failed', "Nothing answers $url." );
 	}
 
-	public function release( string $tag, string $slug = '' ): array {
+	protected function release( string $tag, string $slug = '' ): array {
 		$slug = '' === $slug ? $this->slug : $slug;
 
 		return array(
@@ -548,20 +545,20 @@ final class UpdaterTest extends TestCase {
 		);
 	}
 
-	public function stage( string $url, int $code, string $body ): void {
+	protected function stage( string $url, int $code, string $body ): void {
 		$this->responses[ $url ] = self::response( $code, $body );
 	}
 
-	public function stage_latest( array $release, string $slug = '', array $requirements = array() ): void {
+	protected function stage_latest( array $release, string $slug = '', array $requirements = array() ): void {
 		$this->stage( $this->api_url( 'releases/latest', $slug ), 200, (string) wp_json_encode( $release ) );
 		$this->stage_entry_file( $release['tag_name'], $slug, $requirements );
 	}
 
-	public function api_url( string $path, string $slug = '' ): string {
+	protected function api_url( string $path, string $slug = '' ): string {
 		return 'https://api.github.com/repos/acme/' . ( '' === $slug ? $this->slug : $slug ) . "/$path";
 	}
 
-	public function raw_url( string $tag, string $slug = '' ): string {
+	protected function raw_url( string $tag, string $slug = '' ): string {
 		$slug = '' === $slug ? $this->slug : $slug;
 
 		return "https://raw.githubusercontent.com/acme/$slug/$tag/$slug.php";
@@ -607,17 +604,7 @@ final class UpdaterTest extends TestCase {
 			'Update URI'  => "https://github.com/acme/$slug",
 		);
 
-		$lines = array();
-		foreach ( \array_filter( $headers ) as $name => $value ) {
-			$lines[] = "$name: $value";
-		}
-
-		$plugin_file = WP_PLUGIN_DIR . "/$slug/$slug.php";
-		wp_mkdir_p( \dirname( $plugin_file ) );
-		\file_put_contents( $plugin_file, "<?php\n/**\n * " . \implode( "\n * ", $lines ) . "\n */\n" );
-		if ( ! \in_array( $plugin_file, $this->plugin_files, true ) ) {
-			$this->plugin_files[] = $plugin_file;
-		}
+		$plugin_file = $this->write_plugin_file( WP_PLUGIN_DIR, $slug, $headers );
 		wp_clean_plugins_cache( false );
 
 		return $plugin_file;

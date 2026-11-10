@@ -5,6 +5,8 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Bootstrap;
 use DeepWebSolutions\Framework\Bootstrap\Requirements;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RendersAdminScreensTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\WritesPluginFilesTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -13,10 +15,10 @@ use PHPUnit\Framework\TestCase;
 final class RequirementsTest extends TestCase {
 	use CreatesUsersTrait;
 	use IsolatesHooksTrait;
+	use RendersAdminScreensTrait;
+	use WritesPluginFilesTrait;
 
 	protected string $slug;
-
-	protected array $directories = array();
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -27,15 +29,6 @@ final class RequirementsTest extends TestCase {
 	protected function setUp(): void {
 		$this->slug = 'acme-requirements-' . \bin2hex( \random_bytes( 3 ) );
 		remove_all_actions( 'all_admin_notices' );
-	}
-
-	#[\Override]
-	protected function tearDown(): void {
-		wp_set_current_user( 0 );
-		foreach ( $this->directories as $directory ) {
-			\array_map( 'unlink', \glob( "$directory/*" ) );
-			\rmdir( $directory );
-		}
 	}
 
 	public static function unmet_headers(): array {
@@ -167,28 +160,18 @@ final class RequirementsTest extends TestCase {
 	}
 
 	protected function write_plugin( string $root, array $headers ): string {
-		$directory = "$root/$this->slug";
-		\mkdir( $directory );
-		$this->directories[] = $directory;
-
-		$lines = array( 'Plugin Name: Acme Requirements', "Text Domain: $this->slug" );
-		foreach ( $headers as $name => $value ) {
-			$lines[] = "$name: $value";
-		}
-
-		$plugin_file = "$directory/$this->slug.php";
-		\file_put_contents( $plugin_file, "<?php\n/**\n * " . \implode( "\n * ", $lines ) . "\n */\n" );
-
-		return $plugin_file;
+		return $this->write_plugin_file(
+			$root,
+			$this->slug,
+			array(
+				'Plugin Name' => 'Acme Requirements',
+				'Text Domain' => $this->slug,
+			) + $headers
+		);
 	}
 
 	protected function render_notices_as( string $role ): string {
-		wp_set_current_user( $this->make_user( "acme_requirements_$role", $role ) );
-
-		\ob_start();
-		do_action( 'all_admin_notices' );
-
-		return (string) \ob_get_clean();
+		return $this->render_all_admin_notices( $this->make_user( "acme_requirements_$role", $role ) );
 	}
 
 	protected function print_notice_as( string $role, mixed ...$arguments ): string {
