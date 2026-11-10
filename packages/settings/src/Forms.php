@@ -69,7 +69,7 @@ final class Forms {
 	/**
 	 * Returns the escaped markup of the field's control, without its row label.
 	 *
-	 * A group, as is_group() tells, renders in a fieldset its title names, or in its host's fieldset when it has no title. A field with a render callable renders through it, and the callable escapes, names and describes its control and wraps a group the same way. Unless the field is disabled, the callable also prints a hidden empty input before its control, so that a field absent from a submission reads as unrendered or disabled.
+	 * A group, as is_group() tells, renders in a fieldset its title names, or in its host's fieldset when it has no title. A field with a render callable renders through it, and the callable escapes, names and describes its control, prints its id through escape_attribute() as the row label does, and wraps a group the same way. Unless the field is disabled, the callable also prints a hidden empty input before its control, so that a field absent from a submission reads as unrendered or disabled.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

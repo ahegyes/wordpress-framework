@@ -461,6 +461,27 @@ final class SettingsTest extends TestCase {
 		self::assertSame( array( array( 'render', "{$this->prefix}_widget", 'stored', "{$this->prefix}_widget", "{$this->prefix}_widget" ) ), $opened['records'] );
 	}
 
+	public function test_a_custom_type_field_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
+		$fields = array(
+			array(
+				'type'  => 'title',
+				'id'    => "{$this->prefix}_options",
+				'title' => 'Options',
+			),
+			$this->field( 'widget', 'r&amp;d', array( 'render' => 'acme:render' ) ),
+			array(
+				'type' => 'sectionend',
+				'id'   => "{$this->prefix}_options",
+			),
+		);
+		$spec   = $this->tab_spec( array( '' => self::section( 'General', $fields ) ) );
+
+		$row = self::document( $this->open( $spec )['body'] )->querySelector( 'form#mainform input.acme-widget' )?->closest( 'tr' );
+
+		self::assertSame( "{$this->prefix}_r&amp;d", $row?->querySelector( 'input.acme-widget' )?->getAttribute( 'id' ) );
+		self::assertSame( "{$this->prefix}_r&amp;d", $row?->querySelector( 'th.titledesc label' )?->getAttribute( 'for' ) );
+	}
+
 	public function test_a_custom_type_field_saves_through_its_validate(): void {
 		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->custom_field( array( 'validate' => 'acme:append' ) ) ) ) ) );
 

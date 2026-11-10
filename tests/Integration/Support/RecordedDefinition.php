@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 
 use DeepWebSolutions\Framework\Settings\AdminPage\OptionsPageDefinitionInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormDefinitionInterface;
+use DeepWebSolutions\Framework\Settings\Forms;
 use DeepWebSolutions\Framework\WooCommerce\ProductData\ProductDataTabDefinitionInterface;
 use DeepWebSolutions\Framework\WooCommerce\Setting\SectionFieldsDefinitionInterface;
 
@@ -42,7 +43,7 @@ final class RecordedDefinition implements OptionsPageDefinitionInterface, Object
 				$field['render'] = static function ( array $field, mixed $value, string $name, string $id ) use ( $field_id ): string {
 					$GLOBALS['acme_outcome']['records'][] = array( 'render', $field_id, $value, $name, $id );
 
-					return '<input type="hidden" name="' . esc_attr( $name ) . '" value="" /><input type="text" class="acme-widget" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( \is_string( $value ) ? $value : '' ) . '" />';
+					return '<input type="hidden" name="' . esc_attr( $name ) . '" value="" /><input type="text" class="acme-widget" id="' . Forms::escape_attribute( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( \is_string( $value ) ? $value : '' ) . '" />';
 				};
 			}
 

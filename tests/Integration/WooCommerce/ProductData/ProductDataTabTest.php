@@ -206,6 +206,16 @@ final class ProductDataTabTest extends TestCase {
 		self::assertSame( array( array( 'render', "_{$this->prefix}_widget", 'stored', "_{$this->prefix}_widget", "_{$this->prefix}_widget" ) ), $request['records'] );
 	}
 
+	public function test_a_custom_type_field_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'acme_widget', 'r&amp;d', array( 'render' => 'acme:render' ) ) ) ) ) );
+
+		$row = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] )->querySelector( '#woocommerce-product-data input.acme-widget' )?->closest( 'p' );
+
+		self::assertSame( "_{$this->prefix}_r&amp;d", $row?->querySelector( 'input.acme-widget' )?->getAttribute( 'id' ) );
+		self::assertSame( "_{$this->prefix}_r&amp;d", $row?->querySelector( 'label' )?->getAttribute( 'for' ) );
+	}
+
 	public static function group_types(): array {
 		return array(
 			'radio'      => array( 'radio' ),
