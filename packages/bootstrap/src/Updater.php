@@ -31,7 +31,7 @@ final class Updater {
 	/**
 	 * Offers the plugin's GitHub releases as updates, and answers its "View details" request, while its Update URI points at github.com.
 	 *
-	 * The Update URI is read whenever WordPress asks, so the updater answers nothing once it points elsewhere. A release that needs a newer WordPress is not offered, because WordPress's automatic updates check only the PHP requirement. WordPress asks for Update URI offers from version 5.8, so below it no update is offered.
+	 * The Update URI is read whenever WordPress asks, so the updater answers nothing once it points elsewhere. A release that needs a newer WordPress is not offered, because WordPress's automatic updates check only the PHP requirement.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -183,9 +183,9 @@ final class Updater {
 	}
 
 	/**
-	 * Returns the newest usable release on the configured channel, from the plugin's cache while it holds one, and otherwise from GitHub with the requirements of its tagged entry file.
+	 * Returns the channel's newest release when its asset and the requirements of its tagged entry file are usable, from the plugin's cache while it holds one and otherwise from GitHub, or null.
 	 *
-	 * A usable release is cached for an hour, and a failed fetch or an unusable release as empty for five minutes, so update checks back off from a failing API. GitHub's release list is not ordered by version, so the prerelease channel takes the highest version among the ten it lists first, stable releases included.
+	 * A failed fetch or an unusable release is cached as empty, so update checks back off from a failing API. GitHub's release list is not ordered by version, so the prerelease channel takes the highest version among the ten it lists first, stable releases included.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -219,11 +219,13 @@ final class Updater {
 			}
 
 			$candidate_version = \ltrim( $candidate['tag_name'], 'v' );
-			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-(?:dev|alpha|beta|rc)(?:\.?\d+)?)?$/', $candidate_version ) ) { // PHP's version_compare() orders only these labels below their release as their names say, and misorders others, such as 'pre', 'patch' or 'Beta'.
+			// PHP's version_compare() orders only these labels below their release as their names say, and misorders others, such as 'pre', 'patch' or 'Beta'.
+			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-(?:dev|alpha|beta|rc)(?:\.?\d+)?)?$/', $candidate_version ) ) {
 				continue;
 			}
 
-			if ( 'stable' === $config['channel'] && false !== \strpos( $candidate_version, '-' ) ) { // GitHub's prerelease flag is set by hand, so a suffixed tag can be the latest release.
+			// GitHub's prerelease flag is set by hand, so a suffixed tag can be the latest release.
+			if ( 'stable' === $config['channel'] && false !== \strpos( $candidate_version, '-' ) ) {
 				continue;
 			}
 
