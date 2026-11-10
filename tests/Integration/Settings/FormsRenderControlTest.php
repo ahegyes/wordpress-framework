@@ -101,6 +101,24 @@ final class FormsRenderControlTest extends TestCase {
 		self::assertSame( 'First.Second.', self::text( $help ) );
 	}
 
+	public static function paragraph_closing_help(): array {
+		return array(
+			'fieldset' => array( '<fieldset>Read this first.</fieldset>' ),
+			'hgroup'   => array( '<hgroup>Read this first.</hgroup>' ),
+			'main'     => array( '<main>Read this first.</main>' ),
+			'menu'     => array( '<menu><li>Read this first.</li></menu>' ),
+			'search'   => array( '<search>Read this first.</search>' ),
+		);
+	}
+
+	#[DataProvider( 'paragraph_closing_help' )]
+	public function test_help_holding_an_element_that_ends_a_paragraph_stays_inside_the_element_the_control_names( string $desc ): void {
+		$help = self::render( 'text', array( 'desc' => $desc ) )->getElementById( 'acme.key.description' );
+
+		self::assertTrue( $help?->matches( 'div.description' ) );
+		self::assertSame( 'Read this first.', self::text( $help ) );
+	}
+
 	public static function non_input_controls(): array {
 		return array(
 			'textarea'    => array( 'textarea', array(), 'textarea' ),
