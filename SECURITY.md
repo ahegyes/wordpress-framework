@@ -2,9 +2,7 @@
 
 ## Reporting a vulnerability
 
-Please report security vulnerabilities privately via [GitHub's security advisory form](https://github.com/ahegyes/wordpress-framework/security/advisories/new). Do not open a public issue.
-
-You can expect an initial response within 7 days. Once the report is triaged, you'll receive updates as fixes land. Once a fix is released, credit is given in the advisory unless you request anonymity.
+Report it privately through [GitHub's security advisory form](https://github.com/ahegyes/wordpress-framework/security/advisories/new), never in a public issue. The first response comes within 7 days, and the advisory credits the reporter once a fix is released, unless they ask to stay anonymous.
 
 ## Supported versions
 

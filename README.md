@@ -26,9 +26,7 @@ The packages form a stack: core builds on bootstrap and shared, settings on core
 ## Local development
 
 ```sh
-composer packages-install   # PHP deps (wraps composer install, ignoring only the PHP upper bound)
-npm install                 # Node deps (wp-env)
-npm run wp-env:start        # developer environment at http://localhost:8800, as local, with WooCommerce
+npm run setup               # PHP and Node deps, then the developer environment at http://localhost:8800, as local, with WooCommerce
 composer quality-check      # Validation, PHPCS, PHPStan, Unit and Integration tests (starts the tests environment)
 ```
 
