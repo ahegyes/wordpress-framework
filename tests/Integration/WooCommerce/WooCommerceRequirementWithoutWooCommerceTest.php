@@ -22,9 +22,8 @@ final class WooCommerceRequirementWithoutWooCommerceTest extends TestCase {
 				'Requires Plugins'     => 'woocommerce',
 			)
 		);
-		$requirement = new WooCommerceRequirement( $plugin_file );
 
-		self::assertFalse( $requirement->check() );
+		self::assertFalse( WooCommerceRequirement::check( $plugin_file ) );
 
 		// On a network, only a super admin can activate plugins unless the network enables the plugins menu.
 		$super_admin = $this->make_user( 'acme_requirement_super_admin', 'administrator' );

@@ -108,7 +108,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		$notices->add( $this->notice( 'saved' ), $this->admin );
 		$this->view_as( $this->admin, $screen, $block_editor );
 
-		$notices->enqueue_editor_script();
+		$notices->enqueue_delivery_script();
 
 		self::assertFalse( wp_script_is( $this->script_handle(), 'registered' ) );
 		self::assertCount( 1, $notices->get_notices( NoticeScope::User, $this->admin ) );
@@ -133,7 +133,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		$notices = $this->notices();
 		$notices->register_hooks();
 
-		self::assertSame( 10, has_action( 'enqueue_block_editor_assets', array( $notices, 'enqueue_editor_script' ) ) );
+		self::assertSame( 10, has_action( 'enqueue_block_editor_assets', array( $notices, 'enqueue_delivery_script' ) ) );
 		self::assertArrayHasKey( '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/deliveries', rest_get_server()->get_routes() );
 	}
 
@@ -191,7 +191,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	protected function load_editor( int $user_id ): array {
 		$this->remove_the_script();
 		$this->view_as( $user_id, 'post', true );
-		$this->notices()->enqueue_editor_script();
+		$this->notices()->enqueue_delivery_script();
 		self::assertSame( 1, \preg_match( '/\}\s*\)\(\s*(\{.*\})\s*\);/s', \implode( "\n", wp_scripts()->get_data( $this->script_handle(), 'after' ) ), $matches ) );
 
 		return \json_decode( $matches[1], true );

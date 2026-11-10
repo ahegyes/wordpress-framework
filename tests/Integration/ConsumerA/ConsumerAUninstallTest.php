@@ -28,6 +28,7 @@ final class ConsumerAUninstallTest extends TestCase {
 			'autoloader'        => array( array( 'vendor/autoload.php' ), array() ),
 			'scoped-autoloader' => array( array( 'vendor-prefixed/scoper-autoload.php' ), array() ),
 			'composition-root'  => array( array( 'src/Plugin.php' ), array() ),
+			'scoped-engine'     => array( array( 'vendor-prefixed/ahegyes/wp-framework-core/src/Uninstall/Uninstaller.php' ), array() ),
 			'footprint'         => array( array( 'includes/footprint.php' ), array() ),
 			'below-php-floor'   => array( array(), array( 'Requires PHP' => '99' ) ),
 		);
@@ -59,6 +60,7 @@ final class ConsumerAUninstallTest extends TestCase {
 
 		self::assertSame( 500, $request['died']['status'] ?? null );
 		self::assertStringStartsWith( 'Uninstall could not remove everything: option acme_ca_revision: ', $request['died']['message'] ?? '' );
+		self::assertStringEndsWith( ' exist.', $request['died']['message'] ?? '' );
 		self::assertFileExists( WP_PLUGIN_DIR . '/' . self::DIR . '/acme-consumer-a.php' );
 		self::assertSame( array( 'delete_data' => 'yes' ), get_option( 'acme_ca_settings' ) );
 		self::assertSame( '1', get_option( 'acme_ca_revision' ) );

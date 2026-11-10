@@ -63,6 +63,7 @@ final class PackageManifestsTest extends TestCase {
 		'woocommerce' => array(
 			'branch-alias'     => array( 'dev-trunk' => '2.x-dev' ),
 			'requires-plugins' => array( 'woocommerce' ),
+			'requires-wc'      => '11.2',
 			'requires-wp'      => '7.1',
 		),
 	);
@@ -108,7 +109,7 @@ final class PackageManifestsTest extends TestCase {
 
 	#[DataProvider( 'package_names' )]
 	public function test_a_packages_extra_declares_exactly_its_floors_and_branch_alias( string $package ): void {
-		$extra = \array_intersect_key( self::read_manifest( $package )['extra'] ?? array(), \array_flip( array( 'branch-alias', 'requires-plugins', 'requires-wp' ) ) );
+		$extra = \array_intersect_key( self::read_manifest( $package )['extra'] ?? array(), \array_flip( array( 'branch-alias', 'requires-plugins', 'requires-wc', 'requires-wp' ) ) );
 		\ksort( $extra );
 
 		self::assertSame( self::EXTRAS[ $package ], $extra );

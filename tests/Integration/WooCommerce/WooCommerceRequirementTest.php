@@ -24,24 +24,21 @@ final class WooCommerceRequirementTest extends TestCase {
 
 	#[DataProvider( 'met_floors' )]
 	public function test_woocommerce_meeting_the_floor_passes_and_nobody_sees_a_notice( ?string $floor ): void {
-		$headers     = \is_null( $floor ) ? array() : array( 'WC requires at least' => 'installed' === $floor ? WC_VERSION : $floor );
-		$requirement = new WooCommerceRequirement( $this->write_plugin( $headers + array( 'Requires Plugins' => 'woocommerce' ) ) );
+		$headers = \is_null( $floor ) ? array() : array( 'WC requires at least' => 'installed' === $floor ? WC_VERSION : $floor );
 
-		self::assertTrue( $requirement->check() );
+		self::assertTrue( WooCommerceRequirement::check( $this->write_plugin( $headers + array( 'Requires Plugins' => 'woocommerce' ) ) ) );
 		self::assertSame( '', $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) ) );
 	}
 
 	public function test_woocommerce_below_the_floor_fails_and_only_users_who_can_activate_plugins_are_told_to_update_it(): void {
-		$requirement = new WooCommerceRequirement(
-			$this->write_plugin(
-				array(
-					'WC requires at least' => '99.1',
-					'Requires Plugins'     => 'woocommerce',
-				)
+		$plugin_file = $this->write_plugin(
+			array(
+				'WC requires at least' => '99.1',
+				'Requires Plugins'     => 'woocommerce',
 			)
 		);
 
-		self::assertFalse( $requirement->check() );
+		self::assertFalse( WooCommerceRequirement::check( $plugin_file ) );
 
 		$notice = \Dom\HTMLDocument::createFromString( $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
 		self::assertNotNull( $notice );
@@ -50,15 +47,13 @@ final class WooCommerceRequirementTest extends TestCase {
 	}
 
 	public function test_the_notice_prints_the_plugins_name_and_floor_as_text(): void {
-		$requirement = new WooCommerceRequirement(
-			$this->write_plugin(
-				array(
-					'Plugin Name'          => 'Acme <b>Shop</b>',
-					'WC requires at least' => '99.1<i>',
-				)
+		$plugin_file = $this->write_plugin(
+			array(
+				'Plugin Name'          => 'Acme <b>Shop</b>',
+				'WC requires at least' => '99.1<i>',
 			)
 		);
-		$requirement->check();
+		WooCommerceRequirement::check( $plugin_file );
 
 		$notice = \Dom\HTMLDocument::createFromString( $this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
 
@@ -69,7 +64,7 @@ final class WooCommerceRequirementTest extends TestCase {
 	}
 
 	public function test_a_failed_check_reads_translations_only_when_the_notice_renders(): void {
-		$requirement  = new WooCommerceRequirement( $this->write_plugin( array( 'WC requires at least' => '99.1' ) ) );
+		$plugin_file  = $this->write_plugin( array( 'WC requires at least' => '99.1' ) );
 		$translations = 0;
 		add_filter(
 			'gettext_wp-framework',
@@ -80,7 +75,7 @@ final class WooCommerceRequirementTest extends TestCase {
 			}
 		);
 
-		$requirement->check();
+		WooCommerceRequirement::check( $plugin_file );
 		self::assertSame( 0, $translations );
 
 		$this->render_notices_as( $this->make_user( 'acme_requirement_admin', 'administrator' ) );

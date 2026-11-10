@@ -123,15 +123,16 @@ final class AdminNoticesTest extends TestCase {
 
 	public static function misaddressed_notices(): array {
 		return array(
-			'a-user-for-a-site-notice' => array( NoticeScope::Site, 5, InvalidArgumentException::class ),
-			'no-user-logged-in'        => array( NoticeScope::User, 0, LogicException::class ),
-			'a-negative-user'          => array( NoticeScope::User, -5, LogicException::class ),
+			'a-user-for-a-site-notice' => array( NoticeScope::Site, 5, InvalidArgumentException::class, "but user '5' was given." ),
+			'no-user-logged-in'        => array( NoticeScope::User, 0, LogicException::class, "but it has user '0'." ),
+			'a-negative-user'          => array( NoticeScope::User, -5, LogicException::class, "but it has user '-5'." ),
 		);
 	}
 
 	#[DataProvider( 'misaddressed_notices' )]
-	public function test_a_notice_addressed_to_no_user_or_to_a_user_outside_the_user_scope_is_rejected( NoticeScope $scope, int $user_id, string $exception ): void {
+	public function test_a_notice_addressed_to_no_user_or_to_a_user_outside_the_user_scope_is_rejected( NoticeScope $scope, int $user_id, string $exception, string $ending ): void {
 		$this->expectException( $exception );
+		$this->expectExceptionMessageMatches( '/' . \preg_quote( $ending, '/' ) . '$/' );
 
 		$this->notices()->add( $this->notice( 'saved', $scope ), $user_id );
 	}
@@ -377,12 +378,12 @@ final class AdminNoticesTest extends TestCase {
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'once', NoticeScope::Request ) );
 		$this->render( $this->admin, $notices );
-		$notices->enqueue_dismiss_script();
+		$notices->enqueue_dismissal_script();
 		self::assertFalse( wp_script_is( $this->script_handle(), 'registered' ) );
 
 		$notices->add( $this->notice( 'kept', NoticeScope::Request, persistent: true ) );
 		$this->render( $this->admin, $notices );
-		$notices->enqueue_dismiss_script();
+		$notices->enqueue_dismissal_script();
 		$script = \implode( "\n", wp_scripts()->get_data( $this->script_handle(), 'after' ) );
 
 		self::assertTrue( wp_script_is( $this->script_handle() ) );

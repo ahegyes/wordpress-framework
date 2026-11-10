@@ -383,7 +383,7 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( array( array( 1, 0 ) ), $this->ran );
 		$error = get_option( "{$this->option}_error" );
 		self::assertIsArray( $error );
-		self::assertSame( "Could not record schema revision '1'.", $error['message'] );
+		self::assertSame( "Could not record data revision '1'.", $error['message'] );
 	}
 
 	public function test_a_resumable_step_rerun_after_an_interruption_creates_no_duplicate(): void {

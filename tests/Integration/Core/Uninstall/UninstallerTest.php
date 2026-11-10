@@ -427,7 +427,7 @@ final class UninstallerTest extends TestCase {
 		}
 
 		self::assertInstanceOf( RuntimeException::class, $failure );
-		self::assertStringContainsString( 'cleanup: The cleanup failed.', $failure->getMessage() );
+		self::assertStringEndsWith( 'cleanup: The cleanup failed.', $failure->getMessage() );
 		self::assertFalse( wp_next_scheduled( "{$this->prefix}_cron" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
