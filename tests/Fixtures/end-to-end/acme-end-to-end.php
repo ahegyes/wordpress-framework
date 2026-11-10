@@ -65,7 +65,7 @@ add_action(
 	static function ( int $post_id, WP_Post $post ) use ( $acme_notices ): void {
 		// Opening a new post saves an auto-draft, whose notice the editor would deliver as it loads.
 		if ( 'auto-draft' !== $post->post_status ) {
-			$acme_notices->add( new Notice( 'saved', 'Saved. Read <a href="https://example.org/guide">the guide</a>.', NoticeType::Success ) );
+			$acme_notices->add( new Notice( 'saved', 'Saved &amp; filed. Read <a href="https://example.org/guide">the guide</a>.', NoticeType::Success ) );
 		}
 	},
 	10,

@@ -86,6 +86,13 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		self::assertSame( wp_kses_post( 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>. <script>alert( 1 );</script>' ), $this->deliver()->get_data()[0]['content'] );
 	}
 
+	public function test_a_delivered_message_carries_its_plain_text_for_screen_readers(): void {
+		$this->notices()->add( $this->notice( 'saved', message: 'Saved &amp; filed. Read <a href="https://example.org/">the &ldquo;guide&rdquo;</a>.' ), $this->admin );
+		wp_set_current_user( $this->admin );
+
+		self::assertSame( 'Saved & filed. Read the “guide”.', $this->deliver()->get_data()[0]['spoken'] );
+	}
+
 	public static function other_screens(): array {
 		return array(
 			'site-editor'    => array( 'site-editor', true ),
@@ -111,7 +118,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		$settings = $this->load_editor( $this->admin );
 
 		self::assertTrue( wp_script_is( $this->script_handle() ) );
-		self::assertSame( array( 'wp-api-fetch', 'wp-data', 'wp-hooks', 'wp-notices' ), wp_scripts()->registered[ $this->script_handle() ]->deps );
+		self::assertSame( array( 'wp-a11y', 'wp-api-fetch', 'wp-data', 'wp-hooks', 'wp-notices' ), wp_scripts()->registered[ $this->script_handle() ]->deps );
 		self::assertSame(
 			array(
 				'prefix'  => $this->prefix,
@@ -157,7 +164,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		return array(
 			$this->delivered( 'site', 'migrated', 'success', 'Notice migrated.' ),
 			$this->delivered( 'site', 'news', 'error', 'Notice news.' ),
-			$this->delivered( 'user', 'saved', 'error', 'Saved <b>it</b>.' ),
+			$this->delivered( 'user', 'saved', 'error', 'Saved <b>it</b>.', spoken: 'Saved it.' ),
 			$this->delivered( 'user', 'pinned', 'warning', 'Notice pinned.', false ),
 		);
 	}
@@ -170,11 +177,12 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		self::assertSame( 'delivered', get_user_option( "{$this->prefix}_hidden_notices", $this->admin )['site:news']['state'] ?? null );
 	}
 
-	protected function delivered( string $scope, string $id, string $status, string $content, bool $dismissible = true ): array {
+	protected function delivered( string $scope, string $id, string $status, string $content, bool $dismissible = true, ?string $spoken = null ): array {
 		return array(
 			'id'            => "{$this->prefix}-$scope-notice-$id",
 			'status'        => $status,
 			'content'       => $content,
+			'spoken'        => $spoken ?? $content,
 			'isDismissible' => $dismissible,
 		);
 	}

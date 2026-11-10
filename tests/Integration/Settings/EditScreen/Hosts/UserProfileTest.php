@@ -86,6 +86,16 @@ final class UserProfileTest extends TestCase {
 		self::assertCount( 1, $section->querySelectorAll( 'tr:nth-child(2) fieldset' ) );
 	}
 
+	public function test_a_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
+		$spec = $this->spec( array( $this->field( 'text', 'r&amp;d' ) ) );
+
+		$section = self::document( $this->open( $spec, 'own' )['body'] )->querySelector( "form#your-profile input[name=\"{$this->id}_nonce\"] ~ h2 + table.form-table" );
+
+		$id = (string) $section?->querySelector( 'td > input[type=text]' )?->getAttribute( 'id' );
+		self::assertSame( "{$this->id}._{$this->prefix}_r&amp;d", $id );
+		self::assertSame( $id, $section?->querySelector( 'th > label' )?->getAttribute( 'for' ) );
+	}
+
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
 		add_user_meta( $this->subscriber, "_{$this->prefix}_name", 'stored' );
 		add_user_meta( $this->subscriber, "_{$this->prefix}_empty", '' );

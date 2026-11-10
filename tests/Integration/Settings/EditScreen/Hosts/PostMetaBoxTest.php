@@ -160,6 +160,17 @@ final class PostMetaBoxTest extends TestCase {
 		self::assertNotNull( $box->querySelector( "div.form-field > input[type=text][id=\"{$this->id}._{$this->prefix}_name\"][name=\"{$this->id}[_{$this->prefix}_name]\"]" ) );
 	}
 
+	public function test_a_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
+		$post_id = $this->make_post();
+		$spec    = $this->spec( array( $this->field( 'text', 'r&amp;d' ) ) );
+
+		$box = $this->box( self::document( $this->edit_screen( $spec, $post_id )['body'] ) );
+
+		$id = (string) $box->querySelector( 'input[type=text]' )?->getAttribute( 'id' );
+		self::assertSame( "{$this->id}._{$this->prefix}_r&amp;d", $id );
+		self::assertSame( $id, $box->querySelector( 'label.post-attributes-label' )?->getAttribute( 'for' ) );
+	}
+
 	#[DataProvider( 'group_fields' )]
 	public function test_a_group_is_one_fieldset_named_by_its_own_legend_under_its_rows_title( array $keys ): void {
 		$post_id = $this->make_post();

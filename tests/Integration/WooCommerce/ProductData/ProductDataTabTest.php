@@ -251,7 +251,46 @@ final class ProductDataTabTest extends TestCase {
 		self::assertCount( 1, $fieldset?->querySelectorAll( 'legend' ) ?? array() );
 		self::assertSame( '', $fieldset?->querySelector( "input[type=hidden][name=\"_{$this->prefix}_colors\"]" )?->getAttribute( 'value' ) );
 		self::assertSame( array( 'blue' ), $this->checked( $fieldset, "_{$this->prefix}_colors[]" ) );
-		self::assertSame( 'Pick any.', \trim( (string) $fieldset?->querySelector( 'p.description' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Pick any.', \trim( (string) $fieldset?->querySelector( '.description' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertCount( 0, $fieldset?->querySelectorAll( 'fieldset' ) ?? array( 'missing' ) );
+		$this->assert_each_choice_is_described( $fieldset, 'checkbox', "_{$this->prefix}_colors.description" );
+	}
+
+	public function test_a_radio_group_renders_in_one_fieldset_named_by_its_label(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_tone" => 'blue' ) );
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						$this->field(
+							'radio',
+							'tone',
+							array(
+								'options'     => self::COLORS,
+								'description' => 'Pick one.',
+							)
+						),
+					)
+				),
+			)
+		);
+
+		$fieldset = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] )->querySelector( "fieldset.form-field._{$this->prefix}_tone_field" );
+
+		self::assertSame( 'Tone', \trim( (string) $fieldset?->querySelector( 'legend' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertCount( 1, $fieldset?->querySelectorAll( 'legend' ) ?? array() );
+		self::assertCount( 0, $fieldset?->querySelectorAll( 'fieldset' ) ?? array( 'missing' ) );
+		self::assertSame( 'blue', $fieldset?->querySelector( 'input[type=radio][checked]' )?->getAttribute( 'value' ) );
+		$this->assert_each_choice_is_described( $fieldset, 'radio', "_{$this->prefix}_tone.description" );
+	}
+
+	protected function assert_each_choice_is_described( ?\Dom\Element $fieldset, string $type, string $help_id ): void {
+		$choices = $fieldset?->querySelectorAll( "input[type=$type]" ) ?? array();
+		self::assertNotCount( 0, $choices );
+		foreach ( $choices as $choice ) {
+			self::assertSame( $help_id, $choice->getAttribute( 'aria-describedby' ) );
+		}
+		self::assertSame( $help_id, $fieldset?->querySelector( '.description' )?->getAttribute( 'id' ) );
 	}
 
 	public function test_a_multiselect_posts_an_empty_value_before_its_choices(): void {

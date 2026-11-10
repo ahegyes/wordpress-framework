@@ -439,6 +439,14 @@ final class OptionsPageTest extends TestCase {
 		self::assertStringNotContainsString( 'Acme settings', $editor_page['body'] );
 	}
 
+	public function test_a_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
+		$form = self::document( $this->open( $this->spec( array( self::field( 'text', 'r&amp;d' ) ) ), $this->admin )['body'] )->querySelector( 'form[action="options.php"]' );
+
+		$id = (string) $form?->querySelector( 'td input[type=text]' )?->getAttribute( 'id' );
+		self::assertSame( "{$this->option}.r&amp;d", $id );
+		self::assertSame( $id, $form?->querySelector( 'th label' )?->getAttribute( 'for' ) );
+	}
+
 	public function test_a_form_posted_back_with_one_edit_changes_only_that_field_and_labels_point_at_single_controls(): void {
 		$stored = array(
 			'name'   => 'old',
