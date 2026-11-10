@@ -190,6 +190,9 @@ final class OptionsPage {
 		$option = $tab['option'];
 		$stored = get_option( $option );
 		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
+			if ( isset( $row['label_for'] ) ) { // Core prints the label through esc_attr(), which keeps an entity the control's id encodes.
+				$row['label_for'] = Forms::escape_attribute( $row['label_for'] );
+			}
 			add_settings_field( $row['field']['id'], esc_html( $row['field']['title'] ), array( $this, 'render_field' ), $this->id, 'default', $row );
 		}
 

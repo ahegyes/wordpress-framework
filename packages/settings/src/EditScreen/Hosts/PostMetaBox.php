@@ -6,6 +6,7 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormHostInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
+use DeepWebSolutions\Framework\Settings\Forms;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -111,7 +112,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
 		foreach ( $rows as $row ) {
-			$heading = \is_null( $row['label_for'] ) ? '<span class="post-attributes-label">' . $row['title'] . '</span>' : '<label class="post-attributes-label" for="' . esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label>';
+			$heading = \is_null( $row['label_for'] ) ? '<span class="post-attributes-label">' . $row['title'] . '</span>' : '<label class="post-attributes-label" for="' . Forms::escape_attribute( $row['label_for'] ) . '">' . $row['title'] . '</label>';
 			echo '<div class="form-field"><p class="post-attributes-label-wrapper">' . $heading . '</p>' . $row['control'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
 		}
 	}
