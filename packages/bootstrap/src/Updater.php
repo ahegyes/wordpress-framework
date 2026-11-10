@@ -50,8 +50,8 @@ final class Updater {
 				}
 
 				$config  = self::get_updater_config( $plugin_file );
-				$release = null === $config ? null : self::get_release( $config );
-				if ( null === $config || null === $release || ! is_wp_version_compatible( $release['requires'] ) ) {
+				$release = \is_null( $config ) ? null : self::get_release( $config );
+				if ( \is_null( $config ) || \is_null( $release ) || ! is_wp_version_compatible( $release['requires'] ) ) {
 					return false;
 				}
 
@@ -77,7 +77,7 @@ final class Updater {
 				}
 
 				$config = self::get_updater_config( $plugin_file );
-				if ( null === $config || ( \get_object_vars( $args )['slug'] ?? null ) !== $config['slug'] ) {
+				if ( \is_null( $config ) || ( \get_object_vars( $args )['slug'] ?? null ) !== $config['slug'] ) {
 					return $result;
 				}
 
@@ -92,7 +92,7 @@ final class Updater {
 				);
 
 				$release = self::get_release( $config );
-				if ( null !== $release ) {
+				if ( ! \is_null( $release ) ) {
 					$information = array(
 						'version'       => $release['version'],
 						'download_link' => $release['package'],
@@ -198,12 +198,12 @@ final class Updater {
 		}
 
 		$release = self::read_release( $cached );
-		if ( null !== $release ) {
+		if ( ! \is_null( $release ) ) {
 			return $release;
 		}
 
 		$body     = self::get_response_body( "https://api.github.com/repos/{$config['repository']}/" . ( 'prerelease' === $config['channel'] ? 'releases?per_page=10' : 'releases/latest' ), array( 'Accept' => 'application/vnd.github.html+json' ) );
-		$releases = null === $body ? null : \json_decode( $body, true );
+		$releases = \is_null( $body ) ? null : \json_decode( $body, true );
 
 		$newest  = array();
 		$tag     = '';
@@ -237,8 +237,8 @@ final class Updater {
 			}
 		}
 
-		$entry_file = null === $package ? null : self::get_response_body( "https://raw.githubusercontent.com/{$config['repository']}/" . \rawurlencode( $tag ) . "/{$config['file']}" ); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Reads the release's plugin headers, never served to visitors.
-		if ( null !== $entry_file ) {
+		$entry_file = \is_null( $package ) ? null : self::get_response_body( "https://raw.githubusercontent.com/{$config['repository']}/" . \rawurlencode( $tag ) . "/{$config['file']}" ); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Reads the release's plugin headers, never served to visitors.
+		if ( ! \is_null( $entry_file ) ) {
 			// WordPress's get_file_data() reads only paths, so the fetched entry file is parsed with the same pattern.
 			$entry_file   = \str_replace( "\r", "\n", \substr( $entry_file, 0, 8 * KB_IN_BYTES ) );
 			$headers      = array(
@@ -266,7 +266,7 @@ final class Updater {
 			}
 		}
 
-		set_transient( $transient, $release ?? array(), null === $release ? 5 * MINUTE_IN_SECONDS : HOUR_IN_SECONDS );
+		set_transient( $transient, $release ?? array(), \is_null( $release ) ? 5 * MINUTE_IN_SECONDS : HOUR_IN_SECONDS );
 		return $release;
 	}
 
