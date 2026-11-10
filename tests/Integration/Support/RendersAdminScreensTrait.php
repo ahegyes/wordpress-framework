@@ -14,6 +14,14 @@ trait RendersAdminScreensTrait {
 		get_current_screen()?->is_block_editor( $block_editor );
 	}
 
+	protected function render_all_admin_notices( int $user_id ): string {
+		wp_set_current_user( $user_id );
+		\ob_start();
+		do_action( 'all_admin_notices' );
+
+		return (string) \ob_get_clean();
+	}
+
 	protected static function notices_in( string $html ): array {
 		$notices = array();
 		$tags    = new \WP_HTML_Tag_Processor( $html );

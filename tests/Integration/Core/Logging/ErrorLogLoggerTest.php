@@ -82,6 +82,7 @@ final class ErrorLogLoggerTest extends TestCase {
 		$unused = new class() implements \Stringable {
 			public int $casts = 0;
 
+			#[\Override]
 			public function __toString(): string {
 				++$this->casts;
 

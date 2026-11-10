@@ -5,16 +5,19 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 trait ProvidesLogMessagesTrait {
 	public static function log_messages(): array {
 		$stringable  = new class() implements \Stringable {
+			#[\Override]
 			public function __toString(): string {
 				return 'stringable';
 			}
 		};
 		$unprintable = new class() implements \Stringable {
+			#[\Override]
 			public function __toString(): string {
 				throw new \LogicException( 'Not printable.' );
 			}
 		};
 		$erroring    = new class() implements \Stringable {
+			#[\Override]
 			public function __toString(): string {
 				throw new \TypeError( 'Not a string.' );
 			}

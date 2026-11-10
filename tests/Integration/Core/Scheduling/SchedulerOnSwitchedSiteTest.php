@@ -2,13 +2,13 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Scheduling;
 
-use DeepWebSolutions\Framework\Core\Scheduling\Recurrence;
 use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordsDoingItWrongTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
@@ -17,12 +17,11 @@ use PHPUnit\Framework\TestCase;
 final class SchedulerOnSwitchedSiteTest extends TestCase {
 	use CreatesSitesTrait;
 	use IsolatesHooksTrait;
+	use RecordsDoingItWrongTrait;
 
 	protected string $hook;
 
 	protected int $other_site;
-
-	protected array $doing_it_wrong = array();
 
 	protected array $writes = array();
 
@@ -30,13 +29,7 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 	protected function setUp(): void {
 		$this->hook       = 'acme_scheduling_' . \bin2hex( \random_bytes( 4 ) );
 		$this->other_site = $this->make_site( 'acme-scheduling' );
-		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		add_action(
-			'doing_it_wrong_run',
-			function ( string $function_name ): void {
-				$this->doing_it_wrong[] = $function_name;
-			}
-		);
+		$this->record_doing_it_wrong();
 		add_filter(
 			'pre_update_option_cron',
 			function ( mixed $value, mixed $old_value ): mixed {
@@ -53,27 +46,15 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 
 	#[\Override]
 	protected function tearDown(): void {
-		while ( ms_is_switched() ) {
-			restore_current_blog();
-		}
-
+		// The cleanup starts on the main site, and the trait restores the sites only after tearDown().
+		$this->restore_switched_sites();
 		wp_unschedule_hook( $this->hook );
 		switch_to_blog( $this->other_site );
 		wp_unschedule_hook( $this->hook );
 		restore_current_blog();
 	}
 
-	public static function writes(): array {
-		return array(
-			'enqueue'              => array( static fn ( Scheduler $scheduler, ScheduledHook $hook ): mixed => $scheduler->enqueue( $hook ) ),
-			'schedule-single'      => array( static fn ( Scheduler $scheduler, ScheduledHook $hook ): mixed => $scheduler->schedule_single( $hook, \time() + 60 ) ),
-			'ensure-recurring'     => array( static fn ( Scheduler $scheduler, ScheduledHook $hook ): mixed => $scheduler->ensure_recurring( $hook, Recurrence::from_interval( 3600 ) ) ),
-			'clear-scheduled-hook' => array( static fn ( Scheduler $scheduler, ScheduledHook $hook ): mixed => $scheduler->clear_scheduled_hook( $hook ) ),
-			'unschedule-hook'      => array( static fn ( Scheduler $scheduler, ScheduledHook $hook ): mixed => $scheduler->unschedule_hook( $hook->hook ) ),
-		);
-	}
-
-	#[DataProvider( 'writes' )]
+	#[DataProviderExternal( SchedulerTest::class, 'writes' )]
 	public function test_a_write_on_a_switched_site_is_an_error_that_writes_nothing( \Closure $write ): void {
 		$scheduler = $this->make_scheduler();
 		switch_to_blog( $this->other_site );

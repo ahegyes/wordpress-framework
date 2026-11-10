@@ -4,7 +4,6 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Migration;
 
 use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
-use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -14,9 +13,9 @@ use Psr\Log\NullLogger as PsrNullLogger;
 #[CoversClass( MigrationRunner::class )]
 #[RunTestsInSeparateProcesses]
 final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
-	protected static string|false $environment_type = false;
+	use MigrationFixturesTrait;
 
-	protected string $option;
+	protected static string|false $environment_type = false;
 
 	#[\Override]
 	public static function setUpBeforeClass(): void {
@@ -27,18 +26,6 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 	#[\Override]
 	public static function tearDownAfterClass(): void {
 		\putenv( false === self::$environment_type ? 'WP_ENVIRONMENT_TYPE' : 'WP_ENVIRONMENT_TYPE=' . self::$environment_type ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_putenv -- Restores the outer value.
-	}
-
-	#[\Override]
-	protected function setUp(): void {
-		$this->option = 'acme_db_' . \bin2hex( \random_bytes( 4 ) );
-	}
-
-	#[\Override]
-	protected function tearDown(): void {
-		foreach ( array( '', '_error', '_high_water', '_first_run', '_lock' ) as $suffix ) {
-			delete_option( $this->option . $suffix );
-		}
 	}
 
 	public function test_a_failing_step_releases_the_lock_and_is_rethrown_so_the_fixed_step_runs_next(): void {
@@ -97,9 +84,5 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 
 	protected function make_runner( array $steps ): MigrationRunner {
 		return new MigrationRunner( __DIR__ . '/../../../Fixtures/Core/acme-boot.php', $this->option, $steps, new PsrNullLogger(), new Scheduler( 'acme' ) );
-	}
-
-	protected function get_lock(): mixed {
-		return OptionRows::get( "{$this->option}_lock" )?->value;
 	}
 }

@@ -3,31 +3,12 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Logging;
 
 use DeepWebSolutions\Framework\Core\Logging\GuardedLogger;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordingLogger;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ThrowingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\AbstractLogger as PsrAbstractLogger;
 use Psr\Log\InvalidArgumentException as PsrInvalidArgumentException;
 use Psr\Log\LogLevel as PsrLogLevel;
-
-final class RecordingLogger extends PsrAbstractLogger {
-	public array $records = array();
-
-	#[\Override]
-	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
-		$this->records[] = array( $level, $message, $context );
-	}
-}
-
-final class ThrowingLogger extends PsrAbstractLogger {
-	public function __construct(
-		protected \Throwable $failure
-	) {}
-
-	#[\Override]
-	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
-		throw $this->failure;
-	}
-}
 
 #[CoversClass( GuardedLogger::class )]
 final class GuardedLoggerTest extends TestCase {
