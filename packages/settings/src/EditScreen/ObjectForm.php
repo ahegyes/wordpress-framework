@@ -19,7 +19,7 @@ use DeepWebSolutions\Framework\Shared\Exception\LogicException;
  * @version 2.0.0
  *
  * @phpstan-import-type Field from Forms
- * @phpstan-type Form array{title: string, capability: string, fields: list<Field>}
+ * @phpstan-type        Form array{title: string, capability: string, fields: list<Field>}
  */
 final class ObjectForm {
 	// region FIELDS AND CONSTANTS

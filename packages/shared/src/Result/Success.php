@@ -9,7 +9,7 @@ namespace DeepWebSolutions\Framework\Shared\Result;
  * @version 2.0.0
  *
  * @template-covariant TValue
- * @extends AbstractResult<TValue, never>
+ * @extends            AbstractResult<TValue, never>
  */
 final readonly class Success extends AbstractResult {
 	// region MAGIC METHODS

@@ -12,7 +12,7 @@ use DeepWebSolutions\Framework\Shared\Error\ErrorInterface;
  *
  * @template-covariant TValue
  * @template-covariant TError of ErrorInterface
- * @phpstan-sealed Success|Failure
+ * @phpstan-sealed     Success|Failure
  */
 abstract readonly class AbstractResult {
 	// region METHODS

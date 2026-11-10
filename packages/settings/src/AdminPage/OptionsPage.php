@@ -17,8 +17,8 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  *
  * @phpstan-import-type Field from Forms
  * @phpstan-import-type FieldRow from Forms
- * @phpstan-type Tab array{slug: string, title: string, option: string, fields: list<Field>}
- * @phpstan-type Page array{parent: string, capability: string, page_title: string, menu_title: string, tabs: list<Tab>}
+ * @phpstan-type        Tab array{slug: string, title: string, option: string, fields: list<Field>}
+ * @phpstan-type        Page array{parent: string, capability: string, page_title: string, menu_title: string, tabs: list<Tab>}
  */
 final class OptionsPage {
 	// region FIELDS AND CONSTANTS
