@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( AdminNotices::class )]
 final class AdminNoticesStorageTest extends TestCase {
+	use AdminNoticeFixturesTrait;
 	use CreatesSitesTrait;
 	use CreatesUsersTrait;
 	use IsolatesStorageTrait;
@@ -33,9 +34,6 @@ final class AdminNoticesStorageTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		wp_set_current_user( 0 );
-		while ( is_multisite() && ms_is_switched() ) {
-			restore_current_blog();
-		}
 	}
 
 	public function test_each_scope_keeps_its_notices_as_one_array_by_id_in_its_home(): void {
@@ -179,13 +177,6 @@ final class AdminNoticesStorageTest extends TestCase {
 		self::assertSame( array( 'one' ), self::ids( $this->notices->get_notices( NoticeScope::Network ) ) );
 	}
 
-	protected function notice( string $id, NoticeScope $scope = NoticeScope::User, string $message = 'Hi.', mixed ...$arguments ): Notice {
-		$arguments['scope']        = $scope;
-		$arguments['capability'] ??= NoticeScope::User === $scope ? null : 'manage_options';
-
-		return new Notice( $id, $message, ...$arguments );
-	}
-
 	protected function view( string $screen ): void {
 		require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 		require_once ABSPATH . 'wp-admin/includes/screen.php';
@@ -213,10 +204,6 @@ final class AdminNoticesStorageTest extends TestCase {
 		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT option_value, autoload FROM %i WHERE option_name = %s', $wpdb->options, $name ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Inspects the stored row.
 
 		return array( maybe_unserialize( $row['option_value'] ?? '' ), $row['autoload'] ?? null );
-	}
-
-	protected static function ids( array $notices ): array {
-		return \array_map( static fn ( Notice $notice ): string => $notice->id, $notices );
 	}
 
 	protected static function messages( array $notices ): array {

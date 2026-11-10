@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\AdminNotice;
 
 use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
-use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeType;
 use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
@@ -20,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( AdminNotices::class )]
 final class AdminNoticesBlockEditorTest extends TestCase {
+	use AdminNoticeFixturesTrait;
 	use CreatesSitesTrait;
 	use CreatesUsersTrait;
 	use IsolatesHooksTrait;
@@ -44,9 +44,6 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		$GLOBALS['wp_rest_server'] = null;
-		while ( is_multisite() && ms_is_switched() ) {
-			restore_current_blog();
-		}
 	}
 
 	public function test_the_post_editor_loads_knowing_whether_one_shots_wait_and_acknowledges_none(): void {
@@ -79,7 +76,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	}
 
 	public function test_a_delivered_message_is_filtered_and_keeps_only_post_markup(): void {
-		add_filter( "{$this->prefix}/admin_notice/message", static fn ( string $message ): string => "$message <script>alert( 1 );</script>", 10, 3 );
+		add_filter( "$this->prefix/admin_notice/message", static fn ( string $message ): string => "$message <script>alert( 1 );</script>", 10, 3 );
 		$this->notices()->add( $this->notice( 'saved', message: 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>.' ), $this->admin );
 		wp_set_current_user( $this->admin );
 
@@ -145,7 +142,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		switch_to_blog( $site_id );
 		wp_set_current_user( $this->admin );
 
-		self::assertSame( array( "{$this->prefix}-network-notice-x" ), \array_column( $this->deliver()->get_data(), 'id' ) );
+		self::assertSame( array( "$this->prefix-network-notice-x" ), \array_column( $this->deliver()->get_data(), 'id' ) );
 		self::assertSame( array(), $this->notices()->get_notices( NoticeScope::Network ) );
 	}
 
@@ -179,7 +176,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 
 	protected function delivered( string $scope, string $id, string $status, string $content, bool $dismissible = true, ?string $spoken = null ): array {
 		return array(
-			'id'            => "{$this->prefix}-$scope-notice-$id",
+			'id'            => "$this->prefix-$scope-notice-$id",
 			'status'        => $status,
 			'content'       => $content,
 			'spoken'        => $spoken ?? $content,
@@ -205,24 +202,13 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		return new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
 	}
 
-	protected function notice( string $id, NoticeScope $scope = NoticeScope::User, string $message = '', mixed ...$arguments ): Notice {
-		$arguments['scope']        = $scope;
-		$arguments['capability'] ??= NoticeScope::Site === $scope || NoticeScope::Network === $scope ? 'manage_options' : null;
-
-		return new Notice( $id, '' === $message ? "Notice $id." : $message, ...$arguments );
-	}
-
 	protected function script_handle(): string {
-		return "{$this->prefix}-notice-delivery";
+		return "$this->prefix-notice-delivery";
 	}
 
 	#[After]
 	protected function remove_the_script(): void {
 		wp_dequeue_script( $this->script_handle() );
 		wp_deregister_script( $this->script_handle() );
-	}
-
-	protected static function ids( array $notices ): array {
-		return \array_map( static fn ( Notice $notice ): string => $notice->id, $notices );
 	}
 }
