@@ -9,27 +9,13 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordingLogger;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ThrowingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\AbstractLogger as PsrAbstractLogger;
-
-final class GrantsLogger extends PsrAbstractLogger {
-	public array $records = array();
-
-	#[\Override]
-	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
-		$this->records[] = array( $level, (string) $message, $context );
-	}
-}
-
-final class FailingGrantsLogger extends PsrAbstractLogger {
-	#[\Override]
-	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
-		throw new \UnexpectedValueException( 'The log is not writable.' );
-	}
-}
+use Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 #[CoversClass( CapabilityGrants::class )]
 final class CapabilityGrantsTest extends TestCase {
@@ -39,11 +25,11 @@ final class CapabilityGrantsTest extends TestCase {
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 
-	protected GrantsLogger $logger;
+	protected RecordingLogger $logger;
 
 	#[\Override]
 	protected function setUp(): void {
-		$this->logger = new GrantsLogger();
+		$this->logger = new RecordingLogger();
 	}
 
 	#[\Override]
@@ -123,7 +109,7 @@ final class CapabilityGrantsTest extends TestCase {
 			$this->stored_caps( $editor )
 		);
 		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $author ) );
-		self::assertTrue( ( new \WP_User( $user ) )->has_cap( $this->cap( 'a' ) ) );
+		self::assertTrue( new \WP_User( $user )->has_cap( $this->cap( 'a' ) ) );
 		self::assertEquals( $declared, $this->ledger() );
 	}
 
@@ -352,7 +338,7 @@ final class CapabilityGrantsTest extends TestCase {
 		$this->keep_roles_row();
 
 		try {
-			$this->grants( array( $editor => array( $this->cap( 'a' ) ) ), new FailingGrantsLogger() )->run();
+			$this->grants( array( $editor => array( $this->cap( 'a' ) ) ), new ThrowingLogger( new \UnexpectedValueException( 'The log is not writable.' ) ) )->run();
 			$log = (string) \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
@@ -529,7 +515,7 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertFalse( get_option( "{$this->prefix}_grants" ) );
 	}
 
-	protected function grants( array $grants, ?PsrAbstractLogger $logger = null ): CapabilityGrants {
+	protected function grants( array $grants, ?PsrLoggerInterface $logger = null ): CapabilityGrants {
 		return new CapabilityGrants( "{$this->prefix}_grants", $grants, $logger ?? $this->logger );
 	}
 

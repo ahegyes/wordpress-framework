@@ -6,11 +6,10 @@ use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\InspectsObjectFormsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
-use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
-use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\WooCommerce\EditScreen\OrderFixturesTrait;
 use DeepWebSolutions\Framework\WooCommerce\EditScreen\Hosts\OrderMetaBox;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -20,19 +19,10 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( OrderMetaBox::class )]
 final class OrderMetaBoxTest extends TestCase {
 	use CreatesUsersTrait;
+	use InspectsObjectFormsTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 	use OrderFixturesTrait;
-	use RunsAdminRequestsTrait;
-	use SerializesFormsTrait;
-
-	protected const string FIXTURE = __DIR__ . '/../../../../Fixtures/Settings/acme-object-forms.php';
-
-	protected const array COLORS = array(
-		'red'  => 'Red',
-		'blue' => 'Blue',
-		'teal' => 'Teal',
-	);
 
 	protected int $admin;
 	protected string $id;
@@ -65,7 +55,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_is_added_on_add_meta_boxes(): void {
 		$host = new OrderMetaBox();
-		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 
 		self::assertSame( 10, has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
@@ -89,10 +79,10 @@ final class OrderMetaBoxTest extends TestCase {
 		$screen    = self::document( $this->edit_screen( $spec, $order->get_id() )['body'] );
 		$elsewhere = self::document( $this->edit_screen( $other, $order->get_id() )['body'] );
 
-		self::assertSame( 'Acme details', \trim( (string) $screen->querySelector( "form#order div.postbox[id=\"{$this->id}\"] h2.hndle" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Acme details', \trim( (string) $screen->querySelector( "form#order div.postbox[id=\"$this->id\"] h2.hndle" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNotNull( $this->box( $screen )->querySelector( "input[type=hidden][name=\"{$this->id}_nonce\"]" ) );
 		self::assertNotNull( $elsewhere->querySelector( 'form#order' ) );
-		self::assertNull( $elsewhere->querySelector( "div.postbox[id=\"{$this->id}\"]" ) );
+		self::assertNull( $elsewhere->querySelector( "div.postbox[id=\"$this->id\"]" ) );
 	}
 
 	public function test_the_box_sits_in_its_context(): void {
@@ -110,7 +100,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 		$screen = self::document( $this->edit_screen( $spec, $order->get_id() )['body'] );
 
-		self::assertNotNull( $screen->querySelector( "#side-sortables div.postbox[id=\"{$this->id}\"]" ) );
+		self::assertNotNull( $screen->querySelector( "#side-sortables div.postbox[id=\"$this->id\"]" ) );
 	}
 
 	public function test_a_user_lacking_the_forms_capability_gets_no_box(): void {
@@ -121,7 +111,7 @@ final class OrderMetaBoxTest extends TestCase {
 		$screen = self::document( $this->edit_screen( $spec, $order->get_id(), $manager )['body'] );
 
 		self::assertNotNull( $screen->querySelector( 'form#order' ) );
-		self::assertNull( $screen->querySelector( "div.postbox[id=\"{$this->id}\"]" ) );
+		self::assertNull( $screen->querySelector( "div.postbox[id=\"$this->id\"]" ) );
 	}
 
 	public function test_a_single_control_is_labelled_by_its_row(): void {
@@ -130,10 +120,10 @@ final class OrderMetaBoxTest extends TestCase {
 
 		$box = $this->box( self::document( $this->edit_screen( $spec, $order->get_id() )['body'] ) );
 
-		$label = $box->querySelector( "div.form-field > p.post-attributes-label-wrapper > label.post-attributes-label[for=\"{$this->id}._{$this->prefix}_name\"]" );
+		$label = $box->querySelector( "div.form-field > p.post-attributes-label-wrapper > label.post-attributes-label[for=\"$this->id._{$this->prefix}_name\"]" );
 		self::assertNotNull( $label );
 		self::assertSame( 'Name', \trim( $label->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertNotNull( $box->querySelector( "div.form-field > input[type=text][id=\"{$this->id}._{$this->prefix}_name\"][name=\"{$this->id}[_{$this->prefix}_name]\"]" ) );
+		self::assertNotNull( $box->querySelector( "div.form-field > input[type=text][id=\"$this->id._{$this->prefix}_name\"][name=\"{$this->id}[_{$this->prefix}_name]\"]" ) );
 	}
 
 	#[DataProvider( 'group_fields' )]
@@ -148,7 +138,7 @@ final class OrderMetaBoxTest extends TestCase {
 		self::assertCount( 1, $box->querySelectorAll( 'fieldset' ) );
 		self::assertSame( 'Color', \trim( (string) $fieldset->querySelector( 'legend.screen-reader-text' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'Color', \trim( (string) $fieldset->parentElement?->querySelector( 'p.post-attributes-label-wrapper > span.post-attributes-label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertNull( $box->querySelector( "label.post-attributes-label[for=\"{$this->id}._{$this->prefix}_color\"]" ) );
+		self::assertNull( $box->querySelector( "label.post-attributes-label[for=\"$this->id._{$this->prefix}_color\"]" ) );
 		self::assertNotNull( $fieldset->querySelector( "input[name^=\"{$this->id}[_{$this->prefix}_color]\"]" ) );
 	}
 	public function test_controls_carry_the_stored_value_or_else_the_default(): void {
@@ -212,7 +202,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_saves_before_woocommerces_order_data(): void {
 		$host = new OrderMetaBox();
-		( new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) ) )->register_hooks();
+		new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 
 		self::assertSame( 35, has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
 	}
@@ -374,7 +364,7 @@ final class OrderMetaBoxTest extends TestCase {
 		$screen = self::document( $this->posts_edit_screen( $spec, $order->get_id() )['body'] );
 
 		self::assertSame( 'shop_order', get_post_type( $order->get_id() ) );
-		self::assertNotNull( $screen->querySelector( "form#post div.postbox[id=\"{$this->id}\"] input[type=hidden][name=\"{$this->id}_nonce\"]" ) );
+		self::assertNotNull( $screen->querySelector( "form#post div.postbox[id=\"$this->id\"] input[type=hidden][name=\"{$this->id}_nonce\"]" ) );
 		self::assertSame( 'stored', $this->control( $this->box( $screen ), 'name' )->getAttribute( 'value' ) );
 	}
 
@@ -420,18 +410,6 @@ final class OrderMetaBoxTest extends TestCase {
 		);
 	}
 
-	protected function field( string $type, string $name, array $keys = array() ): array {
-		return $keys + array(
-			'type'  => $type,
-			'id'    => "_{$this->prefix}_$name",
-			'title' => \ucfirst( $name ),
-		);
-	}
-
-	protected function control_name( string $name ): string {
-		return "{$this->id}[_{$this->prefix}_$name]";
-	}
-
 	// The form posts as WooCommerce's Update button submits it, after the user set the named controls; tampering replaces posted keys and removes posted keys or a key of the form's array.
 	protected function save( array $spec, int $order_id, array $changes = array(), array $tampered = array(), array $removed = array() ): array {
 		$data = \array_replace_recursive( self::serialize_form( $this->edit_screen( $spec, $order_id )['body'], 'form#order', $changes ), $tampered );
@@ -453,27 +431,8 @@ final class OrderMetaBoxTest extends TestCase {
 		return $this->admin_request( 'POST', 'post.php', $this->admin, self::FIXTURE, $spec, $data );
 	}
 
-	protected function follow( array $spec, array $saved ): array {
-		self::assertIsString( $saved['location'] );
-
-		return $this->admin_request( 'GET', \explode( '/wp-admin/', $saved['location'], 2 )[1], $this->admin, self::FIXTURE, $spec );
-	}
-
 	protected function meta( int $order_id, string $name ): array {
 		return $this->order_meta( $order_id, "_{$this->prefix}_$name" );
-	}
-
-	protected static function rejections( string $html ): array {
-		$messages = array();
-		foreach ( self::document( $html )->querySelectorAll( 'div.notice-error.is-dismissible > p' ) as $message ) {
-			$messages[] = \trim( $message->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		}
-
-		return $messages;
-	}
-
-	protected function records( array $request, string $kind ): array {
-		return \array_values( \array_filter( $request['records'], static fn ( array $record ): bool => $kind === $record[0] ) );
 	}
 
 	protected function edit_screen( array $spec, int $order_id, ?int $user_id = null ): array {
@@ -482,28 +441,5 @@ final class OrderMetaBoxTest extends TestCase {
 
 	protected function posts_edit_screen( array $spec, int $order_id ): array {
 		return $this->admin_request( 'GET', "post.php?post=$order_id&action=edit", $this->admin, self::FIXTURE, $spec );
-	}
-
-	protected function box( \Dom\HTMLDocument $screen ): \Dom\Element {
-		$box = $screen->querySelector( "div.postbox[id=\"{$this->id}\"] div.inside" );
-		self::assertNotNull( $box, "The screen printed no {$this->id} box." );
-
-		return $box;
-	}
-
-	protected function control( \Dom\Element $box, string $name ): \Dom\Element {
-		$control = $box->querySelector( "[id=\"{$this->id}._{$this->prefix}_$name\"]" );
-		self::assertNotNull( $control, "The box printed no _{$this->prefix}_$name." );
-
-		return $control;
-	}
-
-	protected function selected( \Dom\Element $box, string $name ): array {
-		$values = array();
-		foreach ( $this->control( $box, $name )->querySelectorAll( 'option[selected]' ) as $option ) {
-			$values[] = (string) $option->getAttribute( 'value' );
-		}
-
-		return $values;
 	}
 }

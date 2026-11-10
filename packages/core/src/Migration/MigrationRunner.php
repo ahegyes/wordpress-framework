@@ -166,7 +166,7 @@ final class MigrationRunner implements ComponentInterface {
 
 	// endregion
 
-	// region METHODS
+	// region HOOKS
 
 	/**
 	 * Runs the pending steps under the lock, pausing at a batched step outside the runner's hook or once the request's budget is spent.
@@ -185,7 +185,7 @@ final class MigrationRunner implements ComponentInterface {
 			return;
 		}
 
-		// Outside the hook a pending batched step only schedules the hook, so no lock is taken; a stale revision only leaves plain steps to the hook, which runs them too.
+		// Outside the hook a pending batched step only schedules the hook and takes no lock, and a stale cached revision at worst leaves plain steps to the hook, which runs them too.
 		if ( ! doing_action( $this->get_hook() ) && ( $this->steps[ $cached ] ?? null ) instanceof BatchedMigrationStepInterface ) {
 			$this->schedule_continuation();
 			return;
@@ -257,7 +257,7 @@ final class MigrationRunner implements ComponentInterface {
 			}
 
 			while ( $revision < $target ) {
-				if ( ! $this->holds_lock( $revision ) ) { // The previous checkpoint fired option hooks, so another run may have taken the lock over since the last check.
+				if ( ! $this->refresh_lock( $revision ) ) { // The previous checkpoint fired option hooks, so another run may have taken the lock over since the last check.
 					return;
 				}
 
@@ -265,7 +265,7 @@ final class MigrationRunner implements ComponentInterface {
 				$memory_limit = wp_convert_hr_to_bytes( (string) \ini_get( 'memory_limit' ) );
 				$spent        = ! \is_null( $this->deadline ) && ( $this->get_time() >= $this->deadline || ( 0 < $memory_limit && \memory_get_usage( true ) > 0.9 * $memory_limit ) );
 				if ( $spent || ( $step instanceof BatchedMigrationStepInterface && ! doing_action( $this->get_hook() ) ) ) {
-					$this->unlock(); // The lock goes first, so that the continuation can take it.
+					$this->release_lock(); // The lock goes first, so that the continuation can take it.
 					$this->schedule_continuation();
 					return;
 				}
@@ -282,7 +282,7 @@ final class MigrationRunner implements ComponentInterface {
 					$step();
 				}
 
-				if ( ! $this->holds_lock( $revision ) ) { // A run whose lock was taken over must leave the revision and the error row to the run that holds it now.
+				if ( ! $this->refresh_lock( $revision ) ) { // A run whose lock was taken over must leave the revision and the error row to the run that holds it now.
 					return;
 				}
 
@@ -296,7 +296,7 @@ final class MigrationRunner implements ComponentInterface {
 				}
 			}
 		} catch ( \Throwable $exception ) {
-			if ( $this->holds_lock( $revision ?? 0 ) ) {
+			if ( $this->refresh_lock( $revision ?? 0 ) ) {
 				$this->record_error( $exception->getMessage(), $revision );
 			}
 
@@ -310,19 +310,15 @@ final class MigrationRunner implements ComponentInterface {
 
 			// In production the lock stays until its hold expires, when a failing step runs again; elsewhere the fixed step runs on the next request.
 			if ( PluginBoot::is_development_environment() ) {
-				$this->unlock();
+				$this->release_lock();
 				throw $exception;
 			}
 
 			return;
 		}
 
-		$this->unlock();
+		$this->release_lock();
 	}
-
-	// endregion
-
-	// region HOOKS
 
 	/**
 	 * Tells users who can activate plugins, while steps are pending, that the last run failed or that a batched step is running in the background, with a link that runs a pending batched step now.
@@ -417,7 +413,7 @@ final class MigrationRunner implements ComponentInterface {
 	 *
 	 * @return  bool
 	 */
-	protected function holds_lock( int $revision ): bool {
+	protected function refresh_lock( int $revision ): bool {
 		try {
 			if ( $this->lock->refresh( $this->owner ) ) {
 				return true;
@@ -446,7 +442,7 @@ final class MigrationRunner implements ComponentInterface {
 	 *
 	 * @return  void
 	 */
-	protected function unlock(): void {
+	protected function release_lock(): void {
 		try {
 			$this->lock->release( $this->owner );
 		} catch ( RuntimeException $exception ) {
@@ -498,7 +494,7 @@ final class MigrationRunner implements ComponentInterface {
 	 */
 	protected function checkpoint( int $revision ): void {
 		if ( ! update_option( $this->option, $revision, true ) ) {
-			throw new RuntimeException( "Could not record schema revision '$revision'." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+			throw new RuntimeException( "Could not record data revision '$revision'." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
 		}
 
 		if ( $revision > self::get_revision( "{$this->option}_high_water" ) ) {
@@ -584,7 +580,7 @@ final class MigrationRunner implements ComponentInterface {
 	 * @return  non-empty-string
 	 */
 	protected function get_hook(): string {
-		return "{$this->option}/migration/run";
+		return "$this->option/migration/run";
 	}
 
 	// endregion

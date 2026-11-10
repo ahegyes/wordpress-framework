@@ -47,7 +47,7 @@ test.describe( 'Inline scripts', () => {
 		).toBeVisible();
 	} );
 
-	test( 'a post saved in the block editor keeps its object form and shows its delivered notice as markup', async ( {
+	test( 'a post saved in the block editor keeps its object form and shows its delivered notice as markup, read aloud as text', async ( {
 		admin,
 		editor,
 		page,
@@ -77,12 +77,38 @@ test.describe( 'Inline scripts', () => {
 		} );
 		await expect( nonce ).not.toHaveValue( 'stale' );
 
+		// The live regions keep only their latest message, so every message they receive is recorded.
+		await page.evaluate( () => {
+			window.acmeSpoken = [];
+			const observer = new window.MutationObserver( () =>
+				document
+					.querySelectorAll( '.a11y-speak-region' )
+					.forEach( ( region ) => {
+						if ( region.textContent ) {
+							window.acmeSpoken.push( region.textContent );
+						}
+					} )
+			);
+			document
+				.querySelectorAll( '.a11y-speak-region' )
+				.forEach( ( region ) =>
+					observer.observe( region, {
+						childList: true,
+						characterData: true,
+						subtree: true,
+					} )
+				);
+		} );
+
 		await editor.saveDraft();
 		await expect(
 			page
 				.locator( '.components-notice' )
 				.getByRole( 'link', { name: 'the guide' } )
 		).toBeVisible();
+		await expect
+			.poll( () => page.evaluate( () => window.acmeSpoken ) )
+			.toContain( 'Saved & filed. Read the guide.' );
 
 		await page.reload();
 		await page

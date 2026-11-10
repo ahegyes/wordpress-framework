@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Consumers;
 
+use DeepWebSolutions\Framework\Tests\Support\CopiesFixturesTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -9,21 +10,39 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class ConsumersScopingTest extends TestCase {
-	protected const string FIXTURES = __DIR__ . '/../../Fixtures';
+	use CopiesFixturesTrait;
 
-	public static function closures(): array {
+	public static function builds(): array {
+		$psr = array( 'clock', 'container', 'log', 'simple-cache' );
+
 		return array(
-			'consumer-a' => array( 'consumer-a', array( 'wp-framework-bootstrap', 'wp-framework-core', 'wp-framework-settings', 'wp-framework-shared', 'wp-framework-woocommerce' ) ),
-			'consumer-b' => array( 'consumer-b', array( 'wp-framework-bootstrap', 'wp-framework-core', 'wp-framework-settings', 'wp-framework-shared' ) ),
+			'consumer-a'          => array( 'consumer-a', null, array( 'wp-framework-bootstrap', 'wp-framework-core', 'wp-framework-settings', 'wp-framework-shared', 'wp-framework-woocommerce' ), $psr ),
+			'consumer-b'          => array( 'consumer-b', null, array( 'wp-framework-bootstrap', 'wp-framework-core', 'wp-framework-settings', 'wp-framework-shared' ), $psr ),
+			'persona-bootstrap'   => array( 'personas/bootstrap', array( 'ahegyes', 'scoper-autoload.php' ), array( 'wp-framework-bootstrap' ), array() ),
+			'persona-shared'      => array( 'personas/shared', array( 'ahegyes', 'scoper-autoload.php' ), array( 'wp-framework-shared' ), array() ),
+			'persona-core'        => array( 'personas/core', null, array( 'wp-framework-bootstrap', 'wp-framework-core', 'wp-framework-shared' ), $psr ),
+			'persona-settings'    => array( 'personas/settings', array( 'ahegyes', 'psr', 'scoper-autoload.php' ), array( 'wp-framework-bootstrap', 'wp-framework-core', 'wp-framework-settings', 'wp-framework-shared' ), $psr ),
+			'persona-woocommerce' => array( 'personas/woocommerce', array( 'ahegyes', 'psr', 'scoper-autoload.php' ), array( 'wp-framework-bootstrap', 'wp-framework-core', 'wp-framework-settings', 'wp-framework-shared', 'wp-framework-woocommerce' ), $psr ),
 		);
 	}
 
-	#[DataProvider( 'closures' )]
-	public function test_the_scoped_build_holds_exactly_its_closure_s_framework_packages_and_psr_interfaces( string $fixture, array $packages ): void {
-		$scoped = self::FIXTURES . "/$fixture/vendor-prefixed";
+	// PHP-DI's own dependencies change between releases, so the top level of a build that ships it stays unlisted.
+	#[DataProvider( 'builds' )]
+	public function test_the_production_build_ships_its_closure_scoped_and_nothing_unscoped( string $fixture, ?array $top_level, array $packages, array $psr ): void {
+		$build = self::FIXTURES . "/$fixture";
+		self::assertFileExists( "$build/vendor/composer/installed.json", "Build $fixture first with `composer fixtures:build`." );
 
-		self::assertSame( $packages, self::list_directories( "$scoped/ahegyes" ) );
-		self::assertSame( array( 'clock', 'container', 'log', 'simple-cache' ), self::list_directories( "$scoped/psr" ) );
+		$installed = \json_decode( (string) \file_get_contents( "$build/vendor/composer/installed.json" ), true );
+		self::assertIsArray( $installed );
+		self::assertFalse( $installed['dev'] );
+		self::assertSame( array(), $installed['packages'] );
+		if ( ! \is_null( $top_level ) ) {
+			self::assertSame( $top_level, self::list_entries( "$build/vendor-prefixed" ) );
+		}
+
+		self::assertSame( $packages, self::list_entries( "$build/vendor-prefixed/ahegyes" ) );
+		self::assertSame( $psr, self::list_entries( "$build/vendor-prefixed/psr" ) );
+		self::assertSame( \in_array( 'wp-framework-bootstrap', $packages, true ), \is_file( "$build/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php" ) );
 	}
 
 	#[RunInSeparateProcess]
@@ -59,11 +78,10 @@ final class ConsumersScopingTest extends TestCase {
 		self::assertSame( 'WC_Settings_Page', \get_parent_class( $scoped . 'SettingsTab' ) );
 	}
 
-	protected static function list_directories( string $path ): array {
-		self::assertDirectoryExists( $path );
-		$directories = \array_map( 'basename', (array) \glob( "$path/*", \GLOB_ONLYDIR ) );
-		\sort( $directories );
+	protected static function list_entries( string $path ): array {
+		$entries = \is_dir( $path ) ? \array_values( \array_diff( (array) \scandir( $path ), array( '.', '..' ) ) ) : array();
+		\sort( $entries );
 
-		return $directories;
+		return $entries;
 	}
 }

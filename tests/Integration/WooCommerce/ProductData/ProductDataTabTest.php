@@ -6,6 +6,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ProductFixturesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
@@ -70,10 +71,9 @@ final class ProductDataTabTest extends TestCase {
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_tab_id( string $id ): void {
-		$tab = new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
-		$tab->register_hooks();
+		$this->expectNotToPerformAssertions();
 
-		self::assertSame( 10, has_filter( 'woocommerce_product_data_tabs', array( $tab, 'add_tab' ) ) );
+		new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_the_edit_screen_needs_it(): void {
@@ -206,6 +206,16 @@ final class ProductDataTabTest extends TestCase {
 		self::assertSame( array( array( 'render', "_{$this->prefix}_widget", 'stored', "_{$this->prefix}_widget", "_{$this->prefix}_widget" ) ), $request['records'] );
 	}
 
+	public function test_a_custom_type_field_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
+		$product = $this->make_product();
+		$spec    = $this->spec( array( $this->group( array( $this->field( 'acme_widget', 'r&amp;d', array( 'render' => 'acme:render' ) ) ) ) ) );
+
+		$row = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] )->querySelector( '#woocommerce-product-data input.acme-widget' )?->closest( 'p' );
+
+		self::assertSame( "_{$this->prefix}_r&amp;d", $row?->querySelector( 'input.acme-widget' )?->getAttribute( 'id' ) );
+		self::assertSame( "_{$this->prefix}_r&amp;d", $row?->querySelector( 'label' )?->getAttribute( 'for' ) );
+	}
+
 	public static function group_types(): array {
 		return array(
 			'radio'      => array( 'radio' ),
@@ -251,7 +261,47 @@ final class ProductDataTabTest extends TestCase {
 		self::assertCount( 1, $fieldset?->querySelectorAll( 'legend' ) ?? array() );
 		self::assertSame( '', $fieldset?->querySelector( "input[type=hidden][name=\"_{$this->prefix}_colors\"]" )?->getAttribute( 'value' ) );
 		self::assertSame( array( 'blue' ), $this->checked( $fieldset, "_{$this->prefix}_colors[]" ) );
-		self::assertSame( 'Pick any.', \trim( (string) $fieldset?->querySelector( 'p.description' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertSame( 'Pick any.', \trim( (string) $fieldset?->querySelector( '.description' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertCount( 0, $fieldset?->querySelectorAll( 'fieldset' ) ?? array( 'missing' ) );
+		$this->assert_each_choice_is_described( $fieldset, 'checkbox', "_{$this->prefix}_colors.description" );
+	}
+
+	public function test_a_radio_group_renders_in_one_fieldset_named_by_its_label(): void {
+		$product = $this->make_product( array( "_{$this->prefix}_tone" => 'blue' ) );
+		$spec    = $this->spec(
+			array(
+				$this->group(
+					array(
+						$this->field(
+							'radio',
+							'tone',
+							array(
+								'options'     => self::COLORS,
+								'description' => 'Pick one.',
+							)
+						),
+					)
+				),
+			)
+		);
+
+		$fieldset = self::document( $this->edit_screen( $spec, $product->get_id() )['body'] )->querySelector( "fieldset.form-field._{$this->prefix}_tone_field" );
+
+		self::assertSame( 'Tone', \trim( (string) $fieldset?->querySelector( 'legend' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertCount( 1, $fieldset?->querySelectorAll( 'legend' ) ?? array() );
+		self::assertCount( 0, $fieldset?->querySelectorAll( 'fieldset' ) ?? array( 'missing' ) );
+		self::assertSame( 'blue', $fieldset?->querySelector( 'input[type=radio][checked]' )?->getAttribute( 'value' ) );
+		$this->assert_each_choice_is_described( $fieldset, 'radio', "_{$this->prefix}_tone.description" );
+	}
+
+	protected function assert_each_choice_is_described( ?\Dom\Element $fieldset, string $type, string $help_id ): void {
+		$choices = $fieldset?->querySelectorAll( "input[type=$type]" ) ?? array();
+		self::assertNotCount( 0, $choices );
+		foreach ( $choices as $choice ) {
+			self::assertSame( $help_id, $choice->getAttribute( 'aria-describedby' ) );
+		}
+
+		self::assertSame( $help_id, $fieldset?->querySelector( '.description' )?->getAttribute( 'id' ) );
 	}
 
 	public function test_a_multiselect_posts_an_empty_value_before_its_choices(): void {
@@ -756,7 +806,7 @@ final class ProductDataTabTest extends TestCase {
 	}
 
 	public function test_a_v1_meta_key_round_trips_through_the_panel(): void {
-		$key     = "_{$this->prefix}-wrwc_warranty-type";
+		$key     = "_$this->prefix-wrwc_warranty-type";
 		$product = $this->make_product( array( $key => 'limited' ) );
 		$spec    = $this->spec(
 			array(

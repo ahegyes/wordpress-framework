@@ -31,7 +31,7 @@ final class Updater {
 	/**
 	 * Offers the plugin's GitHub releases as updates, and answers its "View details" request, while its Update URI points at github.com.
 	 *
-	 * The Update URI is read whenever WordPress asks, so the updater answers nothing once it points elsewhere. A release that needs a newer WordPress is not offered, because WordPress's automatic updates check only the PHP requirement. WordPress asks for Update URI offers from version 5.8, so below it no update is offered.
+	 * The Update URI is read whenever WordPress asks, so the updater answers nothing once it points elsewhere. A release that needs a newer WordPress is not offered, because WordPress's automatic updates check only the PHP requirement.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -49,9 +49,13 @@ final class Updater {
 					return $update;
 				}
 
-				$config  = self::get_updater_config( $plugin_file );
-				$release = null === $config ? null : self::get_release( $config );
-				if ( null === $config || null === $release || ! is_wp_version_compatible( $release['requires'] ) ) {
+				$config = self::get_updater_config( $plugin_file );
+				if ( \is_null( $config ) ) {
+					return false;
+				}
+
+				$release = self::get_release( $config );
+				if ( \is_null( $release ) || ! is_wp_version_compatible( $release['requires'] ) ) {
 					return false;
 				}
 
@@ -77,7 +81,7 @@ final class Updater {
 				}
 
 				$config = self::get_updater_config( $plugin_file );
-				if ( null === $config || ( \get_object_vars( $args )['slug'] ?? null ) !== $config['slug'] ) {
+				if ( \is_null( $config ) || ( $args->slug ?? null ) !== $config['slug'] ) {
 					return $result;
 				}
 
@@ -92,7 +96,7 @@ final class Updater {
 				);
 
 				$release = self::get_release( $config );
-				if ( null !== $release ) {
+				if ( ! \is_null( $release ) ) {
 					$information = array(
 						'version'       => $release['version'],
 						'download_link' => $release['package'],
@@ -179,9 +183,9 @@ final class Updater {
 	}
 
 	/**
-	 * Returns the newest usable release on the configured channel, from the plugin's cache while it holds one, and otherwise from GitHub with the requirements of its tagged entry file.
+	 * Returns the channel's newest release when its asset and the requirements of its tagged entry file are usable, from the plugin's cache while it holds one and otherwise from GitHub, or null.
 	 *
-	 * A usable release is cached for an hour, and a failed fetch or an unusable release as empty for five minutes, so update checks back off from a failing API. GitHub's release list is not ordered by version, so the prerelease channel takes the highest version among the ten it lists first, stable releases included.
+	 * A failed fetch or an unusable release is cached as empty, so update checks back off from a failing API. GitHub's release list is not ordered by version, so the prerelease channel takes the highest version among the ten it lists first, stable releases included.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -197,28 +201,31 @@ final class Updater {
 			return null;
 		}
 
-		$release = self::read_release( $cached );
-		if ( null !== $release ) {
-			return $release;
+		$cached_release = self::read_release( $cached );
+		if ( ! \is_null( $cached_release ) ) {
+			return $cached_release;
 		}
 
 		$body     = self::get_response_body( "https://api.github.com/repos/{$config['repository']}/" . ( 'prerelease' === $config['channel'] ? 'releases?per_page=10' : 'releases/latest' ), array( 'Accept' => 'application/vnd.github.html+json' ) );
-		$releases = null === $body ? null : \json_decode( $body, true );
+		$releases = \is_null( $body ) ? null : \json_decode( $body, true );
 
-		$newest  = array();
-		$tag     = '';
-		$version = '';
-		foreach ( ( \is_array( $releases ) && 'prerelease' === $config['channel'] ) ? $releases : array( $releases ) as $candidate ) {
+		$candidates = \is_array( $releases ) && 'prerelease' === $config['channel'] ? $releases : array( $releases );
+		$newest     = array();
+		$tag        = '';
+		$version    = '';
+		foreach ( $candidates as $candidate ) {
 			if ( ! \is_array( $candidate ) || true === ( $candidate['draft'] ?? false ) || ! \is_string( $candidate['tag_name'] ?? null ) ) {
 				continue;
 			}
 
 			$candidate_version = \ltrim( $candidate['tag_name'], 'v' );
-			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-(?:dev|alpha|beta|rc)(?:\.?\d+)?)?$/', $candidate_version ) ) { // PHP's version_compare() orders only these labels below their release as their names say, and misorders others, such as 'pre', 'patch' or 'Beta'.
+			// PHP's version_compare() orders only these labels below their release as their names say, and misorders others, such as 'pre', 'patch' or 'Beta'.
+			if ( 1 !== \preg_match( '/^\d+(?:\.\d+)*(?:-(?:dev|alpha|beta|rc)(?:\.?\d+)?)?$/', $candidate_version ) ) {
 				continue;
 			}
 
-			if ( 'stable' === $config['channel'] && false !== \strpos( $candidate_version, '-' ) ) { // GitHub's prerelease flag is set by hand, so a suffixed tag can be the latest release.
+			// GitHub's prerelease flag is set by hand, so a suffixed tag can be the latest release.
+			if ( 'stable' === $config['channel'] && false !== \strpos( $candidate_version, '-' ) ) {
 				continue;
 			}
 
@@ -237,8 +244,9 @@ final class Updater {
 			}
 		}
 
-		$entry_file = null === $package ? null : self::get_response_body( "https://raw.githubusercontent.com/{$config['repository']}/" . \rawurlencode( $tag ) . "/{$config['file']}" ); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Reads the release's plugin headers, never served to visitors.
-		if ( null !== $entry_file ) {
+		$release    = null;
+		$entry_file = \is_null( $package ) ? null : self::get_response_body( "https://raw.githubusercontent.com/{$config['repository']}/" . \rawurlencode( $tag ) . "/{$config['file']}" ); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Reads the release's plugin headers, never served to visitors.
+		if ( ! \is_null( $entry_file ) ) {
 			// WordPress's get_file_data() reads only paths, so the fetched entry file is parsed with the same pattern.
 			$entry_file   = \str_replace( "\r", "\n", \substr( $entry_file, 0, 8 * KB_IN_BYTES ) );
 			$headers      = array(
@@ -266,7 +274,7 @@ final class Updater {
 			}
 		}
 
-		set_transient( $transient, $release ?? array(), null === $release ? 5 * MINUTE_IN_SECONDS : HOUR_IN_SECONDS );
+		set_transient( $transient, $release ?? array(), \is_null( $release ) ? 5 * MINUTE_IN_SECONDS : HOUR_IN_SECONDS );
 		return $release;
 	}
 
@@ -303,7 +311,7 @@ final class Updater {
 	 * @version 2.0.0
 	 *
 	 * @param   string                $url     The URL.
-	 * @param   array<string, string> $headers Optional. The request's headers. Default none.
+	 * @param   array<string, string> $headers Optional. The request's headers. Default is none.
 	 *
 	 * @return  string|null
 	 */

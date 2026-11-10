@@ -60,11 +60,11 @@ $acme_record_boots = static function (): void {
 			$plugin = null;
 		}
 		$GLOBALS['acme_outcome']['records'][ $key ] = array(
-			'status'           => $plugin?->boot->status,
+			'status'           => $plugin?->boundary->status,
 			'skipped'          => $plugin?->kernel?->skipped,
-			'boot_succeeded'   => did_action( "{$prefix}/boot/succeeded" ),
+			'boot_succeeded'   => did_action( "$prefix/boot/succeeded" ),
 			'functions_loaded' => function_exists( "{$prefix}_plugin" ),
-			'migrations'       => \is_object( $plugin ) && property_exists( $plugin, 'migrations' ) && \is_object( $plugin->migrations ) ? \get_class( $plugin->migrations ) : null,
+			'migrations'       => is_object( $plugin ) && property_exists( $plugin, 'migrations' ) && is_object( $plugin->migrations ) ? get_class( $plugin->migrations ) : null,
 		);
 	}
 };
@@ -76,6 +76,7 @@ add_filter(
 		$handlers,
 		array(
 			new class() implements WC_Log_Handler_Interface {
+				#[\Override]
 				public function handle( $timestamp, $level, $message, $context ) {
 					$GLOBALS['acme_outcome']['records']['logs'][] = array( $level, $message, $context['source'] ?? null );
 

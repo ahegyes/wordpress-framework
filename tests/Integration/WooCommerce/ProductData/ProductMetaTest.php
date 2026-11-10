@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\ProductData;
 
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ProductFixturesTrait;
 use DeepWebSolutions\Framework\WooCommerce\ProductData\ProductMeta;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;

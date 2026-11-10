@@ -121,7 +121,7 @@ final class Fields {
 	/**
 	 * Returns the value to store for an owned field's submission, or null, under which WooCommerce keeps the stored value, and any other option's value unchanged.
 	 *
-	 * A disabled field and a field the form did not post are never saved. The submission goes through Forms::sanitize_fields(), where a field without validate, a render callable or the checkboxes type keeps WooCommerce's value when it holds only scalars, null and arrays, and a rejection becomes one of WooCommerce's settings errors.
+	 * A disabled field is never saved, and a field the form did not post keeps its value, but for a checkbox or multiselect, which WooCommerce's form posts nothing for when cleared, so it is stored cleared.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -181,7 +181,7 @@ final class Fields {
 
 		echo '<tr class="' . esc_attr( $row_class ) . '"><th scope="row" class="titledesc">';
 		// A group's legend names it, so its row heading is plain text.
-		echo Forms::is_group( $field ) ? esc_html( $field['title'] ) : '<label for="' . esc_attr( $id ) . '">' . esc_html( $field['title'] ) . '</label>';
+		echo Forms::is_group( $field ) ? esc_html( $field['title'] ) : '<label for="' . Forms::escape_attribute( $id ) . '">' . esc_html( $field['title'] ) . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Forms::escape_attribute() escapes the id as the control's id is.
 		echo '</th><td class="forminp forminp-' . esc_attr( sanitize_title( $field['type'] ) ) . '">';
 		echo Forms::render_control( $field, $resolved['value'] ?? '', $name, $id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control.
 		echo '</td></tr>';
@@ -211,9 +211,9 @@ final class Fields {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   mixed $setting The setting.
-	 *
 	 * @phpstan-assert-if-true Field $setting
+	 *
+	 * @param   mixed $setting The setting.
 	 *
 	 * @return  bool
 	 */

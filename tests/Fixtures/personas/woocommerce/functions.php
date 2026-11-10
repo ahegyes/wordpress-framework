@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Registers the plugin's settings tab and product data tab once WooCommerce is loaded at the plugin's floor.
+ * Loads the plugin's keys and registers its settings tab and product data tab once WooCommerce is loaded at the plugin's floor.
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -16,6 +16,8 @@ use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\WooCommerce\WooCom
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/includes/options.php';
+
 add_action( 'plugins_loaded', 'acme_pw_register_hooks', 15 );
 
 /**
@@ -27,7 +29,7 @@ add_action( 'plugins_loaded', 'acme_pw_register_hooks', 15 );
  * @return  void
  */
 function acme_pw_register_hooks(): void {
-	if ( ! new WooCommerceRequirement( ACME_PW_FILE )->check() ) {
+	if ( ! WooCommerceRequirement::check( ACME_PW_FILE ) ) {
 		return;
 	}
 

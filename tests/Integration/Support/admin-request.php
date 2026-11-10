@@ -18,7 +18,7 @@ $acme_outcome = array(
 register_shutdown_function(
 	static function () use ( &$acme_outcome, $acme_request ): void {
 		$fatal = error_get_last();
-		if ( null !== $fatal && 0 !== ( $fatal['type'] & ( E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR ) ) ) {
+		if ( ! is_null( $fatal ) && 0 !== ( $fatal['type'] & ( E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR ) ) ) {
 			$acme_outcome['errors'][] = "{$fatal['message']} in {$fatal['file']}:{$fatal['line']}";
 		}
 		file_put_contents( $acme_request['result'], serialize( $acme_outcome ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- WordPress may not have loaded.

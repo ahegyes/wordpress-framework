@@ -27,7 +27,7 @@ final class ObjectCache implements PsrCacheInterface {
 	 *
 	 * @param   string $group The object cache group, under the plugin's own prefix.
 	 *
-	 * @throws  InvalidArgumentException Thrown when the group is not a lowercase letter followed by up to 63 lowercase letters, digits, underscores and hyphens.
+	 * @throws  InvalidArgumentException Thrown when the group is invalid.
 	 */
 	public function __construct(
 		protected string $group
@@ -61,13 +61,13 @@ final class ObjectCache implements PsrCacheInterface {
 	 */
 	#[\Override]
 	public function set( string $key, mixed $value, null|int|\DateInterval $ttl = null ): bool {
+		$name     = \md5( CacheEntries::check_key( $key ) );
 		$lifetime = CacheEntries::get_lifetime( $ttl );
 		if ( ! \is_null( $lifetime ) && $lifetime <= 0 ) {
 			return $this->delete( $key );
 		}
 
-		$name = \md5( CacheEntries::check_key( $key ) );
-		return wp_cache_set( $name, CacheEntries::wrap( $value, $this->get_salt() ), $this->group, $lifetime ?? 0 );
+		return wp_cache_set( $name, CacheEntries::wrap( $value, $this->get_salt() ?? $this->start_salt() ), $this->group, $lifetime ?? 0 );
 	}
 
 	/**
@@ -114,13 +114,17 @@ final class ObjectCache implements PsrCacheInterface {
 			return array();
 		}
 
-		$salt    = $this->find_salt();
+		$salt = $this->get_salt();
+		if ( \is_null( $salt ) ) {
+			return \array_fill_keys( $keys, $default );
+		}
+
 		$names   = \array_map( 'md5', $keys );
-		$entries = \is_null( $salt ) ? array() : wp_cache_get_multiple( $names, $this->group );
+		$entries = wp_cache_get_multiple( $names, $this->group );
 
 		$values = array();
 		foreach ( $keys as $index => $key ) {
-			$entry          = \is_null( $salt ) ? null : CacheEntries::unwrap( $entries[ $names[ $index ] ] ?? false, $salt );
+			$entry          = CacheEntries::unwrap( $entries[ $names[ $index ] ] ?? false, $salt );
 			$values[ $key ] = \is_null( $entry ) ? $default : $entry[0];
 		}
 
@@ -156,13 +160,13 @@ final class ObjectCache implements PsrCacheInterface {
 			return true;
 		}
 
-		$salt = $this->get_salt();
+		$salt = $this->get_salt() ?? $this->start_salt();
 		foreach ( $entries as $name => $value ) {
 			$entries[ $name ] = CacheEntries::wrap( $value, $salt );
 		}
 
 		$stored = wp_cache_set_multiple( $entries, $this->group, $lifetime ?? 0 );
-		return \array_all( \array_keys( $entries ), fn( $name ) => true === ( $stored[ $name ] ?? false ) );
+		return \array_all( \array_keys( $entries ), static fn ( string $name ): bool => true === ( $stored[ $name ] ?? false ) );
 	}
 
 	/**
@@ -211,37 +215,37 @@ final class ObjectCache implements PsrCacheInterface {
 	 */
 	protected function read( string $key ): ?array {
 		$name = \md5( CacheEntries::check_key( $key ) );
-		$salt = $this->find_salt();
+		$salt = $this->get_salt();
 		return \is_null( $salt ) ? null : CacheEntries::unwrap( wp_cache_get( $name, $this->group ), $salt );
 	}
 
 	/**
 	 * Returns the group's salt, or null when it has none.
 	 *
-	 * Read directly, because wp_cache_get_last_changed() stores a salt and fires an action for a group without one.
+	 * The salt is read directly, because wp_cache_get_last_changed() stores a salt and fires an action for a group without one.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @return  string|null
 	 */
-	protected function find_salt(): ?string {
+	protected function get_salt(): ?string {
 		$salt = wp_cache_get( 'last_changed', $this->group );
 		return \is_string( $salt ) && '' !== $salt ? $salt : null;
 	}
 
 	/**
-	 * Returns the group's salt, after starting one when it has none.
+	 * Starts a salt for the group and returns it.
 	 *
-	 * Started through wp_cache_set_last_changed(), because wp_cache_get_last_changed() would return a stored salt that no read accepts.
+	 * The salt is started through wp_cache_set_last_changed(), because wp_cache_get_last_changed() would return a stored salt that no read accepts.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
 	 * @return  string
 	 */
-	protected function get_salt(): string {
-		return $this->find_salt() ?? wp_cache_set_last_changed( $this->group );
+	protected function start_salt(): string {
+		return wp_cache_set_last_changed( $this->group );
 	}
 
 	/**
@@ -260,12 +264,7 @@ final class ObjectCache implements PsrCacheInterface {
 		}
 
 		$deleted = wp_cache_delete_multiple( $names, $this->group );
-		$gone    = true;
-		foreach ( $names as $name ) {
-			$gone = ( true === ( $deleted[ $name ] ?? false ) || $this->is_absent( $name ) ) && $gone;
-		}
-
-		return $gone;
+		return \array_all( $names, fn ( string $name ): bool => true === ( $deleted[ $name ] ?? false ) || $this->is_absent( $name ) );
 	}
 
 	/**

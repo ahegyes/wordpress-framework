@@ -4,7 +4,7 @@ The framework's settings, edit-screen and logging helpers carried onto WooCommer
 
 ## Requirements
 
-It builds on wp-framework-settings, which brings wp-framework-core, wp-framework-bootstrap and wp-framework-shared. Its `composer.json` holds its PHP floor under `require.php`, its WordPress floor under `extra.requires-wp` and WooCommerce under `extra.requires-plugins`, which a plugin's `Requires PHP`, `Requires at least` and `Requires Plugins` headers meet. The plugin's own `WC requires at least` header is the WooCommerce floor that `WooCommerceRequirement` checks.
+It builds on wp-framework-settings, which brings wp-framework-core, wp-framework-bootstrap and wp-framework-shared. Its `composer.json` holds its PHP floor under `require.php`, its WordPress floor under `extra.requires-wp`, its WooCommerce floor under `extra.requires-wc` and WooCommerce under `extra.requires-plugins`, which a plugin's `Requires PHP`, `Requires at least`, `WC requires at least` and `Requires Plugins` headers meet. `WooCommerceRequirement` checks the plugin's own `WC requires at least` header at runtime.
 
 ## Installation
 
@@ -67,6 +67,8 @@ return ( require __DIR__ . '/vendor/ahegyes/wordpress-configs/php/php-scoper/sco
 
 ## Usage
 
+`Logging/` extends core's logging and `EditScreen/` settings' object forms, while `ProductData/` and `Setting/` are WooCommerce screens built on settings' `Forms`. A `SettingsTab` adds a WooCommerce settings tab, and a `SettingsSection`, constructed in a `woocommerce_settings_sections_registration` callback, adds a section to an existing one. An `OrderMetaBox` hosts an object form on the order edit screens and stores through `OrderMetaStore`, and `ProductMeta::get_value()` reads a product field's stored value, or a fallback only where the meta is absent.
+
 The plugin's main file requires `load.php` from bootstrap's prefixed copy, then its autoloader once the floor check passes:
 
 ```php
@@ -101,12 +103,14 @@ use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\WooCommerce\WooCom
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/includes/options.php';
+
 add_action( 'plugins_loaded', 'acme_pw_register_hooks', 15 );
 
 // ...
 
 function acme_pw_register_hooks(): void {
-	if ( ! new WooCommerceRequirement( ACME_PW_FILE )->check() ) {
+	if ( ! WooCommerceRequirement::check( ACME_PW_FILE ) ) {
 		return;
 	}
 
@@ -151,6 +155,12 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 				'id'    => self::PREFIX . '_default_box',
 				'title' => __( 'Default box', 'acme-persona-woocommerce' ),
 			),
+			array(
+				'type'  => 'checkbox',
+				'id'    => ACME_PW_OPTION_DELETE_DATA,
+				'title' => __( 'Data on uninstall', 'acme-persona-woocommerce' ),
+				'desc'  => __( 'Delete the packing data when the plugin is uninstalled', 'acme-persona-woocommerce' ),
+			),
 		);
 	}
 
@@ -165,7 +175,7 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 					'fields' => array(
 						array(
 							'type'  => 'text',
-							'id'    => '_' . self::PREFIX . '_box',
+							'id'    => ACME_PW_META_BOX,
 							'label' => __( 'Box', 'acme-persona-woocommerce' ),
 						),
 					),
@@ -176,6 +186,19 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 
 	// ...
 }
+```
+
+The plugin's `uninstall.php` runs core's `Uninstaller` as core's README shows, and passes `MetaTypes::DEFINITIONS`, so that a footprint can name the `order` and `order_item` meta kinds, whose WooCommerce tables the definitions name, so the uninstall finds them while WooCommerce is inactive:
+
+```php
+Uninstaller::run(
+	$acme_pw_file,
+	$acme_pw_footprint,
+	array(
+		'consent'    => array( 'option' => $acme_pw_consent ),
+		'meta_types' => $acme_pw_meta_types,
+	)
+);
 ```
 
 ## Contract and versioning

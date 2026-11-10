@@ -5,7 +5,7 @@ namespace DeepWebSolutions\Framework\Bootstrap;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Keeps a plugin from loading code its PHP or WordPress cannot run.
+ * Keeps a plugin from loading code its PHP or WordPress cannot run, and prints the notices that report it.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -71,14 +71,15 @@ final class Requirements {
 	/**
 	 * Prints an admin notice about the plugin to users who can activate plugins, as wp_admin_notice() prints it.
 	 *
-	 * The framework's boot checks report through it, because they run before the plugin's own admin notices exist or without them. An error prints its message without a paragraph wrap unless the arguments set one, since WordPress core's requirement messages are already paragraphs. Before WordPress 6.4, which has no wp_admin_notice(), it prints the same markup and honors only the type and paragraph_wrap arguments.
+	 * It needs nothing beyond WordPress itself, so it reports problems found before a plugin has booted. An error prints its message without a paragraph wrap unless the arguments set one, since WordPress core's requirement messages are already paragraphs. Before WordPress 6.4, which has no wp_admin_notice(), it prints the same markup and honors only the type and paragraph_wrap arguments.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
+	 * @phpstan-param array{type?: string, dismissible?: bool, id?: string, additional_classes?: array<string>, attributes?: array<string>, paragraph_wrap?: bool} $args
+	 *
 	 * @param   string|\WP_Error     $message The message, as HTML, or the error whose message to print.
 	 * @param   array<string, mixed> $args    Optional. The notice's arguments, as wp_admin_notice() takes them. Default is an error notice.
-	 * @phpstan-param array{type?: string, dismissible?: bool, id?: string, additional_classes?: array<string>, attributes?: array<string>, paragraph_wrap?: bool} $args
 	 *
 	 * @return  void
 	 */

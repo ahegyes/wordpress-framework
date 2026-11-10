@@ -218,11 +218,11 @@ final class ProductDataTab {
 		 * @param   list<Group> $groups  The tab's groups.
 		 * @param   \WC_Product $product The product being edited or saved.
 		 */
-		return apply_filters( "{$this->id}/product_data_tab/groups", $tab['groups'], $product );
+		return apply_filters( "$this->id/product_data_tab/groups", $tab['groups'], $product );
 	}
 
 	/**
-	 * Prints the field's row with its stored value, through WooCommerce's function for its type, or through Forms::render_control() for a render callable, radios or checkboxes.
+	 * Prints the field's row in WooCommerce's product data markup, with its stored value.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -252,7 +252,7 @@ final class ProductDataTab {
 				'desc'  => $field['description'] ?? '',
 			) + $field;
 			$group   = Forms::is_group( $field );
-			echo $group ? '<fieldset class="' . esc_attr( $row_class ) . '"><legend>' . wp_kses_post( $field['label'] ) . '</legend>' : '<p class="' . esc_attr( $row_class ) . '"><label for="' . esc_attr( $id ) . '">' . wp_kses_post( $field['label'] ) . '</label>';
+			echo $group ? '<fieldset class="' . esc_attr( $row_class ) . '"><legend>' . wp_kses_post( $field['label'] ) . '</legend>' : '<p class="' . esc_attr( $row_class ) . '"><label for="' . Forms::escape_attribute( $id ) . '">' . wp_kses_post( $field['label'] ) . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Forms::escape_attribute() escapes the id as the control's id is.
 			echo Forms::render_control( $control, $field['value'], $key, $id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control, and a render callable its own.
 			echo $group ? '</fieldset>' : '</p>';
 			return;

@@ -39,9 +39,6 @@ final class UninstallerOnNetworkTest extends TestCase {
 
 	#[\Override]
 	protected function tearDown(): void {
-		while ( ms_is_switched() ) {
-			restore_current_blog();
-		}
 		foreach ( get_sites(
 			array(
 				'fields' => 'ids',
@@ -50,6 +47,13 @@ final class UninstallerOnNetworkTest extends TestCase {
 		) as $site_id ) {
 			$this->on_site( (int) $site_id, fn () => wp_unschedule_hook( "{$this->prefix}_cron" ) );
 		}
+	}
+
+	public static function constant_consents(): array {
+		return array(
+			'with-the-constant'    => array( true ),
+			'without-the-constant' => array( false ),
+		);
 	}
 
 	public function test_a_subsite_only_plugin_deleted_from_the_network_admin_cleans_its_subsite_and_unschedules_everywhere(): void {
@@ -127,13 +131,6 @@ final class UninstallerOnNetworkTest extends TestCase {
 
 		self::assertSame( array( true, true, true, true ), $main );
 		self::assertSame( array( false, false, false, false ), $other );
-	}
-
-	public static function constant_consents(): array {
-		return array(
-			'with-the-constant'    => array( true ),
-			'without-the-constant' => array( false ),
-		);
 	}
 
 	#[DataProvider( 'constant_consents' )]
@@ -314,7 +311,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 			function () use ( $consent ): void {
 				global $wpdb;
 
-				if ( null !== $consent ) {
+				if ( ! \is_null( $consent ) ) {
 					update_option( "{$this->prefix}_remove_data", $consent );
 				}
 				update_option( "{$this->prefix}_settings", 'x' );

@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Adds the request spec's object form on plugins_loaded, as a plugin without the kernel does.
+ * Adds the request spec's object form on plugins_loaded.
  *
- * The form's id also prefixes the admin notices that report its rejections. The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record, and its render may be acme:render; each records what it receives in the request's outcome. With per_object, the definition also records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
+ * The form's id also prefixes the admin notices that report its rejections. The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields, and the definition records each evaluation. A field's validate and render may name a behavior RecordedDefinition::with_behaviors() lists, which records what it receives in the request's outcome. With per_object, the definition also records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
  *
  * @package Acme
  */
@@ -19,39 +19,10 @@ use DeepWebSolutions\Framework\WooCommerce\EditScreen\Hosts\OrderMetaBox;
 
 require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
 
-$acme_with_behaviors = static function ( array $fields ): array {
-	foreach ( $fields as &$field ) {
-		$field_id = $field['id'] ?? '';
-		if ( 'acme:render' === ( $field['render'] ?? null ) ) {
-			$field['render'] = static function ( array $field, mixed $value, string $name, string $id ) use ( $field_id ): string {
-				$GLOBALS['acme_outcome']['records'][] = array( 'render', $field_id, $value, $name, $id );
-
-				return '<input type="hidden" name="' . esc_attr( $name ) . '" value="" /><input type="text" class="acme-widget" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( is_string( $value ) ? $value : '' ) . '" />';
-			};
-		}
-
-		$behavior = $field['validate'] ?? null;
-		if ( is_string( $behavior ) && str_starts_with( $behavior, 'acme:' ) ) {
-			$field['validate'] = static function ( mixed $raw ) use ( $behavior, $field_id ): mixed {
-				$GLOBALS['acme_outcome']['records'][] = array( 'validate', $field_id, $raw );
-
-				return match ( $behavior ) {
-					'acme:append'          => $raw . '!',
-					'acme:reject'          => new WP_Error( 'acme_rejected', 'Use at most four characters.' ),
-					'acme:reject-silently' => new WP_Error( 'acme_rejected' ),
-					'acme:record'          => $raw,
-				};
-			};
-		}
-	}
-
-	return $fields;
-};
-
 add_action(
 	'plugins_loaded',
-	static function () use ( $spec, $acme_with_behaviors ): void {
-		$fields     = $acme_with_behaviors( $spec['form']['fields'] );
+	static function () use ( $spec ): void {
+		$fields     = RecordedDefinition::with_behaviors( $spec['form']['fields'] );
 		$definition = new RecordedDefinition(
 			static function ( string $form_id, int $object_id ) use ( $spec, $fields ): array {
 				$GLOBALS['acme_outcome']['records'][] = array( 'definition' );
@@ -77,12 +48,14 @@ add_action(
 					protected string $option
 				) {}
 
+				#[\Override]
 				public function get_values( int $object_id, array $keys ): array {
 					$GLOBALS['acme_outcome']['records'][] = array( 'get_values', $object_id, $keys );
 
 					return array_intersect_key( get_option( $this->option, array() )[ $object_id ] ?? array(), array_flip( $keys ) );
 				}
 
+				#[\Override]
 				public function update_values( int $object_id, array $values ): void {
 					$GLOBALS['acme_outcome']['records'][] = array( 'update_values', $object_id, $values );
 
@@ -95,17 +68,17 @@ add_action(
 
 		$notices = new AdminNotices( $spec['id'], new ErrorLogLogger( 'acme' ) );
 		$notices->register_hooks();
-		( new ObjectForm( $spec['id'], $definition, $host, $notices, $store ) )->register_hooks();
+		new ObjectForm( $spec['id'], $definition, $host, $notices, $store )->register_hooks();
 	}
 );
 
 if ( isset( $spec['contributed'] ) ) {
 	add_filter(
 		"{$spec['id']}/object_form/fields",
-		static function ( array $fields, int $object_id ) use ( $spec, $acme_with_behaviors ): array {
+		static function ( array $fields, int $object_id ) use ( $spec ): array {
 			$GLOBALS['acme_outcome']['records'][] = array( 'contributed', $object_id );
 
-			return array_merge( $fields, $acme_with_behaviors( $spec['contributed'] ) );
+			return array_merge( $fields, RecordedDefinition::with_behaviors( $spec['contributed'] ) );
 		},
 		10,
 		2

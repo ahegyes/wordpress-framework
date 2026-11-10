@@ -68,7 +68,7 @@ final class CapabilityGrants implements ComponentInterface {
 
 	// endregion
 
-	// region METHODS
+	// region HOOKS
 
 	/**
 	 * Revokes each ledgered pair no longer declared and grants each declared pair that its role lacks and the ledger does not list, once the declaration or the declared roles have changed since the last complete run.
@@ -82,7 +82,8 @@ final class CapabilityGrants implements ComponentInterface {
 	 */
 	public function run(): void {
 		$roles       = wp_roles();
-		$fingerprint = \md5( (string) wp_json_encode( array( $this->grants, \array_values( \array_filter( \array_keys( $this->grants ), $roles->is_role( ... ) ) ) ) ) );
+		$present     = \array_keys( \array_intersect_key( $this->grants, $roles->roles ) );
+		$fingerprint = \md5( (string) wp_json_encode( array( $this->grants, $present ) ) );
 		$row         = $this->get_row();
 		if ( $row['fingerprint'] === $fingerprint ) {
 			return;
@@ -177,10 +178,6 @@ final class CapabilityGrants implements ComponentInterface {
 
 		$this->logger->warning( 'The roles row did not keep the capability changes {changes}, so the next request makes them again.', array( 'changes' => \implode( ', ', $failed ) ) );
 	}
-
-	// endregion
-
-	// region HOOKS
 
 	/**
 	 * Forgets the grants of each declared role that a write of the site's roles row deletes, so that the role is granted them again once it exists anew.

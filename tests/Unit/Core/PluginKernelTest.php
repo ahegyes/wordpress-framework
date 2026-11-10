@@ -48,7 +48,7 @@ abstract class RecordingComponent implements ComponentInterface {
 	}
 
 	protected function record( string $event ): void {
-		$this->journal->entries[] = "$event " . ( new \ReflectionClass( $this ) )->getShortName();
+		$this->journal->entries[] = "$event " . new \ReflectionClass( $this )->getShortName();
 	}
 }
 
@@ -89,9 +89,18 @@ final class GatedOutL2 extends RecordingComponent implements ConditionalComponen
 final class UngatedL3 extends RecordingComponent {}
 
 final class ConditionalOnly implements ConditionalComponentInterface {
+	public function __construct(
+		protected Journal $journal
+	) {}
+
 	#[\Override]
 	public static function should_load(): bool {
-		throw new \RuntimeException( 'should_load() ran.' );
+		return true;
+	}
+
+	#[\Override]
+	public function register_hooks(): void {
+		$this->journal->entries[] = 'register ConditionalOnly';
 	}
 }
 
@@ -125,6 +134,7 @@ final class PluginKernelTest extends TestCase {
 			'repeated-child'   => array( array( CompositeA::class, ComponentB::class ) ),
 			'gated-out-repeat' => array( array( GatedOutL2::class, GatedOutL2::class ) ),
 			'cycle'            => array( array( CycleStart::class ) ),
+			'plain-class'      => array( array( ComponentD::class, Journal::class ) ),
 		);
 	}
 
@@ -195,10 +205,12 @@ final class PluginKernelTest extends TestCase {
 		self::assertSame( array( GatedOutL2::class ), $kernel->skipped );
 	}
 
-	public function test_a_class_that_is_only_conditional_throws_before_its_gate_runs(): void {
-		$thrown = self::boot_and_catch( new PluginKernel( new FakeContainer( new Journal() ) ), array( ConditionalOnly::class ) );
+	public function test_a_class_that_implements_only_the_conditional_interface_boots_as_a_component(): void {
+		$journal = new Journal();
 
-		self::assertInstanceOf( LogicException::class, $thrown );
+		new PluginKernel( new FakeContainer( $journal ) )->boot( array( ConditionalOnly::class ) );
+
+		self::assertSame( array( 'register ConditionalOnly' ), $journal->entries );
 	}
 
 	#[DataProvider( 'invalid_trees' )]

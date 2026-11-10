@@ -23,13 +23,6 @@ final class OptionRowsTest extends TestCase {
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 
-	#[\Override]
-	protected function tearDown(): void {
-		while ( is_multisite() && ms_is_switched() ) {
-			restore_current_blog();
-		}
-	}
-
 	public function test_an_inserted_row_reads_back_unchanged_as_one_row_that_is_not_autoloaded(): void {
 		$written = self::insert( "{$this->prefix}_one", array( 'message' => "Can't \\ \"save\"." ) );
 

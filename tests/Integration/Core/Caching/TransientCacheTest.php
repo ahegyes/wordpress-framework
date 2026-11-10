@@ -130,7 +130,7 @@ final class TransientCacheTest extends TestCase {
 		$this->cache()->set( 'key', 'Value.', $ttl );
 		$after = \time();
 
-		$seconds ??= ( new \DateTimeImmutable( "@$before" ) )->add( $ttl )->getTimestamp() - $before;
+		$seconds ??= new \DateTimeImmutable( "@$before" )->add( $ttl )->getTimestamp() - $before;
 		self::assertGreaterThanOrEqual( $before + $seconds, $this->timeout( 'key' ) );
 		self::assertLessThanOrEqual( $after + $seconds, $this->timeout( 'key' ) );
 	}

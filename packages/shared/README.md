@@ -61,32 +61,65 @@ return ( require __DIR__ . '/vendor/ahegyes/wordpress-configs/php/php-scoper/sco
 
 ## Usage
 
-A `Version` parses and compares versions, a result is a `Success` or a `Failure` whose `match()` takes one callback per branch, and a value object equals any other of its class with the same values. A script loads the project's autoloader and imports the package under the project's prefix:
+A `Version` parses and compares versions, a result is a `Success` or a `Failure` whose `match()` takes one callback per branch, and a value object equals any other of its class with the same values. The package throws its mirrors of PHP's `InvalidArgumentException`, `LogicException` and `RuntimeException`, which extend them and implement `ExceptionInterface`, so a caller catches the framework's failures by that interface. A script loads the project's autoloader and imports the package under the project's prefix:
 
 ```php
+use Acme\PersonaShared\Catalog;
 use Acme\PersonaShared\Point;
 use Acme\PersonaShared\UnknownKey;
+use Acme\PersonaShared\Scoped\DeepWebSolutions\Framework\Shared\Exception\ExceptionInterface;
 use Acme\PersonaShared\Scoped\DeepWebSolutions\Framework\Shared\Result\Failure;
 use Acme\PersonaShared\Scoped\DeepWebSolutions\Framework\Shared\Result\Success;
 use Acme\PersonaShared\Scoped\DeepWebSolutions\Framework\Shared\Versioning\Version;
 
 require __DIR__ . '/vendor/autoload.php';
 
+try {
+	$acme_rejected = (string) Version::from_string( 'next' );
+} catch ( ExceptionInterface $acme_exception ) {
+	$acme_rejected = $acme_exception::class;
+}
+
+$acme_catalog = new Catalog( array( 'acme' => 'box' ) );
+
 echo \json_encode(
 	array(
 		'wordpress' => \defined( 'ABSPATH' ),
 		'version'   => array( (string) Version::from_string( '2.1.0-rc.1' ), Version::from_string( '2.1.0' )->compare( Version::from_string( '2.1.0-rc.1' ) ) ),
+		'rejected'  => $acme_rejected,
 		'results'   => array(
 			Success::from( 'acme' )->match( static fn ( string $value ): string => "found $value", static fn (): string => 'failed' ),
 			Failure::from( new UnknownKey( 'acme' ) )->match( static fn (): string => 'found', static fn ( UnknownKey $error ): string => "unknown $error->key" ),
 		),
+		'narrowed'  => array( $acme_catalog->describe( 'acme' ), $acme_catalog->describe( 'other' ) ),
 		'equality'  => array( new Point( 1, 2 )->equals( new Point( 1, 2 ) ), new Point( 1, 2 )->equals( new Point( 2, 1 ) ) ),
 	),
 	\JSON_THROW_ON_ERROR
 );
 ```
 
-A failure carries an error object, and a value object declares its values as promoted properties:
+An operation with failures its caller branches on returns `AbstractResult<T, E>` under `#[\NoDiscard]`, and `is_success()` or `is_failure()` narrows the result to its `value` or its `error`. A failure carries an error object, and a value object declares its values as promoted properties:
+
+```php
+final readonly class Catalog {
+	// ...
+
+	#[\NoDiscard]
+	public function find( string $key ): AbstractResult {
+		return isset( $this->values[ $key ] ) ? Success::from( $this->values[ $key ] ) : Failure::from( new UnknownKey( $key ) );
+	}
+
+	// ...
+
+	public function describe( string $key ): string {
+		$found = $this->find( $key );
+
+		return $found->is_success() ? "found $found->value" : "unknown {$found->error->key}";
+	}
+
+	// ...
+}
+```
 
 ```php
 final readonly class UnknownKey implements ErrorInterface {

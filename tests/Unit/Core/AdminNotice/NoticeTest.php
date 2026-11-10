@@ -98,7 +98,7 @@ final class NoticeTest extends TestCase {
 	}
 
 	public static function rejected_rows(): array {
-		$row = ( new Notice( 'a', 'Hi', scope: NoticeScope::Site, capability: 'manage_options' ) )->to_array();
+		$row = new Notice( 'a', 'Hi', scope: NoticeScope::Site, capability: 'manage_options' )->to_array();
 
 		return array(
 			'version-2'                   => array( array( 'v' => 2 ) + $row ),

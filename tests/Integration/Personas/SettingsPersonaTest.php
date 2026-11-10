@@ -39,6 +39,23 @@ final class SettingsPersonaTest extends TestCase {
 		self::assertStringContainsString( 'Limit was not saved and keeps its previous value. The other changes were saved. Enter a whole number of at least 1.', $page['body'] );
 	}
 
+	public function test_the_post_form_saves_its_field_on_the_post_through_the_block_editor_s_meta_box_save(): void {
+		$user    = $this->make_user( 'acme_ps_admin', 'administrator' );
+		$spec    = array( 'activate' => $this->install_consumer( 'personas/settings', 'acme-persona-settings' ) );
+		$post_id = wp_insert_post( array( 'post_title' => 'Acme post' ) );
+
+		try {
+			$body = $this->consumer_request( 'GET', "post.php?post=$post_id&action=edit", $user, $spec )['body'];
+			$data = \array_replace_recursive( self::serialize_form( $body, 'form.metabox-base-form' ), self::serialize_form( $body, 'form.metabox-location-advanced', array( 'acme_ps_details[_acme_ps_subtitle]' => 'Hello' ) ) );
+			self::assertSame( 1, \preg_match( '/var _wpMetaBoxUrl = ("[^"]+");/', $body, $matches ) );
+			$this->consumer_request( 'POST', \explode( '/wp-admin/', (string) \json_decode( $matches[1] ), 2 )[1], $user, $spec, $data );
+
+			self::assertSame( 'Hello', get_post_meta( $post_id, '_acme_ps_subtitle', true ) );
+		} finally {
+			wp_delete_post( $post_id, true );
+		}
+	}
+
 	// Posts the settings tab as the browser submits it after the user typed the limit.
 	protected function save_limit( string $limit ): array {
 		$user = $this->make_user( 'acme_ps_admin', 'administrator' );

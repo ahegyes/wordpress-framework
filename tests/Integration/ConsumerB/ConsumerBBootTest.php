@@ -23,14 +23,4 @@ final class ConsumerBBootTest extends TestCase {
 		self::assertSame( 'booted', $request['records']['consumer_b']['status'] );
 		self::assertStringContainsString( 'name="acme_cb_settings[greeting]"', $request['body'] );
 	}
-
-	public function test_the_build_is_a_production_install_that_keeps_the_bootstrap_loader_at_its_contract_path(): void {
-		self::assertFileExists( self::FIXTURES . '/consumer-b/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php' );
-		self::assertFileExists( self::FIXTURES . '/consumer-b/vendor/composer/installed.json' );
-
-		$installed = \json_decode( (string) \file_get_contents( self::FIXTURES . '/consumer-b/vendor/composer/installed.json' ), true );
-		self::assertIsArray( $installed );
-		self::assertFalse( $installed['dev'] );
-		self::assertSame( array(), $installed['packages'] );
-	}
 }

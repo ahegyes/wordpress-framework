@@ -10,6 +10,6 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass( ActionSchedulerBackend::class )]
 final class ActionSchedulerBackendTest extends TestCase {
 	public function test_action_scheduler_is_absent_when_its_functions_are_not_loaded(): void {
-		self::assertSame( BackendState::Absent, ( new ActionSchedulerBackend( 'acme' ) )->get_state() );
+		self::assertSame( BackendState::Absent, new ActionSchedulerBackend( 'acme' )->get_state() );
 	}
 }

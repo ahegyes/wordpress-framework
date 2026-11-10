@@ -1,8 +1,8 @@
 <?php declare( strict_types=1 );
 /**
- * Registers the request spec's options page with a plain closure on plugins_loaded, as a plugin without the kernel does.
+ * Registers the request spec's options page with a plain closure on plugins_loaded.
  *
- * A field's validate may name a behavior as acme:append, acme:reject, acme:reject-silently or acme:record; each records what it receives in the request's outcome. The spec may also contribute tabs and fields through the page's tabs filter, and update options programmatically on admin_init.
+ * A field's validate and render may name a behavior RecordedDefinition::with_behaviors() lists, which records what it receives in the request's outcome. The spec may also contribute tabs and fields through the page's tabs filter, and update options programmatically on admin_init.
  *
  * @package Acme
  */
@@ -14,24 +14,7 @@ require_once dirname( __DIR__, 3 ) . '/vendor/autoload.php';
 
 $acme_with_behaviors = static function ( array $tabs ): array {
 	foreach ( $tabs as &$tab ) {
-		foreach ( $tab['fields'] as &$field ) {
-			$behavior = $field['validate'] ?? null;
-			if ( ! is_string( $behavior ) || ! str_starts_with( $behavior, 'acme:' ) ) {
-				continue;
-			}
-
-			$field_id          = $field['id'];
-			$field['validate'] = static function ( mixed $raw ) use ( $behavior, $field_id ): mixed {
-				$GLOBALS['acme_outcome']['records'][] = array( $field_id, $raw );
-
-				return match ( $behavior ) {
-					'acme:append'          => $raw . '!',
-					'acme:reject'          => new WP_Error( 'acme_rejected', 'Use at most four characters.' ),
-					'acme:reject-silently' => new WP_Error( 'acme_rejected' ),
-					'acme:record'          => $raw,
-				};
-			};
-		}
+		$tab['fields'] = RecordedDefinition::with_behaviors( $tab['fields'] );
 	}
 
 	return $tabs;

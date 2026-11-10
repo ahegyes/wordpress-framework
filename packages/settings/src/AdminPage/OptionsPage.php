@@ -17,8 +17,8 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  *
  * @phpstan-import-type Field from Forms
  * @phpstan-import-type FieldRow from Forms
- * @phpstan-type Tab array{slug: string, title: string, option: string, fields: list<Field>}
- * @phpstan-type Page array{parent: string, capability: string, page_title: string, menu_title: string, tabs: list<Tab>}
+ * @phpstan-type        Tab array{slug: string, title: string, option: string, fields: list<Field>}
+ * @phpstan-type        Page array{parent: string, capability: string, page_title: string, menu_title: string, tabs: list<Tab>}
  */
 final class OptionsPage {
 	// region FIELDS AND CONSTANTS
@@ -44,7 +44,7 @@ final class OptionsPage {
 	 * @version 2.0.0
 	 *
 	 * @param   string                         $id         The page's menu slug, which also prefixes its tabs filter.
-	 * @param   OptionsPageDefinitionInterface $definition The definition, which the page asks for once, on first use after init.
+	 * @param   OptionsPageDefinitionInterface $definition The page's definition.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
 	 */
@@ -190,6 +190,10 @@ final class OptionsPage {
 		$option = $tab['option'];
 		$stored = get_option( $option );
 		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
+			if ( isset( $row['label_for'] ) ) { // Core prints the label through esc_attr(), which keeps an entity the control's id encodes.
+				$row['label_for'] = Forms::escape_attribute( $row['label_for'] );
+			}
+
 			add_settings_field( $row['field']['id'], esc_html( $row['field']['title'] ), array( $this, 'render_field' ), $this->id, 'default', $row );
 		}
 
@@ -240,7 +244,7 @@ final class OptionsPage {
 			 *
 			 * @param   list<Tab> $tabs The page's tabs.
 			 */
-			$page['tabs'] = apply_filters( "{$this->id}/options_page/tabs", $page['tabs'] );
+			$page['tabs'] = apply_filters( "$this->id/options_page/tabs", $page['tabs'] );
 			$this->page   = $page;
 		}
 

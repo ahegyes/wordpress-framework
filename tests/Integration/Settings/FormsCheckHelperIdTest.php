@@ -23,8 +23,8 @@ final class FormsCheckHelperIdTest extends TestCase {
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_id( string $id ): void {
-		Forms::check_helper_id( $id );
+		$this->expectNotToPerformAssertions();
 
-		$this->addToAssertionCount( 1 );
+		Forms::check_helper_id( $id );
 	}
 }

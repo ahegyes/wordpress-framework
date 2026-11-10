@@ -34,7 +34,7 @@ final class MetadataStoreTest extends TestCase {
 		add_metadata( $meta_type, $object_id, "_{$this->prefix}_empty", '' );
 		add_metadata( $meta_type, $object_id, "_{$this->prefix}_list", array() );
 
-		$values = ( new MetadataStore( $meta_type ) )->get_values( $object_id, array( "_{$this->prefix}_text", "_{$this->prefix}_empty", "_{$this->prefix}_list", "_{$this->prefix}_absent" ) );
+		$values = new MetadataStore( $meta_type )->get_values( $object_id, array( "_{$this->prefix}_text", "_{$this->prefix}_empty", "_{$this->prefix}_list", "_{$this->prefix}_absent" ) );
 
 		self::assertSame(
 			array(
@@ -55,7 +55,7 @@ final class MetadataStoreTest extends TestCase {
 			update_metadata( $meta_type, $object_id, "_{$this->prefix}_registered", null );
 			update_metadata( $meta_type, $object_id, "_{$this->prefix}_plain", null );
 
-			self::assertSame( array(), ( new MetadataStore( $meta_type ) )->get_values( $object_id, array( "_{$this->prefix}_registered", "_{$this->prefix}_plain" ) ) );
+			self::assertSame( array(), new MetadataStore( $meta_type )->get_values( $object_id, array( "_{$this->prefix}_registered", "_{$this->prefix}_plain" ) ) );
 		} finally {
 			unregister_meta_key( $meta_type, "_{$this->prefix}_registered" );
 		}
@@ -66,7 +66,7 @@ final class MetadataStoreTest extends TestCase {
 		$object_id = $this->make_object( $meta_type );
 		add_metadata( $meta_type, $object_id, "_{$this->prefix}_text", 'old' );
 
-		( new MetadataStore( $meta_type ) )->update_values(
+		new MetadataStore( $meta_type )->update_values(
 			$object_id,
 			array(
 				"_{$this->prefix}_text" => 'O\'Brien C:\\dir',
@@ -90,7 +90,7 @@ final class MetadataStoreTest extends TestCase {
 		$object_id = $this->make_object( 'post' );
 
 		try {
-			( new MetadataStore( 'post' ) )->update_values(
+			new MetadataStore( 'post' )->update_values(
 				$object_id,
 				array(
 					"_{$this->prefix}_first" => 'Written first.',
@@ -137,7 +137,7 @@ final class MetadataStoreTest extends TestCase {
 				)
 			),
 			'user' => $this->make_user( "{$this->prefix}_user", 'subscriber' ),
-			'term' => $this->term_ids[] = (int) wp_insert_term( "{$this->prefix} term", 'category' )['term_id'],
+			'term' => $this->term_ids[] = (int) wp_insert_term( "$this->prefix term", 'category' )['term_id'],
 		};
 	}
 

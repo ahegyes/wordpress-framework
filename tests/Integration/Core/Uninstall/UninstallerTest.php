@@ -54,6 +54,30 @@ final class UninstallerTest extends TestCase {
 		);
 	}
 
+	public static function retaining_and_consenting(): array {
+		return array(
+			'retaining'  => array( false ),
+			'consenting' => array( true ),
+		);
+	}
+
+	public static function failing_statements(): array {
+		return array(
+			'an-option-delete'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', static fn ( self $test ): bool => $test->option_exists( "{$test->prefix}_settings" ) ),
+			'a-prefix-read'                        => array( static fn ( \wpdb $wpdb, string $prefix ): string => 'SELECT DISTINCT CAST( `option_name`', '_cache_', static fn ( self $test ): bool => $test->option_exists( "{$test->prefix}_cache_a" ) ),
+			'a-post-type-read'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "AS value FROM `$wpdb->posts`", '_type', static fn ( self $test ): bool => array() !== $test->get_posts_of_type( "{$test->prefix}_type" ) ),
+			'a-network-option'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_network_settings'", '_network_settings', static fn ( self $test ): bool => $test->network_option_exists( "{$test->prefix}_network_settings" ) ),
+			'an-option-delete-with-prefix-consent' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', static fn ( self $test ): bool => $test->option_exists( "{$test->prefix}_settings" ), '_cache_remove_data' ),
+		);
+	}
+
+	public static function refused_deletes(): array {
+		return array(
+			'a-post'     => array( 'pre_delete_post', '_type' ),
+			'a-meta-row' => array( 'delete_post_metadata_by_mid', '_flag' ),
+		);
+	}
+
 	#[DataProvider( 'retaining_consents' )]
 	public function test_a_run_without_consent_keeps_the_footprint_and_runs_no_cleanup( \Closure $consent ): void {
 		$this->seed_footprint();
@@ -324,18 +348,8 @@ final class UninstallerTest extends TestCase {
 		self::assertTrue( as_has_scheduled_action( "{$this->prefix}_grouped" ) );
 	}
 
-	public static function failing_statements(): array {
-		return array(
-			'an-option-delete'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings' ),
-			'a-prefix-read'                        => array( static fn ( \wpdb $wpdb, string $prefix ): string => 'SELECT DISTINCT CAST( `option_name`', '_cache_', 'option_exists', '_cache_a' ),
-			'a-post-type-read'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "AS value FROM `$wpdb->posts`", '_type', 'post_type_has_posts', '_type' ),
-			'a-network-option'                     => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_network_settings'", '_network_settings', 'network_option_exists', '_network_settings' ),
-			'an-option-delete-with-prefix-consent' => array( static fn ( \wpdb $wpdb, string $prefix ): string => "DELETE FROM `$wpdb->options` WHERE `option_name` = '{$prefix}_settings'", '_settings', 'option_exists', '_settings', '_cache_remove_data' ),
-		);
-	}
-
 	#[DataProvider( 'failing_statements' )]
-	public function test_a_failed_statement_keeps_the_consent_row_and_throws_after_the_rest_so_a_retry_completes( \Closure $needle, string $subject, string $kept, string $row, string $consent = '_remove_data' ): void {
+	public function test_a_failed_statement_keeps_the_consent_row_and_throws_after_the_rest_so_a_retry_completes( \Closure $needle, string $subject, \Closure $kept, string $consent = '_remove_data' ): void {
 		global $wpdb;
 
 		$this->seed_footprint();
@@ -352,7 +366,7 @@ final class UninstallerTest extends TestCase {
 
 		self::assertInstanceOf( RuntimeException::class, $failure );
 		self::assertStringContainsString( $this->prefix . $subject, $failure->getMessage() );
-		self::assertTrue( $this->$kept( $this->prefix . $row ) );
+		self::assertTrue( $kept( $this ) );
 		self::assertFalse( $this->table_exists( "{$this->prefix}_log" ) );
 		self::assertSame( array( 'cleanup' ), \array_column( $this->calls, 0 ) );
 		self::assertTrue( $this->option_exists( $this->prefix . $consent ) );
@@ -361,15 +375,8 @@ final class UninstallerTest extends TestCase {
 		$this->restore_query_errors();
 		Uninstaller::run( self::PLUGIN_FILE, $this->footprint(), $args );
 
-		self::assertFalse( $this->$kept( $this->prefix . $row ) );
+		self::assertFalse( $kept( $this ) );
 		self::assertFalse( $this->option_exists( $this->prefix . $consent ) );
-	}
-
-	public static function refused_deletes(): array {
-		return array(
-			'a-post'     => array( 'pre_delete_post', '_type' ),
-			'a-meta-row' => array( 'delete_post_metadata_by_mid', '_flag' ),
-		);
 	}
 
 	#[DataProvider( 'refused_deletes' )]
@@ -427,7 +434,7 @@ final class UninstallerTest extends TestCase {
 		}
 
 		self::assertInstanceOf( RuntimeException::class, $failure );
-		self::assertStringContainsString( 'cleanup: The cleanup failed.', $failure->getMessage() );
+		self::assertStringEndsWith( 'cleanup: The cleanup failed.', $failure->getMessage() );
 		self::assertFalse( wp_next_scheduled( "{$this->prefix}_cron" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_settings" ) );
 		self::assertTrue( $this->option_exists( "{$this->prefix}_remove_data" ) );
@@ -491,13 +498,6 @@ final class UninstallerTest extends TestCase {
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 
-	public static function retaining_and_consenting(): array {
-		return array(
-			'retaining'  => array( false ),
-			'consenting' => array( true ),
-		);
-	}
-
 	protected static function stored_consent( mixed $value, string $key = '' ): \Closure {
 		return static function ( string $prefix ) use ( $value, $key ): array {
 			update_option( "{$prefix}_remove_data", $value );
@@ -508,8 +508,8 @@ final class UninstallerTest extends TestCase {
 
 	protected static function defined_consent( mixed $value ): \Closure {
 		return static function ( string $prefix ) use ( $value ): array {
-			$constant = \strtoupper( "{$prefix}_remove_all_data_" . \bin2hex( \random_bytes( 2 ) ) );
-			\define( $constant, $value ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound -- A unique name per run, since a constant cannot be undefined.
+			$constant = \strtoupper( "{$prefix}_remove_all_data" );
+			\define( $constant, $value ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound -- A unique name per test, since a constant cannot be undefined.
 
 			return array( 'consent' => array( 'constant' => $constant ) );
 		};

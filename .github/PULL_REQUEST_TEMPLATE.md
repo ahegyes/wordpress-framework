@@ -14,7 +14,7 @@
 
 - [ ] Tests added or updated (Unit and/or Integration as appropriate)
 - [ ] `composer quality-check` passes locally (PHPCS, PHPStan and the tests)
-- [ ] Public API changes are documented in the affected package's `README.md`
+- [ ] Changelog fragment added (`composer changelog:add`)
 - [ ] Breaking changes are explicitly justified below
 
 ## Breaking changes / migration notes

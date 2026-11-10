@@ -47,4 +47,23 @@ final class WooCommercePersonaTest extends TestCase {
 			$product->delete( true );
 		}
 	}
+
+	public function test_a_consenting_uninstall_removes_the_plugin_s_options_and_product_meta(): void {
+		update_option( 'acme_pw_default_box', 'Large' );
+		update_option( 'acme_pw_delete_data', 'yes' );
+		$product = new \WC_Product_Simple();
+		$product->update_meta_data( '_acme_pw_box', 'Small' );
+		$product->save();
+
+		try {
+			$request = $this->consumer_request( 'GET', 'index.php', $this->admin, array( 'uninstall' => $this->spec['activate'] ) );
+
+			self::assertTrue( $request['records']['deleted'] );
+			self::assertFalse( get_option( 'acme_pw_default_box' ) );
+			self::assertFalse( get_option( 'acme_pw_delete_data' ) );
+			self::assertSame( '', get_post_meta( $product->get_id(), '_acme_pw_box', true ) );
+		} finally {
+			$product->delete( true );
+		}
+	}
 }

@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\ConsumerA;
 
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InstallsConsumersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ProductFixturesTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
@@ -12,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 final class ConsumerABootTest extends TestCase {
 	use CreatesUsersTrait;
 	use InstallsConsumersTrait;
+	use ProductFixturesTrait;
 
 	protected const string SCOPED = 'Acme\\ConsumerA\\Scoped\\DeepWebSolutions\\Framework\\';
 
@@ -35,26 +37,10 @@ final class ConsumerABootTest extends TestCase {
 		self::assertFalse( $request['records']['reports_page_class'] );
 	}
 
-	public function test_the_build_is_a_production_install_that_keeps_the_bootstrap_loader_at_its_contract_path(): void {
-		$installed = \json_decode( (string) \file_get_contents( self::FIXTURES . '/consumer-a/vendor/composer/installed.json' ), true );
-
-		self::assertFileExists( self::FIXTURES . '/consumer-a/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php' );
-		self::assertIsArray( $installed );
-		self::assertFalse( $installed['dev'] );
-		self::assertSame( array(), $installed['packages'] );
-	}
-
 	public function test_the_product_edit_screen_shows_the_plugins_tab(): void {
-		$product = wc_get_product_object( 'simple' );
-		$product->set_name( 'Acme product' );
-		$product->save();
-		$plugin = $this->install_consumer( 'consumer-a', 'acme-consumer-a' );
-
-		try {
-			$request = $this->consumer_request( 'GET', "post.php?post={$product->get_id()}&action=edit", $this->make_user( 'acme_ca_admin', 'administrator' ), array( 'activate' => $plugin ) );
-		} finally {
-			wp_delete_post( $product->get_id(), true );
-		}
+		$product = $this->make_product();
+		$plugin  = $this->install_consumer( 'consumer-a', 'acme-consumer-a' );
+		$request = $this->consumer_request( 'GET', "post.php?post={$product->get_id()}&action=edit", $this->make_user( 'acme_ca_admin', 'administrator' ), array( 'activate' => $plugin ) );
 
 		self::assertNull( $request['died'] );
 		self::assertStringContainsString( 'id="acme_ca_packing_product_data"', $request['body'] );

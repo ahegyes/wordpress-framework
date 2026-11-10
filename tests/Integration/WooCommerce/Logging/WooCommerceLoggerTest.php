@@ -28,6 +28,7 @@ final class WooCommerceLoggerTest extends TestCase {
 		$this->handler           = new class() implements \WC_Log_Handler_Interface {
 			public array $records = array();
 
+			#[\Override]
 			public function handle( $timestamp, $level, $message, $context ) {
 				$this->records[] = array( $level, $message, $context );
 
@@ -126,6 +127,7 @@ final class WooCommerceLoggerTest extends TestCase {
 		$unused = new class() implements \Stringable {
 			public int $casts = 0;
 
+			#[\Override]
 			public function __toString(): string {
 				++$this->casts;
 
@@ -169,6 +171,7 @@ final class WooCommerceLoggerTest extends TestCase {
 		$this->handler = new class() extends LogHandlerFileV2 {
 			public array $entries = array();
 
+			#[\Override]
 			public function handle( $timestamp, $level, $message, $context ) {
 				$this->entries[] = self::format_entry( $timestamp, $level, $message, $context );
 
@@ -176,6 +179,7 @@ final class WooCommerceLoggerTest extends TestCase {
 			}
 		};
 		$unencodable   = new class() implements \JsonSerializable {
+			#[\Override]
 			public function jsonSerialize(): mixed {
 				throw new \LogicException( 'Not encodable.' );
 			}

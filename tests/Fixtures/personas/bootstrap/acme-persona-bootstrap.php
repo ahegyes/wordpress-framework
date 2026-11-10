@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Registers the plugin's updater and, once the site meets its floors, loads its functions.
+ *
  * Plugin Name:       Acme Persona Bootstrap
  * Description:       Shows an admin notice, gated on its floors and updated from GitHub by the bootstrap package alone.
  * Version:           1.0.0
@@ -10,6 +12,9 @@
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Update URI:        https://github.com/acme/acme-persona-bootstrap
  * Text Domain:       acme-persona-bootstrap
+ *
+ * @since   1.0.0
+ * @version 1.0.0
  *
  * @package Acme\PersonaBootstrap
  */

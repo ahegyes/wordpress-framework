@@ -3,46 +3,33 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\AdminNotice;
 
 use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
-use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordingLogger;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RendersAdminScreensTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ThrowingLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\AbstractLogger as PsrAbstractLogger;
-
-final class DismissalLogger extends PsrAbstractLogger {
-	public array $records = array();
-
-	#[\Override]
-	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
-		$this->records[] = array( $level, (string) $message, $context );
-	}
-}
-
-final class ThrowingDismissalLogger extends PsrAbstractLogger {
-	#[\Override]
-	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
-		throw new \UnexpectedValueException( 'The log is not writable.' );
-	}
-}
 
 #[CoversClass( AdminNotices::class )]
 final class AdminNoticesDismissalTest extends TestCase {
+	use AdminNoticeFixturesTrait;
 	use CreatesSitesTrait;
 	use CreatesUsersTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 	use RendersAdminScreensTrait;
+	use RunsAdminRequestsTrait;
 
 	protected int $admin;
 	protected int $other_admin;
-	protected DismissalLogger $logger;
+	protected RecordingLogger $logger;
 	protected AdminNotices $notices;
 	protected array $dismissed     = array();
 	protected array $saved_request = array();
@@ -51,10 +38,10 @@ final class AdminNoticesDismissalTest extends TestCase {
 	protected function setUp(): void {
 		$this->admin       = $this->make_user( 'acme_notices_admin', 'administrator' );
 		$this->other_admin = $this->make_user( 'acme_notices_other_admin', 'administrator' );
-		$this->logger      = new DismissalLogger();
+		$this->logger      = new RecordingLogger();
 		$this->notices     = new AdminNotices( $this->prefix, $this->logger );
 		add_action(
-			"{$this->prefix}/admin_notice/dismissed",
+			"$this->prefix/admin_notice/dismissed",
 			function ( mixed ...$arguments ): void {
 				$this->dismissed[] = $arguments;
 			},
@@ -76,37 +63,34 @@ final class AdminNoticesDismissalTest extends TestCase {
 		list( $_SERVER, $_POST, $_COOKIE ) = $this->saved_request;
 		$GLOBALS['wp_rest_server']         = null;
 		$GLOBALS['wp_rest_auth_cookie']    = null;
-		while ( is_multisite() && ms_is_switched() ) {
-			restore_current_blog();
-		}
 	}
 
 	public function test_a_dismissed_persistent_user_notice_stays_stored_and_hidden_when_added_again(): void {
-		$this->notices->add( $this->notice( 'kept', NoticeScope::User ), $this->admin );
+		$this->notices->add( $this->notice( 'kept', NoticeScope::User, persistent: true ), $this->admin );
 
 		$response = $this->dismiss( $this->shown( $this->admin, 'user', 'kept' ) );
 
 		self::assertSame( array( 200, array( 'changed' => true ) ), array( $response->get_status(), $response->get_data() ) );
 		self::assertSame( array(), $this->render( $this->admin ) );
 		self::assertCount( 1, $this->notices->get_notices( NoticeScope::User, $this->admin ) );
-		$this->notices->add( $this->notice( 'kept', NoticeScope::User ), $this->admin );
+		$this->notices->add( $this->notice( 'kept', NoticeScope::User, persistent: true ), $this->admin );
 		self::assertSame( array(), $this->render( $this->admin ) );
 	}
 
 	public function test_a_shared_site_notice_dismissed_by_one_capable_user_is_deleted_for_everyone(): void {
-		$this->notices->add( $this->notice( 'setup', NoticeScope::Site ) );
+		$this->notices->add( $this->notice( 'setup', NoticeScope::Site, persistent: true ) );
 
 		self::assertSame( array( 'changed' => true ), $this->dismiss( $this->shown( $this->admin, 'site', 'setup' ) )->get_data() );
 
 		self::assertSame( array(), $this->render( $this->other_admin ) );
 		self::assertSame( array(), $this->notices->get_notices( NoticeScope::Site ) );
 		self::assertFalse( get_user_option( "{$this->prefix}_hidden_notices", $this->admin ) );
-		$this->notices->add( $this->notice( 'setup', NoticeScope::Site ) );
+		$this->notices->add( $this->notice( 'setup', NoticeScope::Site, persistent: true ) );
 		self::assertSame( array( $this->dom_id( 'site', 'setup' ) ), \array_keys( $this->render( $this->admin ) ) );
 	}
 
 	public function test_a_per_viewer_site_notice_dismissed_by_one_user_still_shows_to_another(): void {
-		$this->notices->add( $this->notice( 'news', NoticeScope::Site, per_viewer: true ) );
+		$this->notices->add( $this->notice( 'news', NoticeScope::Site, per_viewer: true, persistent: true ) );
 
 		self::assertSame( 200, $this->dismiss( $this->shown( $this->admin, 'site', 'news' ) )->get_status() );
 
@@ -116,8 +100,8 @@ final class AdminNoticesDismissalTest extends TestCase {
 	}
 
 	public function test_dismissing_a_request_notice_records_only_the_callers_state_and_leaves_a_site_notice_of_the_same_id(): void {
-		$this->notices->add( $this->notice( 'x', NoticeScope::Request ) );
-		$this->notices->add( $this->notice( 'x', NoticeScope::Site ) );
+		$this->notices->add( $this->notice( 'x', NoticeScope::Request, persistent: true ) );
+		$this->notices->add( $this->notice( 'x', NoticeScope::Site, persistent: true ) );
 
 		self::assertSame( 200, $this->dismiss( $this->shown( $this->admin, 'request', 'x' ) )->get_status() );
 
@@ -126,9 +110,9 @@ final class AdminNoticesDismissalTest extends TestCase {
 	}
 
 	public function test_the_dismissal_action_fires_once_per_dismissal_that_takes_effect_with_the_full_identity(): void {
-		$this->notices->add( $this->notice( 'setup', NoticeScope::Site ) );
-		$this->notices->add( $this->notice( 'news', NoticeScope::Site, per_viewer: true ) );
-		$this->notices->add( $this->notice( 'mine', NoticeScope::User ), $this->admin );
+		$this->notices->add( $this->notice( 'setup', NoticeScope::Site, persistent: true ) );
+		$this->notices->add( $this->notice( 'news', NoticeScope::Site, per_viewer: true, persistent: true ) );
+		$this->notices->add( $this->notice( 'mine', NoticeScope::User, persistent: true ), $this->admin );
 		$setup = $this->shown( $this->admin, 'site', 'setup' );
 		$news  = $this->shown( $this->admin, 'site', 'news' );
 		$mine  = $this->shown( $this->admin, 'user', 'mine' );
@@ -156,7 +140,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 			'missing-nonce'       => array( static fn ( self $test ): array => array( array( 'nonce' => null ) + $test->shown( $test->admin, 'site', 'x' ), 400 ) ),
 			'another-notice'      => array(
 				static function ( self $test ): array {
-					$test->notices->add( $test->notice( 'other', NoticeScope::Site ) );
+					$test->notices->add( $test->notice( 'other', NoticeScope::Site, persistent: true ) );
 					return array( array( 'nonce' => $test->shown( $test->admin, 'site', 'other' )['nonce'] ) + $test->shown( $test->admin, 'site', 'x' ), 403 );
 				},
 			),
@@ -184,14 +168,14 @@ final class AdminNoticesDismissalTest extends TestCase {
 			'lacking-capability'  => array(
 				static function ( self $test ): array {
 					$shown = $test->shown( $test->admin, 'site', 'x' );
-					$test->notices->add( $test->notice( 'x', NoticeScope::Site, capability: 'acme_never_granted' ) );
+					$test->notices->add( $test->notice( 'x', NoticeScope::Site, capability: 'acme_never_granted', persistent: true ) );
 					return array( $shown, 403 );
 				},
 			),
 			'not-dismissible'     => array(
 				static function ( self $test ): array {
 					$shown = $test->shown( $test->admin, 'site', 'x' );
-					$test->notices->add( $test->notice( 'x', NoticeScope::Site, dismissible: false ) );
+					$test->notices->add( $test->notice( 'x', NoticeScope::Site, dismissible: false, persistent: true ) );
 					return array( $shown, 403 );
 				},
 			),
@@ -207,7 +191,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	#[DataProvider( 'refusals' )]
 	public function test_a_dismissal_without_a_matching_nonce_audience_or_record_changes_nothing( \Closure $arrange ): void {
-		$this->notices->add( $this->notice( 'x', NoticeScope::Site ) );
+		$this->notices->add( $this->notice( 'x', NoticeScope::Site, persistent: true ) );
 		wp_set_current_user( $this->admin );
 		list( $params, $status ) = $arrange( $this );
 		$stored                  = $this->notices->get_notices( NoticeScope::Site );
@@ -275,7 +259,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	#[DataProvider( 'failing_stores' )]
 	public function test_a_failing_store_answers_500_and_is_logged( bool $per_viewer, \Closure $fail ): void {
-		$this->notices->add( $this->notice( 'x', NoticeScope::Site, per_viewer: $per_viewer ) );
+		$this->notices->add( $this->notice( 'x', NoticeScope::Site, per_viewer: $per_viewer, persistent: true ) );
 		$shown = $this->shown( $this->admin, 'site', 'x' );
 		$fail( $this );
 
@@ -287,8 +271,8 @@ final class AdminNoticesDismissalTest extends TestCase {
 	}
 
 	public function test_a_failing_store_whose_logger_throws_answers_500_and_reaches_the_error_log(): void {
-		$notices = new AdminNotices( $this->prefix, new ThrowingDismissalLogger() );
-		$notices->add( $this->notice( 'x', NoticeScope::Site ) );
+		$notices = new AdminNotices( $this->prefix, new ThrowingLogger( new \UnexpectedValueException( 'The log is not writable.' ) ) );
+		$notices->add( $this->notice( 'x', NoticeScope::Site, persistent: true ) );
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_body_params( $this->shown( $this->admin, 'site', 'x' ) );
 		add_filter( "pre_update_option_{$this->prefix}_notices", static fn (): never => throw new \RuntimeException( 'The options table is unavailable.' ) );
@@ -310,11 +294,9 @@ final class AdminNoticesDismissalTest extends TestCase {
 	}
 
 	public function test_the_http_path_with_cookie_authentication_needs_the_rest_nonce(): void {
-		$this->notices->add( $this->notice( 'setup', NoticeScope::Site ) );
+		$this->notices->add( $this->notice( 'setup', NoticeScope::Site, persistent: true ) );
 		$_SERVER['REQUEST_METHOD']   = 'GET';
-		$expiration                  = \time() + DAY_IN_SECONDS;
-		$token                       = \WP_Session_Tokens::get_instance( $this->admin )->create( $expiration );
-		$_COOKIE[ LOGGED_IN_COOKIE ] = wp_generate_auth_cookie( $this->admin, $expiration, 'logged_in', $token );
+		$_COOKIE[ LOGGED_IN_COOKIE ] = $this->get_session_cookies( $this->admin )[ LOGGED_IN_COOKIE ];
 		$params                      = $this->shown( $this->admin, 'site', 'setup' );
 		$rest_nonce                  = wp_create_nonce( 'wp_rest' );
 
@@ -329,7 +311,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 	public function test_a_shared_network_notice_dismissed_on_one_site_is_deleted_for_the_network(): void {
 		$site_id = $this->make_site( 'acme-notices' );
 		add_user_to_blog( $site_id, $this->admin, 'administrator' );
-		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read' ) );
+		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', persistent: true ) );
 		switch_to_blog( $site_id );
 
 		self::assertSame( 200, $this->dismiss( $this->shown( $this->admin, 'network', 'x' ) )->get_status() );
@@ -344,7 +326,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 	public function test_a_per_viewer_network_notice_dismissed_on_one_site_stays_hidden_on_every_site_and_in_the_network_admin(): void {
 		$site_id = $this->make_site( 'acme-notices' );
 		add_user_to_blog( $site_id, $this->admin, 'administrator' );
-		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true ) );
+		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true, persistent: true ) );
 		switch_to_blog( $site_id );
 
 		self::assertSame( 200, $this->dismiss( $this->shown( $this->admin, 'network', 'x' ) )->get_status() );
@@ -358,7 +340,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	#[Group( 'multisite' )]
 	public function test_a_per_viewer_network_notice_dismissed_on_one_network_still_shows_on_another(): void {
-		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true ) );
+		$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true, persistent: true ) );
 		self::assertSame( 200, $this->dismiss( $this->shown( $this->admin, 'network', 'x' ) )->get_status() );
 
 		// User meta is installation-wide, so a second network sees the same dismissals.
@@ -371,7 +353,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 			)
 		);
 		try {
-			$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true ) );
+			$this->notices->add( $this->notice( 'x', NoticeScope::Network, capability: 'read', per_viewer: true, persistent: true ) );
 			$shown = \array_keys( $this->render( $this->admin ) );
 		} finally {
 			delete_network_option( 2, "{$this->prefix}_network_notices" );
@@ -380,14 +362,6 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 		self::assertSame( array( $this->dom_id( 'network', 'x' ) ), $shown );
 		self::assertSame( array( 'network:1:x' ), \array_keys( get_user_meta( $this->admin, "{$this->prefix}_network_hidden_notices", true ) ) );
-	}
-
-	protected function notice( string $id, NoticeScope $scope, mixed ...$arguments ): Notice {
-		$arguments['scope']        = $scope;
-		$arguments['persistent'] ??= true;
-		$arguments['capability'] ??= NoticeScope::Site === $scope || NoticeScope::Network === $scope ? 'manage_options' : null;
-
-		return new Notice( $id, "Notice $id.", ...$arguments );
 	}
 
 	// What the dismiss script posts for the notice as the user is shown it.
@@ -411,7 +385,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 	protected function dismiss( array $params ): \WP_REST_Response {
 		$request = new \WP_REST_Request( 'POST', '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' );
-		$request->set_body_params( \array_filter( $params, static fn ( mixed $value ): bool => null !== $value ) );
+		$request->set_body_params( \array_filter( $params, static fn ( mixed $value ): bool => ! \is_null( $value ) ) );
 
 		return rest_do_request( $request );
 	}
@@ -424,7 +398,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		wp_get_current_user();
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		unset( $_SERVER['HTTP_X_WP_NONCE'] );
-		if ( null !== $rest_nonce ) {
+		if ( ! \is_null( $rest_nonce ) ) {
 			$_SERVER['HTTP_X_WP_NONCE'] = $rest_nonce;
 		}
 		$_POST = $params;
@@ -433,9 +407,5 @@ final class AdminNoticesDismissalTest extends TestCase {
 		rest_get_server()->serve_request( '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' );
 
 		return \json_decode( (string) \ob_get_clean(), true );
-	}
-
-	protected function dom_id( string $scope, string $id ): string {
-		return "{$this->prefix}-$scope-notice-$id";
 	}
 }

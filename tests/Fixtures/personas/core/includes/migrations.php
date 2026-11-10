@@ -8,8 +8,6 @@
  * @package Acme\PersonaCore
  */
 
-use Acme\PersonaCore\Plugin;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -37,7 +35,7 @@ function acme_pc_get_migration_steps(): array {
  * @return  void
  */
 function acme_pc_add_settings(): void {
-	if ( false === get_option( Plugin::PREFIX . '_settings' ) && ! add_option( Plugin::PREFIX . '_settings', array( 'greeting' => 'Hello' ) ) ) {
+	if ( false === get_option( ACME_PC_OPTION_SETTINGS ) && ! add_option( ACME_PC_OPTION_SETTINGS, array( 'greeting' => 'Hello' ) ) ) {
 		throw new RuntimeException( 'The settings could not be stored.' );
 	}
 }

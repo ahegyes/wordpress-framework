@@ -35,6 +35,7 @@ final class FormsRenderControlTest extends TestCase {
 		$radio    = self::render(
 			'radio',
 			array(
+				'title'   => 'Mode',
 				'desc'    => 'Help.',
 				'options' => array( 'a' => 'A' ),
 			),
@@ -82,12 +83,40 @@ final class FormsRenderControlTest extends TestCase {
 		self::assertSame( $type, self::render( $type )->getElementById( 'acme.key' )->getAttribute( 'type' ) );
 	}
 
-	public function test_help_text_is_linked_from_the_control_by_aria_describedby(): void {
-		$document = self::render( 'text', array( 'desc' => 'Shown below.' ) );
+	public function test_help_text_is_linked_from_the_control_by_aria_describedby_and_styled_as_a_description(): void {
+		$document = self::render( 'text', array( 'desc' => 'Shown <em>below</em>.' ) );
 
 		self::assertSame( 'acme.key.description', $document->getElementById( 'acme.key' )->getAttribute( 'aria-describedby' ) );
 		self::assertTrue( $document->getElementById( 'acme.key.description' )->matches( 'p.description' ) );
 		self::assertSame( 'Shown below.', self::text( $document->getElementById( 'acme.key.description' ) ) );
+	}
+
+	public function test_help_holding_paragraphs_and_lists_stays_inside_the_element_the_control_names(): void {
+		$document = self::render( 'text', array( 'desc' => '<p>First.</p><ul><li>Second.</li></ul>' ) );
+
+		$help = $document->getElementById( 'acme.key.description' );
+		self::assertTrue( $help?->matches( 'div.description' ) );
+		self::assertNotNull( $help?->querySelector( 'p' ) );
+		self::assertNotNull( $help?->querySelector( 'ul > li' ) );
+		self::assertSame( 'First.Second.', self::text( $help ) );
+	}
+
+	public static function paragraph_closing_help(): array {
+		return array(
+			'fieldset' => array( '<fieldset>Read this first.</fieldset>' ),
+			'hgroup'   => array( '<hgroup>Read this first.</hgroup>' ),
+			'main'     => array( '<main>Read this first.</main>' ),
+			'menu'     => array( '<menu><li>Read this first.</li></menu>' ),
+			'search'   => array( '<search>Read this first.</search>' ),
+		);
+	}
+
+	#[DataProvider( 'paragraph_closing_help' )]
+	public function test_help_holding_an_element_that_ends_a_paragraph_stays_inside_the_element_the_control_names( string $desc ): void {
+		$help = self::render( 'text', array( 'desc' => $desc ) )->getElementById( 'acme.key.description' );
+
+		self::assertTrue( $help?->matches( 'div.description' ) );
+		self::assertSame( 'Read this first.', self::text( $help ) );
 	}
 
 	public static function non_input_controls(): array {
@@ -129,7 +158,7 @@ final class FormsRenderControlTest extends TestCase {
 		);
 
 		self::assertSame( array( 'Description.' ), self::descriptions( $document, $document->getElementById( 'acme.key' ) ) );
-		self::assertCount( 1, $document->querySelectorAll( 'p.description' ) );
+		self::assertCount( 1, $document->querySelectorAll( '.description' ) );
 	}
 
 	public function test_a_control_without_help_has_no_aria_describedby(): void {
@@ -302,6 +331,7 @@ final class FormsRenderControlTest extends TestCase {
 		$document = self::render(
 			'checkboxes',
 			array(
+				'title'   => 'Picks',
 				'desc'    => 'Pick any.',
 				'options' => array( 'a' => 'A' ),
 			)
@@ -309,6 +339,34 @@ final class FormsRenderControlTest extends TestCase {
 
 		self::assertSame( array( 'Pick any.' ), self::descriptions( $document, $document->querySelector( 'fieldset' ) ) );
 		self::assertFalse( $document->getElementById( 'acme.key.0' )->hasAttribute( 'aria-describedby' ) );
+	}
+
+	public static function group_fields(): array {
+		return array(
+			'radio'      => array( 'radio' ),
+			'checkboxes' => array( 'checkboxes' ),
+		);
+	}
+
+	// A host that names the group in its own fieldset passes no title.
+	#[DataProvider( 'group_fields' )]
+	public function test_a_group_without_a_title_prints_no_fieldset_and_each_choice_links_its_help( string $type ): void {
+		$document = self::render(
+			$type,
+			array(
+				'desc'    => 'Pick.',
+				'options' => array(
+					'a' => 'A',
+					'b' => 'B',
+				),
+			)
+		);
+
+		self::assertNull( $document->querySelector( 'fieldset' ) );
+		self::assertCount( 2, self::choices( $document ) );
+		foreach ( self::choices( $document ) as $choice ) {
+			self::assertSame( array( 'Pick.' ), self::descriptions( $document, $choice ) );
+		}
 	}
 
 	public static function disabled_fields(): array {
@@ -451,7 +509,7 @@ final class FormsRenderControlTest extends TestCase {
 			)
 		);
 
-		self::assertSame( $printed, null !== $document->querySelector( '[placeholder]' ) );
+		self::assertSame( $printed, ! \is_null( $document->querySelector( '[placeholder]' ) ) );
 	}
 
 	public static function sizing_classes(): array {
@@ -512,7 +570,7 @@ final class FormsRenderControlTest extends TestCase {
 	}
 
 	protected static function choices( \Dom\HTMLDocument $document ): array {
-		return \iterator_to_array( $document->querySelectorAll( 'fieldset input:not([type="hidden"])' ) );
+		return \iterator_to_array( $document->querySelectorAll( 'input:not([type="hidden"])' ) );
 	}
 
 	protected static function post_pair( \Dom\Element $input ): array {

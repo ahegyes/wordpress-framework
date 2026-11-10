@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Unit;
 
 use Composer\Autoload\ClassLoader;
 use Composer\InstalledVersions;
+use DeepWebSolutions\Framework\Tests\Unit\Support\ProvidesPackagesTrait;
 use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\ClassLike;
@@ -21,28 +22,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PackageManifestsTest extends TestCase {
-	protected const array REQUIRES = array(
-		'bootstrap'   => array( 'php' => '>=7.4' ),
-		'shared'      => array( 'php' => '>=8.5' ),
-		'core'        => array(
-			'ahegyes/wp-framework-bootstrap' => '^2.0',
-			'ahegyes/wp-framework-shared'    => '^2.0',
-			'ext-filter'                     => '*',
-			'php'                            => '>=8.5',
-			'psr/clock'                      => '^1',
-			'psr/container'                  => '^2.0.2',
-			'psr/log'                        => '^3.0.2',
-			'psr/simple-cache'               => '^3',
-		),
-		'settings'    => array(
-			'ahegyes/wp-framework-core' => '^2.0',
-			'php'                       => '>=8.5',
-		),
-		'woocommerce' => array(
-			'ahegyes/wp-framework-settings' => '^2.0',
-			'php'                           => '>=8.5',
-		),
-	);
+	use ProvidesPackagesTrait;
 
 	protected const array EXTRAS = array(
 		'bootstrap'   => array(
@@ -63,6 +43,7 @@ final class PackageManifestsTest extends TestCase {
 		'woocommerce' => array(
 			'branch-alias'     => array( 'dev-trunk' => '2.x-dev' ),
 			'requires-plugins' => array( 'woocommerce' ),
+			'requires-wc'      => '11.2',
 			'requires-wp'      => '7.1',
 		),
 	);
@@ -78,19 +59,6 @@ final class PackageManifestsTest extends TestCase {
 		'Psr\\Log\\'                                 => 'psr/log',
 		'Psr\\SimpleCache\\'                         => 'psr/simple-cache',
 	);
-
-	public static function packages(): array {
-		$packages = array();
-		foreach ( self::REQUIRES as $package => $requires ) {
-			$packages[ $package ] = array( $package, $requires );
-		}
-
-		return $packages;
-	}
-
-	public static function package_names(): array {
-		return \array_map( static fn ( array $package ): array => array( $package[0] ), self::packages() );
-	}
 
 	public function test_the_monorepo_holds_exactly_the_mapped_packages(): void {
 		$directories = \array_map( 'basename', \glob( self::packages_directory() . '/*', \GLOB_ONLYDIR ) );
@@ -108,7 +76,7 @@ final class PackageManifestsTest extends TestCase {
 
 	#[DataProvider( 'package_names' )]
 	public function test_a_packages_extra_declares_exactly_its_floors_and_branch_alias( string $package ): void {
-		$extra = \array_intersect_key( self::read_manifest( $package )['extra'] ?? array(), \array_flip( array( 'branch-alias', 'requires-plugins', 'requires-wp' ) ) );
+		$extra = \array_intersect_key( self::read_manifest( $package )['extra'] ?? array(), \array_flip( array( 'branch-alias', 'requires-plugins', 'requires-wc', 'requires-wp' ) ) );
 		\ksort( $extra );
 
 		self::assertSame( self::EXTRAS[ $package ], $extra );
@@ -154,13 +122,20 @@ final class PackageManifestsTest extends TestCase {
 		self::assertArrayNotHasKey( 'autoload', self::read_manifest( 'bootstrap' ) );
 	}
 
+	public static function package_namespaces(): array {
+		$namespaces = array();
+		foreach ( self::OWNERS as $prefix => $owner ) {
+			if ( \str_starts_with( $owner, 'ahegyes/wp-framework-' ) ) {
+				$package                = \substr( $owner, \strlen( 'ahegyes/wp-framework-' ) );
+				$namespaces[ $package ] = array( $package, $prefix );
+			}
+		}
+
+		return $namespaces;
+	}
+
 	public static function autoloaded_packages(): array {
-		return array(
-			'shared'      => array( 'shared', 'DeepWebSolutions\\Framework\\Shared\\' ),
-			'core'        => array( 'core', 'DeepWebSolutions\\Framework\\Core\\' ),
-			'settings'    => array( 'settings', 'DeepWebSolutions\\Framework\\Settings\\' ),
-			'woocommerce' => array( 'woocommerce', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
-		);
+		return \array_diff_key( self::package_namespaces(), array( 'bootstrap' => true ) );
 	}
 
 	// Composer includes a files entry on every request.
@@ -171,14 +146,15 @@ final class PackageManifestsTest extends TestCase {
 
 	public function test_every_file_outside_the_shared_package_exits_without_wordpress_right_after_its_use_block(): void {
 		$unguarded = array();
-		foreach ( array( 'bootstrap', 'core', 'settings', 'woocommerce' ) as $package ) {
+		foreach ( \array_diff( \array_keys( self::REQUIRES ), array( 'shared' ) ) as $package ) {
 			$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( self::packages_directory() . "/$package", \FilesystemIterator::SKIP_DOTS ) );
 			foreach ( new \RegexIterator( $files, '#(?<!/index)\.php$#' ) as $file ) {
 				$code      = (string) \file_get_contents( $file->getPathname() );
-				$nodes     = ( new ParserFactory() )->createForHostVersion()->parse( $code );
-				$namespace = ( new NodeFinder() )->findFirstInstanceOf( $nodes, Namespace_::class );
+				$nodes     = new ParserFactory()->createForHostVersion()->parse( $code );
+				$namespace = new NodeFinder()->findFirstInstanceOf( $nodes, Namespace_::class );
 				$statement = \current( \array_filter( $namespace?->stmts ?? $nodes, static fn ( Node $node ): bool => ! $node instanceof Declare_ && ! $node instanceof Use_ && ! $node instanceof GroupUse ) );
-				if ( false === $statement || "\\defined( 'ABSPATH' ) || exit;" !== \substr( $code, $statement->getStartFilePos(), $statement->getEndFilePos() - $statement->getStartFilePos() + 1 ) ) {
+				$guard     = \is_null( $namespace ) ? "defined( 'ABSPATH' ) || exit;" : "\\defined( 'ABSPATH' ) || exit;";
+				if ( false === $statement || \substr( $code, $statement->getStartFilePos(), $statement->getEndFilePos() - $statement->getStartFilePos() + 1 ) !== $guard ) {
 					$unguarded[] = $file->getPathname();
 				}
 			}
@@ -198,20 +174,10 @@ final class PackageManifestsTest extends TestCase {
 		self::assertSame( array(), $missing );
 	}
 
-	public static function source_directories(): array {
-		return array(
-			'bootstrap'   => array( 'bootstrap/src', 'DeepWebSolutions\\Framework\\Bootstrap\\' ),
-			'shared'      => array( 'shared/src', 'DeepWebSolutions\\Framework\\Shared\\' ),
-			'core'        => array( 'core/src', 'DeepWebSolutions\\Framework\\Core\\' ),
-			'settings'    => array( 'settings/src', 'DeepWebSolutions\\Framework\\Settings\\' ),
-			'woocommerce' => array( 'woocommerce/src', 'DeepWebSolutions\\Framework\\WooCommerce\\' ),
-		);
-	}
-
 	// Composer drops PSR-4 violations under vendor/ without a word, so a misplaced package class would autoload in no consumer.
-	#[DataProvider( 'source_directories' )]
-	public function test_every_package_class_sits_at_the_path_its_name_implies( string $directory, string $prefix ): void {
-		self::assertSame( array(), self::misplaced_classes( self::packages_directory() . "/$directory", $prefix ) );
+	#[DataProvider( 'package_namespaces' )]
+	public function test_every_package_class_sits_at_the_path_its_name_implies( string $package, string $prefix ): void {
+		self::assertSame( array(), self::misplaced_classes( self::packages_directory() . "/$package/src", $prefix ) );
 	}
 
 	public function test_a_class_away_from_the_path_its_name_implies_is_misplaced(): void {
@@ -234,18 +200,9 @@ final class PackageManifestsTest extends TestCase {
 	}
 
 	public function test_a_namespace_relative_name_resolves_against_its_namespace(): void {
-		$file = \dirname( __DIR__ ) . '/Fixtures/package-manifests/relative-name.php';
+		$file = \dirname( __DIR__ ) . '/Fixtures/PackageManifests/relative-name.php';
 
 		self::assertContains( 'DeepWebSolutions\\Framework\\Settings\\AdminPage\\OptionsPage', self::referenced_names( $file ) );
-	}
-
-	protected static function closure( string $package ): array {
-		$closure = array( "ahegyes/wp-framework-$package" );
-		foreach ( \array_keys( self::REQUIRES[ $package ] ) as $name ) {
-			$closure = \array_merge( $closure, \str_starts_with( $name, 'ahegyes/wp-framework-' ) ? self::closure( \substr( $name, \strlen( 'ahegyes/wp-framework-' ) ) ) : array( $name ) );
-		}
-
-		return \array_values( \array_unique( $closure ) );
 	}
 
 	protected static function misplaced_classes( string $directory, string $prefix ): array {
@@ -254,11 +211,11 @@ final class PackageManifestsTest extends TestCase {
 		foreach ( new \RegexIterator( $files, '/\.php$/' ) as $file ) {
 			$path     = \substr( $file->getPathname(), \strlen( $directory ) + 1 );
 			$expected = $prefix . \str_replace( '/', '\\', \substr( $path, 0, -4 ) );
-			$nodes    = ( new ParserFactory() )->createForHostVersion()->parse( \file_get_contents( $file->getPathname() ) );
+			$nodes    = new ParserFactory()->createForHostVersion()->parse( \file_get_contents( $file->getPathname() ) );
 			// A file without a namespace declaration holds its classes in the global namespace.
-			$namespaces = ( new NodeFinder() )->findInstanceOf( $nodes, Namespace_::class ) ?: array( new Namespace_( null, $nodes ) );
+			$namespaces = new NodeFinder()->findInstanceOf( $nodes, Namespace_::class ) ?: array( new Namespace_( null, $nodes ) );
 			foreach ( $namespaces as $namespace ) {
-				foreach ( ( new NodeFinder() )->findInstanceOf( $namespace->stmts, ClassLike::class ) as $class ) {
+				foreach ( new NodeFinder()->findInstanceOf( $namespace->stmts, ClassLike::class ) as $class ) {
 					$name = \ltrim( $namespace->name?->toString() . '\\' . $class->name?->toString(), '\\' );
 					if ( ! \is_null( $class->name ) && $expected !== $name ) {
 						$misplaced[] = "$path: $name";
@@ -285,9 +242,9 @@ final class PackageManifestsTest extends TestCase {
 
 	protected static function referenced_names( string $file ): array {
 		// Names built from strings at runtime and types named only in docblocks are not seen.
-		$nodes = ( new NodeTraverser( new NameResolver() ) )->traverse( ( new ParserFactory() )->createForHostVersion()->parse( \file_get_contents( $file ) ) );
+		$nodes = new NodeTraverser( new NameResolver() )->traverse( new ParserFactory()->createForHostVersion()->parse( \file_get_contents( $file ) ) );
 
-		return \array_map( static fn ( Name $name ): string => $name->toString(), ( new NodeFinder() )->findInstanceOf( $nodes, Name::class ) );
+		return \array_map( static fn ( Name $name ): string => $name->toString(), new NodeFinder()->findInstanceOf( $nodes, Name::class ) );
 	}
 
 	protected static function is_foreign( string $name, array $allowed ): bool {

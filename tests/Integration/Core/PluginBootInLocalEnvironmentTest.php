@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core;
 
 use DeepWebSolutions\Framework\Core\PluginBoot;
+use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -12,6 +13,8 @@ use Psr\Log\NullLogger as PsrNullLogger;
 #[CoversClass( PluginBoot::class )]
 #[RunTestsInSeparateProcesses]
 final class PluginBootInLocalEnvironmentTest extends TestCase {
+	use IsolatesStorageTrait;
+
 	protected static string|false $environment_type = false;
 
 	protected array $fired = array();
@@ -32,31 +35,26 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 	#[\Override]
 	protected function setUp(): void {
 		add_action(
-			'acme/boot/succeeded',
+			"$this->prefix/boot/succeeded",
 			function (): void {
-				$this->fired[] = 'acme/boot/succeeded';
+				$this->fired[] = 'succeeded';
 			},
 			10,
 			0
 		);
 		add_action(
-			'acme/boot/failed',
+			"$this->prefix/boot/failed",
 			function ( \Throwable $failure ): void {
-				$this->fired[]    = 'acme/boot/failed';
+				$this->fired[]    = 'failed';
 				$this->failures[] = $failure;
 			}
 		);
 	}
 
-	#[\Override]
-	protected function tearDown(): void {
-		delete_transient( 'acme_boot_failure_' . \md5( 'composition failed' ) );
-	}
-
 	public function test_a_failing_composition_is_rethrown_after_the_failure_action(): void {
 		self::assertSame( 'local', wp_get_environment_type() );
 		$failure = new \RuntimeException( 'composition failed' );
-		$boot    = new PluginBoot( __DIR__ . '/../../Fixtures/Core/acme-boot.php', 'acme', new PsrNullLogger() );
+		$boot    = new PluginBoot( __DIR__ . '/../../Fixtures/Core/acme-boot.php', $this->prefix, new PsrNullLogger() );
 
 		$caught = null;
 		try {
@@ -67,7 +65,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 
 		self::assertSame( $failure, $caught, 'The failure was not rethrown.' );
 		self::assertSame( 'failed', $boot->status );
-		self::assertSame( array( 'acme/boot/failed' ), $this->fired );
+		self::assertSame( array( 'failed' ), $this->fired );
 		self::assertSame( array( $failure ), $this->failures );
 	}
 }

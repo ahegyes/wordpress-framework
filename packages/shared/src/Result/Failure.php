@@ -11,7 +11,7 @@ use DeepWebSolutions\Framework\Shared\Error\ErrorInterface;
  * @version 2.0.0
  *
  * @template-covariant TError of ErrorInterface
- * @extends AbstractResult<never, TError>
+ * @extends            AbstractResult<never, TError>
  */
 final readonly class Failure extends AbstractResult {
 	// region MAGIC METHODS

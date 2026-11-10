@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\ConsumerA;
 
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InstallsConsumersTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\ProductFixturesTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 final class ConsumerAUninstallTest extends TestCase {
 	use CreatesUsersTrait;
 	use InstallsConsumersTrait;
+	use ProductFixturesTrait;
 
 	protected const string DIR = 'acme-consumer-a-uninstall';
 
@@ -28,6 +30,7 @@ final class ConsumerAUninstallTest extends TestCase {
 			'autoloader'        => array( array( 'vendor/autoload.php' ), array() ),
 			'scoped-autoloader' => array( array( 'vendor-prefixed/scoper-autoload.php' ), array() ),
 			'composition-root'  => array( array( 'src/Plugin.php' ), array() ),
+			'scoped-engine'     => array( array( 'vendor-prefixed/ahegyes/wp-framework-core/src/Uninstall/Uninstaller.php' ), array() ),
 			'footprint'         => array( array( 'includes/footprint.php' ), array() ),
 			'below-php-floor'   => array( array(), array( 'Requires PHP' => '99' ) ),
 		);
@@ -59,6 +62,7 @@ final class ConsumerAUninstallTest extends TestCase {
 
 		self::assertSame( 500, $request['died']['status'] ?? null );
 		self::assertStringStartsWith( 'Uninstall could not remove everything: option acme_ca_revision: ', $request['died']['message'] ?? '' );
+		self::assertStringEndsWith( ' exist.', $request['died']['message'] ?? '' );
 		self::assertFileExists( WP_PLUGIN_DIR . '/' . self::DIR . '/acme-consumer-a.php' );
 		self::assertSame( array( 'delete_data' => 'yes' ), get_option( 'acme_ca_settings' ) );
 		self::assertSame( '1', get_option( 'acme_ca_revision' ) );
@@ -82,29 +86,17 @@ final class ConsumerAUninstallTest extends TestCase {
 		$this->seed_footprint();
 		$this->install_consumer( 'consumer-a', self::DIR, $remove, $headers );
 
-		$descriptors = array(
-			1 => array( 'pipe', 'w' ),
-			2 => array( 'pipe', 'w' ),
-		);
-		$process     = \proc_open( array( 'wp', 'plugin', 'uninstall', self::DIR ), $descriptors, $pipes, ABSPATH ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Runs WP-CLI's own command.
-		self::assertIsResource( $process );
-		$output = \stream_get_contents( $pipes[1] ) . \stream_get_contents( $pipes[2] );
-		\fclose( $pipes[1] );
-		\fclose( $pipes[2] );
-		$exit = \proc_close( $process );
+		list( $exit_code, $output, $errors ) = self::run_process( array( 'wp', 'plugin', 'uninstall', self::DIR ), ABSPATH );
 		wp_cache_flush();
 
-		self::assertNotSame( 0, $exit, (string) $output );
+		self::assertNotSame( 0, $exit_code, $output . $errors );
 		self::assertFileExists( WP_PLUGIN_DIR . '/' . self::DIR . '/acme-consumer-a.php' );
 		self::assertSame( array( 'delete_data' => 'yes' ), get_option( 'acme_ca_settings' ) );
 		self::assertSame( 'kept', get_post_meta( $this->product_id, '_acme_ca_packing_note', true ) );
 	}
 
 	#[After]
-	protected function delete_seeded_rows(): void {
-		if ( 0 !== $this->product_id ) {
-			wp_delete_post( $this->product_id, true );
-		}
+	protected function delete_request_log(): void {
 		if ( '' !== $this->log && \is_file( $this->log ) ) {
 			\unlink( $this->log ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the request's log.
 		}
@@ -120,10 +112,7 @@ final class ConsumerAUninstallTest extends TestCase {
 		update_user_option( $this->user_id, 'acme_ca_hidden_notices', array( 'seeded' ) );
 		update_user_meta( $this->user_id, 'acme_ca_network_hidden_notices', array( 'seeded' ) );
 
-		$product = wc_get_product_object( 'simple' );
-		$product->set_name( 'Acme product' );
-		$product->update_meta_data( '_acme_ca_packing_note', 'kept' );
-		$this->product_id = $product->save();
+		$this->product_id = $this->make_product( array( '_acme_ca_packing_note' => 'kept' ) )->get_id();
 	}
 
 	protected function uninstall_on_the_web( string $plugin, array $missing, string $failing_query = '' ): array {

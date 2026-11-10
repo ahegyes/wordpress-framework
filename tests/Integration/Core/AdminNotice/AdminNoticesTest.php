@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\AdminNotice;
 
 use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
-use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeType;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
@@ -12,49 +11,36 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordingLogger;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordsDoingItWrongTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RendersAdminScreensTrait;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\AbstractLogger as PsrAbstractLogger;
-
-final class NoticesLogger extends PsrAbstractLogger {
-	public array $records = array();
-
-	#[\Override]
-	public function log( mixed $level, string|\Stringable $message, array $context = array() ): void {
-		$this->records[] = array( $level, (string) $message, $context );
-	}
-}
 
 #[CoversClass( AdminNotices::class )]
 final class AdminNoticesTest extends TestCase {
+	use AdminNoticeFixturesTrait;
 	use CreatesSitesTrait;
 	use CreatesUsersTrait;
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
+	use RecordsDoingItWrongTrait;
 	use RendersAdminScreensTrait;
 
 	protected int $admin;
 	protected int $other_admin;
 	protected int $editor;
-	protected NoticesLogger $logger;
+	protected RecordingLogger $logger;
 
 	#[\Override]
 	protected function setUp(): void {
 		$this->admin       = $this->make_user( 'acme_notices_admin', 'administrator' );
 		$this->other_admin = $this->make_user( 'acme_notices_other_admin', 'administrator' );
 		$this->editor      = $this->make_user( 'acme_notices_editor', 'editor' );
-		$this->logger      = new NoticesLogger();
-	}
-
-	#[\Override]
-	protected function tearDown(): void {
-		while ( is_multisite() && ms_is_switched() ) {
-			restore_current_blog();
-		}
+		$this->logger      = new RecordingLogger();
 	}
 
 	public static function invalid_prefixes(): array {
@@ -123,38 +109,32 @@ final class AdminNoticesTest extends TestCase {
 
 	public static function misaddressed_notices(): array {
 		return array(
-			'a-user-for-a-site-notice' => array( NoticeScope::Site, 5, InvalidArgumentException::class ),
-			'no-user-logged-in'        => array( NoticeScope::User, 0, LogicException::class ),
-			'a-negative-user'          => array( NoticeScope::User, -5, LogicException::class ),
+			'a-user-for-a-site-notice' => array( NoticeScope::Site, 5, InvalidArgumentException::class, "but user '5' was given." ),
+			'no-user-logged-in'        => array( NoticeScope::User, 0, LogicException::class, "but it has user '0'." ),
+			'a-negative-user'          => array( NoticeScope::User, -5, LogicException::class, "but it has user '-5'." ),
 		);
 	}
 
 	#[DataProvider( 'misaddressed_notices' )]
-	public function test_a_notice_addressed_to_no_user_or_to_a_user_outside_the_user_scope_is_rejected( NoticeScope $scope, int $user_id, string $exception ): void {
+	public function test_a_notice_addressed_to_no_user_or_to_a_user_outside_the_user_scope_is_rejected( NoticeScope $scope, int $user_id, string $exception, string $ending ): void {
 		$this->expectException( $exception );
+		$this->expectExceptionMessageMatches( '/' . \preg_quote( $ending, '/' ) . '$/' );
 
 		$this->notices()->add( $this->notice( 'saved', $scope ), $user_id );
 	}
 
 	public function test_a_request_notice_added_after_the_notices_showed_is_reported(): void {
-		$reported = array();
-		add_filter( 'doing_it_wrong_trigger_error', '__return_false' );
-		add_action(
-			'doing_it_wrong_run',
-			static function ( string $function_name ) use ( &$reported ): void {
-				$reported[] = $function_name;
-			}
-		);
+		$this->record_doing_it_wrong();
 		wp_set_current_user( $this->admin );
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'before', NoticeScope::Request ) );
-		self::assertSame( array(), $reported );
+		self::assertSame( array(), $this->doing_it_wrong );
 
 		do_action( 'all_admin_notices' );
 		$notices->add( $this->notice( 'user' ) );
 		$notices->add( $this->notice( 'after', NoticeScope::Request ) );
 
-		self::assertSame( array( AdminNotices::class . '::add' ), $reported );
+		self::assertSame( array( AdminNotices::class . '::add' ), $this->doing_it_wrong );
 		self::assertSame( array( 'before', 'after' ), self::ids( $notices->get_notices( NoticeScope::Request ) ) );
 	}
 
@@ -305,7 +285,7 @@ final class AdminNoticesTest extends TestCase {
 	public function test_the_visibility_filter_hides_a_notice_without_consuming_it_unless_it_returns_true(): void {
 		$calls = array();
 		add_filter(
-			"{$this->prefix}/admin_notice/should_show",
+			"$this->prefix/admin_notice/should_show",
 			static function ( mixed $visible, string $id, string $scope ) use ( &$calls ): mixed {
 				$calls[] = array( $visible, $id, $scope );
 				return match ( $id ) {
@@ -330,7 +310,7 @@ final class AdminNoticesTest extends TestCase {
 	public function test_the_message_filter_replaces_the_printed_message_unless_it_returns_no_string(): void {
 		$calls = array();
 		add_filter(
-			"{$this->prefix}/admin_notice/message",
+			"$this->prefix/admin_notice/message",
 			static function ( string $message, string $id, string $scope ) use ( &$calls ): ?string {
 				$calls[] = array( $message, $id, $scope );
 				return 'kept' === $id ? null : 'Translated.';
@@ -377,12 +357,12 @@ final class AdminNoticesTest extends TestCase {
 		$notices = $this->notices();
 		$notices->add( $this->notice( 'once', NoticeScope::Request ) );
 		$this->render( $this->admin, $notices );
-		$notices->enqueue_dismiss_script();
+		$notices->enqueue_dismissal_script();
 		self::assertFalse( wp_script_is( $this->script_handle(), 'registered' ) );
 
 		$notices->add( $this->notice( 'kept', NoticeScope::Request, persistent: true ) );
 		$this->render( $this->admin, $notices );
-		$notices->enqueue_dismiss_script();
+		$notices->enqueue_dismissal_script();
 		$script = \implode( "\n", wp_scripts()->get_data( $this->script_handle(), 'after' ) );
 
 		self::assertTrue( wp_script_is( $this->script_handle() ) );
@@ -510,27 +490,12 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	protected function script_handle(): string {
-		return "{$this->prefix}-notice-dismissal";
+		return "$this->prefix-notice-dismissal";
 	}
 
 	#[After]
 	protected function remove_the_script(): void {
 		wp_dequeue_script( $this->script_handle() );
 		wp_deregister_script( $this->script_handle() );
-	}
-
-	protected function notice( string $id, NoticeScope $scope = NoticeScope::User, string $message = '', mixed ...$arguments ): Notice {
-		$arguments['scope']        = $scope;
-		$arguments['capability'] ??= NoticeScope::Site === $scope || NoticeScope::Network === $scope ? 'manage_options' : null;
-
-		return new Notice( $id, '' === $message ? "Notice $id." : $message, ...$arguments );
-	}
-
-	protected function dom_id( string $scope, string $id ): string {
-		return "{$this->prefix}-$scope-notice-$id";
-	}
-
-	protected static function ids( array $notices ): array {
-		return \array_map( static fn ( Notice $notice ): string => $notice->id, $notices );
 	}
 }

@@ -17,7 +17,7 @@ trait ReportsActionSchedulerVersionsTrait {
 	#[After]
 	protected function restore_action_scheduler_versions(): void {
 		if ( ! \is_null( $this->registered_versions ) ) {
-			( new \ReflectionProperty( \ActionScheduler_Versions::class, 'versions' ) )->setValue( \ActionScheduler_Versions::instance(), $this->registered_versions );
+			new \ReflectionProperty( \ActionScheduler_Versions::class, 'versions' )->setValue( \ActionScheduler_Versions::instance(), $this->registered_versions );
 			$this->registered_versions = null;
 		}
 	}

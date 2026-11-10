@@ -6,6 +6,7 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormHostInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectStoreInterface;
 use DeepWebSolutions\Framework\Settings\EditScreen\Stores\MetadataStore;
+use DeepWebSolutions\Framework\Settings\Forms;
 
 \defined( 'ABSPATH' ) || exit;
 
@@ -72,7 +73,8 @@ final class PostMetaBox implements ObjectFormHostInterface {
 		if ( \in_array( 'attachment', $this->post_types, true ) ) {
 			add_action( 'edit_attachment', array( $this, 'save_attachment' ) ); // WordPress saves an attachment without firing save_post.
 		}
-		add_filter( 'wp_refresh_nonces', array( $this, 'refresh_nonces' ), 11, 2 );
+
+		add_filter( 'wp_refresh_nonces', array( $this, 'refresh_nonces' ), 11, 2 ); // After core's own refreshes at 10, which create the replace maps this adds to.
 	}
 
 	/**
@@ -111,7 +113,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
 		foreach ( $rows as $row ) {
-			$heading = \is_null( $row['label_for'] ) ? '<span class="post-attributes-label">' . $row['title'] . '</span>' : '<label class="post-attributes-label" for="' . esc_attr( $row['label_for'] ) . '">' . $row['title'] . '</label>';
+			$heading = \is_null( $row['label_for'] ) ? '<span class="post-attributes-label">' . $row['title'] . '</span>' : '<label class="post-attributes-label" for="' . Forms::escape_attribute( $row['label_for'] ) . '">' . $row['title'] . '</label>';
 			echo '<div class="form-field"><p class="post-attributes-label-wrapper">' . $heading . '</p>' . $row['control'] . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form escapes titles and controls.
 		}
 	}
@@ -155,9 +157,10 @@ final class PostMetaBox implements ObjectFormHostInterface {
 
 		// The block editor's heartbeat script sets only core's nonces, by name, while the classic editor's sets every one the heartbeat returns.
 		if ( true === get_current_screen()?->is_block_editor() ) {
-			foreach ( \array_keys( $this->form->get_refreshed_nonces( $post->ID ) ) as $field ) {
-				$field = esc_js( $field );
-				wp_add_inline_script( 'heartbeat', "jQuery( document ).on( 'heartbeat-tick', function ( event, data ) { var nonces = data['wp-refresh-metabox-loader-nonces']; if ( nonces && nonces.replace && nonces.replace['$field'] ) { jQuery( '#$field' ).val( nonces.replace['$field'] ); } } );" );
+			$nonce_field = \array_key_first( $this->form->get_refreshed_nonces( $post->ID ) );
+			if ( ! \is_null( $nonce_field ) ) {
+				$nonce_field = esc_js( $nonce_field );
+				wp_add_inline_script( 'heartbeat', "jQuery( document ).on( 'heartbeat-tick', function ( event, data ) { var nonces = data['wp-refresh-metabox-loader-nonces']; if ( nonces && nonces.replace && nonces.replace['$nonce_field'] ) { jQuery( '#$nonce_field' ).val( nonces.replace['$nonce_field'] ); } } );" );
 			}
 		}
 	}

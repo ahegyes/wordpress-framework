@@ -49,10 +49,15 @@ final class Settings implements OptionsPageDefinitionInterface {
 					'option' => self::PREFIX . '_settings',
 					'fields' => array(
 						array(
-							'type'     => 'number',
-							'id'       => 'limit',
-							'title'    => __( 'Limit', 'acme-persona-settings' ),
-							'validate' => array( $this, 'validate_limit' ),
+							'type'              => 'number',
+							'id'                => 'limit',
+							'title'             => __( 'Limit', 'acme-persona-settings' ),
+							'default'           => '10',
+							'custom_attributes' => array(
+								'min'  => '1',
+								'step' => '1',
+							),
+							'validate'          => array( $this, 'validate_limit' ),
 						),
 					),
 				),

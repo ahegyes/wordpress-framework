@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 
-namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\ProductData;
+namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 
 use PHPUnit\Framework\Attributes\After;
 
@@ -13,6 +13,7 @@ trait ProductFixturesTrait {
 		foreach ( $meta as $key => $value ) {
 			$product->update_meta_data( $key, $value );
 		}
+
 		$product->save();
 		$this->product_ids[] = $product->get_id();
 

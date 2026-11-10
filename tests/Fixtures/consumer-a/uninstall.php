@@ -30,7 +30,11 @@ try {
 	require_once __DIR__ . '/vendor/autoload.php';
 	require_once __DIR__ . '/includes/footprint.php';
 	$acme_ca_footprint  = acme_ca_get_footprint();
+	$acme_ca_consent    = Plugin::PREFIX . '_settings';
 	$acme_ca_meta_types = MetaTypes::DEFINITIONS;
+	if ( ! class_exists( Uninstaller::class ) ) {
+		throw new RuntimeException( 'its uninstall engine is missing.' );
+	}
 } catch ( Throwable $error ) {
 	// WP-CLI then fails and keeps the files for a rerun on a complete build, while a web request deletes them and leaves the data.
 	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
@@ -47,7 +51,7 @@ try {
 		$acme_ca_footprint,
 		array(
 			'consent'    => array(
-				'option' => Plugin::PREFIX . '_settings',
+				'option' => $acme_ca_consent,
 				'key'    => 'delete_data',
 			),
 			'meta_types' => $acme_ca_meta_types,

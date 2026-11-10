@@ -3,7 +3,6 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\AdminNotice;
 
 use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
-use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeType;
 use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
@@ -20,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass( AdminNotices::class )]
 final class AdminNoticesBlockEditorTest extends TestCase {
+	use AdminNoticeFixturesTrait;
 	use CreatesSitesTrait;
 	use CreatesUsersTrait;
 	use IsolatesHooksTrait;
@@ -44,9 +44,6 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	#[\Override]
 	protected function tearDown(): void {
 		$GLOBALS['wp_rest_server'] = null;
-		while ( is_multisite() && ms_is_switched() ) {
-			restore_current_blog();
-		}
 	}
 
 	public function test_the_post_editor_loads_knowing_whether_one_shots_wait_and_acknowledges_none(): void {
@@ -79,11 +76,25 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	}
 
 	public function test_a_delivered_message_is_filtered_and_keeps_only_post_markup(): void {
-		add_filter( "{$this->prefix}/admin_notice/message", static fn ( string $message ): string => "$message <script>alert( 1 );</script>", 10, 3 );
+		add_filter( "$this->prefix/admin_notice/message", static fn ( string $message ): string => "$message <script>alert( 1 );</script>", 10, 3 );
 		$this->notices()->add( $this->notice( 'saved', message: 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>.' ), $this->admin );
 		wp_set_current_user( $this->admin );
 
 		self::assertSame( wp_kses_post( 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>. <script>alert( 1 );</script>' ), $this->deliver()->get_data()[0]['content'] );
+	}
+
+	public function test_a_delivered_message_carries_its_plain_text_for_screen_readers(): void {
+		$this->notices()->add( $this->notice( 'saved', message: 'Saved &amp; filed. Read <a href="https://example.org/">the &ldquo;guide&rdquo;</a>.' ), $this->admin );
+		wp_set_current_user( $this->admin );
+
+		self::assertSame( 'Saved & filed. Read the “guide”.', $this->deliver()->get_data()[0]['spoken'] );
+	}
+
+	public function test_a_delivered_message_s_paragraphs_and_list_items_are_spoken_apart(): void {
+		$this->notices()->add( $this->notice( 'saved', message: '<p>Saved.</p><p>Check:</p><ul><li>Box</li><li>Weight</li></ul>' ), $this->admin );
+		wp_set_current_user( $this->admin );
+
+		self::assertSame( 'Saved. Check: Box Weight', $this->deliver()->get_data()[0]['spoken'] );
 	}
 
 	public static function other_screens(): array {
@@ -101,7 +112,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		$notices->add( $this->notice( 'saved' ), $this->admin );
 		$this->view_as( $this->admin, $screen, $block_editor );
 
-		$notices->enqueue_editor_script();
+		$notices->enqueue_delivery_script();
 
 		self::assertFalse( wp_script_is( $this->script_handle(), 'registered' ) );
 		self::assertCount( 1, $notices->get_notices( NoticeScope::User, $this->admin ) );
@@ -111,7 +122,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		$settings = $this->load_editor( $this->admin );
 
 		self::assertTrue( wp_script_is( $this->script_handle() ) );
-		self::assertSame( array( 'wp-api-fetch', 'wp-data', 'wp-hooks', 'wp-notices' ), wp_scripts()->registered[ $this->script_handle() ]->deps );
+		self::assertSame( array( 'wp-a11y', 'wp-api-fetch', 'wp-data', 'wp-hooks', 'wp-notices' ), wp_scripts()->registered[ $this->script_handle() ]->deps );
 		self::assertSame(
 			array(
 				'prefix'  => $this->prefix,
@@ -126,7 +137,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		$notices = $this->notices();
 		$notices->register_hooks();
 
-		self::assertSame( 10, has_action( 'enqueue_block_editor_assets', array( $notices, 'enqueue_editor_script' ) ) );
+		self::assertSame( 10, has_action( 'enqueue_block_editor_assets', array( $notices, 'enqueue_delivery_script' ) ) );
 		self::assertArrayHasKey( '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/deliveries', rest_get_server()->get_routes() );
 	}
 
@@ -138,7 +149,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		switch_to_blog( $site_id );
 		wp_set_current_user( $this->admin );
 
-		self::assertSame( array( "{$this->prefix}-network-notice-x" ), \array_column( $this->deliver()->get_data(), 'id' ) );
+		self::assertSame( array( "$this->prefix-network-notice-x" ), \array_column( $this->deliver()->get_data(), 'id' ) );
 		self::assertSame( array(), $this->notices()->get_notices( NoticeScope::Network ) );
 	}
 
@@ -157,7 +168,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		return array(
 			$this->delivered( 'site', 'migrated', 'success', 'Notice migrated.' ),
 			$this->delivered( 'site', 'news', 'error', 'Notice news.' ),
-			$this->delivered( 'user', 'saved', 'error', 'Saved <b>it</b>.' ),
+			$this->delivered( 'user', 'saved', 'error', 'Saved <b>it</b>.', spoken: 'Saved it.' ),
 			$this->delivered( 'user', 'pinned', 'warning', 'Notice pinned.', false ),
 		);
 	}
@@ -170,11 +181,12 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		self::assertSame( 'delivered', get_user_option( "{$this->prefix}_hidden_notices", $this->admin )['site:news']['state'] ?? null );
 	}
 
-	protected function delivered( string $scope, string $id, string $status, string $content, bool $dismissible = true ): array {
+	protected function delivered( string $scope, string $id, string $status, string $content, bool $dismissible = true, ?string $spoken = null ): array {
 		return array(
-			'id'            => "{$this->prefix}-$scope-notice-$id",
+			'id'            => "$this->prefix-$scope-notice-$id",
 			'status'        => $status,
 			'content'       => $content,
+			'spoken'        => $spoken ?? $content,
 			'isDismissible' => $dismissible,
 		);
 	}
@@ -183,7 +195,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	protected function load_editor( int $user_id ): array {
 		$this->remove_the_script();
 		$this->view_as( $user_id, 'post', true );
-		$this->notices()->enqueue_editor_script();
+		$this->notices()->enqueue_delivery_script();
 		self::assertSame( 1, \preg_match( '/\}\s*\)\(\s*(\{.*\})\s*\);/s', \implode( "\n", wp_scripts()->get_data( $this->script_handle(), 'after' ) ), $matches ) );
 
 		return \json_decode( $matches[1], true );
@@ -197,24 +209,13 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		return new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
 	}
 
-	protected function notice( string $id, NoticeScope $scope = NoticeScope::User, string $message = '', mixed ...$arguments ): Notice {
-		$arguments['scope']        = $scope;
-		$arguments['capability'] ??= NoticeScope::Site === $scope || NoticeScope::Network === $scope ? 'manage_options' : null;
-
-		return new Notice( $id, '' === $message ? "Notice $id." : $message, ...$arguments );
-	}
-
 	protected function script_handle(): string {
-		return "{$this->prefix}-notice-delivery";
+		return "$this->prefix-notice-delivery";
 	}
 
 	#[After]
 	protected function remove_the_script(): void {
 		wp_dequeue_script( $this->script_handle() );
 		wp_deregister_script( $this->script_handle() );
-	}
-
-	protected static function ids( array $notices ): array {
-		return \array_map( static fn ( Notice $notice ): string => $notice->id, $notices );
 	}
 }
