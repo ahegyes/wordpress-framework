@@ -56,7 +56,7 @@ try {
  *
  * @param   Throwable $error The error that stopped the build.
  *
- * @throws  Throwable Thrown in local and development environments.
+ * @throws  Throwable Thrown when the site runs in a local or development environment.
  *
  * @return  void
  */

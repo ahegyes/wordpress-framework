@@ -60,7 +60,7 @@ $acme_record_boots = static function (): void {
 			$plugin = null;
 		}
 		$GLOBALS['acme_outcome']['records'][ $key ] = array(
-			'status'           => $plugin?->boot->status,
+			'status'           => $plugin?->boundary->status,
 			'skipped'          => $plugin?->kernel?->skipped,
 			'boot_succeeded'   => did_action( "{$prefix}/boot/succeeded" ),
 			'functions_loaded' => function_exists( "{$prefix}_plugin" ),

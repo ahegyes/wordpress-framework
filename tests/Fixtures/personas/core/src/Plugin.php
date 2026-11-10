@@ -63,7 +63,7 @@ final class Plugin {
 	 *
 	 * @var     PluginBoot
 	 */
-	public readonly PluginBoot $boot;
+	public readonly PluginBoot $boundary;
 
 	/**
 	 * The kernel, once the composition built it, which tells which components loaded.
@@ -117,7 +117,7 @@ final class Plugin {
 	 */
 	public function __construct() {
 		$this->logger    = new ErrorLogLogger( self::SLUG );
-		$this->boot      = new PluginBoot( ACME_PC_FILE, self::PREFIX, $this->logger );
+		$this->boundary  = new PluginBoot( ACME_PC_FILE, self::PREFIX, $this->logger );
 		$this->scheduler = new Scheduler( self::PREFIX );
 	}
 
@@ -134,7 +134,7 @@ final class Plugin {
 	 * @return  void
 	 */
 	public function boot(): void {
-		$this->boot->run( $this->compose( ... ) );
+		$this->boundary->run( $this->compose( ... ) );
 	}
 
 	// endregion
