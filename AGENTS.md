@@ -34,7 +34,7 @@ wordpress-framework/
 │       ├── ProductData/{ProductDataTab, ProductDataTabDefinitionInterface, ProductMeta}
 │       ├── Setting/{SettingsTab, SettingsSection, SectionFieldsDefinitionInterface, Fields (@internal)}
 │       └── Uninstall/MetaTypes
-├── tests/{Unit, PHPStan, Integration, Php74, EndToEnd, Support, bin, Fixtures/{Core, Settings, Shared, WooCommerce, package-manifests, consumer-a, consumer-b, personas, end-to-end}}
+├── tests/{Unit, PHPStan, Integration, Php74, EndToEnd, Support, bin, Fixtures/{Core, Settings, Shared, WooCommerce, PackageManifests, consumer-a, consumer-b, personas, end-to-end}}
 │                          consumer-a: a WooCommerce plugin on all five packages, scoped through configs by its own composer.json
 │                          consumer-b: a plugin on bootstrap, shared, core and settings, without WooCommerce, scoped the same way
 │                          personas/{bootstrap, shared, core, settings, woocommerce}: one plugin per stack, shared a plain PHP project, each requiring only its top package, scoped the same way; each lists its stack's mirrors as `vcs` repositories after the path repository, the set its package README copies

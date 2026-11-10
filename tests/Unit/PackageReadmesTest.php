@@ -2,25 +2,18 @@
 
 namespace DeepWebSolutions\Framework\Tests\Unit;
 
+use DeepWebSolutions\Framework\Tests\Unit\Support\ProvidesPackagesTrait;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversNothing]
 final class PackageReadmesTest extends TestCase {
+	use ProvidesPackagesTrait;
+
 	protected const string ROOT = __DIR__ . '/../..';
 
-	public static function packages(): array {
-		return array(
-			'bootstrap'   => array( 'bootstrap' ),
-			'shared'      => array( 'shared' ),
-			'core'        => array( 'core' ),
-			'settings'    => array( 'settings' ),
-			'woocommerce' => array( 'woocommerce' ),
-		);
-	}
-
-	#[DataProvider( 'packages' )]
+	#[DataProvider( 'package_names' )]
 	public function test_every_php_example_is_copied_from_the_package_s_persona( string $package ): void {
 		$examples = self::fences( $package, 'php' );
 		self::assertNotEmpty( $examples, "The $package README shows no PHP example." );
@@ -40,7 +33,7 @@ final class PackageReadmesTest extends TestCase {
 		}
 	}
 
-	#[DataProvider( 'packages' )]
+	#[DataProvider( 'package_names' )]
 	public function test_every_json_example_is_part_of_the_package_s_persona_manifest( string $package ): void {
 		$examples = self::fences( $package, 'json' );
 		self::assertNotEmpty( $examples, "The $package README shows no JSON example." );
@@ -51,7 +44,7 @@ final class PackageReadmesTest extends TestCase {
 		}
 	}
 
-	#[DataProvider( 'packages' )]
+	#[DataProvider( 'package_names' )]
 	public function test_the_readme_lists_one_mirror_for_each_package_of_its_stack( string $package ): void {
 		$mirrors = array();
 		foreach ( self::fences( $package, 'json' ) as $example ) {
@@ -62,10 +55,11 @@ final class PackageReadmesTest extends TestCase {
 			}
 		}
 
-		self::assertSame( \array_map( static fn ( string $name ): string => "https://github.com/ahegyes/wp-framework-$name", self::stack( $package ) ), $mirrors );
+		$stack = \array_filter( self::closure( $package ), static fn ( string $name ): bool => \str_starts_with( $name, 'ahegyes/wp-framework-' ) );
+		self::assertSame( \array_map( static fn ( string $name ): string => "https://github.com/$name", \array_values( $stack ) ), $mirrors );
 	}
 
-	#[DataProvider( 'packages' )]
+	#[DataProvider( 'package_names' )]
 	public function test_the_readme_states_the_contract_and_its_versioning_as_agents_md_does( string $package ): void {
 		\preg_match( '/^## Contract\n\n(.*?)\n\n## /ms', (string) \file_get_contents( self::ROOT . '/AGENTS.md' ), $section );
 		$paragraphs = \explode( "\n\n", $section[1] ?? '' );
@@ -137,17 +131,6 @@ final class PackageReadmesTest extends TestCase {
 		}
 
 		return true;
-	}
-
-	protected static function stack( string $package ): array {
-		$stack = array();
-		foreach ( \array_keys( self::read_json( "packages/$package/composer.json" )['require'] ) as $name ) {
-			if ( \str_starts_with( $name, 'ahegyes/wp-framework-' ) ) {
-				$stack = \array_merge( $stack, self::stack( \substr( $name, \strlen( 'ahegyes/wp-framework-' ) ) ) );
-			}
-		}
-
-		return \array_values( \array_unique( \array_merge( $stack, array( $package ) ) ) );
 	}
 
 	protected static function read_json( string $path ): array {
