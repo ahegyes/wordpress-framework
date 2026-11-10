@@ -295,14 +295,10 @@ trait UninstallFixturesTrait {
 		return $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i WHERE BINARY post_type = %s', $wpdb->posts, $type ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Counts every status, trash and auto-draft included.
 	}
 
-	protected function post_type_has_posts( string $type ): bool {
-		return array() !== $this->get_posts_of_type( $type );
-	}
-
 	protected function table_exists( string $name ): bool {
 		global $wpdb;
 
-		return null !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . $name ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Schema read.
+		return ! \is_null( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . $name ) ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Schema read.
 	}
 
 	protected function role_has( string $role, string $capability ): bool {
