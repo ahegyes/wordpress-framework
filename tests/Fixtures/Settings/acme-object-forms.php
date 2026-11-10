@@ -2,7 +2,7 @@
 /**
  * Adds the request spec's object form on plugins_loaded.
  *
- * The form's id also prefixes the admin notices that report its rejections. The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields; the definition records each evaluation. A field's validate and render may name a behavior RecordedDefinition::with_behaviors() lists, which records what it receives in the request's outcome. With per_object, the definition also records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
+ * The form's id also prefixes the admin notices that report its rejections. The spec names the form's host (post, user, term or order) with its arguments, and the form's title, capability and fields, and the definition records each evaluation. A field's validate and render may name a behavior RecordedDefinition::with_behaviors() lists, which records what it receives in the request's outcome. With per_object, the definition also records the object id it receives. The spec may also contribute fields through the form's fields filter, keep posts in the classic editor, keep orders in the posts table, record what an order status change sees under a meta key, give the form a recording store and update the saved post again inside save_post.
  *
  * @package Acme
  */
