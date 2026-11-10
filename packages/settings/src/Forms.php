@@ -69,7 +69,7 @@ final class Forms {
 	/**
 	 * Returns the escaped markup of the field's control, without its row label.
 	 *
-	 * A radio, a checkboxes group and a checkbox with a desc render in a fieldset named by the title, so their host prints the row label as plain text, while every other control carries the id the row label points at. An enabled checkbox or multi-value control posts a hidden input first, so a field absent from a submission was not rendered or is disabled. A field with a render callable renders through it, and the callable escapes, names and describes its control, a fieldset named by the title for a group, and, unless the field is disabled, prints a hidden empty input before it.
+	 * A radio, a checkboxes group and a checkbox with a desc render in a fieldset named by the title, so their host prints the row label as plain text, while every other control carries the id the row label points at. A radio or checkboxes group without a title leaves the fieldset to its host, and each of its choices names the help. An enabled checkbox or multi-value control posts a hidden input first, so a field absent from a submission was not rendered or is disabled. A field with a render callable renders through it, and the callable escapes, names and describes its control, a fieldset named by the title for a group, and, unless the field is disabled, prints a hidden empty input before it.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -478,22 +478,28 @@ final class Forms {
 		$disabled = self::is_disabled( $field );
 		$chosen   = self::get_chosen( $value, $multiple );
 		$custom   = self::get_custom_attributes( $field );
+		$untitled = '' === ( $field['title'] ?? '' );
 
 		$choices = $multiple && ! $disabled ? self::render_hidden_input( $name, '' ) : '';
 		$index   = 0;
 		foreach ( $field['options'] ?? array() as $key => $label ) {
 			$attributes = array(
-				'type'     => $multiple ? 'checkbox' : 'radio',
-				'id'       => "$id.$index",
-				'name'     => $multiple ? $name . '[]' : $name,
-				'value'    => (string) $key,
-				'class'    => $field['class'] ?? null,
-				'style'    => $field['css'] ?? null,
-				'checked'  => \in_array( (string) $key, $chosen, true ),
-				'disabled' => $disabled || self::is_disabled_choice( $field, $key ),
+				'type'             => $multiple ? 'checkbox' : 'radio',
+				'id'               => "$id.$index",
+				'name'             => $multiple ? $name . '[]' : $name,
+				'value'            => (string) $key,
+				'class'            => $field['class'] ?? null,
+				'style'            => $field['css'] ?? null,
+				'checked'          => \in_array( (string) $key, $chosen, true ),
+				'disabled'         => $disabled || self::is_disabled_choice( $field, $key ),
+				'aria-describedby' => $untitled ? self::get_described_by( $help ) : null,
 			);
 			$choices   .= '<label' . self::render_attributes( array( 'for' => "$id.$index" ) ) . '><input' . self::render_attributes( $attributes, $custom ) . ' /> ' . esc_html( $label ) . '</label><br />';
 			++$index;
+		}
+
+		if ( $untitled ) { // A host that names the group in a fieldset of its own passes no title.
+			return $choices . self::render_help( $help );
 		}
 
 		return '<fieldset' . self::render_attributes( array( 'aria-describedby' => self::get_described_by( $help ) ) ) . '>' . self::render_legend( $field ) . $choices . self::render_help( $help ) . '</fieldset>';
