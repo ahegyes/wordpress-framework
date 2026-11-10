@@ -44,8 +44,12 @@ final class ResultTest extends TestCase {
 		self::assertSame( array( array( $outcome, $payload ) ), $calls );
 	}
 
-	#[DataProvider( 'outcomes' )]
-	public function test_the_predicates_agree_with_the_outcome( AbstractResult $result, string $outcome, mixed $payload ): void {
+	public static function results(): array {
+		return \array_map( static fn ( array $outcome ): array => \array_slice( $outcome, 0, 2 ), self::outcomes() );
+	}
+
+	#[DataProvider( 'results' )]
+	public function test_the_predicates_agree_with_the_outcome( AbstractResult $result, string $outcome ): void {
 		self::assertSame( 'success' === $outcome, $result->is_success() );
 		self::assertSame( 'failure' === $outcome, $result->is_failure() );
 	}
