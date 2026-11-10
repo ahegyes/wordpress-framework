@@ -311,7 +311,7 @@ final class Updater {
 	 * @version 2.0.0
 	 *
 	 * @param   string                $url     The URL.
-	 * @param   array<string, string> $headers Optional. The request's headers. Default none.
+	 * @param   array<string, string> $headers Optional. The request's headers. Default is none.
 	 *
 	 * @return  string|null
 	 */
