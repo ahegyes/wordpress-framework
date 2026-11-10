@@ -2,7 +2,6 @@
 
 namespace Acme\ConsumerA;
 
-use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -13,7 +12,7 @@ use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\ConditionalComponentIn
  * @since   1.0.0
  * @version 1.0.0
  */
-final class FaultInjector implements ComponentInterface, ConditionalComponentInterface {
+final class FaultInjector implements ConditionalComponentInterface {
 	// region MAGIC METHODS
 
 	/**

@@ -144,7 +144,7 @@ final class Plugin {
 	// region HELPERS
 
 	/**
-	 * Registers the scheduler and the migrations, then builds the kernel and boots the plugin's components.
+	 * Registers the migrations, then builds the kernel and boots the plugin's components, the scheduler first.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -152,7 +152,6 @@ final class Plugin {
 	 * @return  bool
 	 */
 	protected function compose(): bool {
-		$this->scheduler->register_hooks();
 		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::PREFIX . '_revision', acme_pc_get_migration_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
