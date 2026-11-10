@@ -83,11 +83,11 @@ final class FormsRenderControlTest extends TestCase {
 		self::assertSame( $type, self::render( $type )->getElementById( 'acme.key' )->getAttribute( 'type' ) );
 	}
 
-	public function test_help_text_is_linked_from_the_control_by_aria_describedby(): void {
-		$document = self::render( 'text', array( 'desc' => 'Shown below.' ) );
+	public function test_help_text_is_linked_from_the_control_by_aria_describedby_and_styled_as_a_description(): void {
+		$document = self::render( 'text', array( 'desc' => 'Shown <em>below</em>.' ) );
 
 		self::assertSame( 'acme.key.description', $document->getElementById( 'acme.key' )->getAttribute( 'aria-describedby' ) );
-		self::assertTrue( $document->getElementById( 'acme.key.description' )->matches( '.description' ) );
+		self::assertTrue( $document->getElementById( 'acme.key.description' )->matches( 'p.description' ) );
 		self::assertSame( 'Shown below.', self::text( $document->getElementById( 'acme.key.description' ) ) );
 	}
 
@@ -95,6 +95,7 @@ final class FormsRenderControlTest extends TestCase {
 		$document = self::render( 'text', array( 'desc' => '<p>First.</p><ul><li>Second.</li></ul>' ) );
 
 		$help = $document->getElementById( 'acme.key.description' );
+		self::assertTrue( $help?->matches( 'div.description' ) );
 		self::assertNotNull( $help?->querySelector( 'p' ) );
 		self::assertNotNull( $help?->querySelector( 'ul > li' ) );
 		self::assertSame( 'First.Second.', self::text( $help ) );

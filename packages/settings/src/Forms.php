@@ -522,7 +522,7 @@ final class Forms {
 	/**
 	 * Returns the markup of the help texts.
 	 *
-	 * Each text sits in a div, because help holding paragraphs or lists would end a paragraph before them and leave the element the control names empty.
+	 * A text sits in a paragraph, which WordPress's admin styles as a description, unless it holds a block element, which would end the paragraph before it and leave the element the control names empty, so such a text sits in a div.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -534,12 +534,14 @@ final class Forms {
 	protected static function render_help( array $help ): string {
 		$html = '';
 		foreach ( $help as $help_id => $text ) {
-			$html .= '<div' . self::render_attributes(
+			$text  = wp_kses_post( $text );
+			$tag   = 1 === \preg_match( '#<(?:address|article|aside|blockquote|details|div|dl|figure|footer|h[1-6]|header|hr|nav|ol|p|pre|section|table|ul)\b#i', $text ) ? 'div' : 'p';
+			$html .= "<$tag" . self::render_attributes(
 				array(
 					'class' => 'description',
 					'id'    => $help_id,
 				)
-			) . '>' . wp_kses_post( $text ) . '</div>';
+			) . ">$text</$tag>";
 		}
 
 		return $html;
