@@ -49,9 +49,13 @@ final class Updater {
 					return $update;
 				}
 
-				$config  = self::get_updater_config( $plugin_file );
-				$release = \is_null( $config ) ? null : self::get_release( $config );
-				if ( \is_null( $config ) || \is_null( $release ) || ! is_wp_version_compatible( $release['requires'] ) ) {
+				$config = self::get_updater_config( $plugin_file );
+				if ( \is_null( $config ) ) {
+					return false;
+				}
+
+				$release = self::get_release( $config );
+				if ( \is_null( $release ) || ! is_wp_version_compatible( $release['requires'] ) ) {
 					return false;
 				}
 
@@ -77,7 +81,7 @@ final class Updater {
 				}
 
 				$config = self::get_updater_config( $plugin_file );
-				if ( \is_null( $config ) || ( \get_object_vars( $args )['slug'] ?? null ) !== $config['slug'] ) {
+				if ( \is_null( $config ) || ( $args->slug ?? null ) !== $config['slug'] ) {
 					return $result;
 				}
 
@@ -197,18 +201,19 @@ final class Updater {
 			return null;
 		}
 
-		$release = self::read_release( $cached );
-		if ( ! \is_null( $release ) ) {
-			return $release;
+		$cached_release = self::read_release( $cached );
+		if ( ! \is_null( $cached_release ) ) {
+			return $cached_release;
 		}
 
 		$body     = self::get_response_body( "https://api.github.com/repos/{$config['repository']}/" . ( 'prerelease' === $config['channel'] ? 'releases?per_page=10' : 'releases/latest' ), array( 'Accept' => 'application/vnd.github.html+json' ) );
 		$releases = \is_null( $body ) ? null : \json_decode( $body, true );
 
-		$newest  = array();
-		$tag     = '';
-		$version = '';
-		foreach ( ( \is_array( $releases ) && 'prerelease' === $config['channel'] ) ? $releases : array( $releases ) as $candidate ) {
+		$candidates = \is_array( $releases ) && 'prerelease' === $config['channel'] ? $releases : array( $releases );
+		$newest     = array();
+		$tag        = '';
+		$version    = '';
+		foreach ( $candidates as $candidate ) {
 			if ( ! \is_array( $candidate ) || true === ( $candidate['draft'] ?? false ) || ! \is_string( $candidate['tag_name'] ?? null ) ) {
 				continue;
 			}
@@ -237,6 +242,7 @@ final class Updater {
 			}
 		}
 
+		$release    = null;
 		$entry_file = \is_null( $package ) ? null : self::get_response_body( "https://raw.githubusercontent.com/{$config['repository']}/" . \rawurlencode( $tag ) . "/{$config['file']}" ); // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- Reads the release's plugin headers, never served to visitors.
 		if ( ! \is_null( $entry_file ) ) {
 			// WordPress's get_file_data() reads only paths, so the fetched entry file is parsed with the same pattern.

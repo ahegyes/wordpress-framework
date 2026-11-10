@@ -156,9 +156,10 @@ final class PostMetaBox implements ObjectFormHostInterface {
 
 		// The block editor's heartbeat script sets only core's nonces, by name, while the classic editor's sets every one the heartbeat returns.
 		if ( true === get_current_screen()?->is_block_editor() ) {
-			foreach ( \array_keys( $this->form->get_refreshed_nonces( $post->ID ) ) as $field ) {
-				$field = esc_js( $field );
-				wp_add_inline_script( 'heartbeat', "jQuery( document ).on( 'heartbeat-tick', function ( event, data ) { var nonces = data['wp-refresh-metabox-loader-nonces']; if ( nonces && nonces.replace && nonces.replace['$field'] ) { jQuery( '#$field' ).val( nonces.replace['$field'] ); } } );" );
+			$nonce_field = \array_key_first( $this->form->get_refreshed_nonces( $post->ID ) );
+			if ( ! \is_null( $nonce_field ) ) {
+				$nonce_field = esc_js( $nonce_field );
+				wp_add_inline_script( 'heartbeat', "jQuery( document ).on( 'heartbeat-tick', function ( event, data ) { var nonces = data['wp-refresh-metabox-loader-nonces']; if ( nonces && nonces.replace && nonces.replace['$nonce_field'] ) { jQuery( '#$nonce_field' ).val( nonces.replace['$nonce_field'] ); } } );" );
 			}
 		}
 	}

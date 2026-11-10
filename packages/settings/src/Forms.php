@@ -558,7 +558,11 @@ final class Forms {
 	 */
 	protected static function render_attributes( array $own, array $custom = array() ): string {
 		$html = '';
-		foreach ( \array_filter( $own + $custom, static fn ( string|bool|null $value ): bool => ! \is_null( $value ) && false !== $value ) as $name => $value ) {
+		foreach ( $own + $custom as $name => $value ) {
+			if ( \is_null( $value ) || false === $value ) {
+				continue;
+			}
+
 			$html .= true === $value ? " $name" : " $name=\"" . self::escape_attribute( $value ) . '"';
 		}
 
