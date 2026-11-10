@@ -39,6 +39,7 @@ final class ConsumersScopingTest extends TestCase {
 		if ( ! \is_null( $top_level ) ) {
 			self::assertSame( $top_level, self::list_entries( "$build/vendor-prefixed" ) );
 		}
+
 		self::assertSame( $packages, self::list_entries( "$build/vendor-prefixed/ahegyes" ) );
 		self::assertSame( $psr, self::list_entries( "$build/vendor-prefixed/psr" ) );
 		self::assertSame( \in_array( 'wp-framework-bootstrap', $packages, true ), \is_file( "$build/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php" ) );

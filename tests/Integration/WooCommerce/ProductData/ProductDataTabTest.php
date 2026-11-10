@@ -290,6 +290,7 @@ final class ProductDataTabTest extends TestCase {
 		foreach ( $choices as $choice ) {
 			self::assertSame( $help_id, $choice->getAttribute( 'aria-describedby' ) );
 		}
+
 		self::assertSame( $help_id, $fieldset?->querySelector( '.description' )?->getAttribute( 'id' ) );
 	}
 

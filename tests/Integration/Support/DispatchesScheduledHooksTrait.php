@@ -10,6 +10,7 @@ trait DispatchesScheduledHooksTrait {
 		foreach ( $claim->get_actions() as $action_id ) {
 			\ActionScheduler::runner()->process_action( (int) $action_id, 'Tests' );
 		}
+
 		$store->release_claim( $claim );
 
 		return \count( $claim->get_actions() );
@@ -27,6 +28,7 @@ trait DispatchesScheduledHooksTrait {
 				if ( false !== $event['schedule'] ) {
 					$rescheduled[] = wp_reschedule_event( $timestamp, $event['schedule'], $hook, $event['args'], true );
 				}
+
 				wp_unschedule_event( $timestamp, $hook, $event['args'], true );
 				do_action_ref_array( $hook, $event['args'] );
 			}

@@ -193,6 +193,7 @@ final class OptionsPage {
 			if ( isset( $row['label_for'] ) ) { // Core prints the label through esc_attr(), which keeps an entity the control's id encodes.
 				$row['label_for'] = Forms::escape_attribute( $row['label_for'] );
 			}
+
 			add_settings_field( $row['field']['id'], esc_html( $row['field']['title'] ), array( $this, 'render_field' ), $this->id, 'default', $row );
 		}
 

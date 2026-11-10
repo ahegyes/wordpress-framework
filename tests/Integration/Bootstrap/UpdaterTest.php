@@ -171,6 +171,7 @@ final class UpdaterTest extends TestCase {
 		} elseif ( 0 !== $latest_status ) {
 			$this->stage( $this->api_url( 'releases/latest' ), $latest_status, '' );
 		}
+
 		if ( 200 !== $entry_status ) {
 			$this->stage( $this->raw_url( $tag ), $entry_status, "$entry_status: Not Found" );
 		}

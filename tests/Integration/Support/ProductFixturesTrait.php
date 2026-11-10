@@ -13,6 +13,7 @@ trait ProductFixturesTrait {
 		foreach ( $meta as $key => $value ) {
 			$product->update_meta_data( $key, $value );
 		}
+
 		$product->save();
 		$this->product_ids[] = $product->get_id();
 

@@ -34,6 +34,7 @@ trait WritesPluginFilesTrait {
 		foreach ( $this->plugin_files as $plugin_file ) {
 			self::remove_tree( \dirname( $plugin_file ) );
 		}
+
 		$this->plugin_files = array();
 	}
 }

@@ -26,6 +26,7 @@ add_action(
 					if ( $group['per_product'] ?? false ) {
 						$GLOBALS['acme_outcome']['records'][] = array( 'fields', $product->get_id() );
 					}
+
 					$groups[] = array( 'fields' => RecordedDefinition::with_behaviors( $group['fields'] ) ) + array_intersect_key( $group, array( 'class' => true ) );
 				}
 

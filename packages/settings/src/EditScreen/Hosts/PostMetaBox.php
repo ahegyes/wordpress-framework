@@ -73,6 +73,7 @@ final class PostMetaBox implements ObjectFormHostInterface {
 		if ( \in_array( 'attachment', $this->post_types, true ) ) {
 			add_action( 'edit_attachment', array( $this, 'save_attachment' ) ); // WordPress saves an attachment without firing save_post.
 		}
+
 		add_filter( 'wp_refresh_nonces', array( $this, 'refresh_nonces' ), 11, 2 ); // After core's own refreshes at 10, which create the replace maps this adds to.
 	}
 
