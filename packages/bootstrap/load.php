@@ -8,9 +8,7 @@
  * @package DeepWebSolutions\Framework\Bootstrap
  */
 
-namespace DeepWebSolutions\Framework\Bootstrap;
-
-\defined( 'ABSPATH' ) || exit;
+defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/src/Requirements.php';
 require_once __DIR__ . '/src/Updater.php';

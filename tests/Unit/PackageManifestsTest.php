@@ -153,7 +153,8 @@ final class PackageManifestsTest extends TestCase {
 				$nodes     = ( new ParserFactory() )->createForHostVersion()->parse( $code );
 				$namespace = ( new NodeFinder() )->findFirstInstanceOf( $nodes, Namespace_::class );
 				$statement = \current( \array_filter( $namespace?->stmts ?? $nodes, static fn ( Node $node ): bool => ! $node instanceof Declare_ && ! $node instanceof Use_ && ! $node instanceof GroupUse ) );
-				if ( false === $statement || "\\defined( 'ABSPATH' ) || exit;" !== \substr( $code, $statement->getStartFilePos(), $statement->getEndFilePos() - $statement->getStartFilePos() + 1 ) ) {
+				$guard     = \is_null( $namespace ) ? "defined( 'ABSPATH' ) || exit;" : "\\defined( 'ABSPATH' ) || exit;";
+				if ( false === $statement || \substr( $code, $statement->getStartFilePos(), $statement->getEndFilePos() - $statement->getStartFilePos() + 1 ) !== $guard ) {
 					$unguarded[] = $file->getPathname();
 				}
 			}
