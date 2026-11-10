@@ -13,7 +13,7 @@ use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 /**
  * Adds a form of field arrays to the screen that edits an object, and stores the accepted fields as the object's data.
  *
- * Its host decides where the form shows and when it saves, and its store keeps the values, by default the host's own. The form shows only to a user who may edit the object and holds the definition's capability, carries a nonce bound to the object, and reports each rejection of a save as a one-shot notice for the user, which replaces the notice of the field's earlier rejection. Controls post under the form's id, so they never meet the screen's own inputs, and each field stores under its id.
+ * Controls post under the form's id, so they never meet the screen's own inputs.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -65,7 +65,7 @@ final class ObjectForm {
 	 * @version 2.0.0
 	 *
 	 * @param   string                        $id         The form's id, which starts with the plugin's prefix and names the form's controls, nonce and fields filter.
-	 * @param   ObjectFormDefinitionInterface $definition The definition, which the form asks for once per object, on first use after init.
+	 * @param   ObjectFormDefinitionInterface $definition The form's definition.
 	 * @param   ObjectFormHostInterface       $host       The host that shows and saves the form.
 	 * @param   AdminNotices                  $notices    The plugin's admin notices, which report the rejections.
 	 * @param   ObjectStoreInterface|null     $store      Optional. The store of the form's values. Default is null, for the host's store.
@@ -188,7 +188,7 @@ final class ObjectForm {
 	/**
 	 * Stores the accepted fields of the request's submission for the object, and reports each rejection as a one-shot error notice for the current user.
 	 *
-	 * Nothing changes unless the request carries the form's nonce for the object, which binds it to the object as WordPress core binds its edit forms, so a save that fires for a revision or another object in the same request is refused, and the current user may edit the object and holds the definition's capability. A field the form did not post, because it was not rendered or is disabled, keeps its value, as a rejected one does. The form saves once per object and request, because a save that updates the object again fires the host's save hook again with the same submission.
+	 * The form's nonce binds the save to the object, so a save that fires for a revision or another object in the same request changes nothing. The form saves once per object and request, because a save that updates the object again fires the host's save hook again.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

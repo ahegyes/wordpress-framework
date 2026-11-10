@@ -44,7 +44,7 @@ final class OptionsPage {
 	 * @version 2.0.0
 	 *
 	 * @param   string                         $id         The page's menu slug, which also prefixes its tabs filter.
-	 * @param   OptionsPageDefinitionInterface $definition The definition, which the page asks for once, on first use after init.
+	 * @param   OptionsPageDefinitionInterface $definition The page's definition.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
 	 */

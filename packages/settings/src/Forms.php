@@ -69,7 +69,7 @@ final class Forms {
 	/**
 	 * Returns the escaped markup of the field's control, without its row label.
 	 *
-	 * A radio, a checkboxes group and a checkbox with a desc render in a fieldset named by the title, so their host prints the row label as plain text, while every other control carries the id the row label points at. A radio or checkboxes group without a title leaves the fieldset to its host, and each of its choices names the help. An enabled checkbox or multi-value control posts a hidden input first, so a field absent from a submission was not rendered or is disabled. A field with a render callable renders through it, and the callable escapes, names and describes its control, a fieldset named by the title for a group, and, unless the field is disabled, prints a hidden empty input before it.
+	 * A group, as is_group() tells, renders in a fieldset its title names, or in its host's fieldset when it has no title. A field with a render callable renders through it, and the callable escapes, names and describes its control and wraps a group the same way. Unless the field is disabled, the callable also prints a hidden empty input before its control, so that a field absent from a submission reads as unrendered or disabled.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -99,7 +99,7 @@ final class Forms {
 	/**
 	 * Returns the accepted values and the rejections of a submission, keyed by field id, for the defined, present and enabled fields only.
 	 *
-	 * Callers merge the values onto the stored row with array_replace( $stored, $result['values'] ) and report the errors, so a submission writes no id outside the definition, and every stored id it leaves out, including those of rejected fields and of fields absent from the definition, keeps its value. A field with validate hands its submission, alone, to the callable, which returns the value to store or a WP_Error and owns the field's allowed values, so no type sanitizer runs before or after it. Without validate, the field's type sanitizes the submission and checks its choices, and a rejection carries a code and a message that tells the user what to enter, which a host may replace by the code. Every WP_Error message is plain text, which the host escapes.
+	 * Absent, rejected and undefined ids stay out of the values. A field with validate hands its submission, alone, to the callable, which returns the value to store or a WP_Error, and no type sanitizer runs before or after it. Without validate, the field's type sanitizes the submission and checks its choices. Every WP_Error message is plain text, which the host escapes.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -231,7 +231,7 @@ final class Forms {
 	 *
 	 * @param   string $id The id.
 	 *
-	 * @throws  InvalidArgumentException Thrown when the id is not a lowercase letter, after an optional underscore, followed by lowercase letters, digits, underscores and hyphens.
+	 * @throws  InvalidArgumentException Thrown when the id is not a valid helper id.
 	 *
 	 * @return  void
 	 */
@@ -279,7 +279,7 @@ final class Forms {
 	}
 
 	/**
-	 * Returns a row for each field with an id: the field named by its title, its stored value or else its default, the name it posts under, its HTML id, and the id its row label points at unless it is a group.
+	 * Returns the row each field with an id renders as.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
