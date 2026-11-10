@@ -514,7 +514,9 @@ final class Forms {
 	}
 
 	/**
-	 * Returns the markup of the help paragraphs.
+	 * Returns the markup of the help texts.
+	 *
+	 * Each text sits in a div, because help holding paragraphs or lists would end a paragraph before them and leave the element the control names empty.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -526,12 +528,12 @@ final class Forms {
 	protected static function render_help( array $help ): string {
 		$html = '';
 		foreach ( $help as $help_id => $text ) {
-			$html .= '<p' . self::render_attributes(
+			$html .= '<div' . self::render_attributes(
 				array(
 					'class' => 'description',
 					'id'    => $help_id,
 				)
-			) . '>' . wp_kses_post( $text ) . '</p>';
+			) . '>' . wp_kses_post( $text ) . '</div>';
 		}
 
 		return $html;
