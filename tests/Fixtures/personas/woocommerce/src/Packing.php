@@ -44,6 +44,12 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 				'id'    => self::PREFIX . '_default_box',
 				'title' => __( 'Default box', 'acme-persona-woocommerce' ),
 			),
+			array(
+				'type'  => 'checkbox',
+				'id'    => ACME_PW_OPTION_DELETE_DATA,
+				'title' => __( 'Data on uninstall', 'acme-persona-woocommerce' ),
+				'desc'  => __( 'Delete the packing data when the plugin is uninstalled', 'acme-persona-woocommerce' ),
+			),
 		);
 	}
 
@@ -62,7 +68,7 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 					'fields' => array(
 						array(
 							'type'  => 'text',
-							'id'    => '_' . self::PREFIX . '_box',
+							'id'    => ACME_PW_META_BOX,
 							'label' => __( 'Box', 'acme-persona-woocommerce' ),
 						),
 					),

@@ -10,7 +10,7 @@ final class SharedPersonaTest extends TestCase {
 	protected const string BUILD = __DIR__ . '/../../Fixtures/personas/shared';
 
 	// The script runs in its own PHP process, so WordPress never loads beside the scoped shared package.
-	public function test_the_scoped_package_parses_versions_matches_results_and_compares_value_objects_in_plain_php(): void {
+	public function test_the_scoped_package_parses_versions_throws_its_mirrors_matches_and_narrows_results_and_compares_value_objects_in_plain_php(): void {
 		self::assertFileExists( self::BUILD . '/vendor-prefixed/scoper-autoload.php', 'Build personas/shared first with `composer fixtures:build`.' );
 
 		$descriptors = array(
@@ -29,7 +29,9 @@ final class SharedPersonaTest extends TestCase {
 			array(
 				'wordpress' => false,
 				'version'   => array( '2.1.0-rc.1', 1 ),
+				'rejected'  => 'Acme\\PersonaShared\\Scoped\\DeepWebSolutions\\Framework\\Shared\\Exception\\InvalidArgumentException',
 				'results'   => array( 'found acme', 'unknown acme' ),
+				'narrowed'  => array( 'found box', 'unknown other' ),
 				'equality'  => array( true, false ),
 			),
 			\json_decode( $output, true, flags: \JSON_THROW_ON_ERROR )

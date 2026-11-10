@@ -51,7 +51,7 @@ final class Greeting implements ComponentInterface {
 	 * @return  string
 	 */
 	public function render(): string {
-		$settings = get_option( Plugin::PREFIX . '_settings' );
+		$settings = get_option( ACME_PC_OPTION_SETTINGS );
 
 		return esc_html( \is_array( $settings ) && \is_string( $settings['greeting'] ?? null ) ? $settings['greeting'] : '' );
 	}

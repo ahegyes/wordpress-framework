@@ -86,20 +86,29 @@ require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/functions.php';
 ```
 
-The helpers need no kernel. On `plugins_loaded` at priority 15 the plugin registers its settings page:
+The helpers need no kernel. On `plugins_loaded` at priority 15 the plugin registers its settings page, and a form on the post edit screen whose rejections core's `AdminNotices` reports:
 
 ```php
+use Acme\PersonaSettings\Details;
 use Acme\PersonaSettings\Settings;
+use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
+use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
+use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
+use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'plugins_loaded', 'acme_ps_register_settings_page', 15 );
+add_action( 'plugins_loaded', 'acme_ps_register_hooks', 15 );
 
 // ...
 
-function acme_ps_register_settings_page(): void {
+function acme_ps_register_hooks(): void {
+	$notices = new AdminNotices( Settings::PREFIX, new ErrorLogLogger( 'acme-persona-settings' ) );
+	$notices->register_hooks();
+
 	new OptionsPage( Settings::PREFIX, new Settings() )->register_hooks();
+	new ObjectForm( Settings::PREFIX . '_details', new Details(), new PostMetaBox( array( 'post' ) ), $notices )->register_hooks();
 }
 ```
 
@@ -123,10 +132,15 @@ final class Settings implements OptionsPageDefinitionInterface {
 					'option' => self::PREFIX . '_settings',
 					'fields' => array(
 						array(
-							'type'     => 'number',
-							'id'       => 'limit',
-							'title'    => __( 'Limit', 'acme-persona-settings' ),
-							'validate' => array( $this, 'validate_limit' ),
+							'type'              => 'number',
+							'id'                => 'limit',
+							'title'             => __( 'Limit', 'acme-persona-settings' ),
+							'default'           => '10',
+							'custom_attributes' => array(
+								'min'  => '1',
+								'step' => '1',
+							),
+							'validate'          => array( $this, 'validate_limit' ),
 						),
 					),
 				),
@@ -140,6 +154,31 @@ final class Settings implements OptionsPageDefinitionInterface {
 		$limit = \filter_var( $raw, \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
 
 		return false === $limit ? new \WP_Error( 'acme_ps_limit', __( 'Enter a whole number of at least 1.', 'acme-persona-settings' ) ) : $limit;
+	}
+
+	// ...
+}
+```
+
+A form's definition object declares its fields the same way. `PostMetaBox` shows the form on the edit screens of the post types it names, `UserProfile` on the profile screens and `TermForm` on the term screens of the taxonomies it names. Each host stores a field under its id as the object's meta through `MetadataStore`, unless the form takes another store:
+
+```php
+final class Details implements ObjectFormDefinitionInterface {
+	// ...
+
+	#[\Override]
+	public function get_object_form( string $form_id, int $object_id ): array {
+		return array(
+			'title'      => __( 'Details', 'acme-persona-settings' ),
+			'capability' => 'edit_posts',
+			'fields'     => array(
+				array(
+					'type'  => 'text',
+					'id'    => '_' . Settings::PREFIX . '_subtitle',
+					'title' => __( 'Subtitle', 'acme-persona-settings' ),
+				),
+			),
+		);
 	}
 
 	// ...

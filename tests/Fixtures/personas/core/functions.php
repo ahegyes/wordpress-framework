@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the plugin's accessor, boots it on plugins_loaded and loads its migration steps.
+ * Defines the plugin's accessor, boots it on plugins_loaded and loads its option keys and migration steps.
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -12,6 +12,7 @@ use Acme\PersonaCore\Plugin;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/includes/options.php';
 require_once __DIR__ . '/includes/migrations.php';
 
 add_action( 'plugins_loaded', 'acme_pc_boot', 15 );

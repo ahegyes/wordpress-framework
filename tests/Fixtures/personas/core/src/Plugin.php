@@ -8,6 +8,7 @@ use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationR
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginKernel;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
+use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
 use Acme\PersonaCore\Scoped\DI\ContainerBuilder;
 use Acme\PersonaCore\Scoped\Psr\Log\LoggerInterface as PsrLoggerInterface;
 
@@ -51,6 +52,7 @@ final class Plugin {
 	 * @var     list<class-string>
 	 */
 	public const array COMPONENTS = array(
+		Scheduler::class,
 		AdminNotices::class,
 		Greeting::class,
 	);
@@ -66,14 +68,14 @@ final class Plugin {
 	public readonly PluginBoot $boundary;
 
 	/**
-	 * The kernel, once the composition built it, which tells which components loaded.
+	 * The scheduler of the plugin's background work, which the migration runner continues through.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
 	 *
-	 * @var     PluginKernel|null
+	 * @var     Scheduler
 	 */
-	protected(set) ?PluginKernel $kernel = null;
+	public readonly Scheduler $scheduler;
 
 	/**
 	 * The migration runner, once the composition built it.
@@ -86,6 +88,16 @@ final class Plugin {
 	protected(set) ?MigrationRunner $migrations = null;
 
 	/**
+	 * The kernel, once the composition built it, which tells which components loaded.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     PluginKernel|null
+	 */
+	protected(set) ?PluginKernel $kernel = null;
+
+	/**
 	 * The logger every part of the plugin writes to.
 	 *
 	 * @since   1.0.0
@@ -94,16 +106,6 @@ final class Plugin {
 	 * @var     PsrLoggerInterface
 	 */
 	protected readonly PsrLoggerInterface $logger;
-
-	/**
-	 * The scheduler of the plugin's background work, which the migration runner continues through.
-	 *
-	 * @since   1.0.0
-	 * @version 1.0.0
-	 *
-	 * @var     Scheduler
-	 */
-	protected readonly Scheduler $scheduler;
 
 	// endregion
 
@@ -117,8 +119,8 @@ final class Plugin {
 	 */
 	public function __construct() {
 		$this->logger    = new ErrorLogLogger( self::SLUG );
-		$this->boundary  = new PluginBoot( ACME_PC_FILE, self::PREFIX, $this->logger );
 		$this->scheduler = new Scheduler( self::PREFIX );
+		$this->boundary  = new PluginBoot( ACME_PC_FILE, self::PREFIX, $this->logger );
 	}
 
 	// endregion
@@ -154,25 +156,29 @@ final class Plugin {
 		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::PREFIX . '_revision', acme_pc_get_migration_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
-		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger ) )->build() );
+		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
 		$this->kernel->boot( self::COMPONENTS );
 
 		return true;
 	}
 
 	/**
-	 * Returns the container's definitions of the services the root builds.
+	 * Returns the container's definitions of the services the root builds, which the kernel's components share.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
 	 *
-	 * @param   PsrLoggerInterface $logger The plugin's logger.
+	 * @param   PsrLoggerInterface $logger    The plugin's logger.
+	 * @param   Scheduler          $scheduler The plugin's scheduler.
 	 *
 	 * @return  array<string, \Closure(): object>
 	 */
-	protected function get_definitions( PsrLoggerInterface $logger ): array {
+	protected function get_definitions( PsrLoggerInterface $logger, Scheduler $scheduler ): array {
 		return array(
-			AdminNotices::class => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			PsrLoggerInterface::class => static fn (): PsrLoggerInterface => $logger,
+			Scheduler::class          => static fn (): Scheduler => $scheduler,
+			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
+			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
 		);
 	}
 
