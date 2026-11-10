@@ -2,6 +2,9 @@
 /**
  * Prints, as JSON, what the scoped shared package returns in plain PHP: a parsed and compared version, both branches of a result and the equality of value objects.
  *
+ * @since   1.0.0
+ * @version 1.0.0
+ *
  * @package Acme\PersonaShared
  */
 

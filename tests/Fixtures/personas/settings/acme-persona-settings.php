@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Loads the plugin's autoloader and functions once the site meets its floors.
+ *
  * Plugin Name:       Acme Persona Settings
  * Description:       Adds a settings page through the settings package, without the plugin kernel.
  * Version:           1.0.0
@@ -9,6 +11,9 @@
  * License:           GPL-3.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:       acme-persona-settings
+ *
+ * @since   1.0.0
+ * @version 1.0.0
  *
  * @package Acme\PersonaSettings
  */

@@ -2,6 +2,9 @@
 /**
  * Returns the php-scoper config that prefixes the framework with the plugin's namespace.
  *
+ * @since   1.0.0
+ * @version 1.0.0
+ *
  * @package Acme\PersonaSettings
  */
 

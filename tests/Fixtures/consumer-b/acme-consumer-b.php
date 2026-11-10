@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Registers the plugin's updater and, once the site meets its floors, loads its autoloader and functions.
+ *
  * Plugin Name:       Acme Consumer B
  * Description:       Adds a settings page, built on every framework package but woocommerce.
  * Version:           1.0.0
@@ -10,6 +12,9 @@
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Update URI:        https://github.com/acme/acme-consumer-b
  * Text Domain:       acme-consumer-b
+ *
+ * @since   1.0.0
+ * @version 1.0.0
  *
  * @package Acme\ConsumerB
  */

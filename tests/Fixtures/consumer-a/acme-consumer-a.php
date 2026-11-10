@@ -1,5 +1,7 @@
 <?php declare( strict_types=1 );
 /**
+ * Loads the plugin's safeguards, registers its updater and, once the site meets its floors, loads its autoloader and functions.
+ *
  * Plugin Name:          Acme Consumer A
  * Description:          Adds a product data tab and an order-count export to WooCommerce, built on every framework package.
  * Version:              1.0.0
@@ -14,6 +16,9 @@
  * Update URI:           https://github.com/acme/acme-consumer-a
  * Text Domain:          acme-consumer-a
  * Domain Path:          /languages
+ *
+ * @since   1.0.0
+ * @version 1.0.0
  *
  * @package Acme\ConsumerA
  */
