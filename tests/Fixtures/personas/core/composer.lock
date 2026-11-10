@@ -12,7 +12,7 @@
             "version": "dev-trunk",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ahegyes/wordpress-configs.git",
+                "url": "https://github.com/ahegyes/wordpress-configs.git",
                 "reference": "b107001cce9f2960495d9d50481c8540d228f60c"
             },
             "dist": {
@@ -142,6 +142,10 @@
                 }
             ],
             "description": "Shared tooling that lets WordPress projects be checked, scoped and released the same way.",
+            "support": {
+                "source": "https://github.com/ahegyes/wordpress-configs/tree/trunk",
+                "issues": "https://github.com/ahegyes/wordpress-configs/issues"
+            },
             "time": "2026-11-09T15:51:41+00:00"
         },
         {
@@ -2044,12 +2048,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "a09945ae024a4cb2be97d080558455b979e3f743"
+                "reference": "fe3a585588a168d9f2727fb468145f4c5f56f5b4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/a09945ae024a4cb2be97d080558455b979e3f743",
-                "reference": "a09945ae024a4cb2be97d080558455b979e3f743",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/fe3a585588a168d9f2727fb468145f4c5f56f5b4",
+                "reference": "fe3a585588a168d9f2727fb468145f4c5f56f5b4",
                 "shasum": ""
             },
             "conflict": {
@@ -2350,7 +2354,7 @@
                 "filament/forms": ">=3,<=3.3.52",
                 "filament/infolists": ">=3,<3.2.115|>=4,<=4.11.4|>=5,<=5.6.4",
                 "filament/tables": ">=3,<=3.3.50|>=4,<=4.11.4|>=5,<=5.6.4",
-                "filegator/filegator": "<7.8",
+                "filegator/filegator": "<=7.14.4",
                 "filp/whoops": "<2.1.13",
                 "fineuploader/php-traditional-server": "<=1.2.2",
                 "firebase/php-jwt": "<7",
@@ -2428,6 +2432,7 @@
                 "hillelcoren/invoice-ninja": "<5.3.35",
                 "himiklab/yii2-jqgrid-widget": "<1.0.8",
                 "hjue/justwriting": "<=1",
+                "hms5232/laravel-swagger": "<0.2.1",
                 "hov/jobfair": "<1.0.13|>=2,<2.0.2",
                 "httpsoft/http-message": "<1.0.12",
                 "hybridauth/hybridauth": "<=3.12.2",
@@ -3211,8 +3216,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-11-07T01:38:18+00:00",
-            "published-time": "2026-11-07T01:38:22+00:00"
+            "time": "2026-11-10T03:11:40+00:00",
+            "published-time": "2026-11-10T03:11:44+00:00"
         },
         {
             "name": "sniccowp/php-scoper-wordpress-excludes",
