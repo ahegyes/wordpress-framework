@@ -98,6 +98,7 @@ final class ConditionalOnly implements ConditionalComponentInterface {
 		return true;
 	}
 
+	#[\Override]
 	public function register_hooks(): void {
 		$this->journal->entries[] = 'register ConditionalOnly';
 	}
