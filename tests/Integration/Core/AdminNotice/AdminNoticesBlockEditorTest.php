@@ -90,6 +90,13 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		self::assertSame( 'Saved & filed. Read the “guide”.', $this->deliver()->get_data()[0]['spoken'] );
 	}
 
+	public function test_a_delivered_message_s_paragraphs_and_list_items_are_spoken_apart(): void {
+		$this->notices()->add( $this->notice( 'saved', message: '<p>Saved.</p><p>Check:</p><ul><li>Box</li><li>Weight</li></ul>' ), $this->admin );
+		wp_set_current_user( $this->admin );
+
+		self::assertSame( 'Saved. Check: Box Weight', $this->deliver()->get_data()[0]['spoken'] );
+	}
+
 	public static function other_screens(): array {
 		return array(
 			'site-editor'    => array( 'site-editor', true ),
