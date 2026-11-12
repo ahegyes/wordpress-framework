@@ -43,6 +43,12 @@ final class AssetsTest extends TestCase {
 		self::assertSame( 'replace', $style->extra['rtl'] ?? null );
 	}
 
+	public function test_a_style_without_a_right_to_left_file_keeps_its_own_file_on_right_to_left_sites(): void {
+		self::assertTrue( new Assets( new PluginIdentity( self::PLUGIN_FILE, 'acme-plugin', 'acme' ) )->register_style( self::STYLE, 'assets/build/vendor.css' ) );
+
+		self::assertArrayNotHasKey( 'rtl', wp_styles()->registered[ self::STYLE ]->extra );
+	}
+
 	public function test_the_style_chunk_of_an_entry_takes_the_entry_s_version(): void {
 		self::assertTrue( new Assets( new PluginIdentity( self::PLUGIN_FILE, 'acme-plugin', 'acme' ) )->register_style( self::STYLE, 'assets/build/style-editor.css' ) );
 
