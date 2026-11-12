@@ -217,7 +217,6 @@ final class UserProfileTest extends TestCase {
 			);
 		} finally {
 			unset( $_POST[ $this->id ] );
-			wp_set_current_user( 0 );
 		}
 
 		self::assertSame( 'Updated in code', get_userdata( $this->subscriber )->display_name );

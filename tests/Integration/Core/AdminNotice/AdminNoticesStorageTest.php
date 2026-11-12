@@ -31,11 +31,6 @@ final class AdminNoticesStorageTest extends TestCase {
 		wp_set_current_user( $this->user_id );
 	}
 
-	#[\Override]
-	protected function tearDown(): void {
-		wp_set_current_user( 0 );
-	}
-
 	public function test_each_scope_keeps_its_notices_as_one_array_by_id_in_its_home(): void {
 		global $wpdb;
 		$user = array( $this->notice( 'one' ), $this->notice( 'two' ) );

@@ -159,7 +159,6 @@ final class TermFormTest extends TestCase {
 			wp_update_term( $term_id, 'category', array( 'name' => "$this->prefix in code" ) );
 		} finally {
 			unset( $_POST[ $this->id ] );
-			wp_set_current_user( 0 );
 		}
 
 		self::assertSame( "$this->prefix in code", get_term( $term_id )->name );

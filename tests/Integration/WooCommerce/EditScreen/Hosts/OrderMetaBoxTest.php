@@ -350,7 +350,6 @@ final class OrderMetaBoxTest extends TestCase {
 			$order->save();
 		} finally {
 			unset( $_POST[ "{$this->id}_nonce" ], $_POST[ $this->id ] );
-			wp_set_current_user( 0 );
 		}
 
 		self::assertSame( 'Updated in code', wc_get_order( $order->get_id() )->get_customer_note() );

@@ -56,7 +56,6 @@ final class SettingsTest extends TestCase {
 		SettingsSectionRegistry::get_instance()->unregister_all();
 		$this->reset_settings_pages();
 		$GLOBALS['wp_rest_server'] = null;
-		wp_set_current_user( 0 );
 	}
 
 	public static function silent_and_worded_rejections(): array {

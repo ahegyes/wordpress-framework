@@ -52,7 +52,6 @@ final class ObjectFormTest extends TestCase {
 	protected function tearDown(): void {
 		$_POST = $this->post_backup;
 		wp_delete_post( $this->post_id, true );
-		wp_set_current_user( 0 );
 	}
 
 	public static function foreign_nonces(): array {
