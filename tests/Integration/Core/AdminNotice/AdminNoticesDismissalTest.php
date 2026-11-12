@@ -39,9 +39,9 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$this->admin       = $this->make_user( 'acme_notices_admin', 'administrator' );
 		$this->other_admin = $this->make_user( 'acme_notices_other_admin', 'administrator' );
 		$this->logger      = new RecordingLogger();
-		$this->notices     = new AdminNotices( $this->prefix, $this->logger );
+		$this->notices     = new AdminNotices( $this->slug, $this->prefix, $this->logger );
 		add_action(
-			"$this->prefix/admin_notice/dismissed",
+			"$this->hook_root/admin_notice/dismissed",
 			function ( mixed ...$arguments ): void {
 				$this->dismissed[] = $arguments;
 			},
@@ -271,7 +271,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 	}
 
 	public function test_a_failing_store_whose_logger_throws_answers_500_and_reaches_the_error_log(): void {
-		$notices = new AdminNotices( $this->prefix, new ThrowingLogger( new \UnexpectedValueException( 'The log is not writable.' ) ) );
+		$notices = new AdminNotices( $this->slug, $this->prefix, new ThrowingLogger( new \UnexpectedValueException( 'The log is not writable.' ) ) );
 		$notices->add( $this->notice( 'x', NoticeScope::Site, persistent: true ) );
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_body_params( $this->shown( $this->admin, 'site', 'x' ) );
@@ -384,7 +384,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 	}
 
 	protected function dismiss( array $params ): \WP_REST_Response {
-		$request = new \WP_REST_Request( 'POST', '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' );
+		$request = new \WP_REST_Request( 'POST', "/$this->slug/v1/notices/dismissals" );
 		$request->set_body_params( \array_filter( $params, static fn ( mixed $value ): bool => ! \is_null( $value ) ) );
 
 		return rest_do_request( $request );
@@ -404,7 +404,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$_POST = $params;
 
 		\ob_start();
-		rest_get_server()->serve_request( '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals' );
+		rest_get_server()->serve_request( "/$this->slug/v1/notices/dismissals" );
 
 		return \json_decode( (string) \ob_get_clean(), true );
 	}

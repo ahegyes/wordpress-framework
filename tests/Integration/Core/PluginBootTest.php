@@ -34,7 +34,7 @@ final class PluginBootTest extends TestCase {
 	protected function setUp(): void {
 		$this->logger = new RecordingLogger();
 		add_action(
-			"$this->prefix/boot/succeeded",
+			"$this->hook_root/boot/succeeded",
 			function (): void {
 				$this->fired[] = 'succeeded';
 			},
@@ -42,7 +42,7 @@ final class PluginBootTest extends TestCase {
 			0
 		);
 		add_action(
-			"$this->prefix/boot/blocked",
+			"$this->hook_root/boot/blocked",
 			function (): void {
 				$this->fired[] = 'blocked';
 			},
@@ -50,7 +50,7 @@ final class PluginBootTest extends TestCase {
 			0
 		);
 		add_action(
-			"$this->prefix/boot/failed",
+			"$this->hook_root/boot/failed",
 			function ( \Throwable $failure ): void {
 				$this->fired[]    = 'failed';
 				$this->failures[] = $failure;
@@ -79,7 +79,7 @@ final class PluginBootTest extends TestCase {
 	public function test_a_composition_that_reports_an_unmet_requirement_is_blocked(): void {
 		// The all hook receives an action's own arguments, before do_action() pads an argumentless call with an empty string.
 		$arguments = array();
-		$blocked   = "$this->prefix/boot/blocked";
+		$blocked   = "$this->hook_root/boot/blocked";
 		add_action(
 			'all',
 			static function ( string $hook_name, mixed ...$args ) use ( &$arguments, $blocked ): void {
@@ -140,7 +140,7 @@ final class PluginBootTest extends TestCase {
 	#[DataProvider( 'logging_failures' )]
 	public function test_a_failure_whose_logger_throws_still_reaches_the_error_log_and_is_announced( \Throwable $logging_failure ): void {
 		$failure  = new \RuntimeException( 'composition failed' );
-		$boot     = new PluginBoot( self::PLUGIN_FILE, $this->prefix, new ThrowingLogger( $logging_failure ) );
+		$boot     = new PluginBoot( self::PLUGIN_FILE, $this->slug, $this->prefix, new ThrowingLogger( $logging_failure ) );
 		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
 		$previous = \ini_set( 'error_log', $log_file );
 
@@ -162,6 +162,6 @@ final class PluginBootTest extends TestCase {
 	}
 
 	protected function make_boot(): PluginBoot {
-		return new PluginBoot( self::PLUGIN_FILE, $this->prefix, $this->logger );
+		return new PluginBoot( self::PLUGIN_FILE, $this->slug, $this->prefix, $this->logger );
 	}
 }

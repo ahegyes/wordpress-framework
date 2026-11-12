@@ -37,7 +37,7 @@ final class TermFormTest extends TestCase {
 
 	public function test_the_host_registers_on_each_of_its_taxonomies(): void {
 		$host = new TermForm( array( 'category', 'post_tag' ) );
-		new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
+		new ObjectForm( $this->slug, $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
 
 		foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
 			self::assertSame( 10, has_action( "{$taxonomy}_edit_form", array( $host, 'render_section' ) ) );
@@ -139,6 +139,7 @@ final class TermFormTest extends TestCase {
 		$term_id = $this->make_term( 'category' );
 		add_term_meta( $term_id, "_{$this->prefix}_name", 'kept' );
 		$form = new ObjectForm(
+			$this->slug,
 			$this->id,
 			new RecordedDefinition(
 				fn (): array => array(
@@ -148,7 +149,7 @@ final class TermFormTest extends TestCase {
 				)
 			),
 			new TermForm( array( 'category' ) ),
-			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
+			new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		wp_set_current_user( $this->admin );
@@ -168,6 +169,7 @@ final class TermFormTest extends TestCase {
 	protected function spec( array $fields, array $form = array() ): array {
 		return array(
 			'id'        => $this->id,
+			'slug'      => $this->slug,
 			'host'      => 'term',
 			'host_args' => array( 'taxonomies' => array( 'category' ) ),
 			'form'      => $form + array(

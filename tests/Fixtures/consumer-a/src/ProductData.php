@@ -39,7 +39,7 @@ final class ProductData implements ComponentInterface, ProductDataTabDefinitionI
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		new ProductDataTab( Plugin::PREFIX . '_packing', $this )->register_hooks();
+		new ProductDataTab( Plugin::SLUG, Plugin::PREFIX . '_packing', $this )->register_hooks();
 	}
 
 	/**

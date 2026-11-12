@@ -27,7 +27,7 @@ final class AdminNoticesStorageTest extends TestCase {
 	#[\Override]
 	protected function setUp(): void {
 		$this->user_id = $this->make_user( 'acme_notices_admin', 'administrator' );
-		$this->notices = new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
+		$this->notices = new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) );
 		wp_set_current_user( $this->user_id );
 	}
 

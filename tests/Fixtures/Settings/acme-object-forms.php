@@ -66,22 +66,22 @@ add_action(
 			};
 		}
 
-		$notices = new AdminNotices( $spec['id'], new ErrorLogLogger( 'acme' ) );
+		$notices = new AdminNotices( $spec['slug'], $spec['id'], new ErrorLogLogger( 'acme' ) );
 		$notices->register_hooks();
-		new ObjectForm( $spec['id'], $definition, $host, $notices, $store )->register_hooks();
+		new ObjectForm( $spec['slug'], $spec['id'], $definition, $host, $notices, $store )->register_hooks();
 	}
 );
 
 if ( isset( $spec['contributed'] ) ) {
 	add_filter(
-		"{$spec['id']}/object_form/fields",
-		static function ( array $fields, int $object_id ) use ( $spec ): array {
-			$GLOBALS['acme_outcome']['records'][] = array( 'contributed', $object_id );
+		str_replace( '-', '_', $spec['slug'] ) . '/object_form/fields',
+		static function ( array $fields, int $object_id, string $form_id ) use ( $spec ): array {
+			$GLOBALS['acme_outcome']['records'][] = array( 'contributed', $object_id, $form_id );
 
 			return array_merge( $fields, RecordedDefinition::with_behaviors( $spec['contributed'] ) );
 		},
 		10,
-		2
+		3
 	);
 }
 

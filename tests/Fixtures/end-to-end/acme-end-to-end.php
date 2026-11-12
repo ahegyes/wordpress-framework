@@ -19,7 +19,7 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormDefinitionInterface
 // wp-env maps the repository to wp-content/mu-plugins/wp-framework and this directory into the plugins directory.
 require_once WPMU_PLUGIN_DIR . '/wp-framework/vendor/autoload.php';
 
-$acme_notices = new AdminNotices( 'acme_e2e', new ErrorLogLogger( 'acme-end-to-end' ) );
+$acme_notices = new AdminNotices( 'acme-e2e', 'acme_e2e', new ErrorLogLogger( 'acme-end-to-end' ) );
 
 register_activation_hook(
 	__FILE__,
@@ -56,7 +56,7 @@ add_action(
 				);
 			}
 		};
-		new ObjectForm( 'acme_e2e_details', $definition, new PostMetaBox( array( 'post' ) ), $acme_notices )->register_hooks();
+		new ObjectForm( 'acme-e2e', 'acme_e2e_details', $definition, new PostMetaBox( array( 'post' ) ), $acme_notices )->register_hooks();
 	}
 );
 

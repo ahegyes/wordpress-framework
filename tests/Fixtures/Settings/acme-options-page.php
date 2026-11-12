@@ -24,6 +24,7 @@ add_action(
 	'plugins_loaded',
 	static function () use ( $spec, $acme_with_behaviors ): void {
 		$page = new OptionsPage(
+			$spec['slug'],
 			$spec['id'],
 			new RecordedDefinition( static fn (): array => array( 'tabs' => $acme_with_behaviors( $spec['page']['tabs'] ) ) + $spec['page'] )
 		);
@@ -33,14 +34,20 @@ add_action(
 
 if ( isset( $spec['contributed'] ) ) {
 	add_filter(
-		"{$spec['id']}/options_page/tabs",
-		static function ( array $tabs ) use ( $spec, $acme_with_behaviors ): array {
+		str_replace( '-', '_', $spec['slug'] ) . '/options_page/tabs',
+		static function ( array $tabs, string $page_id ) use ( $spec, $acme_with_behaviors ): array {
+			if ( $spec['id'] !== $page_id ) {
+				return $tabs;
+			}
+
 			foreach ( $tabs as &$tab ) {
 				$tab['fields'] = array_merge( $tab['fields'], $spec['contributed']['fields'][ $tab['slug'] ] ?? array() );
 			}
 
 			return $acme_with_behaviors( array_merge( $tabs, $spec['contributed']['tabs'] ?? array() ) );
-		}
+		},
+		10,
+		2
 	);
 }
 

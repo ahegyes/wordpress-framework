@@ -62,12 +62,12 @@ final class AdminNoticesTest extends TestCase {
 	public function test_a_prefix_outside_the_pattern_or_with_a_reserved_segment_is_rejected( string $prefix ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new AdminNotices( $prefix, $this->logger );
+		new AdminNotices( $this->slug, $prefix, $this->logger );
 	}
 
 	public function test_a_prefix_may_hold_the_reserved_words_inside_longer_segments_and_reach_32_characters(): void {
 		foreach ( array( 'acme_notice', 'acme_notices', 'acmenetwork_x', 'acme_hiddenx', 'a' . \str_repeat( 'b', 31 ) ) as $prefix ) {
-			$notices = new AdminNotices( $prefix, $this->logger );
+			$notices = new AdminNotices( $this->slug, $prefix, $this->logger );
 			self::assertSame( array(), $notices->get_notices( NoticeScope::Request ) );
 		}
 	}
@@ -285,7 +285,7 @@ final class AdminNoticesTest extends TestCase {
 	public function test_the_visibility_filter_hides_a_notice_without_consuming_it_unless_it_returns_true(): void {
 		$calls = array();
 		add_filter(
-			"$this->prefix/admin_notice/should_show",
+			"$this->hook_root/admin_notice/should_show",
 			static function ( mixed $visible, string $id, string $scope ) use ( &$calls ): mixed {
 				$calls[] = array( $visible, $id, $scope );
 				return match ( $id ) {
@@ -310,7 +310,7 @@ final class AdminNoticesTest extends TestCase {
 	public function test_the_message_filter_replaces_the_printed_message_unless_it_returns_no_string(): void {
 		$calls = array();
 		add_filter(
-			"$this->prefix/admin_notice/message",
+			"$this->hook_root/admin_notice/message",
 			static function ( string $message, string $id, string $scope ) use ( &$calls ): ?string {
 				$calls[] = array( $message, $id, $scope );
 				return 'kept' === $id ? null : 'Translated.';
@@ -371,7 +371,7 @@ final class AdminNoticesTest extends TestCase {
 		self::assertSame(
 			array(
 				'prefix' => $this->prefix,
-				'path'   => \str_replace( '_', '-', $this->prefix ) . '/v1/notices/dismissals',
+				'path'   => "$this->slug/v1/notices/dismissals",
 			),
 			\json_decode( $matches[1], true )
 		);
@@ -464,7 +464,7 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	protected function notices(): AdminNotices {
-		return new AdminNotices( $this->prefix, $this->logger );
+		return new AdminNotices( $this->slug, $this->prefix, $this->logger );
 	}
 
 	// A fresh instance stands for the next request.

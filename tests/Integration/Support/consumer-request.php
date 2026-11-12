@@ -44,16 +44,16 @@ if ( isset( $spec['locale'] ) ) {
 }
 
 if ( array_key_exists( 'relaxation', $spec ) ) {
-	add_filter( 'acme_ca/exports/should_restrict', static fn (): mixed => $spec['relaxation'] );
+	add_filter( 'acme_consumer_a/exports/should_restrict', static fn (): mixed => $spec['relaxation'] );
 }
 
 $acme_record_boots = static function (): void {
 	$consumers = array(
-		'consumer_a'   => 'acme_ca',
-		'consumer_b'   => 'acme_cb',
-		'persona_core' => 'acme_pc',
+		'consumer_a'   => array( 'acme_ca', 'acme_consumer_a' ),
+		'consumer_b'   => array( 'acme_cb', 'acme_consumer_b' ),
+		'persona_core' => array( 'acme_pc', 'acme_persona_core' ),
 	);
-	foreach ( $consumers as $key => $prefix ) {
+	foreach ( $consumers as $key => list( $prefix, $hook_root ) ) {
 		try {
 			$plugin = function_exists( "{$prefix}_plugin" ) ? ( "{$prefix}_plugin" )() : null;
 		} catch ( Error ) { // The composition root's class file may be missing.
@@ -62,7 +62,7 @@ $acme_record_boots = static function (): void {
 		$GLOBALS['acme_outcome']['records'][ $key ] = array(
 			'status'           => $plugin?->boundary->status,
 			'skipped'          => $plugin?->kernel?->skipped,
-			'boot_succeeded'   => did_action( "$prefix/boot/succeeded" ),
+			'boot_succeeded'   => did_action( "$hook_root/boot/succeeded" ),
 			'functions_loaded' => function_exists( "{$prefix}_plugin" ),
 			'migrations'       => is_object( $plugin ) && property_exists( $plugin, 'migrations' ) && is_object( $plugin->migrations ) ? get_class( $plugin->migrations ) : null,
 		);
@@ -139,7 +139,7 @@ add_action(
 				$records['export_error'] = $exception->getMessage();
 			}
 			$records['can_export_after_throw']         = current_user_can( $acme_capability );
-			$records['relaxation_left']                = has_filter( 'acme_ca/exports/should_restrict', '__return_false' );
+			$records['relaxation_left']                = has_filter( 'acme_consumer_a/exports/should_restrict', '__return_false' );
 			$records['safeguard_attached_after_throw'] = has_filter( 'map_meta_cap', 'acme_ca_map_export_capability' );
 		}
 	},

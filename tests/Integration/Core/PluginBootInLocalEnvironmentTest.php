@@ -35,7 +35,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 	#[\Override]
 	protected function setUp(): void {
 		add_action(
-			"$this->prefix/boot/succeeded",
+			"$this->hook_root/boot/succeeded",
 			function (): void {
 				$this->fired[] = 'succeeded';
 			},
@@ -43,7 +43,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 			0
 		);
 		add_action(
-			"$this->prefix/boot/failed",
+			"$this->hook_root/boot/failed",
 			function ( \Throwable $failure ): void {
 				$this->fired[]    = 'failed';
 				$this->failures[] = $failure;
@@ -54,7 +54,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 	public function test_a_failing_composition_is_rethrown_after_the_failure_action(): void {
 		self::assertSame( 'local', wp_get_environment_type() );
 		$failure = new \RuntimeException( 'composition failed' );
-		$boot    = new PluginBoot( __DIR__ . '/../../Fixtures/Core/acme-boot.php', $this->prefix, new PsrNullLogger() );
+		$boot    = new PluginBoot( __DIR__ . '/../../Fixtures/Core/acme-boot.php', $this->slug, $this->prefix, new PsrNullLogger() );
 
 		$caught = null;
 		try {

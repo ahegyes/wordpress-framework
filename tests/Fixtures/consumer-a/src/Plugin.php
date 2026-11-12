@@ -25,7 +25,7 @@ final class Plugin {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The plugin's slug, which is also its text domain and its log source.
+	 * The plugin's slug, which is also its text domain, its log source and, in snake case, the root of its hook names.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -35,7 +35,7 @@ final class Plugin {
 	public const string SLUG = 'acme-consumer-a';
 
 	/**
-	 * The prefix of the plugin's hook names, options, transients and scheduled jobs.
+	 * The prefix of the plugin's options, transients and scheduled jobs.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -124,7 +124,7 @@ final class Plugin {
 	public function __construct() {
 		$this->logger    = new WooCommerceLogger( self::SLUG, \defined( 'ACME_CA_DEBUG' ) && true === \constant( 'ACME_CA_DEBUG' ) ? 'debug' : null );
 		$this->scheduler = new Scheduler( self::PREFIX );
-		$this->boundary  = new PluginBoot( ACME_CA_FILE, self::PREFIX, $this->logger );
+		$this->boundary  = new PluginBoot( ACME_CA_FILE, self::SLUG, self::PREFIX, $this->logger );
 	}
 
 	// endregion
@@ -161,7 +161,7 @@ final class Plugin {
 			return false;
 		}
 
-		$this->migrations = new MigrationRunner( ACME_CA_FILE, self::PREFIX . '_revision', acme_ca_get_migration_steps(), $this->logger, $this->scheduler );
+		$this->migrations = new MigrationRunner( ACME_CA_FILE, self::SLUG, self::PREFIX . '_revision', acme_ca_get_migration_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
 		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
@@ -186,7 +186,7 @@ final class Plugin {
 			PsrLoggerInterface::class => static fn (): PsrLoggerInterface => $logger,
 			Scheduler::class          => static fn (): Scheduler => $scheduler,
 			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
-			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::SLUG, self::PREFIX, $logger ),
 		);
 	}
 

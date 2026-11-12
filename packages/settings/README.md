@@ -104,11 +104,11 @@ add_action( 'plugins_loaded', 'acme_ps_register_hooks', 15 );
 // ...
 
 function acme_ps_register_hooks(): void {
-	$notices = new AdminNotices( Settings::PREFIX, new ErrorLogLogger( 'acme-persona-settings' ) );
+	$notices = new AdminNotices( Settings::SLUG, Settings::PREFIX, new ErrorLogLogger( 'acme-persona-settings' ) );
 	$notices->register_hooks();
 
-	new OptionsPage( Settings::PREFIX, new Settings() )->register_hooks();
-	new ObjectForm( Settings::PREFIX . '_details', new Details(), new PostMetaBox( array( 'post' ) ), $notices )->register_hooks();
+	new OptionsPage( Settings::SLUG, Settings::PREFIX, new Settings() )->register_hooks();
+	new ObjectForm( Settings::SLUG, Settings::PREFIX . '_details', new Details(), new PostMetaBox( array( 'post' ) ), $notices )->register_hooks();
 }
 ```
 

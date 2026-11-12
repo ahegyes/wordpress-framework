@@ -25,7 +25,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		new OptionsPage( Plugin::PREFIX, $this )->register_hooks();
+		new OptionsPage( Plugin::SLUG, Plugin::PREFIX, $this )->register_hooks();
 	}
 
 	/**

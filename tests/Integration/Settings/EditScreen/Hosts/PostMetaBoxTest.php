@@ -70,19 +70,19 @@ final class PostMetaBoxTest extends TestCase {
 	public function test_an_invalid_form_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new ObjectForm( $id, new RecordedDefinition( static fn (): array => array() ), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
+		new ObjectForm( $this->slug, $id, new RecordedDefinition( static fn (): array => array() ), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_form_id( string $id ): void {
-		$form = new ObjectForm( $id, new RecordedDefinition( static fn (): array => array() ), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
+		$form = new ObjectForm( $this->slug, $id, new RecordedDefinition( static fn (): array => array() ), new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 
 		self::assertSame( $id, $form->get_id() );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_a_screen_needs_it(): void {
 		$definition = new RecordedDefinition( static fn (): array => array() );
-		$form       = new ObjectForm( $this->id, $definition, new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) );
+		$form       = new ObjectForm( $this->slug, $this->id, $definition, new PostMetaBox( array( 'post' ) ), new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) ) );
 		$form->register_hooks();
 		$post_id = $this->make_post();
 		$spec    = $this->spec( array( $this->field( 'text', 'name' ) ) );
@@ -230,7 +230,7 @@ final class PostMetaBoxTest extends TestCase {
 		$box     = $this->box( self::document( $request['body'] ) );
 
 		self::assertContains( array( 'fields', $post_id ), $request['records'] );
-		self::assertContains( array( 'contributed', $post_id ), $request['records'] );
+		self::assertContains( array( 'contributed', $post_id, $this->id ), $request['records'] );
 		$this->control( $box, 'name' );
 		$this->control( $box, 'extra' );
 	}
@@ -531,6 +531,7 @@ final class PostMetaBoxTest extends TestCase {
 	public function test_a_save_without_the_forms_nonce_stores_nothing(): void {
 		$post_id = $this->make_post( array( "_{$this->prefix}_name" => 'kept' ) );
 		$form    = new ObjectForm(
+			$this->slug,
 			$this->id,
 			new RecordedDefinition(
 				fn (): array => array(
@@ -540,7 +541,7 @@ final class PostMetaBoxTest extends TestCase {
 				)
 			),
 			new PostMetaBox( array( 'post' ) ),
-			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
+			new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) )
 		);
 		$form->register_hooks();
 		wp_set_current_user( $this->admin );
@@ -676,7 +677,7 @@ final class PostMetaBoxTest extends TestCase {
 		$saved      = $this->block_editor_save( $spec, $post_id, array( $this->control_name( 'note' ) => 'too long' ) );
 		$redirected = $this->follow( $spec, $saved );
 		wp_set_current_user( $this->admin );
-		$delivered = new AdminNotices( $this->id, new ErrorLogLogger( 'acme' ) )->rest_deliver();
+		$delivered = new AdminNotices( $this->slug, $this->id, new ErrorLogLogger( 'acme' ) )->rest_deliver();
 		$list      = $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec );
 
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'note' ) );
@@ -726,6 +727,7 @@ final class PostMetaBoxTest extends TestCase {
 	protected function spec( array $fields, array $form = array(), array $extra = array() ): array {
 		return $extra + array(
 			'id'        => $this->id,
+			'slug'      => $this->slug,
 			'host'      => 'post',
 			'host_args' => array( 'post_types' => array( 'post' ) ),
 			'editor'    => 'classic',

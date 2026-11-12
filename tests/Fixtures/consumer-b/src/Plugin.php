@@ -21,7 +21,7 @@ final class Plugin {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The plugin's slug, which is also its text domain and its log channel.
+	 * The plugin's slug, which is also its text domain, its log channel and, in snake case, the root of its hook names.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -31,7 +31,7 @@ final class Plugin {
 	public const string SLUG = 'acme-consumer-b';
 
 	/**
-	 * The prefix of the plugin's hook names, options and admin page.
+	 * The prefix of the plugin's options and admin page.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -95,7 +95,7 @@ final class Plugin {
 	 */
 	public function __construct() {
 		$this->logger   = new ErrorLogLogger( self::SLUG );
-		$this->boundary = new PluginBoot( ACME_CB_FILE, self::PREFIX, $this->logger );
+		$this->boundary = new PluginBoot( ACME_CB_FILE, self::SLUG, self::PREFIX, $this->logger );
 	}
 
 	// endregion
@@ -145,7 +145,7 @@ final class Plugin {
 	 */
 	protected function get_definitions( PsrLoggerInterface $logger ): array {
 		return array(
-			AdminNotices::class => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			AdminNotices::class => static fn (): AdminNotices => new AdminNotices( self::SLUG, self::PREFIX, $logger ),
 		);
 	}
 

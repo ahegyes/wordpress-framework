@@ -24,7 +24,7 @@ final class Plugin {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The plugin's slug, which is also its text domain and its log channel.
+	 * The plugin's slug, which is also its text domain, its log channel and, in snake case, the root of its hook names.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -34,7 +34,7 @@ final class Plugin {
 	public const string SLUG = 'acme-persona-core';
 
 	/**
-	 * The prefix of the plugin's hook names, options and scheduled hooks.
+	 * The prefix of the plugin's options and scheduled actions.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -120,7 +120,7 @@ final class Plugin {
 	public function __construct() {
 		$this->logger    = new ErrorLogLogger( self::SLUG );
 		$this->scheduler = new Scheduler( self::PREFIX );
-		$this->boundary  = new PluginBoot( ACME_PC_FILE, self::PREFIX, $this->logger );
+		$this->boundary  = new PluginBoot( ACME_PC_FILE, self::SLUG, self::PREFIX, $this->logger );
 	}
 
 	// endregion
@@ -152,7 +152,7 @@ final class Plugin {
 	 * @return  bool
 	 */
 	protected function compose(): bool {
-		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::PREFIX . '_revision', acme_pc_get_migration_steps(), $this->logger, $this->scheduler );
+		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::SLUG, self::PREFIX . '_revision', acme_pc_get_migration_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
 		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
@@ -177,7 +177,7 @@ final class Plugin {
 			PsrLoggerInterface::class => static fn (): PsrLoggerInterface => $logger,
 			Scheduler::class          => static fn (): Scheduler => $scheduler,
 			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
-			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::SLUG, self::PREFIX, $logger ),
 		);
 	}
 
