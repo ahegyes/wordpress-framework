@@ -16,6 +16,7 @@ wordpress-framework/
 ├── packages/core/         ahegyes/wp-framework-core         `require.php`, ext-filter · bootstrap ^2.0, shared ^2.0, psr/clock ^1, psr/container ^2.0.2, psr/log ^3.0.2, psr/simple-cache ^3
 │   └── src/               psr-4 DeepWebSolutions\Framework\Core\ · PluginKernel, PluginBoot (is_development_environment (@internal)), ComponentInterface, CompositeComponentInterface, ConditionalComponentInterface
 │       ├── AdminNotice/{AdminNotices, Notice, NoticeType, NoticeScope}
+│       ├── Asset/Assets
 │       ├── Caching/{TransientCache, ObjectCache, CacheEntries (@internal), Exceptions/InvalidCacheKeyException}
 │       ├── Clock/SystemClock · Logging/{AbstractLogger, ErrorLogLogger, GuardedLogger (@internal)}
 │       ├── Migration/{MigrationRunner, BatchedMigrationStepInterface}
