@@ -46,7 +46,7 @@ function acme_ca_plugin(): Plugin {
 }
 
 /**
- * Boots the plugin, reporting a composition root that cannot be built as an incomplete build.
+ * Boots the plugin.
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -54,11 +54,7 @@ function acme_ca_plugin(): Plugin {
  * @return  void
  */
 function acme_ca_boot(): void {
-	try {
-		acme_ca_plugin()->boot();
-	} catch ( Throwable $error ) {
-		acme_ca_handle_build_error( $error );
-	}
+	acme_ca_plugin()->boot();
 }
 
 /**

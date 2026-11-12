@@ -92,4 +92,4 @@ jobs:
     with:
       artifact: consumer-a
       php-versions: '["7.4"]'
-      paths: '["vendor-prefixed/ahegyes/wp-framework-bootstrap", "acme-consumer-a.php", "uninstall.php", "includes"]'
+      paths: '["vendor-prefixed/ahegyes/wp-framework-bootstrap", "acme-consumer-a.php", "uninstall.php", "Safeguards.php"]'

@@ -58,6 +58,23 @@ final class Plugin {
 	);
 
 	/**
+	 * The plugin's stored data by kind, which covers every option, user meta key and scheduled job under the plugin's prefix.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     array{option_prefixes: list<non-empty-string>, user_meta_site_prefixes: list<non-empty-string>, user_meta_global_prefixes: list<non-empty-string>, network_options: list<non-empty-string>, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
+	 */
+	public const array FOOTPRINT = array(
+		'option_prefixes'           => array( self::PREFIX . '_' ),
+		'user_meta_site_prefixes'   => array( self::PREFIX . '_' ),
+		'user_meta_global_prefixes' => array( self::PREFIX . '_' ),
+		'network_options'           => array( self::PREFIX . '_network_notices' ),
+		'cron_hooks'                => array( 'acme_persona_core/migration/run' ),
+		'as_groups'                 => array( self::PREFIX ),
+	);
+
+	/**
 	 * The boot boundary, whose status tells whether the plugin booted.
 	 *
 	 * @since   1.0.0
@@ -152,7 +169,7 @@ final class Plugin {
 	 * @return  bool
 	 */
 	protected function compose(): bool {
-		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::SLUG, self::PREFIX . '_revision', acme_pc_get_migration_steps(), $this->logger, $this->scheduler );
+		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::SLUG, self::PREFIX . '_revision', Migrations::get_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
 		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );

@@ -8,6 +8,8 @@
  * @package Acme\PersonaCore
  */
 
+use Acme\PersonaCore\Options;
+use Acme\PersonaCore\Plugin;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 
@@ -26,10 +28,8 @@ try {
 	}
 
 	require_once __DIR__ . '/vendor/autoload.php';
-	require_once __DIR__ . '/includes/footprint.php';
-	require_once __DIR__ . '/includes/options.php';
-	$acme_pc_footprint = acme_pc_get_footprint();
-	$acme_pc_consent   = ACME_PC_OPTION_SETTINGS;
+	$acme_pc_footprint = Plugin::FOOTPRINT;
+	$acme_pc_consent   = Options::SETTINGS;
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}

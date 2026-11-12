@@ -10,7 +10,6 @@ parameters:
 		- acme-persona-core.php
 		- functions.php
 		- uninstall.php
-		- includes
 		- src
 	# The scoped packages load through vendor-prefixed/scoper-autoload.php, which PHPStan does not read.
 	scanDirectories:

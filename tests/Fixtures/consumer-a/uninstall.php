@@ -8,6 +8,7 @@
  * @package Acme\ConsumerA
  */
 
+use Acme\ConsumerA\Options;
 use Acme\ConsumerA\Plugin;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
@@ -28,9 +29,8 @@ try {
 	}
 
 	require_once __DIR__ . '/vendor/autoload.php';
-	require_once __DIR__ . '/includes/footprint.php';
-	$acme_ca_footprint  = acme_ca_get_footprint();
-	$acme_ca_consent    = Plugin::PREFIX . '_settings';
+	$acme_ca_footprint  = Plugin::FOOTPRINT;
+	$acme_ca_consent    = Options::SETTINGS;
 	$acme_ca_meta_types = MetaTypes::DEFINITIONS;
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
