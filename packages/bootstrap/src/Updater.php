@@ -150,7 +150,7 @@ final class Updater {
 		);
 
 		/**
-		 * Filters the GitHub updater's configuration for the plugin whose text domain ends the hook name. A key the filter leaves out keeps its default.
+		 * Filters the GitHub updater's configuration for the plugin whose text domain, in snake case, roots the hook name. A key the filter leaves out keeps its default.
 		 *
 		 * @since   2.0.0
 		 * @version 2.0.0
@@ -158,7 +158,7 @@ final class Updater {
 		 * @param   array{enabled: bool, repository: string, asset: string, channel: 'stable'|'prerelease'} $config          Whether updates are offered, the owner/name repository, the release asset's file name, and the channel: 'stable' follows the latest release, 'prerelease' the highest of the ten newest releases.
 		 * @param   string                                                                                  $plugin_basename The plugin's basename.
 		 */
-		$config = apply_filters( "dws_github_updater/config/$slug", $defaults, plugin_basename( $plugin_file ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
+		$config = apply_filters( \str_replace( '-', '_', $slug ) . '/github_updater/config', $defaults, plugin_basename( $plugin_file ) ); // @phpstan-ignore WPCompat.parameterNotAvailable.applyfilters.args (WordPress 6.0 only formalized the arguments that older versions already passed on.)
 		if ( ! \is_array( $config ) ) {
 			return null;
 		}

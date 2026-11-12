@@ -64,7 +64,8 @@ final class ObjectForm {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string                        $id         The form's id, which starts with the plugin's prefix and names the form's controls, nonce and fields filter.
+	 * @param   non-empty-string              $slug       The plugin's slug, whose dashes become underscores in the root of the form's fields filter.
+	 * @param   string                        $id         The form's id, which starts with the plugin's prefix and names the form's controls and nonce.
 	 * @param   ObjectFormDefinitionInterface $definition The form's definition.
 	 * @param   ObjectFormHostInterface       $host       The host that shows and saves the form.
 	 * @param   AdminNotices                  $notices    The plugin's admin notices, which report the rejections.
@@ -73,6 +74,7 @@ final class ObjectForm {
 	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
 	 */
 	public function __construct(
+		protected string $slug,
 		protected string $id,
 		protected ObjectFormDefinitionInterface $definition,
 		protected ObjectFormHostInterface $host,
@@ -261,8 +263,9 @@ final class ObjectForm {
 			 *
 			 * @param   list<Field> $fields    The form's fields for the object.
 			 * @param   int         $object_id The id of the object being edited or saved.
+			 * @param   string      $form_id   The form's id.
 			 */
-			$form['fields'] = apply_filters( "$this->id/object_form/fields", $form['fields'], $object_id );
+			$form['fields'] = apply_filters( \str_replace( '-', '_', $this->slug ) . '/object_form/fields', $form['fields'], $object_id, $this->id );
 
 			$this->forms[ $object_id ] = $form;
 		}
