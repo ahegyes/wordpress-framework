@@ -72,6 +72,8 @@ use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirement
 
 defined( 'ABSPATH' ) || exit;
 
+define( 'ACME_PS_FILE', __FILE__ );
+
 $acme_ps_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
 if ( ! is_readable( $acme_ps_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
 	return;
@@ -86,13 +88,14 @@ require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/functions.php';
 ```
 
-The helpers need no kernel. On `plugins_loaded` at priority 15 the plugin registers its settings page, and a form on the post edit screen whose rejections core's `AdminNotices` reports:
+The helpers need no kernel. On `plugins_loaded` at priority 15 the plugin builds its `PluginIdentity` from the entry file, its slug and its prefix, and registers its settings page and a form on the post edit screen whose rejections core's `AdminNotices` reports, each taking the identity, whose slug roots their filters:
 
 ```php
 use Acme\PersonaSettings\Details;
 use Acme\PersonaSettings\Settings;
 use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
+use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
 use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
@@ -102,11 +105,12 @@ defined( 'ABSPATH' ) || exit;
 add_action(
 	'plugins_loaded',
 	static function (): void {
-		$notices = new AdminNotices( Settings::SLUG, Settings::PREFIX, new ErrorLogLogger( 'acme-persona-settings' ) );
+		$identity = new PluginIdentity( ACME_PS_FILE, Settings::SLUG, Settings::PREFIX );
+		$notices  = new AdminNotices( $identity, new ErrorLogLogger( $identity ) );
 		$notices->register_hooks();
 
-		new OptionsPage( Settings::SLUG, Settings::PREFIX, new Settings() )->register_hooks();
-		new ObjectForm( Settings::SLUG, Settings::PREFIX . '_details', new Details(), new PostMetaBox( array( 'post' ) ), $notices )->register_hooks();
+		new OptionsPage( $identity, Settings::PREFIX, new Settings() )->register_hooks();
+		new ObjectForm( $identity, Settings::PREFIX . '_details', new Details(), new PostMetaBox( array( 'post' ) ), $notices )->register_hooks();
 	},
 	15
 );

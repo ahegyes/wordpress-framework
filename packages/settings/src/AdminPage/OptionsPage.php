@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Settings\AdminPage;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Settings\Forms;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 
@@ -43,14 +44,14 @@ final class OptionsPage {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   non-empty-string               $slug       The plugin's slug, whose dashes become underscores in the root of the page's tabs filter.
+	 * @param   PluginIdentity                 $identity   The plugin's identity, whose hook root starts the page's tabs filter.
 	 * @param   string                         $id         The page's menu slug.
 	 * @param   OptionsPageDefinitionInterface $definition The page's definition.
 	 *
 	 * @throws  InvalidArgumentException Thrown when the id is not a valid key.
 	 */
 	public function __construct(
-		protected string $slug,
+		protected PluginIdentity $identity,
 		protected string $id,
 		protected OptionsPageDefinitionInterface $definition
 	) {
@@ -247,7 +248,7 @@ final class OptionsPage {
 			 * @param   list<Tab> $tabs    The page's tabs.
 			 * @param   string    $page_id The page's menu slug.
 			 */
-			$page['tabs'] = apply_filters( \str_replace( '-', '_', $this->slug ) . '/options_page/tabs', $page['tabs'], $this->id );
+			$page['tabs'] = apply_filters( "{$this->identity->hook_root}/options_page/tabs", $page['tabs'], $this->id );
 			$this->page   = $page;
 		}
 
