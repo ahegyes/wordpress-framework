@@ -42,10 +42,24 @@ final class AssetsTest extends TestCase {
 		self::assertSame( 'replace', $style->extra['rtl'] ?? null );
 	}
 
-	public function test_a_style_chunk_without_its_own_asset_file_is_versioned_by_its_modification_time(): void {
+	public function test_the_style_chunk_of_an_entry_takes_the_entry_s_version(): void {
 		self::assertTrue( new Assets( self::PLUGIN_FILE, 'acme-plugin' )->register_style( self::STYLE, 'assets/build/style-editor.css' ) );
 
-		self::assertSame( (string) \filemtime( plugin_dir_path( self::PLUGIN_FILE ) . 'assets/build/style-editor.css' ), wp_styles()->registered[ self::STYLE ]->ver );
+		self::assertSame( 'a1b2c3', wp_styles()->registered[ self::STYLE ]->ver );
+	}
+
+	public function test_a_stylesheet_without_an_asset_file_is_versioned_by_its_modification_time(): void {
+		self::assertTrue( new Assets( self::PLUGIN_FILE, 'acme-plugin' )->register_style( self::STYLE, 'assets/build/vendor.css' ) );
+
+		self::assertSame( (string) \filemtime( plugin_dir_path( self::PLUGIN_FILE ) . 'assets/build/vendor.css' ), wp_styles()->registered[ self::STYLE ]->ver );
+	}
+
+	public function test_a_script_named_like_a_style_chunk_takes_no_entry_s_asset_file(): void {
+		self::assertTrue( new Assets( self::PLUGIN_FILE, 'acme-plugin' )->register_script( self::SCRIPT, 'assets/build/style-editor.js' ) );
+
+		$script = wp_scripts()->registered[ self::SCRIPT ];
+		self::assertSame( array( 'wp-i18n' ), $script->deps );
+		self::assertSame( (string) \filemtime( plugin_dir_path( self::PLUGIN_FILE ) . 'assets/build/style-editor.js' ), $script->ver );
 	}
 
 	public function test_a_script_built_without_an_asset_file_registers_without_dependencies_at_its_modification_time(): void {
