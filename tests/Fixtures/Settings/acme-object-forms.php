@@ -9,6 +9,7 @@
 
 use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\TermForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\UserProfile;
@@ -66,9 +67,10 @@ add_action(
 			};
 		}
 
-		$notices = new AdminNotices( $spec['slug'], $spec['id'], new ErrorLogLogger( 'acme' ) );
+		$identity = new PluginIdentity( __FILE__, $spec['slug'], $spec['id'] );
+		$notices  = new AdminNotices( $identity, new ErrorLogLogger( $identity ) );
 		$notices->register_hooks();
-		new ObjectForm( $spec['slug'], $spec['id'], $definition, $host, $notices, $store )->register_hooks();
+		new ObjectForm( $identity, $spec['id'], $definition, $host, $notices, $store )->register_hooks();
 	}
 );
 

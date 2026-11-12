@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Tests\Unit\Core\Logging;
 
 use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -14,7 +15,7 @@ final class ErrorLogLoggerTest extends TestCase {
 		$previous = \ini_set( 'error_log', $log_file );
 
 		try {
-			new ErrorLogLogger( 'acme' )->info( 'Cache is cold.' );
+			new ErrorLogLogger( new PluginIdentity( __FILE__, 'acme', 'acme' ) )->info( 'Cache is cold.' );
 			$log = \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );

@@ -3,6 +3,7 @@
 namespace Acme\ConsumerA;
 
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
+use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\WooCommerce\ProductData\ProductDataTab;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\WooCommerce\ProductData\ProductDataTabDefinitionInterface;
 
@@ -29,6 +30,22 @@ final class ProductData implements ComponentInterface, ProductDataTabDefinitionI
 
 	// endregion
 
+	// region MAGIC METHODS
+
+	/**
+	 * Constructor.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @param   PluginIdentity $identity The plugin's identity, which the tab takes.
+	 */
+	public function __construct(
+		protected PluginIdentity $identity
+	) {}
+
+	// endregion
+
 	// region INHERITED METHODS
 
 	/**
@@ -39,7 +56,7 @@ final class ProductData implements ComponentInterface, ProductDataTabDefinitionI
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		new ProductDataTab( Plugin::SLUG, Plugin::PREFIX . '_packing', $this )->register_hooks();
+		new ProductDataTab( $this->identity, Plugin::PREFIX . '_packing', $this )->register_hooks();
 	}
 
 	/**

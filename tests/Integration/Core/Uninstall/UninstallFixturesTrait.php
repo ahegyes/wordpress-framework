@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Uninstall;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use PHPUnit\Framework\Attributes\After;
 
@@ -15,6 +16,10 @@ trait UninstallFixturesTrait {
 	protected array $ids = array();
 
 	protected array $id_reads = array();
+
+	protected function uninstalled_plugin(): PluginIdentity {
+		return new PluginIdentity( self::PLUGIN_FILE, $this->slug, $this->prefix );
+	}
 
 	protected function footprint(): array {
 		$p = $this->prefix;

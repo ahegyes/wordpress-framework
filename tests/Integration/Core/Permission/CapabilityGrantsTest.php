@@ -53,23 +53,20 @@ final class CapabilityGrantsTest extends TestCase {
 		$cap = array( 'acme_cap' );
 
 		return array(
-			'empty-option'      => array( '', array( 'acme_role' => $cap ) ),
-			'padded-option'     => array( ' acme_grants', array( 'acme_role' => $cap ) ),
-			'overlong-option'   => array( \str_repeat( 'a', 192 ), array( 'acme_role' => $cap ) ),
-			'empty-role'        => array( 'acme_grants', array( '' => $cap ) ),
-			'numeric-role'      => array( 'acme_grants', array( 7 => $cap ) ),
-			'caps-not-an-array' => array( 'acme_grants', array( 'acme_role' => 'acme_cap' ) ),
-			'caps-not-a-list'   => array( 'acme_grants', array( 'acme_role' => array( 'a' => 'acme_cap' ) ) ),
-			'empty-cap'         => array( 'acme_grants', array( 'acme_role' => array( '' ) ) ),
-			'non-string-cap'    => array( 'acme_grants', array( 'acme_role' => array( 1 ) ) ),
+			'empty-role'        => array( array( '' => $cap ) ),
+			'numeric-role'      => array( array( 7 => $cap ) ),
+			'caps-not-an-array' => array( array( 'acme_role' => 'acme_cap' ) ),
+			'caps-not-a-list'   => array( array( 'acme_role' => array( 'a' => 'acme_cap' ) ) ),
+			'empty-cap'         => array( array( 'acme_role' => array( '' ) ) ),
+			'non-string-cap'    => array( array( 'acme_role' => array( 1 ) ) ),
 		);
 	}
 
 	#[DataProvider( 'invalid_constructions' )]
-	public function test_an_invalid_option_or_grants_map_throws_on_construction( string $option, array $grants ): void {
+	public function test_an_invalid_grants_map_throws_on_construction( array $grants ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new CapabilityGrants( $option, $grants, $this->logger );
+		new CapabilityGrants( $this->identity, $grants, $this->logger );
 	}
 
 	public function test_construction_reads_writes_and_hooks_nothing(): void {
@@ -263,13 +260,13 @@ final class CapabilityGrantsTest extends TestCase {
 		$grants = $this->grants( array( $editor => array( $this->cap( 'a' ) ) ) );
 		$grants->register_hooks();
 		$grants->run();
-		$row = get_option( "{$this->prefix}_grants" );
+		$row = get_option( "{$this->prefix}_capabilities" );
 
 		remove_role( $other );
 		add_option( "{$this->prefix}_unrelated", array( $editor => array() ) );
 		update_option( "{$this->prefix}_unrelated", array() );
 
-		self::assertSame( $row, get_option( "{$this->prefix}_grants" ) );
+		self::assertSame( $row, get_option( "{$this->prefix}_capabilities" ) );
 	}
 
 	public function test_a_changed_declaration_grants_the_added_pairs_and_revokes_the_dropped_ones_in_one_run(): void {
@@ -345,7 +342,7 @@ final class CapabilityGrantsTest extends TestCase {
 			wp_delete_file( $log_file );
 		}
 
-		self::assertStringContainsString( "[{$this->prefix}_grants.warning] The roles row did not keep the capability changes {changes}, so the next request makes them again. {\"changes\":\"grant {$this->cap( 'a' )} to $editor\"}", $log );
+		self::assertStringContainsString( "[{$this->slug}.warning] The roles row did not keep the capability changes {changes}, so the next request makes them again. {\"changes\":\"grant {$this->cap( 'a' )} to $editor\"}", $log );
 		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 	}
 
@@ -357,7 +354,7 @@ final class CapabilityGrantsTest extends TestCase {
 		$this->before_query(
 			wp_roles()->role_key,
 			function () use ( $wpdb, &$pending ): void {
-				$raw     = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "{$this->prefix}_grants" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
+				$raw     = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "{$this->prefix}_capabilities" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
 				$pending = maybe_unserialize( (string) $raw )['pending'] ?? null;
 			}
 		);
@@ -365,20 +362,20 @@ final class CapabilityGrantsTest extends TestCase {
 		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
 
 		self::assertSame( array( $editor => array( $this->cap( 'a' ) ) ), $pending );
-		self::assertSame( array(), get_option( "{$this->prefix}_grants" )['pending'] );
+		self::assertSame( array(), get_option( "{$this->prefix}_capabilities" )['pending'] );
 	}
 
 	public function test_a_pending_record_the_ledger_row_does_not_keep_is_logged_and_grants_nothing_until_the_next_request(): void {
 		$editor   = $this->add_role( 'editor' );
 		$declared = array( $editor => array( $this->cap( 'a' ) ) );
-		add_filter( "pre_update_option_{$this->prefix}_grants", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
+		add_filter( "pre_update_option_{$this->prefix}_capabilities", static fn ( mixed $value, mixed $old_value ): mixed => $old_value, 10, 2 );
 
 		$this->grants( $declared )->run();
 
 		self::assertSame( array(), $this->stored_caps( $editor ) );
 		self::assertSame( array( array( 'warning', 'The ledger row did not keep the pending grants, so the next request makes them.', array() ) ), $this->logger->records );
 
-		remove_all_filters( "pre_update_option_{$this->prefix}_grants" );
+		remove_all_filters( "pre_update_option_{$this->prefix}_capabilities" );
 		$this->next_request();
 		$this->grants( $declared )->run();
 
@@ -395,7 +392,7 @@ final class CapabilityGrantsTest extends TestCase {
 			)
 		);
 		update_option(
-			"{$this->prefix}_grants",
+			"{$this->prefix}_capabilities",
 			array(
 				'v'           => 1,
 				'fingerprint' => '',
@@ -422,7 +419,7 @@ final class CapabilityGrantsTest extends TestCase {
 	public function test_a_pending_grant_that_the_declaration_has_since_dropped_is_revoked(): void {
 		$editor = $this->add_role( 'editor', array( $this->cap( 'a' ) => true ) );
 		update_option(
-			"{$this->prefix}_grants",
+			"{$this->prefix}_capabilities",
 			array(
 				'v'           => 1,
 				'fingerprint' => '',
@@ -481,7 +478,7 @@ final class CapabilityGrantsTest extends TestCase {
 				),
 			),
 		};
-		update_option( "{$this->prefix}_grants", $row, true );
+		update_option( "{$this->prefix}_capabilities", $row, true );
 
 		$this->grants( $grants )->run();
 
@@ -512,11 +509,11 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertEquals( array( $editor => array( $this->cap( 'a' ) ) ), $ledger );
 		self::assertSame( array(), $forgotten );
 		self::assertArrayNotHasKey( $editor, $this->stored_roles() );
-		self::assertFalse( get_option( "{$this->prefix}_grants" ) );
+		self::assertFalse( get_option( "{$this->prefix}_capabilities" ) );
 	}
 
 	protected function grants( array $grants, ?PsrLoggerInterface $logger = null ): CapabilityGrants {
-		return new CapabilityGrants( "{$this->prefix}_grants", $grants, $logger ?? $this->logger );
+		return new CapabilityGrants( $this->identity, $grants, $logger ?? $this->logger );
 	}
 
 	protected function role( string $name ): string {
@@ -563,7 +560,7 @@ final class CapabilityGrantsTest extends TestCase {
 				\sort( $caps );
 				return $caps;
 			},
-			get_option( "{$this->prefix}_grants" )['grants'] ?? array()
+			get_option( "{$this->prefix}_capabilities" )['grants'] ?? array()
 		);
 	}
 

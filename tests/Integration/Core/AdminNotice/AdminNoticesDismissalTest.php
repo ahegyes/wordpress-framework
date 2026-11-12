@@ -39,7 +39,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 		$this->admin       = $this->make_user( 'acme_notices_admin', 'administrator' );
 		$this->other_admin = $this->make_user( 'acme_notices_other_admin', 'administrator' );
 		$this->logger      = new RecordingLogger();
-		$this->notices     = new AdminNotices( $this->slug, $this->prefix, $this->logger );
+		$this->notices     = new AdminNotices( $this->identity, $this->logger );
 		add_action(
 			"$this->hook_root/admin_notice/dismissed",
 			function ( mixed ...$arguments ): void {
@@ -271,7 +271,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 	}
 
 	public function test_a_failing_store_whose_logger_throws_answers_500_and_reaches_the_error_log(): void {
-		$notices = new AdminNotices( $this->slug, $this->prefix, new ThrowingLogger( new \UnexpectedValueException( 'The log is not writable.' ) ) );
+		$notices = new AdminNotices( $this->identity, new ThrowingLogger( new \UnexpectedValueException( 'The log is not writable.' ) ) );
 		$notices->add( $this->notice( 'x', NoticeScope::Site, persistent: true ) );
 		$request = new \WP_REST_Request( 'POST' );
 		$request->set_body_params( $this->shown( $this->admin, 'site', 'x' ) );
@@ -289,7 +289,7 @@ final class AdminNoticesDismissalTest extends TestCase {
 
 		self::assertInstanceOf( \WP_Error::class, $response );
 		self::assertSame( array( 'status' => 500 ), $response->get_error_data() );
-		self::assertStringContainsString( "[$this->prefix.error] Could not dismiss a {scope} notice: {message} {\"scope\":\"site\",\"message\":", $log );
+		self::assertStringContainsString( "[$this->slug.error] Could not dismiss a {scope} notice: {message} {\"scope\":\"site\",\"message\":", $log );
 		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 	}
 

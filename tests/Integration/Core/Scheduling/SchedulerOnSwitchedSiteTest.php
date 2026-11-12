@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Scheduling;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
@@ -111,7 +112,7 @@ final class SchedulerOnSwitchedSiteTest extends TestCase {
 
 	// The network carries no WooCommerce, so the default backends resolve to WP-Cron alone.
 	protected function make_scheduler(): Scheduler {
-		$scheduler = new Scheduler( 'acme' );
+		$scheduler = new Scheduler( new PluginIdentity( __FILE__, 'acme', 'acme' ) );
 		$scheduler->register_hooks();
 
 		return $scheduler;

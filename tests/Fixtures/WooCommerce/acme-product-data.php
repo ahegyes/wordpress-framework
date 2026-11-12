@@ -7,6 +7,7 @@
  * @package Acme
  */
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\WooCommerce\ProductData\ProductDataTab;
 
@@ -43,7 +44,7 @@ add_action(
 			}
 		);
 
-		new ProductDataTab( $spec['slug'], $spec['id'], $definition )->register_hooks();
+		new ProductDataTab( new PluginIdentity( __FILE__, $spec['slug'], 'acme' ), $spec['id'], $definition )->register_hooks();
 	}
 );
 

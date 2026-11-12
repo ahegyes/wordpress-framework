@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\Logging;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\WooCommerce\Logging\WooCommerceLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -28,7 +29,7 @@ final class WooCommerceLoggerWithoutWooCommerceTest extends TestCase {
 
 	public function test_without_woocommerce_errors_reach_the_error_log_and_lower_levels_go_nowhere(): void {
 		self::assertFalse( \function_exists( 'wc_get_logger' ) );
-		$logger = new WooCommerceLogger( 'acme' );
+		$logger = new WooCommerceLogger( new PluginIdentity( __FILE__, 'acme', 'acme' ) );
 
 		$logger->warning( 'Cache is cold.' );
 		$logger->error( 'Payment {id} failed.', array( 'id' => 7 ) );

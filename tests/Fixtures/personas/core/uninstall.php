@@ -11,6 +11,7 @@
 use Acme\PersonaCore\Options;
 use Acme\PersonaCore\Plugin;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
+use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
@@ -33,6 +34,8 @@ try {
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
+
+	$acme_pc_identity = new PluginIdentity( $acme_pc_file, Plugin::SLUG, Plugin::PREFIX );
 } catch ( Throwable $error ) {
 	// WP-CLI then fails and keeps the files for a rerun on a complete build, while a web request deletes them and leaves the data.
 	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
@@ -44,7 +47,7 @@ try {
 }
 
 Uninstaller::run(
-	$acme_pc_file,
+	$acme_pc_identity,
 	$acme_pc_footprint,
 	array(
 		'consent' => array(

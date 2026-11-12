@@ -54,7 +54,7 @@ final class PluginBootInLocalEnvironmentTest extends TestCase {
 	public function test_a_failing_composition_is_rethrown_after_the_failure_action(): void {
 		self::assertSame( 'local', wp_get_environment_type() );
 		$failure = new \RuntimeException( 'composition failed' );
-		$boot    = new PluginBoot( __DIR__ . '/../../Fixtures/Core/acme-boot.php', $this->slug, $this->prefix, new PsrNullLogger() );
+		$boot    = new PluginBoot( $this->identity, new PsrNullLogger() );
 
 		$caught = null;
 		try {

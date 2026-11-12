@@ -140,7 +140,7 @@ final class PluginBootTest extends TestCase {
 	#[DataProvider( 'logging_failures' )]
 	public function test_a_failure_whose_logger_throws_still_reaches_the_error_log_and_is_announced( \Throwable $logging_failure ): void {
 		$failure  = new \RuntimeException( 'composition failed' );
-		$boot     = new PluginBoot( self::PLUGIN_FILE, $this->slug, $this->prefix, new ThrowingLogger( $logging_failure ) );
+		$boot     = new PluginBoot( $this->identity, new ThrowingLogger( $logging_failure ) );
 		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
 		$previous = \ini_set( 'error_log', $log_file );
 
@@ -155,13 +155,13 @@ final class PluginBootTest extends TestCase {
 		self::assertSame( 'failed', $boot->status );
 		self::assertSame( array( 'failed' ), $this->fired );
 		self::assertSame( array( $failure ), $this->failures );
-		self::assertStringContainsString( "[$this->prefix.error] Boot failed; the plugin did not finish starting: {message} {\"message\":\"composition failed\"}", $log );
+		self::assertStringContainsString( "[$this->slug.error] Boot failed; the plugin did not finish starting: {message} {\"message\":\"composition failed\"}", $log );
 		self::assertStringContainsString( 'RuntimeException: composition failed in ' . __FILE__ . ':' . $failure->getLine(), $log );
 		self::assertStringContainsString( $logging_failure::class . ': ' . $logging_failure->getMessage(), $log );
 		self::assertStringContainsString( self::NOTICE, $this->render_all_admin_notices( $this->make_user( 'acme-boot-admin', 'administrator' ) ) );
 	}
 
 	protected function make_boot(): PluginBoot {
-		return new PluginBoot( self::PLUGIN_FILE, $this->slug, $this->prefix, $this->logger );
+		return new PluginBoot( $this->identity, $this->logger );
 	}
 }

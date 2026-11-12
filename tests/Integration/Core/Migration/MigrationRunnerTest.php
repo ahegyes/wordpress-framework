@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Migration;
 
 use DeepWebSolutions\Framework\Core\Migration\BatchedMigrationStepInterface;
 use DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
@@ -100,17 +101,10 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	public function test_a_slug_whose_scheduled_hook_would_pass_191_bytes_is_refused(): void {
-		new MigrationRunner( self::PLUGIN_FILE, \str_repeat( 'a', 177 ), $this->option, array(), $this->logger, $this->make_wp_cron_scheduler() );
+		new MigrationRunner( new PluginIdentity( self::PLUGIN_FILE, \str_repeat( 'a', 177 ), $this->identity->prefix ), array(), $this->logger, $this->make_wp_cron_scheduler() );
 
 		$this->expectException( InvalidArgumentException::class );
-		new MigrationRunner( self::PLUGIN_FILE, \str_repeat( 'a', 178 ), $this->option, array(), $this->logger, $this->make_wp_cron_scheduler() );
-	}
-
-	public function test_an_option_whose_high_water_mark_would_pass_191_characters_is_refused(): void {
-		new MigrationRunner( self::PLUGIN_FILE, $this->slug, \str_repeat( 'a', 180 ), array(), $this->logger, $this->make_wp_cron_scheduler() );
-
-		$this->expectException( InvalidArgumentException::class );
-		new MigrationRunner( self::PLUGIN_FILE, $this->slug, \str_repeat( 'a', 181 ), array(), $this->logger, $this->make_wp_cron_scheduler() );
+		new MigrationRunner( new PluginIdentity( self::PLUGIN_FILE, \str_repeat( 'a', 178 ), $this->identity->prefix ), array(), $this->logger, $this->make_wp_cron_scheduler() );
 	}
 
 	public static function current_revisions(): array {
@@ -646,7 +640,7 @@ final class MigrationRunnerTest extends TestCase {
 			wp_delete_file( $log_file );
 		}
 
-		self::assertStringContainsString( "[$this->option.error] Data migration failed: {message} {\"message\":\"Step failed with a broken logger.\"}\nRuntimeException: Step failed with a broken logger. in ", $log );
+		self::assertStringContainsString( "[{$this->identity->slug}.error] Data migration failed: {message} {\"message\":\"Step failed with a broken logger.\"}\nRuntimeException: Step failed with a broken logger. in ", $log );
 		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 		self::assertIsArray( get_option( "{$this->option}_error" ) );
 	}
@@ -673,13 +667,13 @@ final class MigrationRunnerTest extends TestCase {
 			$wpdb->suppress_errors( $suppressed );
 		}
 
-		self::assertStringContainsString( "[$this->option.warning] Could not take the data migration lock: {error} {\"error\":\"", $log );
+		self::assertStringContainsString( "[{$this->identity->slug}.warning] Could not take the data migration lock: {error} {\"error\":\"", $log );
 		self::assertStringContainsString( "\nThe logger failed: UnexpectedValueException: The log is not writable.", $log );
 		self::assertSame( array(), $this->ran );
 	}
 
 	public function test_a_batch_time_limit_below_1_second_runs_one_step_per_request(): void {
-		$this->load_wordpress( new MigrationRunner( self::PLUGIN_FILE, $this->slug, $this->option, array( $this->step( 1 ), $this->step( 2 ) ), $this->logger, $this->make_wp_cron_scheduler(), 0 ) );
+		$this->load_wordpress( new MigrationRunner( $this->identity, array( $this->step( 1 ), $this->step( 2 ) ), $this->logger, $this->make_wp_cron_scheduler(), 0 ) );
 
 		self::assertSame( array( array( 1, 0 ) ), $this->ran );
 		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
@@ -701,7 +695,7 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	public function test_a_request_outside_the_runner_hook_adds_nothing_while_the_hook_runs_elsewhere(): void {
-		as_enqueue_async_action( "$this->hook_root/migration/run", array(), 'acme' );
+		as_enqueue_async_action( "$this->hook_root/migration/run", array(), $this->identity->prefix );
 		$running = as_get_scheduled_actions(
 			array(
 				'hook'   => "$this->hook_root/migration/run",
@@ -711,7 +705,7 @@ final class MigrationRunnerTest extends TestCase {
 		);
 		\ActionScheduler::store()->log_execution( (int) $running[0] );
 
-		$this->load_wordpress( $this->make_runner( array( new RecordedBatches( 3 ) ), null, null, new Scheduler( 'acme' ) ) );
+		$this->load_wordpress( $this->make_runner( array( new RecordedBatches( 3 ) ), null, null, new Scheduler( $this->identity ) ) );
 
 		self::assertSame( 0, $this->count_pending_runs() );
 	}
@@ -972,7 +966,7 @@ final class MigrationRunnerTest extends TestCase {
 	public function test_a_batched_step_finishes_through_real_scheduler_dispatch( string $kind ): void {
 		$clock     = new SettableClock( new \DateTimeImmutable( '@' . \time() ) );
 		$batches   = new RecordedBatches( 5, static fn () => $clock->advance( 10 ) );
-		$scheduler = 'action-scheduler' === $kind ? new Scheduler( 'acme' ) : $this->make_wp_cron_scheduler();
+		$scheduler = 'action-scheduler' === $kind ? new Scheduler( $this->identity ) : $this->make_wp_cron_scheduler();
 
 		$requests = 0;
 		while ( 1 > MigrationRunner::get_revision( $this->option ) && $requests < 5 ) {
@@ -992,7 +986,7 @@ final class MigrationRunnerTest extends TestCase {
 	public function test_a_spent_budget_leaves_nothing_due_for_the_queue_run_in_progress_and_the_next_request_resumes(): void {
 		$clock   = new SettableClock( new \DateTimeImmutable( '@' . \time() ) );
 		$batches = new RecordedBatches( 5, static fn () => $clock->advance( 30 ) );
-		$this->load_wordpress( $this->make_runner( array( $batches ), $clock, null, new Scheduler( 'acme' ) ) );
+		$this->load_wordpress( $this->make_runner( array( $batches ), $clock, null, new Scheduler( $this->identity ) ) );
 
 		self::run_due_actions( "$this->hook_root/migration/run" );
 		// A queue run that pauses between actions claims again later, as wp action-scheduler run --pause does.
@@ -1002,7 +996,7 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertSame( 0, $this->count_pending_runs() );
 
 		remove_all_actions( "$this->hook_root/migration/run" );
-		$this->load_wordpress( $this->make_runner( array( $batches ), $clock, null, new Scheduler( 'acme' ) ) );
+		$this->load_wordpress( $this->make_runner( array( $batches ), $clock, null, new Scheduler( $this->identity ) ) );
 		self::run_due_actions( "$this->hook_root/migration/run" );
 
 		self::assertSame( 2, $batches->processed );
@@ -1182,14 +1176,14 @@ final class MigrationRunnerTest extends TestCase {
 	}
 
 	protected function make_runner( array $steps, ?PsrClockInterface $clock = null, ?PsrLoggerInterface $logger = null, ?SchedulerInterface $scheduler = null ): MigrationRunner {
-		return new MigrationRunner( self::PLUGIN_FILE, $this->slug, $this->option, $steps, $logger ?? $this->logger, $scheduler ?? $this->make_wp_cron_scheduler(), 20, $clock );
+		return new MigrationRunner( $this->identity, $steps, $logger ?? $this->logger, $scheduler ?? $this->make_wp_cron_scheduler(), 20, $clock );
 	}
 
 	// Action Scheduler below its floor leaves the writes to WP-Cron.
 	protected function make_wp_cron_scheduler(): Scheduler {
 		$this->report_action_scheduler_versions( array( '3.9.0' ) );
 
-		return new Scheduler( 'acme' );
+		return new Scheduler( $this->identity );
 	}
 
 	protected function step( int|string $name ): \Closure {

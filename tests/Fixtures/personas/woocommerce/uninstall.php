@@ -11,6 +11,7 @@
 use Acme\PersonaWooCommerce\Options;
 use Acme\PersonaWooCommerce\Packing;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
+use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\WooCommerce\Uninstall\MetaTypes;
 
@@ -35,6 +36,8 @@ try {
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
+
+	$acme_pw_identity = new PluginIdentity( $acme_pw_file, Packing::SLUG, Packing::PREFIX );
 } catch ( Throwable $error ) {
 	// WP-CLI then fails and keeps the files for a rerun on a complete build, while a web request deletes them and leaves the data.
 	if ( defined( 'WP_CLI' ) && true === WP_CLI ) {
@@ -46,7 +49,7 @@ try {
 }
 
 Uninstaller::run(
-	$acme_pw_file,
+	$acme_pw_identity,
 	$acme_pw_footprint,
 	array(
 		'consent'    => array( 'option' => $acme_pw_consent ),

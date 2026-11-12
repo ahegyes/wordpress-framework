@@ -113,33 +113,33 @@ final class ObjectCacheTest extends TestCase {
 		wp_cache_flush();
 	}
 
-	public static function invalid_groups(): array {
+	public static function invalid_regions(): array {
 		return array(
-			'empty'            => array( '' ),
-			'zero'             => array( '0' ),
-			'digit-first'      => array( '1acme' ),
-			'underscore-first' => array( '_acme' ),
-			'uppercase'        => array( 'Acme_cache' ),
+			'uppercase'        => array( 'Cache' ),
 			'colon'            => array( 'acme:cache' ),
 			'space'            => array( 'acme cache' ),
 			'dot'              => array( 'acme.cache' ),
-			'leading-space'    => array( ' acme' ),
-			'trailing-newline' => array( "acme\n" ),
-			'overlong'         => array( 'a' . \str_repeat( 'b', 64 ) ),
+			'trailing-newline' => array( "cache\n" ),
 		);
 	}
 
-	#[DataProvider( 'invalid_groups' )]
-	public function test_a_group_that_is_not_a_lowercase_identifier_of_up_to_64_characters_is_rejected( string $group ): void {
+	#[DataProvider( 'invalid_regions' )]
+	public function test_a_region_that_makes_the_group_no_lowercase_identifier_is_rejected( string $region ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new ObjectCache( $group );
+		new ObjectCache( $this->identity, $region );
+	}
+
+	// The prefix, an underscore and the region fill the group's 64 characters.
+	public function test_a_group_past_64_characters_is_rejected(): void {
+		$this->expectException( InvalidArgumentException::class );
+
+		new ObjectCache( $this->identity, \str_repeat( 'r', 64 - \strlen( $this->prefix ) ) );
 	}
 
 	public function test_a_valid_group_is_accepted_without_touching_the_object_cache(): void {
-		new ObjectCache( 'a' );
-		new ObjectCache( 'a' . \str_repeat( 'b', 63 ) );
-		new ObjectCache( 'acme_cache-2' );
+		new ObjectCache( $this->identity, 'cache-2' );
+		new ObjectCache( $this->identity, \str_repeat( 'r', 63 - \strlen( $this->prefix ) ) );
 
 		self::assertSame( array(), $this->spy->calls );
 	}
@@ -391,7 +391,7 @@ final class ObjectCacheTest extends TestCase {
 	}
 
 	protected function cache(): ObjectCache {
-		return new ObjectCache( $this->group() );
+		return new ObjectCache( $this->identity, 'cache' );
 	}
 
 	protected function group(): string {

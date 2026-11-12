@@ -9,6 +9,7 @@
  */
 
 use Acme\PersonaWooCommerce\Packing;
+use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\WooCommerce\Logging\WooCommerceLogger;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\WooCommerce\ProductData\ProductDataTab;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\WooCommerce\Setting\SettingsTab;
@@ -19,11 +20,12 @@ defined( 'ABSPATH' ) || exit;
 add_action(
 	'plugins_loaded',
 	static function (): void {
-		if ( ! WooCommerceRequirement::check( ACME_PW_FILE ) ) {
+		$identity = new PluginIdentity( ACME_PW_FILE, Packing::SLUG, Packing::PREFIX );
+		if ( ! WooCommerceRequirement::check( $identity ) ) {
 			return;
 		}
 
-		new ProductDataTab( Packing::SLUG, Packing::PREFIX, new Packing() )->register_hooks();
+		new ProductDataTab( $identity, Packing::PREFIX, new Packing() )->register_hooks();
 		add_filter(
 			'woocommerce_get_settings_pages',
 			static function ( array $pages ): array {
@@ -42,8 +44,8 @@ add_action(
 		);
 		add_action(
 			'woocommerce_update_options_' . Packing::PREFIX,
-			static function (): void {
-				new WooCommerceLogger( 'acme-persona-woocommerce', 'info' )->info( 'The packing settings were saved.' );
+			static function () use ( $identity ): void {
+				new WooCommerceLogger( $identity, 'info' )->info( 'The packing settings were saved.' );
 			}
 		);
 	},

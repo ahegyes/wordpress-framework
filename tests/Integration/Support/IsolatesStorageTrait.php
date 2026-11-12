@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Support;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 
@@ -12,6 +13,8 @@ trait IsolatesStorageTrait {
 
 	protected string $hook_root;
 
+	protected PluginIdentity $identity;
+
 	// The slug differs from the prefix, so a row tells a hook or REST name from a storage key.
 	#[Before]
 	protected function use_a_fresh_prefix(): void {
@@ -19,6 +22,7 @@ trait IsolatesStorageTrait {
 		$this->prefix    = "acme_$suffix";
 		$this->slug      = "acme-plugin-$suffix";
 		$this->hook_root = "acme_plugin_$suffix";
+		$this->identity  = new PluginIdentity( \dirname( __DIR__, 2 ) . '/Fixtures/Core/acme-boot.php', $this->slug, $this->prefix );
 	}
 
 	#[After]

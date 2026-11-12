@@ -7,6 +7,7 @@
  * @package Acme
  */
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 
@@ -24,7 +25,7 @@ add_action(
 	'plugins_loaded',
 	static function () use ( $spec, $acme_with_behaviors ): void {
 		$page = new OptionsPage(
-			$spec['slug'],
+			new PluginIdentity( __FILE__, $spec['slug'], 'acme' ),
 			$spec['id'],
 			new RecordedDefinition( static fn (): array => array( 'tabs' => $acme_with_behaviors( $spec['page']['tabs'] ) ) + $spec['page'] )
 		);

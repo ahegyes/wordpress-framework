@@ -5,6 +5,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\AdminNotice;
 use DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeType;
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 use DeepWebSolutions\Framework\Shared\Exception\LogicException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
@@ -43,31 +44,27 @@ final class AdminNoticesTest extends TestCase {
 		$this->logger      = new RecordingLogger();
 	}
 
-	public static function invalid_prefixes(): array {
+	public static function reserved_prefixes(): array {
 		return array(
-			'empty'            => array( '' ),
-			'uppercase'        => array( 'Acme' ),
-			'leading-digit'    => array( '1acme' ),
-			'hyphen'           => array( 'ac-me' ),
-			'trailing-newline' => array( "acme\n" ),
-			'33-characters'    => array( 'a' . \str_repeat( 'b', 32 ) ),
-			'hidden-segment'   => array( 'acme_hidden' ),
-			'network-segment'  => array( 'acme_network_tools' ),
-			'leading-hidden'   => array( 'hidden_acme' ),
-			'only-network'     => array( 'network' ),
+			'hidden-segment'  => array( 'acme_hidden' ),
+			'network-segment' => array( 'acme_network_tools' ),
+			'leading-hidden'  => array( 'hidden_acme' ),
+			'only-network'    => array( 'network' ),
 		);
 	}
 
-	#[DataProvider( 'invalid_prefixes' )]
-	public function test_a_prefix_outside_the_pattern_or_with_a_reserved_segment_is_rejected( string $prefix ): void {
+	#[DataProvider( 'reserved_prefixes' )]
+	public function test_a_prefix_with_a_reserved_segment_is_rejected( string $prefix ): void {
+		$identity = new PluginIdentity( $this->identity->file, $this->slug, $prefix );
+
 		$this->expectException( InvalidArgumentException::class );
 
-		new AdminNotices( $this->slug, $prefix, $this->logger );
+		new AdminNotices( $identity, $this->logger );
 	}
 
-	public function test_a_prefix_may_hold_the_reserved_words_inside_longer_segments_and_reach_32_characters(): void {
-		foreach ( array( 'acme_notice', 'acme_notices', 'acmenetwork_x', 'acme_hiddenx', 'a' . \str_repeat( 'b', 31 ) ) as $prefix ) {
-			$notices = new AdminNotices( $this->slug, $prefix, $this->logger );
+	public function test_a_prefix_may_hold_the_reserved_words_inside_longer_segments(): void {
+		foreach ( array( 'acme_notice', 'acme_notices', 'acmenetwork_x', 'acme_hiddenx' ) as $prefix ) {
+			$notices = new AdminNotices( new PluginIdentity( $this->identity->file, $this->slug, $prefix ), $this->logger );
 			self::assertSame( array(), $notices->get_notices( NoticeScope::Request ) );
 		}
 	}
@@ -464,7 +461,7 @@ final class AdminNoticesTest extends TestCase {
 	}
 
 	protected function notices(): AdminNotices {
-		return new AdminNotices( $this->slug, $this->prefix, $this->logger );
+		return new AdminNotices( $this->identity, $this->logger );
 	}
 
 	// A fresh instance stands for the next request.

@@ -3,6 +3,7 @@
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce\Logging;
 
 use Automattic\WooCommerce\Internal\Admin\Logging\LogHandlerFileV2;
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesLogMessagesTrait;
 use DeepWebSolutions\Framework\WooCommerce\Logging\WooCommerceLogger;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -100,7 +101,7 @@ final class WooCommerceLoggerTest extends TestCase {
 		$this->expectException( PsrInvalidArgumentException::class );
 		$this->expectExceptionMessage( "Log level 'verbose' is not a PSR-3 level." );
 
-		new WooCommerceLogger( 'acme', 'verbose' );
+		new WooCommerceLogger( new PluginIdentity( __FILE__, 'acme', 'acme' ), 'verbose' );
 	}
 
 	public function test_a_level_psr_3_does_not_define_is_rejected(): void {
@@ -110,7 +111,7 @@ final class WooCommerceLoggerTest extends TestCase {
 		$this->logger()->log( 'verbose', 'Cache is cold.' );
 	}
 
-	public function test_every_record_carries_the_constructors_source_even_when_the_context_names_its_own(): void {
+	public function test_every_record_carries_the_plugins_slug_as_its_source_even_when_the_context_names_its_own(): void {
 		$this->logger( null, 'dws-x' )->error( 'Cache is cold.', array( 'source' => 'other' ) );
 
 		self::assertSame( 'dws-x', $this->handler->records[0][2]['source'] );
@@ -229,7 +230,7 @@ final class WooCommerceLoggerTest extends TestCase {
 
 	// WooCommerce's own logger applies its logging switch and threshold, unless the test pins the threshold to keep every record.
 	protected function logger( ?string $threshold = null, string $source = 'acme', bool $keep_everything = true ): WooCommerceLogger {
-		return new WooCommerceLogger( $source, $threshold, new \WC_Logger( array( $this->handler ), $keep_everything ? PsrLogLevel::DEBUG : null ) );
+		return new WooCommerceLogger( new PluginIdentity( __FILE__, $source, 'acme' ), $threshold, new \WC_Logger( array( $this->handler ), $keep_everything ? PsrLogLevel::DEBUG : null ) );
 	}
 
 	protected function messages(): array {

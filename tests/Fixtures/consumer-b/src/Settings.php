@@ -3,6 +3,7 @@
 namespace Acme\ConsumerB;
 
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\ComponentInterface;
+use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\OptionsPage;
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\OptionsPageDefinitionInterface;
 
@@ -15,6 +16,22 @@ use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\OptionsP
  * @version 1.0.0
  */
 final class Settings implements ComponentInterface, OptionsPageDefinitionInterface {
+	// region MAGIC METHODS
+
+	/**
+	 * Constructor.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @param   PluginIdentity $identity The plugin's identity, which the page takes.
+	 */
+	public function __construct(
+		protected PluginIdentity $identity
+	) {}
+
+	// endregion
+
 	// region INHERITED METHODS
 
 	/**
@@ -25,7 +42,7 @@ final class Settings implements ComponentInterface, OptionsPageDefinitionInterfa
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		new OptionsPage( Plugin::SLUG, Plugin::PREFIX, $this )->register_hooks();
+		new OptionsPage( $this->identity, Plugin::PREFIX, $this )->register_hooks();
 	}
 
 	/**

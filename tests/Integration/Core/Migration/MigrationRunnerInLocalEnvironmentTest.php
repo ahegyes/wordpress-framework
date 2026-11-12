@@ -83,6 +83,6 @@ final class MigrationRunnerInLocalEnvironmentTest extends TestCase {
 	}
 
 	protected function make_runner( array $steps ): MigrationRunner {
-		return new MigrationRunner( __DIR__ . '/../../../Fixtures/Core/acme-boot.php', $this->slug, $this->option, $steps, new PsrNullLogger(), new Scheduler( 'acme' ) );
+		return new MigrationRunner( $this->identity, $steps, new PsrNullLogger(), new Scheduler( $this->identity ) );
 	}
 }

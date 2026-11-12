@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Scheduling;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Core\Scheduling\Backends\ActionSchedulerBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Backends\WpCronBackend;
 use DeepWebSolutions\Framework\Core\Scheduling\Recurrence;
@@ -73,43 +74,10 @@ final class SchedulerTest extends TestCase {
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE hook LIKE %s', $wpdb->actionscheduler_actions, $wpdb->esc_like( $this->hook ) . '%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Removes the rows the test created.
 	}
 
-	public static function valid_groups(): array {
-		return array(
-			'one-letter'        => array( 'a' ),
-			'hook-prefix'       => array( 'dws_tpl' ),
-			'mixed-case-hyphen' => array( 'Acme-2_tpl' ),
-			'190-bytes'         => array( \str_repeat( 'a', 190 ) ),
-		);
-	}
-
-	#[DataProvider( 'valid_groups' )]
-	public function test_a_valid_group_constructs_a_scheduler( string $group ): void {
-		self::assertInstanceOf( Scheduler::class, new Scheduler( $group ) );
-	}
-
-	public static function invalid_groups(): array {
-		return array(
-			'empty'          => array( '' ),
-			'zero'           => array( '0' ),
-			'leading-digit'  => array( '1acme' ),
-			'space'          => array( 'acme tpl' ),
-			'dot'            => array( 'acme.tpl' ),
-			'trailing-break' => array( "acme\n" ),
-			'191-bytes'      => array( \str_repeat( 'a', 191 ) ),
-		);
-	}
-
-	#[DataProvider( 'invalid_groups' )]
-	public function test_an_invalid_group_is_rejected( string $group ): void {
-		$this->expectException( InvalidArgumentException::class );
-
-		new Scheduler( $group );
-	}
-
 	public function test_unscheduling_a_hook_rejects_an_empty_hook_name(): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new Scheduler( 'acme' )->unschedule_hook( '' );
+		new Scheduler( new PluginIdentity( __FILE__, 'acme', self::GROUP ) )->unschedule_hook( '' );
 	}
 
 	public static function schedulers(): array {
@@ -426,7 +394,7 @@ final class SchedulerTest extends TestCase {
 
 	public function test_a_recurring_wp_cron_write_needs_no_earlier_hook_registration(): void {
 		$this->report_action_scheduler_versions( array( '3.9.0' ) );
-		$scheduler = new Scheduler( self::GROUP );
+		$scheduler = new Scheduler( new PluginIdentity( __FILE__, 'acme', self::GROUP ) );
 
 		self::assertTrue( $scheduler->ensure_recurring( new ScheduledHook( $this->hook ), Recurrence::from_interval( 3900 ) ) );
 
@@ -832,7 +800,7 @@ final class SchedulerTest extends TestCase {
 	// Action Scheduler below its floor leaves the writes to WP-Cron. A scheduler reads the version at each call, so the kind holds until the next call here.
 	protected function make_scheduler( string $kind ): Scheduler {
 		'wp-cron' === $kind ? $this->report_action_scheduler_versions( array( '3.9.0' ) ) : $this->restore_action_scheduler_versions();
-		$scheduler = new Scheduler( self::GROUP );
+		$scheduler = new Scheduler( new PluginIdentity( __FILE__, 'acme', self::GROUP ) );
 		$scheduler->register_hooks();
 
 		return $scheduler;

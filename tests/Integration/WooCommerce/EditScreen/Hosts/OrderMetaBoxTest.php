@@ -55,7 +55,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_is_added_on_add_meta_boxes(): void {
 		$host = new OrderMetaBox();
-		new ObjectForm( $this->slug, $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
+		new ObjectForm( $this->identity, $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) ) )->register_hooks();
 
 		self::assertSame( 10, has_action( 'add_meta_boxes', array( $host, 'add_meta_box' ) ) );
 	}
@@ -202,7 +202,7 @@ final class OrderMetaBoxTest extends TestCase {
 
 	public function test_the_box_saves_before_woocommerces_order_data(): void {
 		$host = new OrderMetaBox();
-		new ObjectForm( $this->slug, $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
+		new ObjectForm( $this->identity, $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) ) )->register_hooks();
 
 		self::assertSame( 35, has_action( 'woocommerce_process_shop_order_meta', array( $host, 'save_meta_box' ) ) );
 	}
@@ -328,7 +328,7 @@ final class OrderMetaBoxTest extends TestCase {
 	public function test_an_order_saved_in_code_stores_nothing(): void {
 		$order = $this->make_order( array( "_{$this->prefix}_name" => 'kept' ) );
 		$form  = new ObjectForm(
-			$this->slug,
+			$this->identity,
 			$this->id,
 			new RecordedDefinition(
 				fn (): array => array(
@@ -338,7 +338,7 @@ final class OrderMetaBoxTest extends TestCase {
 				)
 			),
 			new OrderMetaBox(),
-			new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) )
+			new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) )
 		);
 		$form->register_hooks();
 		wp_set_current_user( $this->admin );

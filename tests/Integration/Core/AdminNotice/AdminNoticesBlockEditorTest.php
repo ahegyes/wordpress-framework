@@ -206,7 +206,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	}
 
 	protected function notices(): AdminNotices {
-		return new AdminNotices( $this->slug, $this->prefix, new ErrorLogLogger( 'acme' ) );
+		return new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) );
 	}
 
 	protected function script_handle(): string {
