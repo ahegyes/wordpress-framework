@@ -47,6 +47,19 @@ if ( array_key_exists( 'relaxation', $spec ) ) {
 	add_filter( 'acme_consumer_a/exports/should_restrict', static fn (): mixed => $spec['relaxation'] );
 }
 
+// Consumer-a's safeguard is a static closure, so it is found by the class that declares it rather than by name.
+$acme_safeguard_priority = static function (): int|false {
+	foreach ( $GLOBALS['wp_filter']['map_meta_cap']->callbacks ?? array() as $priority => $callbacks ) {
+		foreach ( $callbacks as $callback ) {
+			if ( $callback['function'] instanceof Closure && 'Acme\\ConsumerA\\Safeguards' === ( new ReflectionFunction( $callback['function'] ) )->getClosureScopeClass()?->getName() ) {
+				return $priority;
+			}
+		}
+	}
+
+	return false;
+};
+
 $acme_record_boots = static function (): void {
 	$consumers = array(
 		'consumer_a'   => array( 'acme_ca', 'acme_consumer_a' ),
@@ -100,7 +113,7 @@ add_action(
 
 add_action(
 	'admin_init',
-	static function () use ( $spec, $acme_capability, $acme_record_boots ): void {
+	static function () use ( $spec, $acme_capability, $acme_record_boots, $acme_safeguard_priority ): void {
 		$records = &$GLOBALS['acme_outcome']['records'];
 		if ( isset( $spec['uninstall'] ) ) {
 			$records['deleted'] = delete_plugins( array( $spec['uninstall'] ) );
@@ -115,12 +128,12 @@ add_action(
 		$records += array(
 			'woocommerce_present' => class_exists( 'WooCommerce', false ),
 			'can_export'          => current_user_can( $acme_capability ),
-			'safeguard_attached'  => has_filter( 'map_meta_cap', 'acme_ca_map_export_capability' ),
+			'safeguard_attached'  => $acme_safeguard_priority(),
 			'export_hooked'       => has_action( 'admin_post_acme_ca_export' ),
 			'reports_page_class'  => class_exists( 'Acme\ConsumerA\Reports\ReportsPage', false ),
 			'updater_hooked'      => has_filter( 'update_plugins_github.com' ),
 			'schedules_hooked'    => has_filter( 'cron_schedules' ),
-			'safeguards_loaded'   => function_exists( 'acme_ca_is_relaxed' ),
+			'safeguards_loaded'   => class_exists( 'Acme\\ConsumerA\\Safeguards', false ),
 			'unloaded_include'    => function_exists( 'acme_ca_unloaded_include' ),
 			'greeting_shortcode'  => shortcode_exists( 'acme_pc_greeting' ),
 		);
@@ -140,7 +153,7 @@ add_action(
 			}
 			$records['can_export_after_throw']         = current_user_can( $acme_capability );
 			$records['relaxation_left']                = has_filter( 'acme_consumer_a/exports/should_restrict', '__return_false' );
-			$records['safeguard_attached_after_throw'] = has_filter( 'map_meta_cap', 'acme_ca_map_export_capability' );
+			$records['safeguard_attached_after_throw'] = $acme_safeguard_priority();
 		}
 	},
 	PHP_INT_MAX
