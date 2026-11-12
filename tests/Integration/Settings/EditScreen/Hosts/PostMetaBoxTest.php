@@ -677,8 +677,12 @@ final class PostMetaBoxTest extends TestCase {
 		$saved      = $this->block_editor_save( $spec, $post_id, array( $this->control_name( 'note' ) => 'too long' ) );
 		$redirected = $this->follow( $spec, $saved );
 		wp_set_current_user( $this->admin );
-		$delivered = new AdminNotices( $this->slug, $this->id, new ErrorLogLogger( 'acme' ) )->rest_deliver();
-		$list      = $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec );
+		try {
+			$delivered = new AdminNotices( $this->slug, $this->id, new ErrorLogLogger( 'acme' ) )->rest_deliver();
+		} finally {
+			wp_set_current_user( 0 );
+		}
+		$list = $this->admin_request( 'GET', 'edit.php', $this->admin, self::FIXTURE, $spec );
 
 		self::assertSame( array( 'kept' ), $this->meta( $post_id, 'note' ) );
 		self::assertNotNull( self::document( $redirected['body'] )->querySelector( 'form.metabox-base-form' ) );
