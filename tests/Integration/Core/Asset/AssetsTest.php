@@ -42,6 +42,20 @@ final class AssetsTest extends TestCase {
 		self::assertSame( 'replace', $style->extra['rtl'] ?? null );
 	}
 
+	public function test_a_style_chunk_without_its_own_asset_file_is_versioned_by_its_modification_time(): void {
+		self::assertTrue( new Assets( self::PLUGIN_FILE, 'acme-plugin' )->register_style( self::STYLE, 'assets/build/style-editor.css' ) );
+
+		self::assertSame( (string) \filemtime( plugin_dir_path( self::PLUGIN_FILE ) . 'assets/build/style-editor.css' ), wp_styles()->registered[ self::STYLE ]->ver );
+	}
+
+	public function test_a_script_built_without_an_asset_file_registers_without_dependencies_at_its_modification_time(): void {
+		self::assertTrue( new Assets( self::PLUGIN_FILE, 'acme-plugin' )->register_script( self::SCRIPT, 'assets/build/vendor.js' ) );
+
+		$script = wp_scripts()->registered[ self::SCRIPT ];
+		self::assertSame( array( 'wp-i18n' ), $script->deps );
+		self::assertSame( (string) \filemtime( plugin_dir_path( self::PLUGIN_FILE ) . 'assets/build/vendor.js' ), $script->ver );
+	}
+
 	public function test_a_handle_registered_elsewhere_keeps_its_script_and_gains_no_translations(): void {
 		wp_register_script( self::SCRIPT, 'https://example.com/other.js', array(), '1', true );
 
