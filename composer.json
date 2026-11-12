@@ -41,10 +41,10 @@
 		"automattic/jetpack-changelogger": "^7",
 		"johnpbloch/wordpress-core": "^7.1",
 		"nikic/php-parser": "^5",
-		"php-stubs/woocommerce-stubs": "^11.2",
+		"php-stubs/woocommerce-stubs": "^11.3",
 		"phpunit/phpunit": "^13",
 		"wp-plugin/plugin-check": "^2.2",
-		"wp-plugin/woocommerce": "^11.2"
+		"wp-plugin/woocommerce": "^11.3"
 	},
 
 	"minimum-stability": "dev",

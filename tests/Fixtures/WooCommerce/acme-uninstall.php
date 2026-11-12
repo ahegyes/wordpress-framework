@@ -5,6 +5,7 @@
  * @package Acme
  */
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use DeepWebSolutions\Framework\WooCommerce\Uninstall\MetaTypes;
 
@@ -17,7 +18,7 @@ add_action(
 	static function () use ( $spec ): void {
 		$GLOBALS['acme_outcome']['records']['woocommerce_loaded'] = class_exists( 'WooCommerce', false );
 		Uninstaller::run(
-			$spec['plugin_file'],
+			new PluginIdentity( $spec['plugin_file'], 'acme-uninstall', 'acme' ),
 			$spec['footprint'],
 			array(
 				'consent'    => $spec['consent'],

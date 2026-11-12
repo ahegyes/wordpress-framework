@@ -39,6 +39,6 @@ final class ConsumerAOnNetworkTest extends TestCase {
 
 		self::assertSame( 'blocked', $request['records']['consumer_a']['status'] );
 		self::assertTrue( $request['records']['schedules_hooked'] );
-		self::assertStringContainsString( 'Acme Consumer A benötigt WooCommerce 11.2 oder neuer, daher bleiben seine Funktionen aus, bis WooCommerce aktualisiert ist.', $request['body'] );
+		self::assertStringContainsString( 'Acme Consumer A benötigt WooCommerce 11.3 oder neuer, daher bleiben seine Funktionen aus, bis WooCommerce aktualisiert ist.', $request['body'] );
 	}
 }

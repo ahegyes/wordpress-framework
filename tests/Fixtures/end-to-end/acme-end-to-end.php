@@ -12,6 +12,7 @@ use DeepWebSolutions\Framework\Core\AdminNotice\Notice;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeScope;
 use DeepWebSolutions\Framework\Core\AdminNotice\NoticeType;
 use DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Settings\EditScreen\Hosts\PostMetaBox;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectForm;
 use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormDefinitionInterface;
@@ -19,7 +20,8 @@ use DeepWebSolutions\Framework\Settings\EditScreen\ObjectFormDefinitionInterface
 // wp-env maps the repository to wp-content/mu-plugins/wp-framework and this directory into the plugins directory.
 require_once WPMU_PLUGIN_DIR . '/wp-framework/vendor/autoload.php';
 
-$acme_notices = new AdminNotices( 'acme_e2e', new ErrorLogLogger( 'acme-end-to-end' ) );
+$acme_identity = new PluginIdentity( __FILE__, 'acme-e2e', 'acme_e2e' );
+$acme_notices  = new AdminNotices( $acme_identity, new ErrorLogLogger( $acme_identity ) );
 
 register_activation_hook(
 	__FILE__,
@@ -37,7 +39,7 @@ register_deactivation_hook(
 
 add_action(
 	'plugins_loaded',
-	static function () use ( $acme_notices ): void {
+	static function () use ( $acme_identity, $acme_notices ): void {
 		$acme_notices->register_hooks();
 
 		$definition = new class() implements ObjectFormDefinitionInterface {
@@ -56,7 +58,7 @@ add_action(
 				);
 			}
 		};
-		new ObjectForm( 'acme_e2e_details', $definition, new PostMetaBox( array( 'post' ) ), $acme_notices )->register_hooks();
+		new ObjectForm( $acme_identity, 'acme_e2e_details', $definition, new PostMetaBox( array( 'post' ) ), $acme_notices )->register_hooks();
 	}
 );
 

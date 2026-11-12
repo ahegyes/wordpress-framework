@@ -16,6 +16,16 @@ final class Settings implements OptionsPageDefinitionInterface {
 	// region FIELDS AND CONSTANTS
 
 	/**
+	 * The plugin's slug, which is also its text domain and, in snake case, the root of its hook names.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     string
+	 */
+	public const string SLUG = 'acme-persona-settings';
+
+	/**
 	 * The prefix of the plugin's admin page and option.
 	 *
 	 * @since   1.0.0

@@ -21,7 +21,7 @@ final class UninstallerWithoutActionSchedulerTest extends TestCase {
 		wp_schedule_single_event( \time() + 3600, "{$this->prefix}_cron" );
 
 		Uninstaller::run(
-			self::PLUGIN_FILE,
+			$this->uninstalled_plugin(),
 			array(
 				'cron_hooks' => array( "{$this->prefix}_cron" ),
 				'as_hooks'   => array( "{$this->prefix}_as" ),

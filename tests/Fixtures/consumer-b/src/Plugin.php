@@ -5,6 +5,7 @@ namespace Acme\ConsumerB;
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
+use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\ConsumerB\Scoped\DeepWebSolutions\Framework\Core\PluginKernel;
 use Acme\ConsumerB\Scoped\DI\ContainerBuilder;
 use Acme\ConsumerB\Scoped\Psr\Log\LoggerInterface as PsrLoggerInterface;
@@ -21,7 +22,7 @@ final class Plugin {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The plugin's slug, which is also its text domain and its log channel.
+	 * The plugin's slug, which is also its text domain, its log channel and, in snake case, the root of its hook names.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -31,7 +32,7 @@ final class Plugin {
 	public const string SLUG = 'acme-consumer-b';
 
 	/**
-	 * The prefix of the plugin's hook names, options and admin page.
+	 * The prefix of the plugin's options and admin page.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -83,6 +84,16 @@ final class Plugin {
 	 */
 	protected readonly PsrLoggerInterface $logger;
 
+	/**
+	 * The plugin's identity, which every framework class the root builds takes.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     PluginIdentity
+	 */
+	protected readonly PluginIdentity $identity;
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -94,8 +105,9 @@ final class Plugin {
 	 * @version 1.0.0
 	 */
 	public function __construct() {
-		$this->logger   = new ErrorLogLogger( self::SLUG );
-		$this->boundary = new PluginBoot( ACME_CB_FILE, self::PREFIX, $this->logger );
+		$this->identity = new PluginIdentity( ACME_CB_FILE, self::SLUG, self::PREFIX );
+		$this->logger   = new ErrorLogLogger( $this->identity );
+		$this->boundary = new PluginBoot( $this->identity, $this->logger );
 	}
 
 	// endregion
@@ -127,7 +139,7 @@ final class Plugin {
 	 * @return  bool
 	 */
 	protected function compose(): bool {
-		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger ) )->build() );
+		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->identity, $this->logger ) )->build() );
 		$this->kernel->boot( self::COMPONENTS );
 
 		return true;
@@ -139,13 +151,15 @@ final class Plugin {
 	 * @since   1.0.0
 	 * @version 1.0.0
 	 *
-	 * @param   PsrLoggerInterface $logger The plugin's logger.
+	 * @param   PluginIdentity     $identity The plugin's identity.
+	 * @param   PsrLoggerInterface $logger   The plugin's logger.
 	 *
 	 * @return  array<string, \Closure(): object>
 	 */
-	protected function get_definitions( PsrLoggerInterface $logger ): array {
+	protected function get_definitions( PluginIdentity $identity, PsrLoggerInterface $logger ): array {
 		return array(
-			AdminNotices::class => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			PluginIdentity::class => static fn (): PluginIdentity => $identity,
+			AdminNotices::class   => static fn (): AdminNotices => new AdminNotices( $identity, $logger ),
 		);
 	}
 

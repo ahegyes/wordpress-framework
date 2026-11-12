@@ -489,7 +489,7 @@ final class CachesTest extends TestCase {
 	}
 
 	protected function cache( string $kind, string $name = 'cache' ): PsrCacheInterface {
-		return 'transient' === $kind ? new TransientCache( "{$this->prefix}_{$name}_" ) : new ObjectCache( "{$this->prefix}_$name" );
+		return 'transient' === $kind ? new TransientCache( $this->identity, $name ) : new ObjectCache( $this->identity, $name );
 	}
 
 	protected function generation( string $kind ): ?string {

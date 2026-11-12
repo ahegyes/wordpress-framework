@@ -9,7 +9,7 @@
 
 wp_set_current_user( 1 );
 set_current_screen( 'plugins' );
-add_filter( 'acme_ca/exports/should_restrict', '__return_false' );
+add_filter( 'acme_consumer_a/exports/should_restrict', '__return_false' );
 
 ob_start();
 do_action( 'admin_notices' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Fires WordPress's own action.

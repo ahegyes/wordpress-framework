@@ -37,16 +37,14 @@ final class PluginBoot {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string             $plugin_file The path to the plugin's entry file.
-	 * @param   string             $prefix      The prefix of the plugin's hook names, transients and log channel.
-	 * @param   PsrLoggerInterface $logger      The logger that records boot failures.
+	 * @param   PluginIdentity     $identity The plugin's identity.
+	 * @param   PsrLoggerInterface $logger   The logger that records boot failures.
 	 */
 	public function __construct(
-		protected string $plugin_file,
-		protected string $prefix,
+		protected PluginIdentity $identity,
 		protected PsrLoggerInterface $logger
 	) {
-		$this->logger = new GuardedLogger( $logger, $prefix );
+		$this->logger = new GuardedLogger( $logger, $identity );
 	}
 
 	// endregion
@@ -74,7 +72,7 @@ final class PluginBoot {
 			$this->status = 'failed';
 
 			// A deterministic failure repeats on every request, so each distinct message is logged about once an hour, as best effort.
-			$key = "{$this->prefix}_boot_failure_" . \md5( $exception->getMessage() );
+			$key = "{$this->identity->prefix}_boot_failure_" . \md5( $exception->getMessage() );
 			if ( false === get_transient( $key ) ) {
 				set_transient( $key, 1, HOUR_IN_SECONDS );
 				$this->logger->error(
@@ -86,7 +84,7 @@ final class PluginBoot {
 				);
 			}
 
-			$plugin_file = $this->plugin_file;
+			$plugin_file = $this->identity->file;
 			add_action(
 				'all_admin_notices',
 				static function () use ( $plugin_file ): void {
@@ -108,7 +106,7 @@ final class PluginBoot {
 			 *
 			 * @param   \Throwable $exception The failure that stopped the composition.
 			 */
-			do_action( "$this->prefix/boot/failed", $exception );
+			do_action( "{$this->identity->hook_root}/boot/failed", $exception );
 			if ( self::is_development_environment() ) {
 				throw $exception;
 			}
@@ -125,7 +123,7 @@ final class PluginBoot {
 			 * @since   2.0.0
 			 * @version 2.0.0
 			 */
-			do_action( "$this->prefix/boot/blocked" );
+			do_action( "{$this->identity->hook_root}/boot/blocked" );
 			return;
 		}
 
@@ -137,7 +135,7 @@ final class PluginBoot {
 		 * @since   2.0.0
 		 * @version 2.0.0
 		 */
-		do_action( "$this->prefix/boot/succeeded" );
+		do_action( "{$this->identity->hook_root}/boot/succeeded" );
 	}
 
 	/**

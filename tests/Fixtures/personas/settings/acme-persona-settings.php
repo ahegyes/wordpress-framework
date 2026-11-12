@@ -22,6 +22,8 @@ use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirement
 
 defined( 'ABSPATH' ) || exit;
 
+define( 'ACME_PS_FILE', __FILE__ );
+
 $acme_ps_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';
 if ( ! is_readable( $acme_ps_bootstrap ) ) { // The floor gate lives in the bootstrap package, so nothing built may load without it.
 	return;

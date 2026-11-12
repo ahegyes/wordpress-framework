@@ -8,6 +8,7 @@ includes:
 parameters:
 	paths:
 		- acme-consumer-a.php
+		- Safeguards.php
 		- functions.php
 		- uninstall.php
 		- includes

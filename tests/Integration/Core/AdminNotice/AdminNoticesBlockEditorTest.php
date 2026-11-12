@@ -76,7 +76,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	}
 
 	public function test_a_delivered_message_is_filtered_and_keeps_only_post_markup(): void {
-		add_filter( "$this->prefix/admin_notice/message", static fn ( string $message ): string => "$message <script>alert( 1 );</script>", 10, 3 );
+		add_filter( "$this->hook_root/admin_notice/message", static fn ( string $message ): string => "$message <script>alert( 1 );</script>", 10, 3 );
 		$this->notices()->add( $this->notice( 'saved', message: 'Read <a href="https://example.org/?a=1&amp;b=2">the guide</a>.' ), $this->admin );
 		wp_set_current_user( $this->admin );
 
@@ -126,7 +126,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		self::assertSame(
 			array(
 				'prefix'  => $this->prefix,
-				'path'    => \str_replace( '_', '-', $this->prefix ) . '/v1/notices/deliveries',
+				'path'    => "$this->slug/v1/notices/deliveries",
 				'waiting' => false,
 			),
 			$settings
@@ -138,7 +138,7 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 		$notices->register_hooks();
 
 		self::assertSame( 10, has_action( 'enqueue_block_editor_assets', array( $notices, 'enqueue_delivery_script' ) ) );
-		self::assertArrayHasKey( '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/deliveries', rest_get_server()->get_routes() );
+		self::assertArrayHasKey( "/$this->slug/v1/notices/deliveries", rest_get_server()->get_routes() );
 	}
 
 	#[Group( 'multisite' )]
@@ -202,11 +202,11 @@ final class AdminNoticesBlockEditorTest extends TestCase {
 	}
 
 	protected function deliver(): \WP_REST_Response {
-		return rest_do_request( new \WP_REST_Request( 'POST', '/' . \str_replace( '_', '-', $this->prefix ) . '/v1/notices/deliveries' ) );
+		return rest_do_request( new \WP_REST_Request( 'POST', "/$this->slug/v1/notices/deliveries" ) );
 	}
 
 	protected function notices(): AdminNotices {
-		return new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
+		return new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) );
 	}
 
 	protected function script_handle(): string {

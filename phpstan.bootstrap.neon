@@ -8,8 +8,8 @@ includes:
 parameters:
 	paths:
 		- packages/bootstrap
-		- tests/Fixtures/consumer-a/includes/safeguards.php
-	# The bootstrap package and consumer-a's safeguard run before any floor is checked, so they are analyzed at the oldest PHP and WordPress the bootstrap package runs on.
+		- tests/Fixtures/consumer-a/Safeguards.php
+	# The bootstrap package and consumer-a's safeguards run before any floor is checked, so they are analyzed at the oldest PHP and WordPress the bootstrap package runs on.
 	phpVersion: 70400
 	WPCompat:
 		requiresAtLeast: '5.2'

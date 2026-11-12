@@ -31,7 +31,7 @@ final class ConsumerAUninstallTest extends TestCase {
 			'scoped-autoloader' => array( array( 'vendor-prefixed/scoper-autoload.php' ), array() ),
 			'composition-root'  => array( array( 'src/Plugin.php' ), array() ),
 			'scoped-engine'     => array( array( 'vendor-prefixed/ahegyes/wp-framework-core/src/Uninstall/Uninstaller.php' ), array() ),
-			'footprint'         => array( array( 'includes/footprint.php' ), array() ),
+			'options'           => array( array( 'src/Options.php' ), array() ),
 			'below-php-floor'   => array( array(), array( 'Requires PHP' => '99' ) ),
 		);
 	}

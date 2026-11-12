@@ -6,6 +6,7 @@ use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNot
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
+use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginKernel;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
@@ -24,7 +25,7 @@ final class Plugin {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The plugin's slug, which is also its text domain and its log channel.
+	 * The plugin's slug, which is also its text domain, its log channel and, in snake case, the root of its hook names.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -34,7 +35,7 @@ final class Plugin {
 	public const string SLUG = 'acme-persona-core';
 
 	/**
-	 * The prefix of the plugin's hook names, options and scheduled hooks.
+	 * The prefix of the plugin's options and scheduled actions.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -55,6 +56,23 @@ final class Plugin {
 		Scheduler::class,
 		AdminNotices::class,
 		Greeting::class,
+	);
+
+	/**
+	 * The plugin's stored data by kind, which covers every option, user meta key and scheduled job under the plugin's prefix.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     array{option_prefixes: list<non-empty-string>, user_meta_site_prefixes: list<non-empty-string>, user_meta_global_prefixes: list<non-empty-string>, network_options: list<non-empty-string>, cron_hooks: list<non-empty-string>, as_groups: list<non-empty-string>}
+	 */
+	public const array FOOTPRINT = array(
+		'option_prefixes'           => array( self::PREFIX . '_' ),
+		'user_meta_site_prefixes'   => array( self::PREFIX . '_' ),
+		'user_meta_global_prefixes' => array( self::PREFIX . '_' ),
+		'network_options'           => array( self::PREFIX . '_network_notices' ),
+		'cron_hooks'                => array( 'acme_persona_core/migration/run' ),
+		'as_groups'                 => array( self::PREFIX ),
 	);
 
 	/**
@@ -107,6 +125,16 @@ final class Plugin {
 	 */
 	protected readonly PsrLoggerInterface $logger;
 
+	/**
+	 * The plugin's identity, which every framework class the root builds takes.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     PluginIdentity
+	 */
+	protected readonly PluginIdentity $identity;
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -118,9 +146,10 @@ final class Plugin {
 	 * @version 1.0.0
 	 */
 	public function __construct() {
-		$this->logger    = new ErrorLogLogger( self::SLUG );
-		$this->scheduler = new Scheduler( self::PREFIX );
-		$this->boundary  = new PluginBoot( ACME_PC_FILE, self::PREFIX, $this->logger );
+		$this->identity  = new PluginIdentity( ACME_PC_FILE, self::SLUG, self::PREFIX );
+		$this->logger    = new ErrorLogLogger( $this->identity );
+		$this->scheduler = new Scheduler( $this->identity );
+		$this->boundary  = new PluginBoot( $this->identity, $this->logger );
 	}
 
 	// endregion
@@ -152,10 +181,10 @@ final class Plugin {
 	 * @return  bool
 	 */
 	protected function compose(): bool {
-		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::PREFIX . '_revision', acme_pc_get_migration_steps(), $this->logger, $this->scheduler );
+		$this->migrations = new MigrationRunner( $this->identity, Migrations::get_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
-		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
+		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->identity, $this->logger, $this->scheduler ) )->build() );
 		$this->kernel->boot( self::COMPONENTS );
 
 		return true;
@@ -167,17 +196,19 @@ final class Plugin {
 	 * @since   1.0.0
 	 * @version 1.0.0
 	 *
+	 * @param   PluginIdentity     $identity  The plugin's identity.
 	 * @param   PsrLoggerInterface $logger    The plugin's logger.
 	 * @param   Scheduler          $scheduler The plugin's scheduler.
 	 *
 	 * @return  array<string, \Closure(): object>
 	 */
-	protected function get_definitions( PsrLoggerInterface $logger, Scheduler $scheduler ): array {
+	protected function get_definitions( PluginIdentity $identity, PsrLoggerInterface $logger, Scheduler $scheduler ): array {
 		return array(
+			PluginIdentity::class     => static fn (): PluginIdentity => $identity,
 			PsrLoggerInterface::class => static fn (): PsrLoggerInterface => $logger,
 			Scheduler::class          => static fn (): Scheduler => $scheduler,
 			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
-			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( $identity, $logger ),
 		);
 	}
 

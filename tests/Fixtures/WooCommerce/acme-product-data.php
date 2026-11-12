@@ -7,6 +7,7 @@
  * @package Acme
  */
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
 use DeepWebSolutions\Framework\WooCommerce\ProductData\ProductDataTab;
 
@@ -43,21 +44,21 @@ add_action(
 			}
 		);
 
-		new ProductDataTab( $spec['id'], $definition )->register_hooks();
+		new ProductDataTab( new PluginIdentity( __FILE__, $spec['slug'], 'acme' ), $spec['id'], $definition )->register_hooks();
 	}
 );
 
 if ( isset( $spec['contributed'] ) ) {
 	add_filter(
-		"{$spec['id']}/product_data_tab/groups",
-		static function ( array $groups, WC_Product $product ) use ( $spec ): array {
-			$GLOBALS['acme_outcome']['records'][] = array( 'groups', $product->get_id() );
+		str_replace( '-', '_', $spec['slug'] ) . '/product_data_tab/groups',
+		static function ( array $groups, WC_Product $product, string $tab_id ) use ( $spec ): array {
+			$GLOBALS['acme_outcome']['records'][] = array( 'groups', $product->get_id(), $tab_id );
 			$groups[]                             = array( 'fields' => RecordedDefinition::with_behaviors( $spec['contributed'] ) );
 
 			return $groups;
 		},
 		10,
-		2
+		3
 	);
 }
 

@@ -90,7 +90,7 @@ final class MetaTypesTest extends TestCase {
 		update_option( "{$this->prefix}_remove_data", 'yes' );
 
 		Uninstaller::run(
-			self::PLUGIN_FILE,
+			$this->uninstalled_plugin(),
 			$footprint,
 			array(
 				'consent'    => array( 'option' => "{$this->prefix}_remove_data" ),

@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\Core\Storage;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Core\Storage\Lock;
 use DeepWebSolutions\Framework\Core\Storage\LockClaim;
 use DeepWebSolutions\Framework\Core\Storage\OptionRows;
@@ -53,7 +54,7 @@ final class LockTest extends TestCase {
 	}
 
 	public function test_expiry_is_judged_by_the_ttl_the_row_holds(): void {
-		new Lock( "{$this->prefix}_lock", 600, $this->clock )->acquire( 'first' );
+		new Lock( $this->identity, 'lock', 600, $this->clock )->acquire( 'first' );
 		$this->clock->advance( 61 );
 
 		self::assertSame( LockClaim::Busy, $this->make_lock()->acquire( 'second' ) );
@@ -219,7 +220,7 @@ final class LockTest extends TestCase {
 
 	public function test_without_a_clock_the_lock_reads_the_system_time(): void {
 		$before = \time();
-		new Lock( "{$this->prefix}_lock", 60 )->acquire( 'first' );
+		new Lock( $this->identity, 'lock', 60 )->acquire( 'first' );
 
 		$time = $this->stored()['time'] ?? 0;
 		self::assertGreaterThanOrEqual( $before, $time );
@@ -228,18 +229,18 @@ final class LockTest extends TestCase {
 
 	public static function invalid_calls(): array {
 		return array(
-			'zero-ttl'     => array( static fn (): mixed => new Lock( 'acme_lock', 0 ) ),
-			'negative-ttl' => array( static fn (): mixed => new Lock( 'acme_lock', -60 ) ),
-			'empty-name'   => array( static fn (): mixed => new Lock( '', 60 ) ),
-			'empty-owner'  => array( static fn (): mixed => new Lock( 'acme_lock', 60 )->acquire( '' ) ),
+			'zero-ttl'     => array( static fn ( PluginIdentity $identity ): mixed => new Lock( $identity, 'lock', 0 ) ),
+			'negative-ttl' => array( static fn ( PluginIdentity $identity ): mixed => new Lock( $identity, 'lock', -60 ) ),
+			'long-name'    => array( static fn ( PluginIdentity $identity ): mixed => new Lock( $identity, \str_repeat( 'a', 191 - \strlen( $identity->prefix ) ), 60 ) ),
+			'empty-owner'  => array( static fn ( PluginIdentity $identity ): mixed => new Lock( $identity, 'lock', 60 )->acquire( '' ) ),
 		);
 	}
 
 	#[DataProvider( 'invalid_calls' )]
-	public function test_a_ttl_below_1_an_invalid_name_or_an_empty_owner_is_rejected( \Closure $call ): void {
+	public function test_a_ttl_below_1_a_name_too_long_for_an_option_or_an_empty_owner_is_rejected( \Closure $call ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		$call();
+		$call( $this->identity );
 	}
 
 	public static function failing_operations(): array {
@@ -262,7 +263,7 @@ final class LockTest extends TestCase {
 	}
 
 	protected function make_lock(): Lock {
-		return new Lock( "{$this->prefix}_lock", 60, $this->clock );
+		return new Lock( $this->identity, 'lock', 60, $this->clock );
 	}
 
 	protected function stored(): mixed {

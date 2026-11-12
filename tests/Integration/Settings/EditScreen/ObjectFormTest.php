@@ -52,7 +52,6 @@ final class ObjectFormTest extends TestCase {
 	protected function tearDown(): void {
 		$_POST = $this->post_backup;
 		wp_delete_post( $this->post_id, true );
-		wp_set_current_user( 0 );
 	}
 
 	public static function foreign_nonces(): array {
@@ -158,7 +157,7 @@ final class ObjectFormTest extends TestCase {
 	public function test_each_rejection_becomes_a_one_shot_error_notice_for_the_user_who_saved(): void {
 		wp_set_current_user( $this->author_id );
 		$this->post_form( $this->post_id );
-		$notices = new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
+		$notices = new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) );
 
 		$this->rejecting_form( $notices )->save( $this->post_id );
 
@@ -172,7 +171,7 @@ final class ObjectFormTest extends TestCase {
 
 	public function test_a_second_rejection_of_a_field_replaces_the_first(): void {
 		wp_set_current_user( $this->author_id );
-		$notices = new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) );
+		$notices = new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) );
 
 		$this->post_form( $this->post_id );
 		$this->rejecting_form( $notices )->save( $this->post_id );
@@ -193,7 +192,7 @@ final class ObjectFormTest extends TestCase {
 		$previous = \ini_set( 'error_log', $log_file );
 
 		try {
-			$this->rejecting_form( new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->save( $this->post_id );
+			$this->rejecting_form( new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) ) )->save( $this->post_id );
 			$log = (string) \file_get_contents( $log_file );
 		} finally {
 			\ini_set( 'error_log', (string) $previous );
@@ -201,7 +200,7 @@ final class ObjectFormTest extends TestCase {
 		}
 
 		self::assertSame( 'Saved.', get_post_meta( $this->post_id, "_{$this->prefix}_name", true ) );
-		self::assertStringContainsString( '[acme.error] Could not add a user notice: The user meta is unavailable.', $log );
+		self::assertStringContainsString( "[$this->slug.error] Could not add a user notice: The user meta is unavailable.", $log );
 	}
 
 	public function test_a_host_serves_one_form(): void {
@@ -210,7 +209,7 @@ final class ObjectFormTest extends TestCase {
 
 		$this->expectException( LogicException::class );
 
-		new ObjectForm( "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
+		new ObjectForm( $this->identity, "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) ) )->register_hooks();
 	}
 
 	public function test_a_host_the_consumer_writes_serves_one_form_too(): void {
@@ -237,7 +236,7 @@ final class ObjectFormTest extends TestCase {
 
 		$this->expectException( LogicException::class );
 
-		new ObjectForm( "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
+		new ObjectForm( $this->identity, "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) ) )->register_hooks();
 	}
 
 	protected function form( ObjectFormHostInterface $host, string $capability = 'edit_posts' ): ObjectForm {
@@ -255,10 +254,11 @@ final class ObjectFormTest extends TestCase {
 		);
 
 		return new ObjectForm(
+			$this->identity,
 			"{$this->prefix}_details",
 			$this->definition,
 			$host,
-			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
+			new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) )
 		);
 	}
 
@@ -266,6 +266,7 @@ final class ObjectFormTest extends TestCase {
 		$_POST[ "{$this->prefix}_details" ][ "_{$this->prefix}_note" ] = 'Too long.';
 
 		return new ObjectForm(
+			$this->identity,
 			"{$this->prefix}_details",
 			new RecordedDefinition(
 				fn (): array => array(

@@ -13,8 +13,19 @@ use Automattic\WooCommerce\Utilities\FeaturesUtil;
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'plugins_loaded', 'acme_ca_boot', 15 );
-add_action( 'before_woocommerce_init', 'acme_ca_declare_compatibility' );
+add_action(
+	'plugins_loaded',
+	static function (): void {
+		acme_ca_plugin()->boot();
+	},
+	15
+);
+add_action(
+	'before_woocommerce_init',
+	static function (): void {
+		FeaturesUtil::declare_compatibility( 'custom_order_tables', ACME_CA_FILE, true );
+	}
+);
 
 $acme_ca_includes = glob( __DIR__ . '/includes/*.php' );
 if ( false === $acme_ca_includes ) {
@@ -31,6 +42,10 @@ foreach ( $acme_ca_includes as $acme_ca_include ) {
 /**
  * Returns the plugin's composition root, built on first use.
  *
+ * Only the function is contract: the root's members stay internal unless tagged @api.
+ *
+ * @api
+ *
  * @since   1.0.0
  * @version 1.0.0
  *
@@ -43,32 +58,4 @@ function acme_ca_plugin(): Plugin {
 	}
 
 	return $plugin;
-}
-
-/**
- * Boots the plugin, reporting a composition root that cannot be built as an incomplete build.
- *
- * @since   1.0.0
- * @version 1.0.0
- *
- * @return  void
- */
-function acme_ca_boot(): void {
-	try {
-		acme_ca_plugin()->boot();
-	} catch ( Throwable $error ) {
-		acme_ca_handle_build_error( $error );
-	}
-}
-
-/**
- * Declares that the plugin works with WooCommerce's order tables.
- *
- * @since   1.0.0
- * @version 1.0.0
- *
- * @return  void
- */
-function acme_ca_declare_compatibility(): void {
-	FeaturesUtil::declare_compatibility( 'custom_order_tables', ACME_CA_FILE, true );
 }

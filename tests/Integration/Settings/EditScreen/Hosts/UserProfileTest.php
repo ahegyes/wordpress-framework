@@ -51,7 +51,7 @@ final class UserProfileTest extends TestCase {
 
 	public function test_the_host_registers_on_both_profile_screens(): void {
 		$host = new UserProfile();
-		new ObjectForm( $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) ) )->register_hooks();
+		new ObjectForm( $this->identity, $this->id, new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) ) )->register_hooks();
 
 		self::assertSame( 10, has_action( 'show_user_profile', array( $host, 'render_section' ) ) );
 		self::assertSame( 10, has_action( 'edit_user_profile', array( $host, 'render_section' ) ) );
@@ -192,6 +192,7 @@ final class UserProfileTest extends TestCase {
 	public function test_an_update_in_code_stores_nothing(): void {
 		add_user_meta( $this->subscriber, "_{$this->prefix}_name", 'kept' );
 		$form = new ObjectForm(
+			$this->identity,
 			$this->id,
 			new RecordedDefinition(
 				fn (): array => array(
@@ -201,7 +202,7 @@ final class UserProfileTest extends TestCase {
 				)
 			),
 			new UserProfile(),
-			new AdminNotices( $this->prefix, new ErrorLogLogger( 'acme' ) )
+			new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) )
 		);
 		$form->register_hooks();
 		wp_set_current_user( $this->admin );
@@ -216,7 +217,6 @@ final class UserProfileTest extends TestCase {
 			);
 		} finally {
 			unset( $_POST[ $this->id ] );
-			wp_set_current_user( 0 );
 		}
 
 		self::assertSame( 'Updated in code', get_userdata( $this->subscriber )->display_name );
@@ -238,6 +238,7 @@ final class UserProfileTest extends TestCase {
 	protected function spec( array $fields, array $form = array() ): array {
 		return array(
 			'id'        => $this->id,
+			'slug'      => $this->slug,
 			'host'      => 'user',
 			'host_args' => array(),
 			'form'      => $form + array(

@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\WooCommerce\WooCommerceRequirement;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -26,7 +27,7 @@ final class WooCommerceRequirementTest extends TestCase {
 	public function test_woocommerce_meeting_the_floor_passes_and_nobody_sees_a_notice( ?string $floor ): void {
 		$headers = \is_null( $floor ) ? array() : array( 'WC requires at least' => 'installed' === $floor ? WC_VERSION : $floor );
 
-		self::assertTrue( WooCommerceRequirement::check( $this->write_plugin( $headers + array( 'Requires Plugins' => 'woocommerce' ) ) ) );
+		self::assertTrue( WooCommerceRequirement::check( new PluginIdentity( $this->write_plugin( $headers + array( 'Requires Plugins' => 'woocommerce' ) ), 'acme-shop', 'acme' ) ) );
 		self::assertSame( '', $this->render_all_admin_notices( $this->make_user( 'acme_requirement_admin', 'administrator' ) ) );
 	}
 
@@ -38,7 +39,7 @@ final class WooCommerceRequirementTest extends TestCase {
 			)
 		);
 
-		self::assertFalse( WooCommerceRequirement::check( $plugin_file ) );
+		self::assertFalse( WooCommerceRequirement::check( new PluginIdentity( $plugin_file, 'acme-shop', 'acme' ) ) );
 
 		$notice = \Dom\HTMLDocument::createFromString( $this->render_all_admin_notices( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
 		self::assertNotNull( $notice );
@@ -53,7 +54,7 @@ final class WooCommerceRequirementTest extends TestCase {
 				'WC requires at least' => '99.1<i>',
 			)
 		);
-		WooCommerceRequirement::check( $plugin_file );
+		WooCommerceRequirement::check( new PluginIdentity( $plugin_file, 'acme-shop', 'acme' ) );
 
 		$notice = \Dom\HTMLDocument::createFromString( $this->render_all_admin_notices( $this->make_user( 'acme_requirement_admin', 'administrator' ) ), \LIBXML_NOERROR )->querySelector( '.notice.notice-error' );
 
@@ -75,7 +76,7 @@ final class WooCommerceRequirementTest extends TestCase {
 			}
 		);
 
-		WooCommerceRequirement::check( $plugin_file );
+		WooCommerceRequirement::check( new PluginIdentity( $plugin_file, 'acme-shop', 'acme' ) );
 		self::assertSame( 0, $translations );
 
 		$this->render_all_admin_notices( $this->make_user( 'acme_requirement_admin', 'administrator' ) );

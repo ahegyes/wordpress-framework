@@ -60,7 +60,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$this->seed_site( $this->main_site, null );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
+		Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $this->args() );
 
 		self::assertSame( array( true, true, false, false ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->other_site ) );
@@ -103,7 +103,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 
 		try {
 			Uninstaller::run(
-				self::PLUGIN_FILE,
+				$this->uninstalled_plugin(),
 				array(
 					'option_prefixes'         => array( "{$p}_cache_" ),
 					'meta'                    => array( 'item' => array( "{$p}_flag" ) ),
@@ -138,7 +138,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( $constant ) );
+		Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $this->args( $constant ) );
 
 		// The constant consents for every site of the network, which may hold more sites than the test created.
 		$consenting = $constant ? get_sites(
@@ -165,7 +165,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		}
 		$this->record_id_reads();
 
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( true ) );
+		Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $this->args( true ) );
 
 		self::assertFalse( $this->user_meta_exists( "{$this->prefix}_global_state" ) );
 		$this->assert_id_reads_paged();
@@ -183,7 +183,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 			)
 		);
 
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( true ) );
+		Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $this->args( true ) );
 
 		self::assertFalse( $this->network_option_exists( "{$this->prefix}_network_settings" ) );
 		self::assertTrue( $this->network_option_exists( $twin ) );
@@ -194,7 +194,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		// The network cleanup runs just before the deletes, so it caches the value they must clear.
 		$args['cleanup'] = fn ( array $context ): mixed => get_network_option( null, "{$this->prefix}_network_settings" );
 
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $args );
+		Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $args );
 
 		self::assertFalse( get_network_option( null, "{$this->prefix}_network_settings" ) );
 	}
@@ -214,7 +214,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 
 		$failure = null;
 		try {
-			Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
+			Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $this->args() );
 		} catch ( RuntimeException $exception ) {
 			$failure = $exception;
 		} finally {
@@ -236,7 +236,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 
 		$failure = null;
 		try {
-			Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args( true ) );
+			Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $this->args( true ) );
 		} catch ( RuntimeException $exception ) {
 			$failure = $exception;
 		}
@@ -258,7 +258,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		$this->seed_site( $this->main_site, 'yes' );
 		$this->seed_site( $this->other_site, 'yes' );
 
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
+		Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $this->args() );
 
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->main_site ) );
 		self::assertSame( array( false, false, false, false ), $this->site_state( $this->other_site ) );
@@ -273,7 +273,7 @@ final class UninstallerOnNetworkTest extends TestCase {
 		\gc_collect_cycles();
 		$before = \memory_get_usage();
 
-		Uninstaller::run( self::PLUGIN_FILE, $this->network_footprint(), $this->args() );
+		Uninstaller::run( $this->uninstalled_plugin(), $this->network_footprint(), $this->args() );
 
 		\gc_collect_cycles();
 		$growth = \memory_get_usage() - $before;

@@ -56,7 +56,7 @@ final class FaultInjector implements ConditionalComponentInterface {
 	 */
 	#[\Override]
 	public function register_hooks(): void {
-		add_filter( Plugin::PREFIX . '/exports/should_restrict', '__return_false' );
+		add_filter( 'acme_consumer_a/exports/should_restrict', '__return_false' );
 		if ( 'register' === \constant( 'ACME_CA_FAULT' ) ) {
 			throw new \RuntimeException( 'The fault injector failed its hook registration.' );
 		}

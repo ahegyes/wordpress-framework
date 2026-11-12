@@ -20,7 +20,6 @@ final class ConsumerABuildTest extends TestCase {
 			'bootstrap-loader'  => array( 'vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php', false ),
 			'autoloader'        => array( 'vendor/autoload.php', true ),
 			'scoped-autoloader' => array( 'vendor-prefixed/scoper-autoload.php', true ),
-			'composition-root'  => array( 'src/Plugin.php', false ),
 		);
 	}
 

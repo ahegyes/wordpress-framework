@@ -81,19 +81,19 @@ final class OptionsPageTest extends TestCase {
 	public function test_an_invalid_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new OptionsPage( $id, new RecordedDefinition( static fn (): array => array() ) );
+		new OptionsPage( $this->identity, $id, new RecordedDefinition( static fn (): array => array() ) );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_id( string $id ): void {
 		$this->expectNotToPerformAssertions();
 
-		new OptionsPage( $id, new RecordedDefinition( static fn (): array => array() ) );
+		new OptionsPage( $this->identity, $id, new RecordedDefinition( static fn (): array => array() ) );
 	}
 
 	public function test_the_definition_is_evaluated_neither_at_construction_nor_at_registration(): void {
 		$definition = new RecordedDefinition( static fn (): array => array() );
-		$page       = new OptionsPage( $this->id, $definition );
+		$page       = new OptionsPage( $this->identity, $this->id, $definition );
 
 		$page->register_hooks();
 
@@ -110,7 +110,7 @@ final class OptionsPageTest extends TestCase {
 				'tabs'       => array(),
 			)
 		);
-		$page       = new OptionsPage( $this->id, $definition );
+		$page       = new OptionsPage( $this->identity, $this->id, $definition );
 
 		$page->get_capability();
 		$page->get_capability();
@@ -622,6 +622,7 @@ final class OptionsPageTest extends TestCase {
 	protected function spec( array $fields, array $page = array(), array $extra = array() ): array {
 		return array(
 			'id'   => $this->id,
+			'slug' => $this->slug,
 			'page' => $page + array(
 				'parent'     => 'options-general.php',
 				'capability' => 'manage_options',

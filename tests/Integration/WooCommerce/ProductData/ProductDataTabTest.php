@@ -66,19 +66,19 @@ final class ProductDataTabTest extends TestCase {
 	public function test_an_invalid_tab_id_is_rejected( string $id ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
+		new ProductDataTab( $this->identity, $id, new RecordedDefinition( static fn (): ?array => null ) );
 	}
 
 	#[DataProvider( 'v1_helper_ids' )]
 	public function test_every_v1_key_is_a_valid_tab_id( string $id ): void {
 		$this->expectNotToPerformAssertions();
 
-		new ProductDataTab( $id, new RecordedDefinition( static fn (): ?array => null ) );
+		new ProductDataTab( $this->identity, $id, new RecordedDefinition( static fn (): ?array => null ) );
 	}
 
 	public function test_the_definition_is_evaluated_only_when_the_edit_screen_needs_it(): void {
 		$definition = new RecordedDefinition( static fn (): ?array => null );
-		$tab        = new ProductDataTab( $this->prefix, $definition );
+		$tab        = new ProductDataTab( $this->identity, $this->prefix, $definition );
 
 		$tab->register_hooks();
 
@@ -443,7 +443,7 @@ final class ProductDataTabTest extends TestCase {
 				'groups' => array(),
 			)
 		);
-		$tab        = new ProductDataTab( $this->prefix, $definition );
+		$tab        = new ProductDataTab( $this->identity, $this->prefix, $definition );
 
 		$GLOBALS['product_object'] = $product;
 		try {
@@ -488,7 +488,7 @@ final class ProductDataTabTest extends TestCase {
 		$request = $this->edit_screen( $spec, $product->get_id() );
 
 		self::assertSame( 'contributed', $this->control( self::document( $request['body'] ), 'extra' )->getAttribute( 'value' ) );
-		self::assertSame( array( array( 'groups', $product->get_id() ) ), $request['records'] );
+		self::assertSame( array( array( 'groups', $product->get_id(), $this->prefix ) ), $request['records'] );
 	}
 
 	public function test_a_new_product_renders_the_tab_with_its_defaults(): void {
@@ -511,7 +511,7 @@ final class ProductDataTabTest extends TestCase {
 	}
 
 	public function test_registering_hooks_the_save_onto_the_product_woocommerce_saves(): void {
-		$tab = new ProductDataTab( $this->prefix, new RecordedDefinition( static fn (): ?array => null ) );
+		$tab = new ProductDataTab( $this->identity, $this->prefix, new RecordedDefinition( static fn (): ?array => null ) );
 
 		$tab->register_hooks();
 
@@ -875,7 +875,7 @@ final class ProductDataTabTest extends TestCase {
 		self::assertSame( array( 'v!' ), $this->meta( $product, 'extra' ) );
 		self::assertSame(
 			array(
-				array( 'groups', $product->get_id() ),
+				array( 'groups', $product->get_id(), $this->prefix ),
 				array( 'validate', "_{$this->prefix}_extra", 'v' ),
 			),
 			$saved['records']
@@ -905,6 +905,7 @@ final class ProductDataTabTest extends TestCase {
 	protected function spec( array $groups, array $extra = array() ): array {
 		return array(
 			'id'     => $this->prefix,
+			'slug'   => $this->slug,
 			'label'  => 'Acme',
 			'groups' => $groups,
 		) + $extra;

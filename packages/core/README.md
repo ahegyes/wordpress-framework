@@ -89,10 +89,13 @@ require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/functions.php';
 ```
 
-It boots on `plugins_loaded` at priority 15, after WooCommerce and Action Scheduler have loaded:
+Its `functions.php` defines the accessor, the plugin's one `@api` function, which returns the composition root while the root's members stay internal, and boots the plugin from a static closure on `plugins_loaded` at priority 15, after WooCommerce and Action Scheduler have loaded:
 
 ```php
-add_action( 'plugins_loaded', 'acme_pc_boot', 15 );
+add_action(
+	'plugins_loaded',
+	static function (): void {
+		acme_pc_plugin()->boot();
 
 // ...
 
@@ -104,21 +107,16 @@ function acme_pc_plugin(): Plugin {
 
 	return $plugin;
 }
-
-// ...
-
-function acme_pc_boot(): void {
-	acme_pc_plugin()->boot();
-}
 ```
 
-One composition root builds the plugin. `PluginBoot` runs its composition and, when it throws, logs the failure and tells administrators instead of breaking the site, rethrowing only in local and development environments. The composition registers the migration runner, over the steps that the plugin's `includes/migrations.php` returns as prefixed functions, then boots the kernel, which builds each top-level component through the container, the scheduler first, and registers its hooks:
+One composition root builds the plugin. It builds one `PluginIdentity` from the entry file, the slug and the prefix, and hands it to every framework class it builds, in place of those strings: the slug, with underscores for its dashes, roots the plugin's hook names and names its REST namespace, and the prefix starts every option, transient and meta name the framework stores for the plugin. The container defines the identity, so a component that builds a settings page or form takes it by constructor. `PluginBoot` runs its composition and, when it throws, logs the failure and tells administrators instead of breaking the site, rethrowing only in local and development environments. The composition registers the migration runner, over the steps that the plugin's final `Migrations` class returns as first-class callables to its protected statics, then boots the kernel, which builds each top-level component through the container, the scheduler first, and registers its hooks:
 
 ```php
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\AdminNotice\AdminNotices;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Logging\ErrorLogLogger;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Migration\MigrationRunner;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginBoot;
+use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginIdentity;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\PluginKernel;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Scheduling\Scheduler;
 use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
@@ -139,9 +137,10 @@ final class Plugin {
 	// ...
 
 	public function __construct() {
-		$this->logger    = new ErrorLogLogger( self::SLUG );
-		$this->scheduler = new Scheduler( self::PREFIX );
-		$this->boundary  = new PluginBoot( ACME_PC_FILE, self::PREFIX, $this->logger );
+		$this->identity  = new PluginIdentity( ACME_PC_FILE, self::SLUG, self::PREFIX );
+		$this->logger    = new ErrorLogLogger( $this->identity );
+		$this->scheduler = new Scheduler( $this->identity );
+		$this->boundary  = new PluginBoot( $this->identity, $this->logger );
 	}
 
 	// ...
@@ -153,10 +152,10 @@ final class Plugin {
 	// ...
 
 	protected function compose(): bool {
-		$this->migrations = new MigrationRunner( ACME_PC_FILE, self::PREFIX . '_revision', acme_pc_get_migration_steps(), $this->logger, $this->scheduler );
+		$this->migrations = new MigrationRunner( $this->identity, Migrations::get_steps(), $this->logger, $this->scheduler );
 		$this->migrations->register_hooks();
 
-		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->logger, $this->scheduler ) )->build() );
+		$this->kernel = new PluginKernel( new ContainerBuilder()->addDefinitions( $this->get_definitions( $this->identity, $this->logger, $this->scheduler ) )->build() );
 		$this->kernel->boot( self::COMPONENTS );
 
 		return true;
@@ -164,12 +163,13 @@ final class Plugin {
 
 	// ...
 
-	protected function get_definitions( PsrLoggerInterface $logger, Scheduler $scheduler ): array {
+	protected function get_definitions( PluginIdentity $identity, PsrLoggerInterface $logger, Scheduler $scheduler ): array {
 		return array(
+			PluginIdentity::class     => static fn (): PluginIdentity => $identity,
 			PsrLoggerInterface::class => static fn (): PsrLoggerInterface => $logger,
 			Scheduler::class          => static fn (): Scheduler => $scheduler,
 			SchedulerInterface::class => static fn (): Scheduler => $scheduler,
-			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( self::PREFIX, $logger ),
+			AdminNotices::class       => static fn (): AdminNotices => new AdminNotices( $identity, $logger ),
 		);
 	}
 
@@ -192,24 +192,24 @@ final class Greeting implements ComponentInterface {
 }
 ```
 
-The plugin's `uninstall.php` hands its footprint to `Uninstaller::run()`, which unschedules the plugin's jobs on every site and deletes the rest of the footprint on each site that consents. The footprint names the plugin's data by kind: `options`, `option_prefixes`, `transients`, `network_options`, `post_types`, `comment_types`, `meta` and `meta_prefixes` by meta type, `user_meta_site`, `user_meta_global` and their `_prefixes`, `capabilities`, `tables`, `cron_hooks`, `as_hooks` and `as_groups`. A site consents through an option that holds `yes`, a key holding `yes` in an option's array, or a constant defined as `true`. The file loads the engine as the main file does, and on a site below the floors or with an incomplete build it keeps the data:
+`Assets` registers the plugin's built scripts and styles. Built as `new Assets( $identity )` and defined once in the container, it reads the dependencies and version that wp-scripts writes beside each built file in its `.asset.php`: `register_script()` loads the script's translations from the plugin's `languages/` directory under its slug, and `register_style()` gives the stylesheet the right-to-left variant wp-scripts writes beside it. The `style-{entry}.css` chunk of a `style.scss` import takes its version from its entry's `.asset.php`. Only wp-scripts builds are supported. As a best effort, a file built outside wp-scripts, which has no `.asset.php`, registers with its modification time as its version and, for a script, no dependencies, and a stylesheet without a `-rtl.css` beside it keeps its own file on right-to-left sites.
+
+The plugin's `uninstall.php` hands its footprint, a constant of its composition root, to `Uninstaller::run()`, which unschedules the plugin's jobs on every site and deletes the rest of the footprint on each site that consents. The footprint names the plugin's data by kind: `options`, `option_prefixes`, `transients`, `network_options`, `post_types`, `comment_types`, `meta` and `meta_prefixes` by meta type, `user_meta_site`, `user_meta_global` and their `_prefixes`, `capabilities`, `tables`, `cron_hooks`, `as_hooks` and `as_groups`. A site consents through an option that holds `yes`, a key holding `yes` in an option's array, or a constant defined as `true`. The file loads the engine as the main file does, builds the plugin's identity from the root's constants, and on a site below the floors or with an incomplete build it keeps the data:
 
 ```php
-function acme_pc_get_footprint(): array {
-	return array(
-		'option_prefixes'           => array( Plugin::PREFIX . '_' ),
-		'user_meta_site_prefixes'   => array( Plugin::PREFIX . '_' ),
-		'user_meta_global_prefixes' => array( Plugin::PREFIX . '_' ),
-		'network_options'           => array( Plugin::PREFIX . '_network_notices' ),
-		'cron_hooks'                => array( Plugin::PREFIX . '_revision/migration/run' ),
-		'as_groups'                 => array( Plugin::PREFIX ),
+	public const array FOOTPRINT = array(
+		'option_prefixes'           => array( self::PREFIX . '_' ),
+		'user_meta_site_prefixes'   => array( self::PREFIX . '_' ),
+		'user_meta_global_prefixes' => array( self::PREFIX . '_' ),
+		'network_options'           => array( self::PREFIX . '_network_notices' ),
+		'cron_hooks'                => array( 'acme_persona_core/migration/run' ),
+		'as_groups'                 => array( self::PREFIX ),
 	);
-}
 ```
 
 ```php
 Uninstaller::run(
-	$acme_pc_file,
+	$acme_pc_identity,
 	$acme_pc_footprint,
 	array(
 		'consent' => array(

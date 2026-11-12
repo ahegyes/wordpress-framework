@@ -7,6 +7,7 @@ use DeepWebSolutions\Framework\Core\Clock\SystemClock;
 use DeepWebSolutions\Framework\Core\ComponentInterface;
 use DeepWebSolutions\Framework\Core\Logging\GuardedLogger;
 use DeepWebSolutions\Framework\Core\PluginBoot;
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Core\Scheduling\ScheduledHook;
 use DeepWebSolutions\Framework\Core\Scheduling\SchedulerInterface;
 use DeepWebSolutions\Framework\Core\Storage\Lock;
@@ -22,7 +23,7 @@ use Psr\Log\LoggerInterface as PsrLoggerInterface;
 /**
  * Brings a plugin's stored data to the revision its code expects, running the pending migration steps in order under a database lock.
  *
- * Plain steps run on wp_loaded of any request, while batched steps run only from the runner's own scheduled hook, so no visitor waits for bulk work.
+ * Plain steps run on wp_loaded of any request, while batched steps run only from the runner's own scheduled hook, so no visitor waits for bulk work. A plugin runs one runner, since the plugin's slug names that hook.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -41,6 +42,16 @@ final class MigrationRunner implements ComponentInterface {
 	 * @var     int
 	 */
 	protected const int LOCK_TTL = 600;
+
+	/**
+	 * The option that stores the data revision, which starts the name of every other option the runner owns.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     string
+	 */
+	protected string $option;
 
 	/**
 	 * The clock that the lock and the batch budget read.
@@ -63,7 +74,7 @@ final class MigrationRunner implements ComponentInterface {
 	protected Lock $lock;
 
 	/**
-	 * The hook that runs the steps in the background, built once so that an option too long to name it fails at construction.
+	 * The hook that runs the steps in the background, built once so that a slug too long to name it fails at construction.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -102,30 +113,29 @@ final class MigrationRunner implements ComponentInterface {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   string                                                 $plugin_file      The path to the plugin's entry file.
-	 * @param   string                                                 $option           The option that stores the data revision, and the prefix of every other option and hook the runner owns.
+	 * @param   PluginIdentity                                         $identity         The plugin's identity, whose prefix starts the option that stores the data revision, {prefix}_revision.
 	 * @param   list<(callable(): void)|BatchedMigrationStepInterface> $steps            The migration steps, append-only, where index 0 brings the data to revision 1.
 	 * @param   PsrLoggerInterface                                     $logger           The logger that records failures and warnings.
 	 * @param   SchedulerInterface                                     $scheduler        The scheduler that runs the runner's hook in the background.
 	 * @param   int                                                    $batch_time_limit Optional. The seconds, from 1, that a request spends on steps and batches before it pauses. Default is 20.
 	 * @param   PsrClockInterface|null                                 $clock            Optional. The clock. Default is the system clock.
 	 *
-	 * @throws  InvalidArgumentException Thrown when the option name cannot name the lock or the scheduled hook.
+	 * @throws  InvalidArgumentException Thrown when the slug cannot root the scheduled hook.
 	 */
 	public function __construct(
-		protected string $plugin_file,
-		protected string $option,
+		protected PluginIdentity $identity,
 		protected array $steps,
 		protected PsrLoggerInterface $logger,
 		protected SchedulerInterface $scheduler,
 		protected int $batch_time_limit = 20,
 		?PsrClockInterface $clock = null
 	) {
+		$this->option         = "{$identity->prefix}_revision";
 		$this->clock          = $clock ?? new SystemClock();
-		$this->lock           = new Lock( "{$option}_lock", self::LOCK_TTL, $this->clock );
+		$this->lock           = new Lock( $identity, 'revision_lock', self::LOCK_TTL, $this->clock );
 		$this->scheduled_hook = new ScheduledHook( $this->get_hook() );
 		$this->owner          = wp_generate_uuid4();
-		$this->logger         = new GuardedLogger( $logger, $option );
+		$this->logger         = new GuardedLogger( $logger, $identity );
 	}
 
 	// endregion
@@ -334,7 +344,7 @@ final class MigrationRunner implements ComponentInterface {
 			return;
 		}
 
-		$name    = get_plugin_data( $this->plugin_file, false )['Name'];
+		$name    = get_plugin_data( $this->identity->file, false )['Name'];
 		$error   = $this->get_error();
 		$batched = $this->steps[ $revision ] instanceof BatchedMigrationStepInterface;
 		$run_now = esc_url( wp_nonce_url( admin_url( "admin-post.php?action={$this->get_hook()}_now" ), "{$this->get_hook()}_now" ) );
@@ -580,7 +590,7 @@ final class MigrationRunner implements ComponentInterface {
 	 * @return  non-empty-string
 	 */
 	protected function get_hook(): string {
-		return "$this->option/migration/run";
+		return "{$this->identity->hook_root}/migration/run";
 	}
 
 	// endregion

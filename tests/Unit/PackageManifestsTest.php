@@ -43,7 +43,7 @@ final class PackageManifestsTest extends TestCase {
 		'woocommerce' => array(
 			'branch-alias'     => array( 'dev-trunk' => '2.x-dev' ),
 			'requires-plugins' => array( 'woocommerce' ),
-			'requires-wc'      => '11.2',
+			'requires-wc'      => '11.3',
 			'requires-wp'      => '7.1',
 		),
 	);

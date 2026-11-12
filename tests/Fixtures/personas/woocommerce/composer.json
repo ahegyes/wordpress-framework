@@ -43,7 +43,7 @@
 		"ahegyes/wordpress-configs": "dev-trunk",
 		"ahegyes/wp-framework-woocommerce": "^2.0",
 		"humbug/php-scoper": "^0.18",
-		"php-stubs/woocommerce-stubs": "^11.2"
+		"php-stubs/woocommerce-stubs": "^11.3"
 	},
 
 	"minimum-stability": "dev",

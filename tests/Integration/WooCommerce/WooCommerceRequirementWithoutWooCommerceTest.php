@@ -2,6 +2,7 @@
 
 namespace DeepWebSolutions\Framework\Tests\Integration\WooCommerce;
 
+use DeepWebSolutions\Framework\Core\PluginIdentity;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\WooCommerce\WooCommerceRequirement;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -23,7 +24,7 @@ final class WooCommerceRequirementWithoutWooCommerceTest extends TestCase {
 			)
 		);
 
-		self::assertFalse( WooCommerceRequirement::check( $plugin_file ) );
+		self::assertFalse( WooCommerceRequirement::check( new PluginIdentity( $plugin_file, 'acme-shop', 'acme' ) ) );
 
 		// On a network, only a super admin can activate plugins unless the network enables the plugins menu.
 		$super_admin = $this->make_user( 'acme_requirement_super_admin', 'administrator' );
