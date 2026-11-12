@@ -10,7 +10,6 @@ parameters:
 		- acme-persona-woocommerce.php
 		- functions.php
 		- uninstall.php
-		- includes
 		- src
 	scanFiles:
 		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php

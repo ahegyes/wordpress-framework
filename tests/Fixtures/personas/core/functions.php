@@ -12,10 +12,20 @@ use Acme\PersonaCore\Plugin;
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'plugins_loaded', 'acme_pc_boot', 15 );
+add_action(
+	'plugins_loaded',
+	static function (): void {
+		acme_pc_plugin()->boot();
+	},
+	15
+);
 
 /**
  * Returns the plugin's composition root, built on first use.
+ *
+ * Only the function is contract: the root's members stay internal unless tagged @api.
+ *
+ * @api
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -29,16 +39,4 @@ function acme_pc_plugin(): Plugin {
 	}
 
 	return $plugin;
-}
-
-/**
- * Boots the plugin.
- *
- * @since   1.0.0
- * @version 1.0.0
- *
- * @return  void
- */
-function acme_pc_boot(): void {
-	acme_pc_plugin()->boot();
 }

@@ -8,6 +8,8 @@
  * @package Acme\PersonaWooCommerce
  */
 
+use Acme\PersonaWooCommerce\Options;
+use Acme\PersonaWooCommerce\Packing;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\Core\Uninstall\Uninstaller;
 use Acme\PersonaWooCommerce\Scoped\DeepWebSolutions\Framework\WooCommerce\Uninstall\MetaTypes;
@@ -27,10 +29,8 @@ try {
 	}
 
 	require_once __DIR__ . '/vendor/autoload.php';
-	require_once __DIR__ . '/includes/footprint.php';
-	require_once __DIR__ . '/includes/options.php';
-	$acme_pw_footprint  = acme_pw_get_footprint();
-	$acme_pw_consent    = ACME_PW_OPTION_DELETE_DATA;
+	$acme_pw_footprint  = Packing::FOOTPRINT;
+	$acme_pw_consent    = Options::DELETE_DATA;
 	$acme_pw_meta_types = MetaTypes::DEFINITIONS;
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );

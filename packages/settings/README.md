@@ -99,17 +99,17 @@ use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Settings\EditScreen\O
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'plugins_loaded', 'acme_ps_register_hooks', 15 );
+add_action(
+	'plugins_loaded',
+	static function (): void {
+		$notices = new AdminNotices( Settings::SLUG, Settings::PREFIX, new ErrorLogLogger( 'acme-persona-settings' ) );
+		$notices->register_hooks();
 
-// ...
-
-function acme_ps_register_hooks(): void {
-	$notices = new AdminNotices( Settings::SLUG, Settings::PREFIX, new ErrorLogLogger( 'acme-persona-settings' ) );
-	$notices->register_hooks();
-
-	new OptionsPage( Settings::SLUG, Settings::PREFIX, new Settings() )->register_hooks();
-	new ObjectForm( Settings::SLUG, Settings::PREFIX . '_details', new Details(), new PostMetaBox( array( 'post' ) ), $notices )->register_hooks();
-}
+		new OptionsPage( Settings::SLUG, Settings::PREFIX, new Settings() )->register_hooks();
+		new ObjectForm( Settings::SLUG, Settings::PREFIX . '_details', new Details(), new PostMetaBox( array( 'post' ) ), $notices )->register_hooks();
+	},
+	15
+);
 ```
 
 A definition object declares the page and its fields as data. A field's `validate` callback returns the value to store, or a `WP_Error` whose message the page shows while the stored value stays:

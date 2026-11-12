@@ -36,6 +36,29 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 	 */
 	public const string PREFIX = 'acme_pw';
 
+	/**
+	 * The meta key of each product's box.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     string
+	 */
+	public const string META_BOX = '_' . self::PREFIX . '_box';
+
+	/**
+	 * The plugin's stored data by kind: every option under the plugin's prefix, and each product's box.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     array{option_prefixes: list<non-empty-string>, meta: array{post: list<non-empty-string>}}
+	 */
+	public const array FOOTPRINT = array(
+		'option_prefixes' => array( self::PREFIX . '_' ),
+		'meta'            => array( 'post' => array( self::META_BOX ) ),
+	);
+
 	// endregion
 
 	// region INHERITED METHODS
@@ -56,7 +79,7 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 			),
 			array(
 				'type'  => 'checkbox',
-				'id'    => ACME_PW_OPTION_DELETE_DATA,
+				'id'    => Options::DELETE_DATA,
 				'title' => __( 'Data on uninstall', 'acme-persona-woocommerce' ),
 				'desc'  => __( 'Delete the packing data when the plugin is uninstalled', 'acme-persona-woocommerce' ),
 			),
@@ -78,7 +101,7 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 					'fields' => array(
 						array(
 							'type'  => 'text',
-							'id'    => ACME_PW_META_BOX,
+							'id'    => self::META_BOX,
 							'label' => __( 'Box', 'acme-persona-woocommerce' ),
 						),
 					),
