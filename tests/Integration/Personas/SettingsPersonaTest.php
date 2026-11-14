@@ -25,18 +25,18 @@ final class SettingsPersonaTest extends TestCase {
 		$saved = $this->save_limit( '5' );
 
 		self::assertNull( $saved['died'] );
-		self::assertSame( array( 'limit' => 5 ), get_option( 'acme_ps_settings' ) );
+		self::assertSame( '5', get_option( 'acme_ps_limit' ) );
 	}
 
 	public function test_a_rejected_limit_keeps_the_stored_one_and_its_message_shows_on_the_page(): void {
-		update_option( 'acme_ps_settings', array( 'limit' => 5 ) );
+		update_option( 'acme_ps_limit', '5' );
 
 		$saved = $this->save_limit( '0' );
-		self::assertSame( array( 'limit' => 5 ), get_option( 'acme_ps_settings' ) );
+		self::assertSame( '5', get_option( 'acme_ps_limit' ) );
 		self::assertIsString( $saved['location'] );
 
 		$page = $this->consumer_request( 'GET', \explode( '/wp-admin/', $saved['location'], 2 )[1], $saved['user'], $saved['spec'] );
-		self::assertStringContainsString( 'Limit was not saved and keeps its previous value. The other changes were saved. Enter a whole number of at least 1.', $page['body'] );
+		self::assertStringContainsString( 'Limit was not saved and keeps its previous value. The other changes were saved. Enter a number of at least 1.', $page['body'] );
 	}
 
 	public function test_the_post_form_saves_its_field_on_the_post_through_the_block_editor_s_meta_box_save(): void {
@@ -60,7 +60,7 @@ final class SettingsPersonaTest extends TestCase {
 	protected function save_limit( string $limit ): array {
 		$user = $this->make_user( 'acme_ps_admin', 'administrator' );
 		$spec = array( 'activate' => $this->install_consumer( 'personas/settings', 'acme-persona-settings' ) );
-		$data = self::serialize_form( $this->consumer_request( 'GET', 'options-general.php?page=acme_ps', $user, $spec )['body'], 'form[action="options.php"]', array( 'acme_ps_settings[limit]' => $limit ) );
+		$data = self::serialize_form( $this->consumer_request( 'GET', 'options-general.php?page=acme_ps', $user, $spec )['body'], 'form[action="options.php"]', array( 'acme_ps_limit' => $limit ) );
 
 		return $this->consumer_request( 'POST', 'options.php', $user, $spec, $data ) + array(
 			'user' => $user,
