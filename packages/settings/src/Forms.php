@@ -137,7 +137,7 @@ final class Forms {
 					'textarea'                  => self::is_text( $raw ) ? \str_replace( '&lt;', '<', sanitize_textarea_field( (string) $raw ) ) : self::reject( 'invalid_value' ),
 					'email'                     => self::sanitize_email( $raw ),
 					'url'                       => self::sanitize_url( $raw ),
-					'number'                    => self::sanitize_number( $raw ),
+					'number'                    => self::sanitize_number( $field, $raw ),
 					'checkbox'                  => self::sanitize_checkbox( $raw ),
 					'select', 'radio'           => self::sanitize_choice( $field, $raw ),
 					'multiselect', 'checkboxes' => self::sanitize_choices( $field, $raw ),
@@ -693,18 +693,19 @@ final class Forms {
 	}
 
 	/**
-	 * Returns the submission as a trimmed number string in HTML's floating-point grammar, or a WP_Error for anything else that is not empty.
+	 * Returns the submission as the canonical text of a number, or a WP_Error for anything else that is not empty, and for a number below the field's min, above its max or off the grid its step lays from its min, or from zero.
 	 *
-	 * A number input renders any other numeric string, such as +1 or 1., as empty, so the next save would clear it.
+	 * The attributes are those the control renders with, read as the browser reads them, so an unparseable min or max is ignored and a step that is neither any nor a positive number counts as 1. The grid is checked on the decimal digits, which floating point cannot hold for a step such as 0.01, so a number whose digits at the grid's precision leave PHP's integer range is rejected.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   mixed $raw The unslashed submission.
+	 * @param   Field $field The field.
+	 * @param   mixed $raw   The unslashed submission.
 	 *
 	 * @return  string|\WP_Error
 	 */
-	protected static function sanitize_number( mixed $raw ): string|\WP_Error {
+	protected static function sanitize_number( array $field, mixed $raw ): string|\WP_Error {
 		if ( \is_float( $raw ) && ! \is_finite( $raw ) ) {
 			return self::reject( 'invalid_number' );
 		}
@@ -712,12 +713,116 @@ final class Forms {
 			return self::reject( 'invalid_value' );
 		}
 
-		$number = \trim( (string) $raw );
-		if ( '' === $number ) {
+		$text = \trim( (string) $raw );
+		if ( '' === $text ) {
 			return '';
 		}
 
-		return 1 === \preg_match( '/\A-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?\z/', $number ) && \is_finite( (float) $number ) ? $number : self::reject( 'invalid_number' );
+		$number = self::to_canonical_number( $text );
+		if ( \is_null( $number ) ) {
+			return self::reject( 'invalid_number' );
+		}
+
+		$attributes = self::get_custom_attributes( $field ) + self::DEFAULT_CUSTOM_ATTRIBUTES['number'];
+		$min        = self::to_canonical_number( $attributes['min'] ?? '' );
+		$max        = self::to_canonical_number( $attributes['max'] ?? '' );
+		if ( ! \is_null( $min ) && self::compare_numbers( $number, $min ) < 0 ) {
+			return self::reject( 'number_below_min', $min );
+		}
+		if ( ! \is_null( $max ) && self::compare_numbers( $number, $max ) > 0 ) {
+			return self::reject( 'number_above_max', $max );
+		}
+		if ( 'any' === \strtolower( $attributes['step'] ) ) {
+			return $number;
+		}
+
+		$step = self::to_canonical_number( $attributes['step'] );
+		if ( \is_null( $step ) || '0' === $step || \str_starts_with( $step, '-' ) ) {
+			$step = '1';
+		}
+
+		$base   = $min ?? '0';
+		$places = \max( \array_map( static fn ( string $part ): int => \strlen( \explode( '.', "$part." )[1] ), array( $number, $base, $step ) ) );
+		$scaled = array();
+		foreach ( array( $number, $base, $step ) as $part ) {
+			list( $whole, $fraction ) = \explode( '.', "$part." );
+			$digits                   = \ltrim( \ltrim( $whole, '-' ) . \str_pad( $fraction, $places, '0' ), '0' );
+			$scaled[]                 = \filter_var( ( \str_starts_with( $whole, '-' ) ? '-' : '' ) . ( '' === $digits ? '0' : $digits ), \FILTER_VALIDATE_INT );
+		}
+
+		// The difference between the number and the grid's origin must stay an integer too, which PHP would turn into a float past its range.
+		list( $value, $origin, $interval ) = $scaled;
+		if ( ! \is_int( $value ) || ! \is_int( $origin ) || ! \is_int( $interval ) || ( $origin < 0 ? $value > \PHP_INT_MAX + $origin : $value < \PHP_INT_MIN + $origin ) ) {
+			return self::reject( 'invalid_number' );
+		}
+
+		return 0 === ( $value - $origin ) % $interval ? $number : self::reject( 'number_off_step', $step, $base );
+	}
+
+	/**
+	 * Returns a number in HTML's floating-point grammar as its canonical text, without an exponent, a plus sign or padding zeros and with -0 as 0, or null for any other text and for a number a float cannot hold.
+	 *
+	 * The text keeps every digit given, because a float would round them. A number input renders any other numeric text, such as +1 or 1., as empty, so the next save would clear it.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $text The text.
+	 *
+	 * @return  string|null
+	 */
+	protected static function to_canonical_number( string $text ): ?string {
+		$text = \trim( $text );
+		if ( 1 !== \preg_match( '/\A-?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?\z/', $text ) || ! \is_finite( (float) $text ) ) {
+			return null;
+		}
+
+		list( $mantissa, $exponent ) = \explode( 'e', \strtolower( $text ) ) + array( 1 => '0' );
+		list( $whole, $fraction )    = \explode( '.', \ltrim( $mantissa, '-' ) ) + array( 1 => '' );
+		$digits                      = $whole . $fraction;
+		if ( '' === \trim( $digits, '0' ) ) {
+			return '0';
+		}
+		if ( 0.0 === (float) $text ) { // Digits a float rounds to zero would take an exponent's worth of zeros to write out.
+			return null;
+		}
+
+		$point = \strlen( $whole ) + (int) $exponent;
+		if ( $point < 1 ) {
+			$digits = \str_repeat( '0', 1 - $point ) . $digits;
+			$point  = 1;
+		}
+
+		$digits   = \str_pad( $digits, $point, '0' );
+		$whole    = \ltrim( \substr( $digits, 0, $point ), '0' );
+		$fraction = \rtrim( \substr( $digits, $point ), '0' );
+
+		return ( \str_starts_with( $mantissa, '-' ) ? '-' : '' ) . ( '' === $whole ? '0' : $whole ) . ( '' === $fraction ? '' : ".$fraction" );
+	}
+
+	/**
+	 * Returns -1, 0 or 1 as the first canonical number is less than, equal to or greater than the second.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $first  The first number, as to_canonical_number() writes it.
+	 * @param   string $second The second number, as to_canonical_number() writes it.
+	 *
+	 * @return  int
+	 */
+	protected static function compare_numbers( string $first, string $second ): int {
+		$negative = \str_starts_with( $first, '-' );
+		if ( \str_starts_with( $second, '-' ) !== $negative ) {
+			return $negative ? -1 : 1;
+		}
+
+		list( $first_whole, $first_fraction )   = \explode( '.', \ltrim( $first, '-' ) ) + array( 1 => '' );
+		list( $second_whole, $second_fraction ) = \explode( '.', \ltrim( $second, '-' ) ) + array( 1 => '' );
+		$places                                 = \max( \strlen( $first_fraction ), \strlen( $second_fraction ) );
+		$order                                  = ( \strlen( $first_whole ) <=> \strlen( $second_whole ) ) ?: ( \strcmp( $first_whole . \str_pad( $first_fraction, $places, '0' ), $second_whole . \str_pad( $second_fraction, $places, '0' ) ) <=> 0 );
+
+		return $negative ? -$order : $order;
 	}
 
 	/**
@@ -826,25 +931,32 @@ final class Forms {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @phpstan-param 'invalid_value'|'invalid_choice'|'invalid_email'|'invalid_url'|'invalid_number'|'unknown_type'|'missing_validate' $code
+	 * @phpstan-param 'invalid_value'|'invalid_choice'|'invalid_email'|'invalid_url'|'invalid_number'|'number_below_min'|'number_above_max'|'number_off_step'|'unknown_type'|'missing_validate' $code
 	 *
-	 * @param   string $code The rejection's code.
+	 * @param   string $code      The rejection's code.
+	 * @param   string ...$values The values the message names, such as the bound a number missed.
 	 *
 	 * @return  \WP_Error
 	 */
-	protected static function reject( string $code ): \WP_Error {
-		return new \WP_Error(
-			$code,
-			match ( $code ) {
-				'invalid_value'    => __( 'Enter a valid value.', 'wp-framework' ),
-				'invalid_choice'   => __( 'Choose one of the available options.', 'wp-framework' ),
-				'invalid_email'    => __( 'Enter a valid email address, such as name@example.com.', 'wp-framework' ),
-				'invalid_url'      => __( 'Enter a valid URL, such as https://example.com.', 'wp-framework' ),
-				'invalid_number'   => __( 'Enter a number, such as 12 or 3.5.', 'wp-framework' ),
-				'unknown_type'     => __( 'This field cannot be saved because its type is not supported.', 'wp-framework' ),
-				'missing_validate' => __( 'This field cannot be saved because nothing validates its value.', 'wp-framework' ),
-			}
-		);
+	protected static function reject( string $code, string ...$values ): \WP_Error {
+		$message = match ( $code ) {
+			'invalid_value'    => __( 'Enter a valid value.', 'wp-framework' ),
+			'invalid_choice'   => __( 'Choose one of the available options.', 'wp-framework' ),
+			'invalid_email'    => __( 'Enter a valid email address, such as name@example.com.', 'wp-framework' ),
+			'invalid_url'      => __( 'Enter a valid URL, such as https://example.com.', 'wp-framework' ),
+			'invalid_number'   => __( 'Enter a number, such as 12 or 3.5.', 'wp-framework' ),
+			/* translators: %s: The smallest number the field accepts. */
+			'number_below_min' => __( 'Enter a number of at least %s.', 'wp-framework' ),
+			/* translators: %s: The largest number the field accepts. */
+			'number_above_max' => __( 'Enter a number of at most %s.', 'wp-framework' ),
+			/* translators: 1: The step between the numbers the field accepts. 2: The number the steps start from. */
+			'number_off_step'  => __( 'Enter a number in steps of %1$s from %2$s.', 'wp-framework' ),
+			'unknown_type'     => __( 'This field cannot be saved because its type is not supported.', 'wp-framework' ),
+			'missing_validate' => __( 'This field cannot be saved because nothing validates its value.', 'wp-framework' ),
+		};
+
+		// Only a message that names values goes through sprintf(), so that a translation's literal percent sign cannot throw.
+		return new \WP_Error( $code, array() === $values ? $message : \sprintf( $message, ...$values ) );
 	}
 
 	/**
