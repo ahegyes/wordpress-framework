@@ -26,9 +26,7 @@ final class UninstallerTest extends TestCase {
 			'option-one'               => array( self::stored_consent( '1' ) ),
 			'option-uppercase-yes'     => array( self::stored_consent( 'YES' ) ),
 			'option-true'              => array( self::stored_consent( true ) ),
-			'grouped-row-without-key'  => array( self::stored_consent( array( 'other' => 'yes' ), 'remove_data' ) ),
-			'grouped-key-no'           => array( self::stored_consent( array( 'remove_data' => 'no' ), 'remove_data' ) ),
-			'flat-yes-read-as-grouped' => array( self::stored_consent( 'yes', 'remove_data' ) ),
+			'option-array-holding-yes' => array( self::stored_consent( array( 'remove_data' => 'yes' ) ) ),
 			'constant-yes-string'      => array( self::defined_consent( 'yes' ) ),
 			'constant-undefined'       => array( static fn ( string $prefix ): array => array( 'consent' => array( 'constant' => \strtoupper( "{$prefix}_undefined" ) ) ) ),
 		);
@@ -36,8 +34,7 @@ final class UninstallerTest extends TestCase {
 
 	public static function consents(): array {
 		return array(
-			'flat-yes'                => array( self::stored_consent( 'yes' ) ),
-			'grouped-yes'             => array( self::stored_consent( array( 'remove_data' => 'yes' ), 'remove_data' ) ),
+			'option-yes'              => array( self::stored_consent( 'yes' ) ),
 			'constant-true'           => array( self::defined_consent( true ) ),
 			'constant-over-stored-no' => array(
 				static function ( string $prefix ): array {
@@ -498,11 +495,11 @@ final class UninstallerTest extends TestCase {
 		self::assertFalse( $this->option_exists( "{$this->prefix}_remove_data" ) );
 	}
 
-	protected static function stored_consent( mixed $value, string $key = '' ): \Closure {
-		return static function ( string $prefix ) use ( $value, $key ): array {
+	protected static function stored_consent( mixed $value ): \Closure {
+		return static function ( string $prefix ) use ( $value ): array {
 			update_option( "{$prefix}_remove_data", $value );
 
-			return array( 'consent' => array( 'option' => "{$prefix}_remove_data" ) + ( '' === $key ? array() : array( 'key' => $key ) ) );
+			return array( 'consent' => array( 'option' => "{$prefix}_remove_data" ) );
 		};
 	}
 
