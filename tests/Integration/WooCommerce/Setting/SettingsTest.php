@@ -244,6 +244,46 @@ final class SettingsTest extends TestCase {
 		self::assertSame( 'bold', get_option( "{$this->prefix}_name" ) );
 	}
 
+	public static function bounded_numbers(): array {
+		return array(
+			'whole-number-as-integer-text' => array( '4.0', '4', array() ),
+			'off-its-step'                 => array( '2.5', '3', array( 'Count was not saved and keeps its previous value. The other changes were saved. Enter a number in steps of 1 from 1.' ) ),
+			'below-its-min'                => array( '0', '3', array( 'Count was not saved and keeps its previous value. The other changes were saved. Enter a number of at least 1.' ) ),
+		);
+	}
+
+	#[DataProvider( 'bounded_numbers' )]
+	public function test_a_number_field_without_validate_is_held_to_its_bounds_and_step( string $posted, string $stored, array $messages ): void {
+		update_option( "{$this->prefix}_count", '3' );
+		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->bounded_count() ) ) ) );
+
+		$saved = self::document( $this->save( $spec, '', array( "{$this->prefix}_count" => $posted ) )['body'] );
+
+		self::assertSame( $stored, get_option( "{$this->prefix}_count" ) );
+		self::assertSame( $messages, self::texts( $saved, '#message.error' ) );
+	}
+
+	public function test_over_rest_a_number_field_without_validate_is_held_to_its_bounds_and_step(): void {
+		update_option( "{$this->prefix}_count", '3' );
+		$this->add_tab_in_process( array( '' => $this->in_process_section( array( $this->bounded_count() ) ) ) );
+
+		$this->rest( 'PUT', "/wc/v3/settings/$this->prefix/{$this->prefix}_count", array( 'value' => '2.5' ) );
+		$off_step = get_option( "{$this->prefix}_count" );
+		$this->rest( 'PUT', "/wc/v3/settings/$this->prefix/{$this->prefix}_count", array( 'value' => 5.0 ) );
+
+		self::assertSame( '3', $off_step );
+		self::assertSame( '5', get_option( "{$this->prefix}_count" ) );
+	}
+
+	public function test_a_number_field_woocommerce_draws_takes_any_step_unless_it_sets_one(): void {
+		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( 'number', 'free' ), $this->bounded_count() ) ) ) );
+
+		$form = self::document( $this->open( $spec )['body'] );
+
+		self::assertSame( 'any', $form->getElementById( "{$this->prefix}_free" )?->getAttribute( 'step' ) );
+		self::assertSame( '1', $form->getElementById( "{$this->prefix}_count" )?->getAttribute( 'step' ) );
+	}
+
 	public function test_validate_receives_the_raw_submission_alone_and_its_return_value_is_stored(): void {
 		$spec = $this->tab_spec( array( '' => self::section( 'General', array( $this->field( 'text', 'name', array( 'validate' => 'acme:uppercase' ) ) ) ) ) );
 
@@ -570,6 +610,19 @@ final class SettingsTest extends TestCase {
 			'type'  => $type,
 			'id'    => "{$this->prefix}_$name",
 			'title' => \ucfirst( $name ),
+		);
+	}
+
+	protected function bounded_count(): array {
+		return $this->field(
+			'number',
+			'count',
+			array(
+				'custom_attributes' => array(
+					'min'  => 1,
+					'step' => 1,
+				),
+			)
 		);
 	}
 

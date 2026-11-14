@@ -7,7 +7,7 @@ use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Settings\AdminPage\Op
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Defines the plugin's settings page under Settings, whose one tab stores a limit of at least 1 in the plugin's settings option.
+ * Defines the plugin's settings page under Settings, whose one tab stores a whole-number limit of at least 1 in an option of its own.
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -26,7 +26,7 @@ final class Settings implements OptionsPageDefinitionInterface {
 	public const string SLUG = 'acme-persona-settings';
 
 	/**
-	 * The prefix of the plugin's admin page and option.
+	 * The prefix of the plugin's admin page and of the names it stores its data under.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -54,45 +54,36 @@ final class Settings implements OptionsPageDefinitionInterface {
 			'menu_title' => __( 'Acme Persona Settings', 'acme-persona-settings' ),
 			'tabs'       => array(
 				array(
-					'slug'   => 'general',
-					'title'  => __( 'General', 'acme-persona-settings' ),
-					'option' => self::PREFIX . '_settings',
-					'fields' => array(
-						array(
-							'type'              => 'number',
-							'id'                => 'limit',
-							'title'             => __( 'Limit', 'acme-persona-settings' ),
-							'default'           => '10',
-							'custom_attributes' => array(
-								'min'  => '1',
-								'step' => '1',
-							),
-							'validate'          => array( $this, 'validate_limit' ),
-						),
-					),
+					'slug'  => 'general',
+					'title' => __( 'General', 'acme-persona-settings' ),
 				),
 			),
 		);
 	}
 
-	// endregion
-
-	// region METHODS
-
 	/**
-	 * Returns the submitted limit as an integer, or an error when it is not a whole number of at least 1.
+	 * {@inheritDoc}
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
-	 *
-	 * @param   mixed $raw The submitted value.
-	 *
-	 * @return  int|\WP_Error
 	 */
-	public function validate_limit( mixed $raw ): int|\WP_Error {
-		$limit = \filter_var( $raw, \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
-
-		return false === $limit ? new \WP_Error( 'acme_ps_limit', __( 'Enter a whole number of at least 1.', 'acme-persona-settings' ) ) : $limit;
+	#[\Override]
+	public function get_tab_fields( string $page_id, string $tab_slug ): array {
+		return match ( $tab_slug ) {
+			'general' => array(
+				array(
+					'type'              => 'number',
+					'id'                => 'acme_ps_limit',
+					'title'             => __( 'Limit', 'acme-persona-settings' ),
+					'default'           => '10',
+					'custom_attributes' => array(
+						'min'  => '1',
+						'step' => '1',
+					),
+				),
+			),
+			default   => array(),
+		};
 	}
 
 	// endregion

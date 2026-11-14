@@ -40,8 +40,8 @@ final class FormsSanitizeFieldsTest extends TestCase {
 			'number-integer'                    => array( 'number', '12', '12' ),
 			'number-is-trimmed'                 => array( 'number', ' 4 ', '4' ),
 			'number-negative-decimal'           => array( 'number', '-1.5', '-1.5' ),
-			'number-leading-point'              => array( 'number', '.5', '.5' ),
-			'number-exponent'                   => array( 'number', '1e3', '1e3' ),
+			'number-leading-point'              => array( 'number', '.5', '0.5' ),
+			'number-exponent'                   => array( 'number', '1e3', '1000' ),
 			'number-cleared'                    => array( 'number', '', '' ),
 			'number-from-an-int'                => array( 'number', 5, '5' ),
 			'number-from-a-float'               => array( 'number', 1.5, '1.5' ),
@@ -120,6 +120,20 @@ final class FormsSanitizeFieldsTest extends TestCase {
 
 		self::assertSame( 'invalid_choice', self::sanitize( $field, '2' )->get_error_code() );
 		self::assertSame( '1', self::sanitize( $field, '1' ) );
+	}
+
+	public function test_a_translated_message_holding_a_percent_sign_is_returned_as_it_is(): void {
+		$translate = static fn ( string $translation, string $text ): string => 'Enter a valid value.' === $text ? 'Saisissez 100% des chiffres.' : $translation;
+		add_filter( 'gettext_wp-framework', $translate, 10, 2 );
+
+		try {
+			$result = self::sanitize( self::field( 'text' ), array( 'a' ) );
+		} finally {
+			remove_filter( 'gettext_wp-framework', $translate );
+		}
+
+		self::assertInstanceOf( \WP_Error::class, $result );
+		self::assertSame( 'Saisissez 100% des chiffres.', $result->get_error_message() );
 	}
 
 	public function test_a_custom_type_without_validate_is_rejected(): void {

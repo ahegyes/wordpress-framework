@@ -30,7 +30,7 @@ try {
 
 	require_once __DIR__ . '/vendor/autoload.php';
 	$acme_pc_footprint = Plugin::FOOTPRINT;
-	$acme_pc_consent   = Options::SETTINGS;
+	$acme_pc_consent   = Options::DELETE_DATA;
 	if ( ! class_exists( Uninstaller::class ) ) {
 		throw new RuntimeException( 'its uninstall engine is missing.' );
 	}
@@ -50,9 +50,6 @@ Uninstaller::run(
 	$acme_pc_identity,
 	$acme_pc_footprint,
 	array(
-		'consent' => array(
-			'option' => $acme_pc_consent,
-			'key'    => 'delete_data',
-		),
+		'consent' => array( 'option' => $acme_pc_consent ),
 	)
 );

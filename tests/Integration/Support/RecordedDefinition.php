@@ -21,6 +21,11 @@ final class RecordedDefinition implements OptionsPageDefinitionInterface, Object
 	}
 
 	#[\Override]
+	public function get_tab_fields( string $page_id, string $tab_slug ): array {
+		return $this->record( $page_id, $tab_slug );
+	}
+
+	#[\Override]
 	public function get_object_form( string $form_id, int $object_id ): array {
 		return $this->record( $form_id, $object_id );
 	}

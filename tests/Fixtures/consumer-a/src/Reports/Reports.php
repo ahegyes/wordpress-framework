@@ -2,7 +2,7 @@
 
 namespace Acme\ConsumerA\Reports;
 
-use Acme\ConsumerA\Plugin;
+use Acme\ConsumerA\Options;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\CompositeComponentInterface;
 use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Core\ConditionalComponentInterface;
 
@@ -25,7 +25,7 @@ final class Reports implements CompositeComponentInterface, ConditionalComponent
 	 */
 	#[\Override]
 	public static function should_load(): bool {
-		return 'yes' === get_option( Plugin::PREFIX . '_reports', 'no' );
+		return Options::get_bool( Options::REPORTS );
 	}
 
 	/**

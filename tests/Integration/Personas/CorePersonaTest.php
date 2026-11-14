@@ -24,23 +24,21 @@ final class CorePersonaTest extends TestCase {
 		self::assertSame( 1, $request['records']['persona_core']['boot_succeeded'] );
 		self::assertSame( 'Acme\\PersonaCore\\Scoped\\DeepWebSolutions\\Framework\\Core\\Migration\\MigrationRunner', $request['records']['persona_core']['migrations'] );
 		self::assertTrue( $request['records']['greeting_shortcode'] );
-		self::assertSame( array( 'greeting' => 'Hello' ), get_option( 'acme_pc_settings' ) );
+		self::assertSame( 'Hello', get_option( 'acme_pc_greeting' ) );
+		self::assertSame( 'no', get_option( 'acme_pc_delete_data' ) );
+		self::assertFalse( get_option( 'acme_pc_settings' ) );
 	}
 
 	public function test_a_consenting_uninstall_removes_the_plugin_s_options(): void {
-		update_option(
-			'acme_pc_settings',
-			array(
-				'greeting'    => 'Hello',
-				'delete_data' => 'yes',
-			)
-		);
+		update_option( 'acme_pc_greeting', 'Hello' );
+		update_option( 'acme_pc_delete_data', 'yes' );
 		update_option( 'acme_pc_revision', 1 );
 		$plugin  = $this->install_consumer( 'personas/core', 'acme-persona-core' );
 		$request = $this->consumer_request( 'GET', 'index.php', $this->make_user( 'acme_pc_admin', 'administrator' ), array( 'uninstall' => $plugin ) );
 
 		self::assertTrue( $request['records']['deleted'] );
-		self::assertFalse( get_option( 'acme_pc_settings' ) );
+		self::assertFalse( get_option( 'acme_pc_greeting' ) );
+		self::assertFalse( get_option( 'acme_pc_delete_data' ) );
 		self::assertFalse( get_option( 'acme_pc_revision' ) );
 	}
 }

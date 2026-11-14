@@ -44,18 +44,23 @@ final class Migrations {
 	// region HELPERS
 
 	/**
-	 * Stores the plugin's settings with their defaults.
+	 * Stores each setting's default in an autoloaded row of its own and leaves a stored setting as it is.
+	 *
+	 * Each release that adds settings lists this step again, so that existing sites store the new defaults.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
 	 *
-	 * @throws  \RuntimeException Thrown when the settings could not be stored.
+	 * @throws  \RuntimeException Thrown when a default could not be stored.
 	 *
 	 * @return  void
 	 */
 	protected static function add_settings(): void {
-		if ( false === get_option( Options::SETTINGS ) && ! add_option( Options::SETTINGS, Options::DEFAULTS ) ) {
-			throw new \RuntimeException( 'The settings could not be stored.' );
+		wp_prime_option_caches( \array_keys( Options::DEFAULTS ) );
+		foreach ( Options::DEFAULTS as $key => $value ) {
+			if ( false === get_option( $key ) && ! add_option( $key, $value, '', true ) ) {
+				throw new \RuntimeException( "The option $key could not be stored." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Developer-facing, never rendered.
+			}
 		}
 	}
 

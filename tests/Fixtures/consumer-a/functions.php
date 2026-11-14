@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the plugin's accessor, boots it on plugins_loaded, declares its WooCommerce feature compatibility and loads the files in includes/.
+ * Loads the files in includes/, defines the plugin's accessor, boots the plugin on plugins_loaded and declares its WooCommerce feature compatibility.
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -13,6 +13,19 @@ use Automattic\WooCommerce\Utilities\FeaturesUtil;
 
 defined( 'ABSPATH' ) || exit;
 
+$acme_ca_includes = glob( __DIR__ . '/includes/*.php' );
+if ( false === $acme_ca_includes ) {
+	throw new RuntimeException( 'The includes directory could not be read.' );
+}
+
+sort( $acme_ca_includes );
+foreach ( $acme_ca_includes as $acme_ca_include ) {
+	if ( ! str_starts_with( basename( $acme_ca_include ), '_' ) ) { // An underscore prefix keeps a file from loading.
+		require_once $acme_ca_include;
+	}
+}
+
+// The hooks come last, so an include that throws leaves nothing of the plugin hooked.
 add_action(
 	'plugins_loaded',
 	static function (): void {
@@ -26,18 +39,6 @@ add_action(
 		FeaturesUtil::declare_compatibility( 'custom_order_tables', ACME_CA_FILE, true );
 	}
 );
-
-$acme_ca_includes = glob( __DIR__ . '/includes/*.php' );
-if ( false === $acme_ca_includes ) {
-	throw new RuntimeException( 'The includes directory could not be read.' );
-}
-
-sort( $acme_ca_includes );
-foreach ( $acme_ca_includes as $acme_ca_include ) {
-	if ( ! str_starts_with( basename( $acme_ca_include ), '_' ) ) { // An underscore prefix keeps a file from loading.
-		require_once $acme_ca_include;
-	}
-}
 
 /**
  * Returns the plugin's composition root, built on first use.

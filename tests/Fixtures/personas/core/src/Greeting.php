@@ -51,7 +51,7 @@ final class Greeting implements ComponentInterface {
 	 * @return  string
 	 */
 	public function render(): string {
-		return esc_html( Options::get_greeting() );
+		return esc_html( Options::get_string( Options::GREETING ) );
 	}
 
 	// endregion

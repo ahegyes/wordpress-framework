@@ -46,6 +46,19 @@ final class ConsumerABuildTest extends TestCase {
 		self::assertStringNotContainsString( self::BUILD_NOTICE, $editor['body'] );
 	}
 
+	public function test_an_include_that_throws_shows_the_build_notice_and_leaves_the_plugin_unbooted(): void {
+		$plugin = $this->install_consumer( 'consumer-a', 'acme-consumer-a' );
+		\file_put_contents( WP_PLUGIN_DIR . '/acme-consumer-a/includes/throws.php', "<?php\nthrow new RuntimeException( 'The include failed.' );\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Edits the copy directly.
+
+		$request = $this->consumer_request( 'GET', 'index.php', $this->make_user( 'acme_ca_admin', 'administrator' ), array( 'activate' => $plugin ) );
+
+		self::assertNull( $request['died'] );
+		self::assertStringContainsString( self::BUILD_NOTICE, $request['body'] );
+		self::assertSame( 0, $request['records']['consumer_a']['boot_succeeded'] );
+		self::assertNotSame( 'booted', $request['records']['consumer_a']['status'] );
+		self::assertFalse( $request['records']['export_hooked'] );
+	}
+
 	public function test_a_site_below_the_php_floor_keeps_the_safeguard_and_gets_core_s_message_and_the_updater_while_nothing_else_loads(): void {
 		$plugin  = $this->install_consumer( 'consumer-a', 'acme-consumer-a', array(), array( 'Requires PHP' => '99' ) );
 		$request = $this->consumer_request(

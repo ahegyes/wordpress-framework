@@ -36,7 +36,7 @@ final class Plugin {
 	public const string SLUG = 'acme-consumer-a';
 
 	/**
-	 * The prefix of the plugin's options, transients and scheduled jobs.
+	 * The prefix of the names the plugin stores its data under, and its Action Scheduler group.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -63,7 +63,7 @@ final class Plugin {
 	);
 
 	/**
-	 * The plugin's stored data by kind, which covers every option, transient, meta key and scheduled job under the plugin's prefix.
+	 * The plugin's stored data by kind, which uninstall reads.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
@@ -75,7 +75,7 @@ final class Plugin {
 		'meta'                      => array( 'post' => array( ProductData::NOTE_KEY ) ),
 		'user_meta_site_prefixes'   => array( self::PREFIX . '_' ),
 		'user_meta_global_prefixes' => array( self::PREFIX . '_' ),
-		'network_options'           => array( self::PREFIX . '_network_notices' ),
+		'network_options'           => array( 'acme_ca_network_notices' ),
 		'cron_hooks'                => array( 'acme_consumer_a/migration/run' ),
 		'as_groups'                 => array( self::PREFIX ),
 	);

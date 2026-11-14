@@ -9,6 +9,7 @@ use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesHooksTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\IsolatesStorageTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\ProvidesHelperIdsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RecordedDefinition;
+use DeepWebSolutions\Framework\Tests\Integration\Support\RecordsDoingItWrongTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\RunsAdminRequestsTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\SerializesFormsTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -21,6 +22,7 @@ final class OptionsPageTest extends TestCase {
 	use IsolatesHooksTrait;
 	use IsolatesStorageTrait;
 	use ProvidesHelperIdsTrait;
+	use RecordsDoingItWrongTrait;
 	use RunsAdminRequestsTrait;
 	use SerializesFormsTrait;
 
@@ -41,19 +43,28 @@ final class OptionsPageTest extends TestCase {
 	protected int $admin;
 	protected int $editor;
 	protected string $id;
-	protected string $option;
+	protected string $group;
+	protected mixed $pagenow;
 
 	#[\Override]
 	protected function setUp(): void {
-		$this->admin  = $this->make_user( 'acme_options_admin', 'administrator' );
-		$this->editor = $this->make_user( 'acme_options_editor', 'editor' );
-		$this->id     = "{$this->prefix}_settings";
-		$this->option = "{$this->prefix}_general";
+		$this->admin   = $this->make_user( 'acme_options_admin', 'administrator' );
+		$this->editor  = $this->make_user( 'acme_options_editor', 'editor' );
+		$this->id      = "{$this->prefix}_settings";
+		$this->group   = "{$this->id}_general";
+		$this->pagenow = $GLOBALS['pagenow'] ?? null;
 	}
 
 	#[\Override]
 	protected function tearDown(): void {
 		delete_transient( 'settings_errors' );
+		$GLOBALS['pagenow'] = $this->pagenow; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores what an in-process row replaced.
+		unset( $_REQUEST['option_page'] );
+		foreach ( \array_keys( get_registered_settings() ) as $name ) {
+			if ( \str_starts_with( $name, $this->prefix ) ) {
+				unregister_setting( $this->group, $name );
+			}
+		}
 	}
 
 	public static function parents(): array {
@@ -118,79 +129,203 @@ final class OptionsPageTest extends TestCase {
 		self::assertSame( array( array( $this->id ) ), $definition->calls );
 	}
 
+	public function test_only_the_tab_a_request_shows_or_saves_asks_for_its_fields(): void {
+		$spec = $this->spec(
+			array( $this->field( 'text', 'name' ) ),
+			array( 'tabs' => array( self::tab( 'general' ), self::tab( 'second' ) ) ),
+			array( 'fields' => array( 'second' => array( $this->field( 'text', 'other' ) ) ) )
+		);
+
+		$elsewhere = $this->admin_request( 'GET', 'index.php', $this->admin, self::FIXTURE, $spec );
+		$shown     = $this->open( $spec, $this->admin, 'second' );
+		$saved     = $this->save( $spec, $this->admin, self::form_data( $shown['body'], array( "{$this->prefix}_other" => 'new' ) ) );
+
+		self::assertArrayNotHasKey( 'asked', $elsewhere );
+		self::assertSame( array( 'second' ), $shown['asked'] );
+		self::assertSame( array( 'second' ), $saved['asked'] );
+		self::assertSame( 'new', get_option( "{$this->prefix}_other" ) );
+	}
+
+	public function test_a_field_id_outside_the_plugins_prefix_or_the_helper_id_pattern_is_dropped_with_a_notice(): void {
+		$this->record_doing_it_wrong();
+		$fields                  = array(
+			array(
+				'type' => 'text',
+				'id'   => "{$this->prefix}_name",
+			),
+			array(
+				'type' => 'text',
+				'id'   => "{$this->prefix}x_name",
+			),
+			array(
+				'type' => 'text',
+				'id'   => "{$this->prefix}_Name",
+			),
+		);
+		$page                    = new OptionsPage(
+			$this->identity,
+			$this->id,
+			new RecordedDefinition( fn ( string $page_id, ?string $tab_slug = null ): array => \is_null( $tab_slug ) ? $this->spec( array() )['page'] : $fields )
+		);
+		$GLOBALS['pagenow']      = 'options.php'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Runs the registration as options.php does.
+		$_REQUEST['option_page'] = $this->group;
+
+		$page->register_settings();
+
+		self::assertSame( array( "{$this->prefix}_name" ), \array_values( \array_filter( \array_keys( get_registered_settings() ), fn ( string $name ): bool => \str_starts_with( $name, $this->prefix ) ) ) );
+		self::assertSame( array( OptionsPage::class . '::get_fields', OptionsPage::class . '::get_fields' ), $this->doing_it_wrong );
+	}
+
+	public function test_a_dropped_field_neither_renders_nor_stores_what_is_posted_for_it(): void {
+		$spec = $this->spec( array( $this->field( 'text', 'name' ) ), array(), array( 'contributed' => array( 'fields' => array( 'general' => array( $this->field( 'text', 'blogname', array( 'id' => "{$this->prefix}x_blogname" ) ) ) ) ) ) );
+		$form = $this->open( $spec, $this->admin );
+		$data = self::form_data( $form['body'], array( "{$this->prefix}_name" => 'new' ) ) + array( "{$this->prefix}x_blogname" => 'injected' );
+
+		$this->save( $spec, $this->admin, $data );
+
+		self::assertSame( array( 'Name' ), self::row_titles( $form['body'] ) );
+		self::assertCount( 1, $form['doing_it_wrong'] ?? array() );
+		self::assertStringContainsString( "{$this->prefix}x_blogname", $form['doing_it_wrong'][0][1] ?? '' );
+		self::assertSame( 'new', get_option( "{$this->prefix}_name" ) );
+		self::assertFalse( get_option( "{$this->prefix}x_blogname" ) );
+	}
+
+	public function test_each_field_registers_in_the_tabs_group_typed_by_the_value_it_stores(): void {
+		$fields                  = array(
+			$this->field( 'text', 'name' ),
+			$this->field( 'checkbox', 'flag' ),
+			$this->field( 'multiselect', 'colors', array( 'options' => self::COLORS ) ),
+			$this->field( 'checkboxes', 'days', array( 'options' => self::NUMBERED ) ),
+		);
+		$page                    = new OptionsPage(
+			$this->identity,
+			$this->id,
+			new RecordedDefinition( fn ( string $page_id, ?string $tab_slug = null ): array => \is_null( $tab_slug ) ? $this->spec( array(), array( 'capability' => 'edit_pages' ) )['page'] : $fields )
+		);
+		$GLOBALS['pagenow']      = 'options.php'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Runs the registration as options.php does.
+		$_REQUEST['option_page'] = $this->group;
+
+		$page->register_settings();
+
+		$registered = get_registered_settings();
+		self::assertSame(
+			array(
+				"{$this->prefix}_name"   => array( $this->group, 'string', false ),
+				"{$this->prefix}_flag"   => array( $this->group, 'string', false ),
+				"{$this->prefix}_colors" => array( $this->group, 'array', false ),
+				"{$this->prefix}_days"   => array( $this->group, 'array', false ),
+			),
+			\array_map( static fn ( array $setting ): array => array( $setting['group'], $setting['type'], $setting['show_in_rest'] ), \array_intersect_key( $registered, \array_flip( \array_column( $fields, 'id' ) ) ) )
+		);
+		self::assertSame( 'edit_pages', apply_filters( "option_page_capability_$this->group", 'manage_options' ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Applies core's filter.
+	}
+
+	public function test_a_request_outside_options_php_registers_no_setting(): void {
+		$page                    = new OptionsPage( $this->identity, $this->id, new RecordedDefinition( fn ( string $page_id, ?string $tab_slug = null ): array => \is_null( $tab_slug ) ? $this->spec( array() )['page'] : array( $this->field( 'text', 'name' ) ) ) );
+		$GLOBALS['pagenow']      = 'admin-post.php'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Runs the registration as another admin screen does.
+		$_REQUEST['option_page'] = $this->group;
+
+		$page->register_settings();
+
+		self::assertArrayNotHasKey( "{$this->prefix}_name", get_registered_settings() );
+	}
+
+	public function test_a_tab_without_a_field_to_save_renders_no_form(): void {
+		$intro = array(
+			'type'  => 'title',
+			'title' => 'Intro',
+		);
+		$form  = $this->open( $this->spec( array( $intro ) ), $this->admin );
+		$page  = self::document( $form['body'] );
+
+		self::assertSame( 'Acme settings', $page->querySelector( '.wrap h1' )?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertNull( $page->querySelector( 'form[action="options.php"]' ) );
+		self::assertSame( array( 'general' ), $form['asked'] );
+		self::assertNotContains( OptionsPage::class . '::get_fields', \array_column( $form['doing_it_wrong'] ?? array(), 0 ) );
+	}
+
 	public function test_a_first_save_validates_once_and_stores_the_result_without_an_error(): void {
-		$spec = $this->spec( array( self::field( 'text', 'name', array( 'validate' => 'acme:append' ) ) ) );
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'v' ) );
+		$spec = $this->spec( array( $this->field( 'text', 'name', array( 'validate' => 'acme:append' ) ) ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_name" => 'v' ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'v!' ), get_option( $this->option ) );
-		self::assertSame( array( array( 'validate', 'name', 'v' ) ), $saved['records'] );
+		self::assertSame( 'v!', get_option( "{$this->prefix}_name" ) );
+		self::assertSame( array( array( 'validate', "{$this->prefix}_name", 'v' ) ), $saved['records'] );
 		self::assertSame( array( 'Settings saved.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_a_programmatic_update_outside_options_php_is_stored_as_given(): void {
-		$value = array( 'name' => ' <b>raw</b> ' );
-		$spec  = $this->spec( array( self::field( 'text', 'name', array( 'validate' => 'acme:append' ) ) ), array(), array( 'update' => array( $this->option => $value ) ) );
+		$spec = $this->spec( array( $this->field( 'text', 'name', array( 'validate' => 'acme:append' ) ) ), array(), array( 'update' => array( "{$this->prefix}_name" => ' <b>raw</b> ' ) ) );
 
-		$request = $this->admin_request( 'GET', "admin-post.php?option_page=$this->option", $this->admin, self::FIXTURE, $spec );
+		$request = $this->admin_request( 'GET', "admin-post.php?option_page=$this->group", $this->admin, self::FIXTURE, $spec );
 
-		self::assertSame( $value, get_option( $this->option ) );
+		self::assertSame( ' <b>raw</b> ', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array(), $request['records'] );
 	}
 
 	#[DataProvider( 'parents' )]
 	public function test_a_rejected_field_keeps_its_value_and_its_message_shows_once( string $parent_file ): void {
-		update_option( $this->option, array( 'name' => 'old' ) );
-		$spec = $this->spec( array( self::field( 'text', 'name', array( 'validate' => 'acme:reject' ) ) ), array( 'parent' => $parent_file ) );
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'too long' ) );
+		update_option( "{$this->prefix}_name", 'old' );
+		$spec = $this->spec( array( $this->field( 'text', 'name', array( 'validate' => 'acme:reject' ) ) ), array( 'parent' => $parent_file ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_name" => 'too long' ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
+		self::assertSame( 'old', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array( 'Name was not saved and keeps its previous value. The other changes were saved. Use at most four characters.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
+	}
+
+	public function test_a_rejected_field_never_stored_stays_absent(): void {
+		$spec = $this->spec( array( $this->field( 'text', 'name', array( 'validate' => 'acme:reject' ) ) ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_name" => 'too long' ) );
+
+		$this->save( $spec, $this->admin, $data );
+
+		self::assertFalse( get_option( "{$this->prefix}_name" ) );
 	}
 
 	#[DataProvider( 'parents' )]
 	public function test_a_valid_save_shows_settings_saved_once( string $parent_file ): void {
-		$spec = $this->spec( array( self::field( 'text', 'name' ) ), array( 'parent' => $parent_file ) );
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'new' ) );
+		$spec = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'parent' => $parent_file ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_name" => 'new' ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'new' ), get_option( $this->option ) );
+		self::assertSame( 'new', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array( 'Settings saved.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_a_rejection_without_a_message_says_that_the_value_is_not_valid(): void {
-		update_option( $this->option, array( 'name' => 'old' ) );
-		$spec = $this->spec( array( self::field( 'text', 'name', array( 'validate' => 'acme:reject-silently' ) ) ) );
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'new' ) );
+		update_option( "{$this->prefix}_name", 'old' );
+		$spec = $this->spec( array( $this->field( 'text', 'name', array( 'validate' => 'acme:reject-silently' ) ) ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_name" => 'new' ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
+		self::assertSame( 'old', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array( 'Name was not saved because its value is not valid, and keeps its previous value. The other changes were saved.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_a_built_in_rejection_carries_what_to_enter(): void {
-		update_option( $this->option, array( 'email' => 'ops@example.com' ) );
-		$spec = $this->spec( array( self::field( 'email', 'email' ) ) );
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[email]" => 'not an email' ) );
+		update_option( "{$this->prefix}_email", 'ops@example.com' );
+		$spec = $this->spec( array( $this->field( 'email', 'email' ) ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_email" => 'not an email' ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'email' => 'ops@example.com' ), get_option( $this->option ) );
+		self::assertSame( 'ops@example.com', get_option( "{$this->prefix}_email" ) );
 		self::assertSame( array( 'Email was not saved and keeps its previous value. The other changes were saved. Enter a valid email address, such as name@example.com.' ), self::notices( $this->follow( $spec, $this->admin, $saved )['body'] ) );
 	}
 
 	public function test_titles_and_messages_print_as_text_and_an_untitled_field_is_labelled_and_named_by_its_id(): void {
+		$site = "{$this->prefix}_site";
 		$spec = $this->spec(
 			array(
-				self::field( 'email', 'email', array( 'title' => '<em>Email</em>' ) ),
+				$this->field( 'email', 'email', array( 'title' => '<em>Email</em>' ) ),
 				array(
 					'type' => 'url',
-					'id'   => 'site',
+					'id'   => $site,
 				),
 			)
 		);
@@ -198,20 +333,20 @@ final class OptionsPageTest extends TestCase {
 		$data = self::form_data(
 			$form,
 			array(
-				"{$this->option}[email]" => 'not an email',
-				"{$this->option}[site]"  => 'javascript:alert(1)',
+				"{$this->prefix}_email" => 'not an email',
+				$site                   => 'javascript:alert(1)',
 			)
 		);
 
 		$page = $this->follow( $spec, $this->admin, $this->save( $spec, $this->admin, $data ) )['body'];
 
-		self::assertSame( array( '<em>Email</em>', 'site' ), self::row_titles( $form ) );
-		self::assertSame( "$this->option.site", self::document( $form )->querySelectorAll( 'form tr' )->item( 1 )?->querySelector( 'th label' )?->getAttribute( 'for' ) );
+		self::assertSame( array( '<em>Email</em>', $site ), self::row_titles( $form ) );
+		self::assertSame( $site, self::document( $form )->querySelectorAll( 'form tr' )->item( 1 )?->querySelector( 'th label' )?->getAttribute( 'for' ) );
 		self::assertNull( self::document( $form )->querySelector( 'form em' ) );
 		self::assertSame(
 			array(
 				'<em>Email</em> was not saved and keeps its previous value. The other changes were saved. Enter a valid email address, such as name@example.com.',
-				'site was not saved and keeps its previous value. The other changes were saved. Enter a valid URL, such as https://example.com.',
+				"$site was not saved and keeps its previous value. The other changes were saved. Enter a valid URL, such as https://example.com.",
 			),
 			self::notices( $page )
 		);
@@ -220,58 +355,43 @@ final class OptionsPageTest extends TestCase {
 
 	#[DataProvider( 'multi_value_types' )]
 	public function test_a_fully_cleared_multi_value_field_stores_an_empty_array( string $type ): void {
-		update_option( $this->option, array( 'colors' => array( 'red', 'blue' ) ) );
-		$spec = $this->spec( array( self::field( $type, 'colors', array( 'options' => self::COLORS ) ) ) );
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[colors]" => array() ) );
+		update_option( "{$this->prefix}_colors", array( 'red', 'blue' ) );
+		$spec = $this->spec( array( $this->field( $type, 'colors', array( 'options' => self::COLORS ) ) ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_colors" => array() ) );
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'colors' => array() ), get_option( $this->option ) );
+		self::assertSame( array(), get_option( "{$this->prefix}_colors" ) );
 	}
 
 	public function test_an_unchecked_checkbox_stores_no_while_a_text_field_posts(): void {
-		update_option(
-			$this->option,
-			array(
-				'alpha' => 'yes',
-				'beta'  => 'yes',
-				'name'  => 'old',
-			)
-		);
-		$spec = $this->spec( array( self::field( 'checkbox', 'alpha' ), self::field( 'checkbox', 'beta' ), self::field( 'text', 'name' ) ) );
+		update_option( "{$this->prefix}_alpha", 'yes' );
+		update_option( "{$this->prefix}_beta", 'yes' );
+		update_option( "{$this->prefix}_name", 'old' );
+		$spec = $this->spec( array( $this->field( 'checkbox', 'alpha' ), $this->field( 'checkbox', 'beta' ), $this->field( 'text', 'name' ) ) );
 		$data = self::form_data(
 			$this->open( $spec, $this->admin )['body'],
 			array(
-				"{$this->option}[beta]" => false,
-				"{$this->option}[name]" => 'new',
+				"{$this->prefix}_beta" => false,
+				"{$this->prefix}_name" => 'new',
 			)
 		);
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame(
-			array(
-				'alpha' => 'yes',
-				'beta'  => 'no',
-				'name'  => 'new',
-			),
-			get_option( $this->option )
-		);
+		self::assertSame( array( 'yes', 'no', 'new' ), $this->stored( 'alpha', 'beta', 'name' ) );
 	}
 
 	public function test_a_disabled_field_keeps_its_value_and_renders_no_hidden_input(): void {
-		$stored = array(
-			'name'   => 'old',
-			'agree'  => 'yes',
-			'colors' => array( 'red' ),
-			'other'  => 'old',
-		);
-		update_option( $this->option, $stored );
+		update_option( "{$this->prefix}_name", 'old' );
+		update_option( "{$this->prefix}_agree", 'yes' );
+		update_option( "{$this->prefix}_colors", array( 'red' ) );
+		update_option( "{$this->prefix}_other", 'old' );
 		$spec = $this->spec(
 			array(
-				self::field( 'text', 'name', array( 'custom_attributes' => array( 'disabled' => 'disabled' ) ) ),
-				self::field( 'checkbox', 'agree', array( 'disabled' => true ) ),
-				self::field(
+				$this->field( 'text', 'name', array( 'custom_attributes' => array( 'disabled' => 'disabled' ) ) ),
+				$this->field( 'checkbox', 'agree', array( 'disabled' => true ) ),
+				$this->field(
 					'multiselect',
 					'colors',
 					array(
@@ -279,23 +399,23 @@ final class OptionsPageTest extends TestCase {
 						'custom_attributes' => array( 'disabled' => 'disabled' ),
 					)
 				),
-				self::field( 'text', 'other' ),
+				$this->field( 'text', 'other' ),
 			)
 		);
 		$form = $this->open( $spec, $this->admin )['body'];
 
-		$this->save( $spec, $this->admin, self::form_data( $form, array( "{$this->option}[other]" => 'new' ) ) );
+		$this->save( $spec, $this->admin, self::form_data( $form, array( "{$this->prefix}_other" => 'new' ) ) );
 
-		self::assertSame( \array_replace( $stored, array( 'other' => 'new' ) ), get_option( $this->option ) );
-		self::assertSame( array( 'other' ), \array_keys( self::form_data( $form )[ $this->option ] ) );
-		self::assertCount( 0, self::document( $form )->querySelectorAll( 'form input[type="hidden"][name^="' . $this->option . '["]' ) );
+		self::assertSame( array( 'old', 'yes', array( 'red' ), 'new' ), $this->stored( 'name', 'agree', 'colors', 'other' ) );
+		self::assertSame( array( "{$this->prefix}_other" ), \array_values( \array_filter( \array_keys( self::form_data( $form ) ), fn ( string $name ): bool => \str_starts_with( $name, $this->prefix ) ) ) );
+		self::assertCount( 0, self::document( $form )->querySelectorAll( 'form input[type="hidden"][name^="' . $this->prefix . '"]' ) );
 	}
 
-	public function test_a_tab_whose_every_control_is_disabled_leaves_the_row_unchanged(): void {
-		update_option( $this->option, array( 'name' => 'old' ) );
+	public function test_a_tab_whose_every_control_is_disabled_leaves_its_rows_unchanged(): void {
+		update_option( "{$this->prefix}_name", 'old' );
 		$spec = $this->spec(
 			array(
-				self::field(
+				$this->field(
 					'text',
 					'name',
 					array(
@@ -309,41 +429,41 @@ final class OptionsPageTest extends TestCase {
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertArrayNotHasKey( $this->option, $data );
-		self::assertSame( array( 'name' => 'old' ), get_option( $this->option ) );
+		self::assertArrayNotHasKey( "{$this->prefix}_name", $data );
+		self::assertSame( 'old', get_option( "{$this->prefix}_name" ) );
 		self::assertSame( array(), $saved['records'] );
 	}
 
 	public function test_a_capability_above_manage_options_refuses_an_administrators_save(): void {
-		$spec = $this->spec( array( self::field( 'text', 'name' ) ), array( 'capability' => 'acme_manage_settings' ) );
+		$spec = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'acme_manage_settings' ) );
 		$data = array(
-			'option_page' => $this->option,
-			'action'      => 'update',
-			$this->option => array( 'name' => 'new' ),
+			'option_page'          => $this->group,
+			'action'               => 'update',
+			"{$this->prefix}_name" => 'new',
 		);
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
 		self::assertSame( 403, $saved['died']['status'] ?? null );
 		self::assertStringContainsString( 'Sorry, you are not allowed to manage options for this site.', $saved['died']['message'] ?? '' );
-		self::assertFalse( get_option( $this->option ) );
+		self::assertFalse( get_option( "{$this->prefix}_name" ) );
 	}
 
 	public function test_a_capability_below_manage_options_lets_its_holder_save(): void {
-		$spec = $this->spec( array( self::field( 'text', 'name' ) ), array( 'capability' => 'edit_pages' ) );
-		$data = self::form_data( $this->open( $spec, $this->editor )['body'], array( "{$this->option}[name]" => 'new' ) );
+		$spec = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'capability' => 'edit_pages' ) );
+		$data = self::form_data( $this->open( $spec, $this->editor )['body'], array( "{$this->prefix}_name" => 'new' ) );
 
 		$this->save( $spec, $this->editor, $data );
 
-		self::assertSame( array( 'name' => 'new' ), get_option( $this->option ) );
+		self::assertSame( 'new', get_option( "{$this->prefix}_name" ) );
 	}
 
 	#[DataProvider( 'relocated_option_pages' )]
 	public function test_an_option_page_outside_the_post_body_or_padded_still_validates( string $variant ): void {
-		update_option( $this->option, array( 'size' => 's' ) );
-		$spec                          = $this->spec(
+		update_option( "{$this->prefix}_size", 's' );
+		$spec                           = $this->spec(
 			array(
-				self::field(
+				$this->field(
 					'select',
 					'size',
 					array(
@@ -355,38 +475,38 @@ final class OptionsPageTest extends TestCase {
 				),
 			)
 		);
-		$data                          = self::form_data( $this->open( $spec, $this->admin )['body'] );
-		$data[ $this->option ]['size'] = 'xl';
-		$query                         = '';
+		$data                           = self::form_data( $this->open( $spec, $this->admin )['body'] );
+		$data[ "{$this->prefix}_size" ] = 'xl';
+		$query                          = '';
 		if ( 'query-string' === $variant ) {
 			unset( $data['option_page'] );
-			$query = '?option_page=' . \rawurlencode( $this->option );
+			$query = '?option_page=' . \rawurlencode( $this->group );
 		} else {
-			$data['option_page'] = " $this->option ";
+			$data['option_page'] = " $this->group ";
 		}
 
 		$saved = $this->save( $spec, $this->admin, $data, $query );
 
 		self::assertNull( $saved['died'] );
-		self::assertSame( array( 'size' => 's' ), get_option( $this->option ) );
+		self::assertSame( 's', get_option( "{$this->prefix}_size" ) );
 	}
 
 	#[DataProvider( 'multi_value_types' )]
 	public function test_two_selections_store_exactly_those_two( string $type ): void {
-		$spec = $this->spec( array( self::field( $type, 'colors', array( 'options' => self::COLORS ) ) ) );
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[colors]" => array( 'red', 'teal' ) ) );
+		$spec = $this->spec( array( $this->field( $type, 'colors', array( 'options' => self::COLORS ) ) ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_colors" => array( 'red', 'teal' ) ) );
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'colors' => array( 'red', 'teal' ) ), get_option( $this->option ) );
+		self::assertSame( array( 'red', 'teal' ), get_option( "{$this->prefix}_colors" ) );
 	}
 
 	#[DataProvider( 'multi_value_types' )]
 	public function test_a_cleared_multi_value_field_reaches_validate_as_an_empty_array( string $type ): void {
-		update_option( $this->option, array( 'colors' => array( 'red' ) ) );
+		update_option( "{$this->prefix}_colors", array( 'red' ) );
 		$spec = $this->spec(
 			array(
-				self::field(
+				$this->field(
 					$type,
 					'colors',
 					array(
@@ -396,39 +516,36 @@ final class OptionsPageTest extends TestCase {
 				),
 			)
 		);
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[colors]" => array() ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_colors" => array() ) );
 
 		$saved = $this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( array( 'validate', 'colors', array() ) ), $saved['records'] );
-		self::assertSame( array( 'colors' => array() ), get_option( $this->option ) );
+		self::assertSame( array( array( 'validate', "{$this->prefix}_colors", array() ) ), $saved['records'] );
+		self::assertSame( array(), get_option( "{$this->prefix}_colors" ) );
 	}
 
 	public function test_a_tampered_value_for_a_disabled_field_is_ignored(): void {
-		$stored = array(
-			'name'  => 'old',
-			'agree' => 'no',
-			'other' => 'old',
-		);
-		update_option( $this->option, $stored );
-		$spec                           = $this->spec(
+		update_option( "{$this->prefix}_name", 'old' );
+		update_option( "{$this->prefix}_agree", 'no' );
+		update_option( "{$this->prefix}_other", 'old' );
+		$spec                            = $this->spec(
 			array(
-				self::field( 'text', 'name', array( 'custom_attributes' => array( 'disabled' => 'disabled' ) ) ),
-				self::field( 'checkbox', 'agree', array( 'disabled' => true ) ),
-				self::field( 'text', 'other' ),
+				$this->field( 'text', 'name', array( 'custom_attributes' => array( 'disabled' => 'disabled' ) ) ),
+				$this->field( 'checkbox', 'agree', array( 'disabled' => true ) ),
+				$this->field( 'text', 'other' ),
 			)
 		);
-		$data                           = self::form_data( $this->open( $spec, $this->admin )['body'] );
-		$data[ $this->option ]['name']  = 'tampered';
-		$data[ $this->option ]['agree'] = 'yes';
+		$data                            = self::form_data( $this->open( $spec, $this->admin )['body'] );
+		$data[ "{$this->prefix}_name" ]  = 'tampered';
+		$data[ "{$this->prefix}_agree" ] = 'yes';
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame( $stored, get_option( $this->option ) );
+		self::assertSame( array( 'old', 'no', 'old' ), $this->stored( 'name', 'agree', 'other' ) );
 	}
 
 	public function test_the_submenu_entry_and_the_page_exist_only_for_users_holding_the_capability(): void {
-		$spec = $this->spec( array( self::field( 'text', 'name' ) ), array( 'parent' => 'tools.php' ) );
+		$spec = $this->spec( array( $this->field( 'text', 'name' ) ), array( 'parent' => 'tools.php' ) );
 		$link = '#menu-tools a[href$="?page=' . $this->id . '"]';
 
 		$admin_menu  = $this->admin_request( 'GET', 'tools.php', $this->admin, self::FIXTURE, $spec )['body'];
@@ -439,14 +556,6 @@ final class OptionsPageTest extends TestCase {
 		self::assertNull( self::document( $editor_menu )->querySelector( $link ) );
 		self::assertSame( 403, $editor_page['died']['status'] ?? null );
 		self::assertStringNotContainsString( 'Acme settings', $editor_page['body'] );
-	}
-
-	public function test_a_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
-		$form = self::document( $this->open( $this->spec( array( self::field( 'text', 'r&amp;d' ) ) ), $this->admin )['body'] )->querySelector( 'form[action="options.php"]' );
-
-		$id = (string) $form?->querySelector( 'td input[type=text]' )?->getAttribute( 'id' );
-		self::assertSame( "$this->option.r&amp;d", $id );
-		self::assertSame( $id, $form?->querySelector( 'th label' )?->getAttribute( 'for' ) );
 	}
 
 	public function test_a_form_posted_back_with_one_edit_changes_only_that_field_and_labels_point_at_single_controls(): void {
@@ -464,28 +573,30 @@ final class OptionsPageTest extends TestCase {
 			'days'   => array( '2' ),
 			'agree'  => 'yes',
 		);
-		update_option( $this->option, $stored );
+		foreach ( $stored as $name => $value ) {
+			update_option( "{$this->prefix}_$name", $value );
+		}
 		$spec = $this->spec(
 			array(
-				self::field( 'text', 'name' ),
-				self::field( 'number', 'count' ),
-				self::field( 'email', 'email' ),
-				self::field( 'url', 'site' ),
-				self::field( 'textarea', 'notes' ),
-				self::field( 'checkbox', 'on' ),
-				self::field( 'checkbox', 'off' ),
-				self::field( 'select', 'size', array( 'options' => self::COLORS ) ),
-				self::field( 'radio', 'tone', array( 'options' => self::NUMBERED ) ),
-				self::field( 'multiselect', 'colors', array( 'options' => self::NUMBERED ) ),
-				self::field( 'checkboxes', 'days', array( 'options' => self::NUMBERED ) ),
-				self::field( 'checkbox', 'agree', array( 'desc' => 'I agree' ) ),
+				$this->field( 'text', 'name' ),
+				$this->field( 'number', 'count' ),
+				$this->field( 'email', 'email' ),
+				$this->field( 'url', 'site' ),
+				$this->field( 'textarea', 'notes' ),
+				$this->field( 'checkbox', 'on' ),
+				$this->field( 'checkbox', 'off' ),
+				$this->field( 'select', 'size', array( 'options' => self::COLORS ) ),
+				$this->field( 'radio', 'tone', array( 'options' => self::NUMBERED ) ),
+				$this->field( 'multiselect', 'colors', array( 'options' => self::NUMBERED ) ),
+				$this->field( 'checkboxes', 'days', array( 'options' => self::NUMBERED ) ),
+				$this->field( 'checkbox', 'agree', array( 'desc' => 'I agree' ) ),
 			)
 		);
 		$form = $this->open( $spec, $this->admin )['body'];
 
-		$this->save( $spec, $this->admin, self::form_data( $form, array( "{$this->option}[name]" => 'new' ) ) );
+		$this->save( $spec, $this->admin, self::form_data( $form, array( "{$this->prefix}_name" => 'new' ) ) );
 
-		self::assertSame( \array_replace( $stored, array( 'name' => 'new' ) ), get_option( $this->option ) );
+		self::assertSame( \array_values( \array_replace( $stored, array( 'name' => 'new' ) ) ), $this->stored( ...\array_keys( $stored ) ) );
 		$labels = array();
 		foreach ( self::document( $form )->querySelectorAll( 'form tr' ) as $row ) {
 			$for = $row->querySelector( 'th label' )?->getAttribute( 'for' );
@@ -496,16 +607,16 @@ final class OptionsPageTest extends TestCase {
 		}
 		self::assertSame(
 			array(
-				'Name'   => "$this->option.name",
-				'Count'  => "$this->option.count",
-				'Email'  => "$this->option.email",
-				'Site'   => "$this->option.site",
-				'Notes'  => "$this->option.notes",
-				'On'     => "$this->option.on",
-				'Off'    => "$this->option.off",
-				'Size'   => "$this->option.size",
+				'Name'   => "{$this->prefix}_name",
+				'Count'  => "{$this->prefix}_count",
+				'Email'  => "{$this->prefix}_email",
+				'Site'   => "{$this->prefix}_site",
+				'Notes'  => "{$this->prefix}_notes",
+				'On'     => "{$this->prefix}_on",
+				'Off'    => "{$this->prefix}_off",
+				'Size'   => "{$this->prefix}_size",
 				'Tone'   => null,
-				'Colors' => "$this->option.colors",
+				'Colors' => "{$this->prefix}_colors",
 				'Days'   => null,
 				'Agree'  => null,
 			),
@@ -513,124 +624,90 @@ final class OptionsPageTest extends TestCase {
 		);
 	}
 
-	public function test_a_submitted_id_outside_the_definition_is_not_stored(): void {
-		$spec                              = $this->spec( array( self::field( 'text', 'name' ) ) );
-		$data                              = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'new' ) );
-		$data[ $this->option ]['injected'] = 'x';
+	public function test_a_submitted_id_outside_the_tab_is_not_stored(): void {
+		$spec = $this->spec( array( $this->field( 'text', 'name' ) ) );
+		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->prefix}_name" => 'new' ) ) + array( "{$this->prefix}_injected" => 'x' );
 
 		$this->save( $spec, $this->admin, $data );
 
-		self::assertSame( array( 'name' => 'new' ), get_option( $this->option ) );
+		self::assertSame( 'new', get_option( "{$this->prefix}_name" ) );
+		self::assertFalse( get_option( "{$this->prefix}_injected" ) );
 	}
 
-	public function test_a_stored_id_absent_from_the_definition_keeps_its_value(): void {
-		update_option(
-			$this->option,
-			array(
-				'name'    => 'old',
-				'retired' => 'kept',
-			)
-		);
-		$spec = $this->spec( array( self::field( 'text', 'name' ) ) );
-		$data = self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'new' ) );
-
-		$this->save( $spec, $this->admin, $data );
-
-		self::assertSame(
-			array(
-				'name'    => 'new',
-				'retired' => 'kept',
-			),
-			get_option( $this->option )
-		);
-	}
-
-	public function test_tabs_and_fields_contributed_through_the_tabs_filter_render_and_save(): void {
-		$addon = "{$this->prefix}_addon";
-		$spec  = $this->spec(
-			array( self::field( 'text', 'name' ) ),
+	public function test_tabs_and_fields_contributed_through_the_filters_render_and_save(): void {
+		$spec = $this->spec(
+			array( $this->field( 'text', 'name' ) ),
 			array(),
 			array(
 				'contributed' => array(
-					'fields' => array( 'general' => array( self::field( 'text', 'extra', array( 'validate' => 'acme:append' ) ) ) ),
-					'tabs'   => array( self::tab( 'addon', $addon, array( self::field( 'text', 'key' ) ) ) ),
+					'tabs'   => array( self::tab( 'addon' ) ),
+					'fields' => array(
+						'general' => array( $this->field( 'text', 'extra', array( 'validate' => 'acme:append' ) ) ),
+						'addon'   => array( $this->field( 'text', 'key' ) ),
+					),
 				),
 			)
 		);
 
 		$general = $this->open( $spec, $this->admin )['body'];
-		$this->save( $spec, $this->admin, self::form_data( $general, array( "{$this->option}[extra]" => 'e' ) ) );
-		$this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin, 'addon' )['body'], array( "{$addon}[key]" => 'k' ) ) );
+		$this->save( $spec, $this->admin, self::form_data( $general, array( "{$this->prefix}_extra" => 'e' ) ) );
+		$this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin, 'addon' )['body'], array( "{$this->prefix}_key" => 'k' ) ) );
 
 		self::assertSame( array( 'General', 'Addon' ), self::tab_titles( $general ) );
-		self::assertSame(
-			array(
-				'name'  => '',
-				'extra' => 'e!',
-			),
-			get_option( $this->option )
-		);
-		self::assertSame( array( 'key' => 'k' ), get_option( $addon ) );
+		self::assertSame( array( '', 'e!', 'k' ), $this->stored( 'name', 'extra', 'key' ) );
 	}
 
 	public function test_each_tab_shows_its_own_form_and_an_unknown_tab_shows_the_first(): void {
-		$second = "{$this->prefix}_second";
-		$spec   = $this->spec(
-			array( self::field( 'text', 'name' ) ),
-			array(
-				'tabs' => array(
-					self::tab( 'general', $this->option, array( self::field( 'text', 'name' ) ) ),
-					self::tab( 'second', $second, array( self::field( 'text', 'other' ) ) ),
-				),
-			)
+		$spec = $this->spec(
+			array( $this->field( 'text', 'name' ) ),
+			array( 'tabs' => array( self::tab( 'general' ), self::tab( 'second' ) ) ),
+			array( 'fields' => array( 'second' => array( $this->field( 'text', 'other' ) ) ) )
 		);
 
-		$second_tab = self::document( $this->open( $spec, $this->admin, 'second' )['body'] );
+		$second     = $this->open( $spec, $this->admin, 'second' )['body'];
+		$second_tab = self::document( $second );
 		$unknown    = self::document( $this->open( $spec, $this->admin, 'missing' )['body'] );
-		$single     = self::document( $this->open( $this->spec( array( self::field( 'text', 'name' ) ) ), $this->admin )['body'] );
+		$single     = self::document( $this->open( $this->spec( array( $this->field( 'text', 'name' ) ) ), $this->admin )['body'] );
 
-		self::assertSame( $second, $second_tab->querySelector( 'form input[name="option_page"]' )?->getAttribute( 'value' ) );
+		self::assertSame( "{$this->id}_second", $second_tab->querySelector( 'form input[name="option_page"]' )?->getAttribute( 'value' ) );
+		self::assertSame( array( 'Other' ), self::row_titles( $second ) );
 		self::assertSame( 'Second', $second_tab->querySelector( '.nav-tab[aria-current="page"]' )?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
-		self::assertSame( $this->option, $unknown->querySelector( 'form input[name="option_page"]' )?->getAttribute( 'value' ) );
+		self::assertSame( $this->group, $unknown->querySelector( 'form input[name="option_page"]' )?->getAttribute( 'value' ) );
 		self::assertSame( 'General', $unknown->querySelector( '.nav-tab[aria-current="page"]' )?->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertNull( $single->querySelector( '.nav-tab' ) );
 	}
 
-	public function test_saving_the_second_of_two_tabs_on_one_option_keeps_the_first_tabs_field(): void {
+	public function test_saving_one_tab_leaves_the_other_tabs_fields_as_they_are(): void {
+		update_option( "{$this->prefix}_name", 'first' );
 		$spec = $this->spec(
-			array( self::field( 'text', 'name' ) ),
-			array(
-				'tabs' => array(
-					self::tab( 'general', $this->option, array( self::field( 'text', 'name' ) ) ),
-					self::tab( 'second', $this->option, array( self::field( 'text', 'other' ) ) ),
-				),
-			)
+			array( $this->field( 'text', 'name' ) ),
+			array( 'tabs' => array( self::tab( 'general' ), self::tab( 'second' ) ) ),
+			array( 'fields' => array( 'second' => array( $this->field( 'text', 'other' ) ) ) )
 		);
-		$this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin )['body'], array( "{$this->option}[name]" => 'first' ) ) );
 
-		$this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin, 'second' )['body'], array( "{$this->option}[other]" => 'second' ) ) );
+		$saved = $this->save( $spec, $this->admin, self::form_data( $this->open( $spec, $this->admin, 'second' )['body'], array( "{$this->prefix}_other" => 'second' ) ) );
 
-		self::assertSame(
-			array(
-				'name'  => 'first',
-				'other' => 'second',
-			),
-			get_option( $this->option )
-		);
+		self::assertNull( $saved['died'] );
+		self::assertSame( array( 'first', 'second' ), $this->stored( 'name', 'other' ) );
 	}
 
 	protected function spec( array $fields, array $page = array(), array $extra = array() ): array {
-		return array(
-			'id'   => $this->id,
-			'slug' => $this->slug,
-			'page' => $page + array(
-				'parent'     => 'options-general.php',
-				'capability' => 'manage_options',
-				'page_title' => 'Acme settings',
-				'menu_title' => 'Acme',
-				'tabs'       => array( self::tab( 'general', $this->option, $fields ) ),
+		return \array_replace_recursive(
+			array(
+				'id'     => $this->id,
+				'slug'   => $this->slug,
+				'prefix' => $this->prefix,
+				'page'   => $page + array(
+					'parent'     => 'options-general.php',
+					'capability' => 'manage_options',
+					'page_title' => 'Acme settings',
+					'menu_title' => 'Acme',
+					'tabs'       => array( self::tab( 'general' ) ),
+				),
+				'fields' => array( 'general' => $fields ),
 			),
-		) + $extra;
+			$extra
+		);
 	}
 
 	protected function open( array $spec, int $user_id, string $tab = '' ): array {
@@ -650,20 +727,23 @@ final class OptionsPageTest extends TestCase {
 		return $this->admin_request( 'GET', \explode( '/wp-admin/', $saved['location'], 2 )[1], $user_id, self::FIXTURE, $spec );
 	}
 
-	protected static function tab( string $slug, string $option, array $fields ): array {
+	// Reads each named field's row, as get_option() returns it.
+	protected function stored( string ...$names ): array {
+		return \array_map( fn ( string $name ): mixed => get_option( "{$this->prefix}_$name" ), $names );
+	}
+
+	protected static function tab( string $slug ): array {
 		return array(
-			'slug'   => $slug,
-			'title'  => \ucfirst( $slug ),
-			'option' => $option,
-			'fields' => $fields,
+			'slug'  => $slug,
+			'title' => \ucfirst( $slug ),
 		);
 	}
 
-	protected static function field( string $type, string $id, array $keys = array() ): array {
+	protected function field( string $type, string $name, array $keys = array() ): array {
 		return $keys + array(
 			'type'  => $type,
-			'id'    => $id,
-			'title' => \ucfirst( $id ),
+			'id'    => "{$this->prefix}_$name",
+			'title' => \ucfirst( $name ),
 		);
 	}
 
