@@ -65,7 +65,7 @@ return ( require __DIR__ . '/vendor/ahegyes/wordpress-configs/php/php-scoper/sco
 
 ## Usage
 
-An `OptionsPage` stores each tab's fields in one option through the Settings API, and an `ObjectForm` stores each field on the edited object through a store. The plugin's main file requires `load.php` from bootstrap's prefixed copy, then its autoloader once the floor check passes:
+An `OptionsPage` stores each field in its own option through the Settings API, and an `ObjectForm` stores each field on the edited object through a store. The plugin's main file requires `load.php` from bootstrap's prefixed copy, then its autoloader once the floor check passes:
 
 ```php
 use Acme\PersonaSettings\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
@@ -116,7 +116,7 @@ add_action(
 );
 ```
 
-A definition object declares the page and its fields as data. A field's `validate` callback returns the value to store, or a `WP_Error` whose message the page shows while the stored value stays:
+A definition object declares the page and, apart, each tab's fields as data, so the page asks only for the fields of the tab it shows or saves. Each field is stored in the option its id names, which must start with the plugin's prefix and an underscore, since the page's capability writes it; the page leaves out any other field and reports it through `_doing_it_wrong()`. A number field is held to the `min`, `max` and `step` in its `custom_attributes`, and one with a `step` states its `min` too, from which both the browser and the save count the steps. A field's `validate` callback returns the value to store, or a `WP_Error` whose message the page shows while the stored value stays. Another plugin adds tabs through the `{root}/options_page/tabs` filter and their fields, or fields of an existing tab, through `{root}/options_page/fields`:
 
 ```php
 final class Settings implements OptionsPageDefinitionInterface {
@@ -131,22 +131,8 @@ final class Settings implements OptionsPageDefinitionInterface {
 			'menu_title' => __( 'Acme Persona Settings', 'acme-persona-settings' ),
 			'tabs'       => array(
 				array(
-					'slug'   => 'general',
-					'title'  => __( 'General', 'acme-persona-settings' ),
-					'option' => self::PREFIX . '_settings',
-					'fields' => array(
-						array(
-							'type'              => 'number',
-							'id'                => 'limit',
-							'title'             => __( 'Limit', 'acme-persona-settings' ),
-							'default'           => '10',
-							'custom_attributes' => array(
-								'min'  => '1',
-								'step' => '1',
-							),
-							'validate'          => array( $this, 'validate_limit' ),
-						),
-					),
+					'slug'  => 'general',
+					'title' => __( 'General', 'acme-persona-settings' ),
 				),
 			),
 		);
@@ -154,10 +140,23 @@ final class Settings implements OptionsPageDefinitionInterface {
 
 	// ...
 
-	public function validate_limit( mixed $raw ): int|\WP_Error {
-		$limit = \filter_var( $raw, \FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
-
-		return false === $limit ? new \WP_Error( 'acme_ps_limit', __( 'Enter a whole number of at least 1.', 'acme-persona-settings' ) ) : $limit;
+	#[\Override]
+	public function get_tab_fields( string $page_id, string $tab_slug ): array {
+		return match ( $tab_slug ) {
+			'general' => array(
+				array(
+					'type'              => 'number',
+					'id'                => 'acme_ps_limit',
+					'title'             => __( 'Limit', 'acme-persona-settings' ),
+					'default'           => '10',
+					'custom_attributes' => array(
+						'min'  => '1',
+						'step' => '1',
+					),
+				),
+			),
+			default   => array(),
+		};
 	}
 
 	// ...

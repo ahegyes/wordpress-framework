@@ -9,16 +9,16 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Adds a submenu page whose tabs each edit one option row through the Settings API.
+ * Adds a submenu page whose tabs edit their fields through the Settings API, each field stored in the option its id names.
  *
- * Each tab's form posts to options.php under a settings group named after its option, so WordPress checks the nonce and the page's capability before the page sanitizes the submission.
+ * Each tab's form posts to options.php under the settings group {page id}_{tab slug}, so WordPress checks the nonce and the page's capability before the page sanitizes the submission. Because a field can name any option, which the page's capability then writes, a field id must start with the plugin's prefix.
  *
  * @since   2.0.0
  * @version 2.0.0
  *
  * @phpstan-import-type Field from Forms
  * @phpstan-import-type FieldRow from Forms
- * @phpstan-type        Tab array{slug: string, title: string, option: string, fields: list<Field>}
+ * @phpstan-type        Tab array{slug: string, title: string}
  * @phpstan-type        Page array{parent: string, capability: string, page_title: string, menu_title: string, tabs: list<Tab>}
  */
 final class OptionsPage {
@@ -34,6 +34,26 @@ final class OptionsPage {
 	 */
 	protected ?array $page = null;
 
+	/**
+	 * The fields of each tab asked for, by the tab's slug, filtered and without the fields whose ids the page refuses.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     array<string, list<Field>>
+	 */
+	protected array $fields = array();
+
+	/**
+	 * The fields of the tab the current options.php request saves, by id, which register_settings() keeps for their sanitization.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @var     array<string, Field>
+	 */
+	protected array $posted = array();
+
 	// endregion
 
 	// region MAGIC METHODS
@@ -44,7 +64,7 @@ final class OptionsPage {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   PluginIdentity                 $identity   The plugin's identity, whose hook root starts the page's tabs filter.
+	 * @param   PluginIdentity                 $identity   The plugin's identity, whose hook root starts the page's filters and whose prefix starts its field ids.
 	 * @param   string                         $id         The page's menu slug.
 	 * @param   OptionsPageDefinitionInterface $definition The page's definition.
 	 *
@@ -93,7 +113,7 @@ final class OptionsPage {
 	}
 
 	/**
-	 * Registers each tab's option as a setting in a group of its own name and hooks the option's capability and sanitization.
+	 * Registers, on the options.php request that saves one of the page's tabs, that tab's fields as settings of its group, and hooks the group's capability and each field's sanitization.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -101,11 +121,25 @@ final class OptionsPage {
 	 * @return  void
 	 */
 	public function register_settings(): void {
-		foreach ( \array_unique( \array_column( $this->get_page()['tabs'], 'option' ) ) as $option ) {
-			register_setting( $option, $option, array( 'type' => 'object' ) );
-			add_filter( "option_page_capability_$option", array( $this, 'get_capability' ) );
-			add_filter( "pre_update_option_$option", array( $this, 'sanitize_submission' ), 10, 3 );
+		if ( 'options.php' !== ( $GLOBALS['pagenow'] ?? '' ) ) {
+			return;
 		}
+
+		// WordPress core reads option_page from the request, not only the body, and trims it, so the same reading decides whether the submission is the page's.
+		$group = \is_string( $_REQUEST['option_page'] ?? null ) ? sanitize_text_field( wp_unslash( $_REQUEST['option_page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- options.php verifies the nonce before it saves.
+		$tab   = \array_find( $this->get_page()['tabs'], fn ( array $tab ): bool => $group === $this->get_group( $tab['slug'] ) );
+		if ( \is_null( $tab ) ) {
+			return;
+		}
+
+		foreach ( $this->get_fields( $tab['slug'] ) as $field ) {
+			if ( isset( $field['id'] ) ) {
+				$this->posted[ $field['id'] ] = $field;
+				register_setting( $group, $field['id'], array( 'type' => \in_array( $field['type'], array( 'multiselect', 'checkboxes' ), true ) ? 'array' : 'string' ) );
+				add_filter( "pre_update_option_{$field['id']}", array( $this, 'sanitize_submission' ), 10, 3 );
+			}
+		}
+		add_filter( "option_page_capability_$group", array( $this, 'get_capability' ) );
 	}
 
 	/**
@@ -121,41 +155,31 @@ final class OptionsPage {
 	}
 
 	/**
-	 * Returns the row to store for the option's own options.php submission, in which only the accepted fields change.
+	 * Returns the value to store for a field of the posted tab, or its stored value where the form posted nothing for it or the field rejects it.
 	 *
-	 * Other writes of the option pass through unchanged. A rejected field keeps its stored value and adds a settings error that names it.
+	 * A rejection adds a settings error that names the field.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   mixed  $value     The submitted row, unslashed by options.php, or null when the form posted none of its fields.
-	 * @param   mixed  $old_value The stored row.
-	 * @param   string $option    The option's name.
+	 * @param   mixed  $value     The submitted value, unslashed by options.php, or null when the form posted none.
+	 * @param   mixed  $old_value The stored value.
+	 * @param   string $option    The option's name, which is the field's id.
 	 *
 	 * @return  mixed
 	 */
 	public function sanitize_submission( mixed $value, mixed $old_value, string $option ): mixed {
-		// WordPress core reads option_page from the request, not only the body, and trims it, so the same reading decides whether the submission is this option's.
-		$option_page = \is_string( $_REQUEST['option_page'] ?? null ) ? sanitize_text_field( wp_unslash( $_REQUEST['option_page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- options.php verifies the nonce before it saves.
-		if ( 'options.php' !== ( $GLOBALS['pagenow'] ?? '' ) || $option_page !== $option ) {
+		$field = $this->posted[ $option ] ?? null;
+		if ( \is_null( $field ) ) {
 			return $value;
 		}
 
-		$fields = array();
-		foreach ( $this->get_page()['tabs'] as $tab ) {
-			if ( $option === $tab['option'] ) {
-				$fields = \array_merge( $fields, $tab['fields'] );
-			}
+		$result = Forms::sanitize_fields( array( $field ), \is_null( $value ) ? array() : array( $option => $value ) );
+		if ( isset( $result['errors'][ $option ] ) ) {
+			add_settings_error( $option, $option, esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $option ] ) ) );
 		}
 
-		$result = Forms::sanitize_fields( $fields, \is_array( $value ) ? $value : array() );
-		foreach ( $fields as $field ) {
-			if ( isset( $field['id'], $result['errors'][ $field['id'] ] ) ) {
-				add_settings_error( $option, $field['id'], esc_html( Forms::get_rejection_message( Forms::get_title( $field ), $result['errors'][ $field['id'] ] ) ) );
-			}
-		}
-
-		return array() === $result['values'] ? $old_value : \array_replace( \is_array( $old_value ) ? $old_value : array(), $result['values'] );
+		return \array_key_exists( $option, $result['values'] ) ? $result['values'][ $option ] : $old_value;
 	}
 
 	/**
@@ -190,18 +214,29 @@ final class OptionsPage {
 			echo '</nav>';
 		}
 
-		$option = $tab['option'];
-		$stored = get_option( $option );
-		foreach ( Forms::get_rows( $tab['fields'], \is_array( $stored ) ? $stored : array(), $option ) as $row ) {
-			if ( isset( $row['label_for'] ) ) { // Core prints the label through esc_attr(), which keeps an entity the control's id encodes.
-				$row['label_for'] = Forms::escape_attribute( $row['label_for'] );
+		$fields = $this->get_fields( $tab['slug'] );
+		$ids    = \array_column( $fields, 'id' );
+		wp_prime_option_caches( $ids );
+		$stored = array();
+		foreach ( $ids as $id ) {
+			$value = get_option( $id );
+			if ( false !== $value ) { // A field without a stored row shows its default.
+				$stored[ $id ] = $value;
 			}
+		}
 
+		$rows = Forms::get_rows( $fields, $stored, '' );
+		if ( array() === $rows ) { // A tab without a field to save registers no settings group, so options.php would refuse its form.
+			echo '</div>';
+			return;
+		}
+
+		foreach ( $rows as $row ) {
 			add_settings_field( $row['field']['id'], esc_html( $row['field']['title'] ), array( $this, 'render_field' ), $this->id, 'default', $row );
 		}
 
 		echo '<form action="options.php" method="post">';
-		settings_fields( $option );
+		settings_fields( $this->get_group( $tab['slug'] ) );
 		echo '<table class="form-table" role="presentation">';
 		do_settings_fields( $this->id, 'default' );
 		echo '</table>';
@@ -240,7 +275,7 @@ final class OptionsPage {
 			$page = $this->definition->get_options_page( $this->id );
 
 			/**
-			 * Filters the tabs of the options page, so that other plugins can add tabs or fields.
+			 * Filters the tabs of the options page, so that other plugins can add tabs, whose fields come through the page's fields filter.
 			 *
 			 * @since   2.0.0
 			 * @version 2.0.0
@@ -253,6 +288,67 @@ final class OptionsPage {
 		}
 
 		return $this->page;
+	}
+
+	/**
+	 * Returns the fields of one of the page's tabs, evaluating and filtering them on first use, without a field whose id does not start with the plugin's prefix or is not a valid helper id, which it reports through _doing_it_wrong().
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $tab_slug The tab's slug.
+	 *
+	 * @return  list<Field>
+	 */
+	protected function get_fields( string $tab_slug ): array {
+		if ( ! isset( $this->fields[ $tab_slug ] ) ) {
+			/**
+			 * Filters the fields of one tab of the options page, so that other plugins can add fields, whose ids start with the plugin's prefix.
+			 *
+			 * @since   2.0.0
+			 * @version 2.0.0
+			 *
+			 * @param   list<Field> $fields   The tab's fields.
+			 * @param   string      $tab_slug The tab's slug.
+			 * @param   string      $page_id  The page's menu slug.
+			 */
+			$fields = apply_filters( "{$this->identity->hook_root}/options_page/fields", $this->definition->get_tab_fields( $this->id, $tab_slug ), $tab_slug, $this->id );
+
+			$this->fields[ $tab_slug ] = array();
+			foreach ( $fields as $field ) {
+				$id = $field['id'] ?? null;
+				try {
+					if ( ! \is_null( $id ) ) {
+						Forms::check_helper_id( $id );
+					}
+					$kept = \is_null( $id ) || \str_starts_with( $id, "{$this->identity->prefix}_" );
+				} catch ( InvalidArgumentException ) {
+					$kept = false;
+				}
+
+				if ( $kept ) {
+					$this->fields[ $tab_slug ][] = $field;
+				} else {
+					_doing_it_wrong( __METHOD__, esc_html( "Options page '$this->id' leaves out field '$id', whose id is not '{$this->identity->prefix}_' followed by lowercase letters, digits, underscores and hyphens." ), '2.0.0' );
+				}
+			}
+		}
+
+		return $this->fields[ $tab_slug ];
+	}
+
+	/**
+	 * Returns the settings group of one of the page's tabs, which names its form's nonce and capability filter.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   string $tab_slug The tab's slug.
+	 *
+	 * @return  string
+	 */
+	protected function get_group( string $tab_slug ): string {
+		return "{$this->id}_$tab_slug";
 	}
 
 	// endregion

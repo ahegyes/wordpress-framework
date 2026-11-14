@@ -288,7 +288,7 @@ final class Forms {
 	 *
 	 * @param   list<Field>             $fields The fields.
 	 * @param   array<array-key, mixed> $values The stored values, keyed by field id.
-	 * @param   string                  $prefix The prefix of the names and HTML ids, such as an option or a form id.
+	 * @param   string                  $prefix The prefix of the names and HTML ids, such as a form id, or an empty string where each field posts under its own id.
 	 *
 	 * @return  list<FieldRow>
 	 */
@@ -304,8 +304,8 @@ final class Forms {
 			$row = array(
 				'field' => $field,
 				'value' => \array_key_exists( $field['id'], $values ) ? $values[ $field['id'] ] : ( $field['default'] ?? '' ),
-				'name'  => "{$prefix}[{$field['id']}]",
-				'id'    => "$prefix.{$field['id']}",
+				'name'  => '' === $prefix ? $field['id'] : "{$prefix}[{$field['id']}]",
+				'id'    => '' === $prefix ? $field['id'] : "$prefix.{$field['id']}",
 			);
 			if ( ! self::is_group( $field ) ) {
 				$row['label_for'] = $row['id'];
