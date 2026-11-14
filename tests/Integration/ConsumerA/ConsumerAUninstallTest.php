@@ -43,7 +43,7 @@ final class ConsumerAUninstallTest extends TestCase {
 
 		self::assertTrue( $request['records']['deleted'] );
 		self::assertDirectoryDoesNotExist( WP_PLUGIN_DIR . '/' . self::DIR );
-		self::assertFalse( get_option( 'acme_ca_settings' ) );
+		self::assertFalse( get_option( 'acme_ca_delete_data' ) );
 		self::assertFalse( get_option( 'acme_ca_revision' ) );
 		self::assertSame( '', get_post_meta( $this->product_id, '_acme_ca_packing_note', true ) );
 		self::assertFalse( get_option( 'acme_ca_notices' ) );
@@ -64,7 +64,7 @@ final class ConsumerAUninstallTest extends TestCase {
 		self::assertStringStartsWith( 'Uninstall could not remove everything: option acme_ca_revision: ', $request['died']['message'] ?? '' );
 		self::assertStringEndsWith( ' exist.', $request['died']['message'] ?? '' );
 		self::assertFileExists( WP_PLUGIN_DIR . '/' . self::DIR . '/acme-consumer-a.php' );
-		self::assertSame( array( 'delete_data' => 'yes' ), get_option( 'acme_ca_settings' ) );
+		self::assertSame( 'yes', get_option( 'acme_ca_delete_data' ) );
 		self::assertSame( '1', get_option( 'acme_ca_revision' ) );
 	}
 
@@ -76,7 +76,7 @@ final class ConsumerAUninstallTest extends TestCase {
 
 		self::assertTrue( $request['records']['deleted'] );
 		self::assertDirectoryDoesNotExist( WP_PLUGIN_DIR . '/' . self::DIR );
-		self::assertSame( array( 'delete_data' => 'yes' ), get_option( 'acme_ca_settings' ) );
+		self::assertSame( 'yes', get_option( 'acme_ca_delete_data' ) );
 		self::assertSame( 'kept', get_post_meta( $this->product_id, '_acme_ca_packing_note', true ) );
 		self::assertSame( 1, \substr_count( (string) \file_get_contents( $this->log ), 'Acme Consumer A kept its data on uninstall' ) );
 	}
@@ -91,7 +91,7 @@ final class ConsumerAUninstallTest extends TestCase {
 
 		self::assertNotSame( 0, $exit_code, $output . $errors );
 		self::assertFileExists( WP_PLUGIN_DIR . '/' . self::DIR . '/acme-consumer-a.php' );
-		self::assertSame( array( 'delete_data' => 'yes' ), get_option( 'acme_ca_settings' ) );
+		self::assertSame( 'yes', get_option( 'acme_ca_delete_data' ) );
 		self::assertSame( 'kept', get_post_meta( $this->product_id, '_acme_ca_packing_note', true ) );
 	}
 
@@ -103,7 +103,7 @@ final class ConsumerAUninstallTest extends TestCase {
 	}
 
 	protected function seed_footprint(): void {
-		update_option( 'acme_ca_settings', array( 'delete_data' => 'yes' ) );
+		update_option( 'acme_ca_delete_data', 'yes' );
 		update_option( 'acme_ca_revision', 1 );
 		update_option( 'acme_ca_notices', array( 'seeded' ) );
 		update_network_option( null, 'acme_ca_network_notices', array( 'seeded' ) );
