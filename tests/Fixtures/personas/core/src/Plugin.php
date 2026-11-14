@@ -70,7 +70,7 @@ final class Plugin {
 		'option_prefixes'           => array( self::PREFIX . '_' ),
 		'user_meta_site_prefixes'   => array( self::PREFIX . '_' ),
 		'user_meta_global_prefixes' => array( self::PREFIX . '_' ),
-		'network_options'           => array( self::PREFIX . '_network_notices' ),
+		'network_options'           => array( 'acme_pc_network_notices' ),
 		'cron_hooks'                => array( 'acme_persona_core/migration/run' ),
 		'as_groups'                 => array( self::PREFIX ),
 	);

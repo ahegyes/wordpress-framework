@@ -5,7 +5,7 @@ namespace Acme\PersonaCore;
 \defined( 'ABSPATH' ) || exit;
 
 /**
- * Names the plugin's stored settings and their defaults, and reads them.
+ * Names the plugin's stored settings and their defaults, and reads each setting, guarding the stored value.
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -14,24 +14,37 @@ final class Options {
 	// region FIELDS AND CONSTANTS
 
 	/**
-	 * The option that holds the plugin's settings: the greeting, and 'yes' under delete_data where the site consents to uninstall removing the plugin's data.
+	 * The option that holds 'yes' where the site consents to uninstall removing the plugin's data.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
 	 *
 	 * @var     string
 	 */
-	public const string SETTINGS = Plugin::PREFIX . '_settings';
+	public const string DELETE_DATA = 'acme_pc_delete_data';
 
 	/**
-	 * The settings the plugin stores on its first migration.
+	 * The option that holds the greeting.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
 	 *
-	 * @var     array{greeting: string}
+	 * @var     string
 	 */
-	public const array DEFAULTS = array( 'greeting' => 'Hello' );
+	public const string GREETING = 'acme_pc_greeting';
+
+	/**
+	 * The default of each option, in the form the option stores it.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     array<string, string>
+	 */
+	public const array DEFAULTS = array(
+		self::DELETE_DATA => 'no',
+		self::GREETING    => 'Hello',
+	);
 
 	// endregion
 
@@ -50,17 +63,19 @@ final class Options {
 	// region METHODS
 
 	/**
-	 * Returns the stored greeting, or the default one where none is stored.
+	 * Returns an option as a string, or its default where no string is stored.
 	 *
 	 * @since   1.0.0
 	 * @version 1.0.0
 	 *
+	 * @param   string $key The option's key.
+	 *
 	 * @return  string
 	 */
-	public static function get_greeting(): string {
-		$settings = get_option( self::SETTINGS, self::DEFAULTS );
-
-		return \is_array( $settings ) && \is_string( $settings['greeting'] ?? null ) ? $settings['greeting'] : self::DEFAULTS['greeting'];
+	public static function get_string( string $key ): string {
+		$default = self::DEFAULTS[ $key ] ?? '';
+		$stored  = get_option( $key, $default );
+		return \is_string( $stored ) ? $stored : $default;
 	}
 
 	// endregion
