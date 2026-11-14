@@ -21,7 +21,7 @@ final class Options {
 	 *
 	 * @var     string
 	 */
-	public const string DELETE_DATA = Packing::PREFIX . '_delete_data';
+	public const string DELETE_DATA = 'acme_pw_delete_data';
 
 	// endregion
 

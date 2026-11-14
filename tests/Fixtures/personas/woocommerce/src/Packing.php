@@ -44,7 +44,7 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 	 *
 	 * @var     string
 	 */
-	public const string META_BOX = '_' . self::PREFIX . '_box';
+	public const string META_BOX = '_acme_pw_box';
 
 	/**
 	 * The plugin's stored data by kind: every option under the plugin's prefix, and each product's box.
@@ -74,7 +74,7 @@ final class Packing implements ProductDataTabDefinitionInterface, SectionFieldsD
 		return array(
 			array(
 				'type'  => 'text',
-				'id'    => self::PREFIX . '_default_box',
+				'id'    => 'acme_pw_default_box',
 				'title' => __( 'Default box', 'acme-persona-woocommerce' ),
 			),
 			array(

@@ -177,7 +177,7 @@ final class Details implements ObjectFormDefinitionInterface {
 			'fields'     => array(
 				array(
 					'type'  => 'text',
-					'id'    => '_' . Settings::PREFIX . '_subtitle',
+					'id'    => '_acme_ps_subtitle',
 					'title' => __( 'Subtitle', 'acme-persona-settings' ),
 				),
 			),
