@@ -84,9 +84,12 @@ The updater offers the plugin's GitHub releases through WordPress's own update s
 `Requirements::print_admin_notice()` prints a notice to users who can activate plugins, as `wp_admin_notice()` prints it, so a plugin can report a problem before it boots:
 
 ```php
-function acme_pb_render_notice(): void {
-	Requirements::print_admin_notice( esc_html__( 'Acme Persona Bootstrap is running.', 'acme-persona-bootstrap' ), array( 'type' => 'info' ) );
-}
+add_action(
+	'admin_notices',
+	static function (): void {
+		Requirements::print_admin_notice( esc_html__( 'Acme Persona Bootstrap is running.', 'acme-persona-bootstrap' ), array( 'type' => 'info' ) );
+	}
+);
 ```
 
 ## Contract and versioning
