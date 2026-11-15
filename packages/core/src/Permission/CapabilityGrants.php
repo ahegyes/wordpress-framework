@@ -5,7 +5,9 @@ namespace DeepWebSolutions\Framework\Core\Permission;
 use DeepWebSolutions\Framework\Core\ComponentInterface;
 use DeepWebSolutions\Framework\Core\Logging\GuardedLogger;
 use DeepWebSolutions\Framework\Core\PluginIdentity;
+use DeepWebSolutions\Framework\Core\Storage\OptionRows;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use Psr\Log\LoggerInterface as PsrLoggerInterface;
 
 \defined( 'ABSPATH' ) || exit;
@@ -98,9 +100,26 @@ final class CapabilityGrants implements ComponentInterface {
 		$roles       = wp_roles();
 		$present     = \array_keys( \array_intersect_key( $this->grants, $roles->roles ) );
 		$fingerprint = \md5( (string) wp_json_encode( array( $this->grants, $present ) ) );
-		$row         = $this->get_row();
+		if ( $this->get_row()['fingerprint'] === $fingerprint ) {
+			return;
+		}
+
+		// The request loaded both autoloaded rows once, at its start, and the run writes each back whole, so it reads them as stored; the roles come first, because a run records its pending grants before it makes them.
+		try {
+			$stored = $roles->use_db ? OptionRows::get( $roles->role_key )?->value : null;
+			$row    = self::parse_row( OptionRows::get( $this->ledger_option )?->value );
+		} catch ( RuntimeException $exception ) {
+			$this->logger->warning( 'The roles or ledger row could not be read, so the next request makes the capability changes.', array( 'exception' => $exception ) );
+			return;
+		}
+
 		if ( $row['fingerprint'] === $fingerprint ) {
 			return;
+		}
+
+		if ( \is_array( $stored ) ) {
+			$roles->roles = \array_filter( $stored, 'is_array' );
+			$roles->init_roles();
 		}
 
 		// WP_Roles::add_cap() and remove_cap() change the roles array but not the role objects, so the array holds what the request has stored.
@@ -230,7 +249,7 @@ final class CapabilityGrants implements ComponentInterface {
 	// region HELPERS
 
 	/**
-	 * Returns the stored row, which reads as empty when it is missing or is not a valid version 1 row.
+	 * Returns the request's copy of the stored row.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -238,7 +257,20 @@ final class CapabilityGrants implements ComponentInterface {
 	 * @return  array{fingerprint: string, grants: Pairs, pending: Pairs}
 	 */
 	protected function get_row(): array {
-		$row = get_option( $this->ledger_option );
+		return self::parse_row( get_option( $this->ledger_option ) );
+	}
+
+	/**
+	 * Returns the row that a stored value holds, which reads as empty when the value is missing or is not a valid version 1 row.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @param   mixed $row The stored value.
+	 *
+	 * @return  array{fingerprint: string, grants: Pairs, pending: Pairs}
+	 */
+	protected static function parse_row( mixed $row ): array {
 		if ( ! \is_array( $row ) || 1 !== ( $row['v'] ?? null ) ) {
 			$row = array();
 		}

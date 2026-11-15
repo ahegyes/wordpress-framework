@@ -29,6 +29,14 @@ use Acme\ConsumerA\Scoped\DeepWebSolutions\Framework\Bootstrap\Updater;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * The path of the plugin's main file.
+ *
+ * @api
+ *
+ * @since   1.0.0
+ * @version 1.0.0
+ */
 define( 'ACME_CA_FILE', __FILE__ );
 load_plugin_textdomain( 'acme-consumer-a', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' ); // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- WordPress registers languages/ itself only for plugins it does not network-activate.
 

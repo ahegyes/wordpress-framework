@@ -50,15 +50,15 @@ final class ConsumerASettingsTest extends TestCase {
 	}
 
 	#[DataProvider( 'stored_reports_settings' )]
-	public function test_the_reports_accessor_reads_what_the_reports_gate_reads( ?string $stored, bool $enabled ): void {
+	public function test_the_reports_decision_answers_as_the_reports_gate_does( ?string $stored, bool $available ): void {
 		if ( ! \is_null( $stored ) ) {
 			update_option( 'acme_ca_reports', $stored );
 		}
 		$plugin  = $this->install_consumer( 'consumer-a', 'acme-consumer-a' );
 		$request = $this->consumer_request( 'GET', 'index.php', $this->make_user( 'acme_ca_admin', 'administrator' ), array( 'activate' => $plugin ) );
 
-		self::assertSame( $enabled, $request['records']['reports_enabled'] );
-		self::assertSame( $enabled, $request['records']['reports_page_class'] );
+		self::assertSame( $available, $request['records']['reports_available'] );
+		self::assertSame( $available, $request['records']['reports_page_class'] );
 	}
 
 	#[RunInSeparateProcess]

@@ -26,7 +26,17 @@ final class Exports implements ComponentInterface {
 	 *
 	 * @var     string
 	 */
-	public const string ACTION = Plugin::PREFIX . '_export';
+	protected const string ACTION = 'acme_ca_export';
+
+	/**
+	 * The capability the order count requires, which the export safeguard maps.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @var     string
+	 */
+	protected const string CAPABILITY = 'acme_ca_export_orders';
 
 	// endregion
 
@@ -89,7 +99,7 @@ final class Exports implements ComponentInterface {
 	 */
 	#[\NoDiscard]
 	protected function count_orders(): AbstractResult {
-		if ( ! current_user_can( Plugin::PREFIX . '_export_orders' ) ) {
+		if ( ! current_user_can( self::CAPABILITY ) ) {
 			return Failure::from( ExportError::Locked );
 		}
 

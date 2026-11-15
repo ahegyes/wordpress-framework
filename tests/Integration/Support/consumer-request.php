@@ -131,7 +131,7 @@ add_action(
 			'safeguard_attached'  => $acme_safeguard_priority(),
 			'export_hooked'       => has_action( 'admin_post_acme_ca_export' ),
 			'reports_page_class'  => class_exists( 'Acme\ConsumerA\Reports\ReportsPage', false ),
-			'reports_enabled'     => function_exists( 'acme_ca_is_reports_enabled' ) ? acme_ca_is_reports_enabled() : null,
+			'reports_available'   => function_exists( 'acme_ca_are_reports_available' ) ? acme_ca_are_reports_available() : null,
 			'updater_hooked'      => has_filter( 'update_plugins_github.com' ),
 			'schedules_hooked'    => has_filter( 'cron_schedules' ),
 			'safeguards_loaded'   => class_exists( 'Acme\\ConsumerA\\Safeguards', false ),

@@ -4,6 +4,7 @@ namespace DeepWebSolutions\Framework\Tests\Integration\Core\Permission;
 
 use DeepWebSolutions\Framework\Core\Permission\CapabilityGrants;
 use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
+use DeepWebSolutions\Framework\Shared\Exception\RuntimeException;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesSitesTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\CreatesUsersTrait;
 use DeepWebSolutions\Framework\Tests\Integration\Support\InterceptsQueriesTrait;
@@ -328,6 +329,105 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertSame( array(), $this->ledger() );
 	}
 
+	public function test_a_grant_keeps_a_role_change_another_request_stored_after_this_one_loaded_its_roles(): void {
+		global $wpdb;
+
+		$editor = $this->add_role( 'editor' );
+		$author = $this->add_role( 'author' );
+		$this->next_request();
+		$roles = $this->stored_roles();
+		$roles[ $author ]['capabilities'][ $this->cap( 'b' ) ] = true;
+		$wpdb->update( $wpdb->options, array( 'option_value' => maybe_serialize( $roles ) ), array( 'option_name' => wp_roles()->role_key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Writes past the options cache, as another request does.
+
+		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
+
+		self::assertSame( array( $this->cap( 'b' ) => true ), $this->stored_caps( $author ) );
+		self::assertSame( array( $this->cap( 'a' ) => true ), $this->stored_caps( $editor ) );
+		self::assertTrue( wp_roles()->get_role( $author )?->has_cap( $this->cap( 'b' ) ) );
+		self::assertEquals( array( $editor => array( $this->cap( 'a' ) ) ), $this->ledger() );
+	}
+
+	public function test_a_grant_another_request_made_and_ledgered_after_this_one_loaded_its_options_stays_owned(): void {
+		$editor   = $this->add_role( 'editor' );
+		$declared = array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ) ) );
+		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
+		$this->next_request();
+		$alloptions = wp_cache_get( 'alloptions', 'options' );
+		$roles      = wp_roles()->roles;
+
+		// Another request runs the new declaration, then this one runs it from the options and roles it loaded before.
+		$this->grants( $declared )->run();
+		wp_cache_set( 'alloptions', $alloptions, 'options' );
+		wp_roles()->roles = $roles;
+		wp_roles()->init_roles();
+		$this->grants( $declared )->run();
+		$this->next_request();
+
+		self::assertEquals( $declared, $this->ledger() );
+	}
+
+	public function test_a_pending_grant_another_request_made_after_this_one_loaded_its_options_stays_owned(): void {
+		global $wpdb;
+
+		$editor   = $this->add_role( 'editor' );
+		$declared = array( $editor => array( $this->cap( 'a' ), $this->cap( 'b' ) ) );
+		$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
+		$this->next_request();
+
+		// Another request records its pending grant and makes it just before this run reads the stored rows.
+		$this->before_query(
+			"option_name = '" . wp_roles()->role_key . "'",
+			function () use ( $wpdb, $editor ): void {
+				$ledger = array(
+					'v'           => 1,
+					'fingerprint' => '',
+					'grants'      => array( $editor => array( $this->cap( 'a' ) ) ),
+					'pending'     => array( $editor => array( $this->cap( 'b' ) ) ),
+				);
+				$roles  = $this->stored_roles();
+				$roles[ $editor ]['capabilities'][ $this->cap( 'b' ) ] = true;
+				$wpdb->update( $wpdb->options, array( 'option_value' => maybe_serialize( $ledger ) ), array( 'option_name' => "{$this->prefix}_capabilities" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Writes past the options cache, as another request does.
+				$wpdb->update( $wpdb->options, array( 'option_value' => maybe_serialize( $roles ) ), array( 'option_name' => wp_roles()->role_key ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Writes past the options cache, as another request does.
+			}
+		);
+
+		$this->grants( $declared )->run();
+		$this->next_request();
+
+		self::assertSame(
+			array(
+				$this->cap( 'a' ) => true,
+				$this->cap( 'b' ) => true,
+			),
+			$this->stored_caps( $editor )
+		);
+		self::assertEquals( $declared, $this->ledger() );
+	}
+
+	public function test_a_roles_row_that_cannot_be_read_is_logged_and_leaves_the_grants_to_the_next_request(): void {
+		global $wpdb;
+
+		$editor = $this->add_role( 'editor' );
+		$needle = "option_name = '" . wp_roles()->role_key . "'";
+		$fail   = static fn ( string $query ): string => \str_contains( $query, $needle ) ? 'SELECT acme_missing_column' : $query;
+
+		// The teardown rewrites the roles row, so the failure ends with the run.
+		add_filter( 'query', $fail );
+		$suppressed = $wpdb->suppress_errors();
+		try {
+			$this->grants( array( $editor => array( $this->cap( 'a' ) ) ) )->run();
+		} finally {
+			remove_filter( 'query', $fail );
+			$wpdb->suppress_errors( $suppressed );
+		}
+
+		self::assertFalse( wp_roles()->get_role( $editor )?->has_cap( $this->cap( 'a' ) ) );
+		self::assertFalse( get_option( "{$this->prefix}_capabilities" ) );
+		self::assertCount( 1, $this->logger->records );
+		self::assertSame( array( 'warning', 'The roles or ledger row could not be read, so the next request makes the capability changes.' ), \array_slice( $this->logger->records[0], 0, 2 ) );
+		self::assertInstanceOf( RuntimeException::class, $this->logger->records[0][2]['exception'] ?? null );
+	}
+
 	public function test_a_warning_whose_logger_throws_reaches_the_error_log_without_breaking_the_request(): void {
 		$editor   = $this->add_role( 'editor' );
 		$log_file = (string) \tempnam( \sys_get_temp_dir(), 'acme-log-' );
@@ -351,8 +451,9 @@ final class CapabilityGrantsTest extends TestCase {
 
 		$editor  = $this->add_role( 'editor' );
 		$pending = null;
+		// Only wpdb::update() quotes the column, so the spy runs at the grant's write rather than at the run's read of the roles row.
 		$this->before_query(
-			wp_roles()->role_key,
+			"`option_name` = '" . wp_roles()->role_key . "'",
 			function () use ( $wpdb, &$pending ): void {
 				$raw     = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "{$this->prefix}_capabilities" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
 				$pending = maybe_unserialize( (string) $raw )['pending'] ?? null;

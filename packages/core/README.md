@@ -73,6 +73,14 @@ use Acme\PersonaCore\Scoped\DeepWebSolutions\Framework\Bootstrap\Requirements;
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * The path of the plugin's main file.
+ *
+ * @api
+ *
+ * @since   1.0.0
+ * @version 1.0.0
+ */
 define( 'ACME_PC_FILE', __FILE__ );
 
 $acme_pc_bootstrap = __DIR__ . '/vendor-prefixed/ahegyes/wp-framework-bootstrap/load.php';

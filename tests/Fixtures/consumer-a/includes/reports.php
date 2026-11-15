@@ -1,6 +1,6 @@
 <?php declare( strict_types=1 );
 /**
- * Defines the function through which another plugin reads whether the reports are on.
+ * Defines the function through which another plugin asks whether the reports are available.
  *
  * @since   1.0.0
  * @version 1.0.0
@@ -8,14 +8,14 @@
  * @package Acme\ConsumerA
  */
 
-use Acme\ConsumerA\Options;
+use Acme\ConsumerA\Reports\Reports;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Returns whether the site has switched the reports on.
+ * Returns whether the reports are available on the site.
  *
- * It reads the stored setting through Options, as the reports' gate does, and adds no filter. The gate reads it once, at boot, so a write later in the same request can make the two differ, and neither tells whether the reports loaded.
+ * It answers as the reports' gate does, which the plugin evaluates once, at boot, so a setting written later in the same request can make the two differ. It does not tell whether the plugin booted, which the acme_consumer_a/boot/succeeded action announces.
  *
  * @api
  *
@@ -24,6 +24,6 @@ defined( 'ABSPATH' ) || exit;
  *
  * @return  bool
  */
-function acme_ca_is_reports_enabled(): bool {
-	return Options::get_bool( Options::REPORTS );
+function acme_ca_are_reports_available(): bool {
+	return Reports::should_load();
 }
