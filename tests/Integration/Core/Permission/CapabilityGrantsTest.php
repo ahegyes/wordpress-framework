@@ -424,7 +424,7 @@ final class CapabilityGrantsTest extends TestCase {
 		self::assertFalse( wp_roles()->get_role( $editor )?->has_cap( $this->cap( 'a' ) ) );
 		self::assertFalse( get_option( "{$this->prefix}_capabilities" ) );
 		self::assertCount( 1, $this->logger->records );
-		self::assertSame( array( 'warning', 'The roles row could not be read, so the next request makes the capability changes.' ), \array_slice( $this->logger->records[0], 0, 2 ) );
+		self::assertSame( array( 'warning', 'The roles or ledger row could not be read, so the next request makes the capability changes.' ), \array_slice( $this->logger->records[0], 0, 2 ) );
 		self::assertInstanceOf( RuntimeException::class, $this->logger->records[0][2]['exception'] ?? null );
 	}
 
@@ -451,8 +451,9 @@ final class CapabilityGrantsTest extends TestCase {
 
 		$editor  = $this->add_role( 'editor' );
 		$pending = null;
+		// Only wpdb::update() quotes the column, so the spy runs at the grant's write rather than at the run's read of the roles row.
 		$this->before_query(
-			wp_roles()->role_key,
+			"`option_name` = '" . wp_roles()->role_key . "'",
 			function () use ( $wpdb, &$pending ): void {
 				$raw     = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, "{$this->prefix}_capabilities" ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Reads past the options cache.
 				$pending = maybe_unserialize( (string) $raw )['pending'] ?? null;
