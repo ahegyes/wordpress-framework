@@ -497,7 +497,7 @@ final class SettingsTest extends TestCase {
 		self::assertSame( "Customer's <b>widget</b>", \trim( (string) $row->querySelector( 'th.titledesc label' )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( "{$this->prefix}_widget", $row->querySelector( 'th.titledesc label' )?->getAttribute( 'for' ) );
 		self::assertNotNull( $row->querySelector( "td.forminp input.acme-widget#{$this->prefix}_widget" ) );
-		self::assertSame( array( array( 'render', "{$this->prefix}_widget", 'stored', "{$this->prefix}_widget", "{$this->prefix}_widget" ) ), $opened['records'] );
+		self::assertSame( array( array( 'render', "{$this->prefix}_widget", 'stored', "{$this->prefix}_widget", "{$this->prefix}_widget", false ) ), $opened['records'] );
 	}
 
 	public function test_a_custom_type_field_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {

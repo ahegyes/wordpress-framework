@@ -203,7 +203,7 @@ final class ProductDataTabTest extends TestCase {
 		$row = $screen->querySelector( "p.form-field._{$this->prefix}_widget_field" );
 		self::assertSame( 'Widget', \trim( (string) $row?->querySelector( "label[for=\"_{$this->prefix}_widget\"]" )?->textContent ) ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
 		self::assertSame( 'stored', $row?->querySelector( 'input.acme-widget' )?->getAttribute( 'value' ) );
-		self::assertSame( array( array( 'render', "_{$this->prefix}_widget", 'stored', "_{$this->prefix}_widget", "_{$this->prefix}_widget" ) ), $request['records'] );
+		self::assertSame( array( array( 'render', "_{$this->prefix}_widget", 'stored', "_{$this->prefix}_widget", "_{$this->prefix}_widget", true ) ), $request['records'] );
 	}
 
 	public function test_a_custom_type_field_label_points_at_its_control_when_the_field_id_holds_an_entity(): void {
