@@ -23,7 +23,7 @@ use Psr\Log\LoggerInterface as PsrLoggerInterface;
 /**
  * Brings a plugin's stored data to the revision its code expects, running the pending migration steps in order under a database lock.
  *
- * Plain steps run on wp_loaded of any request, while batched steps run only from the runner's own scheduled hook, so no visitor waits for bulk work. A plugin runs one runner, since the plugin's slug names that hook.
+ * Plain steps run on wp_loaded of any request, while batched steps run only from the runner's own scheduled hook, in a request where the boot/succeeded action under its identity's hook root has fired, as PluginBoot fires it after a successful composition, so no visitor waits for bulk work. A plugin runs one runner, since the plugin's slug names the scheduled hook.
  *
  * @since   2.0.0
  * @version 2.0.0
@@ -179,7 +179,7 @@ final class MigrationRunner implements ComponentInterface {
 	// region HOOKS
 
 	/**
-	 * Runs the pending steps under the lock, pausing at a batched step outside the runner's hook or once the request's budget is spent.
+	 * Runs the pending steps under the lock, pausing at a batched step outside the runner's hook or before the plugin has booted, or once the request's budget is spent.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -195,10 +195,18 @@ final class MigrationRunner implements ComponentInterface {
 			return;
 		}
 
-		// Outside the hook a pending batched step only schedules the hook and takes no lock, and a stale cached revision at worst leaves plain steps to the hook, which runs them too.
-		if ( ! doing_action( $this->get_hook() ) && ( $this->steps[ $cached ] ?? null ) instanceof BatchedMigrationStepInterface ) {
-			$this->schedule_continuation();
-			return;
+		// Until the plugin boots a batched step waits unscheduled, since a failed boot can leave the code it reads through unloaded, and the first request that boots schedules it.
+		$booted = 0 < did_action( "{$this->identity->hook_root}/boot/succeeded" );
+		if ( ( $this->steps[ $cached ] ?? null ) instanceof BatchedMigrationStepInterface ) {
+			if ( ! $booted ) {
+				return;
+			}
+
+			// Outside the hook a pending batched step only schedules the hook and takes no lock, and a stale cached revision at worst leaves plain steps to the hook, which runs them too.
+			if ( ! doing_action( $this->get_hook() ) ) {
+				$this->schedule_continuation();
+				return;
+			}
 		}
 
 		try {
@@ -271,7 +279,12 @@ final class MigrationRunner implements ComponentInterface {
 					return;
 				}
 
-				$step         = $this->steps[ $revision ];
+				$step = $this->steps[ $revision ];
+				if ( $step instanceof BatchedMigrationStepInterface && ! $booted ) {
+					$this->release_lock();
+					return;
+				}
+
 				$memory_limit = wp_convert_hr_to_bytes( (string) \ini_get( 'memory_limit' ) );
 				$spent        = ! \is_null( $this->deadline ) && ( $this->get_time() >= $this->deadline || ( 0 < $memory_limit && \memory_get_usage( true ) > 0.9 * $memory_limit ) );
 				if ( $spent || ( $step instanceof BatchedMigrationStepInterface && ! doing_action( $this->get_hook() ) ) ) {
