@@ -694,6 +694,44 @@ final class MigrationRunnerTest extends TestCase {
 		self::assertNull( $this->get_lock() );
 	}
 
+	public function test_before_the_boot_a_request_runs_plain_steps_but_schedules_no_batched_step_until_a_request_boots(): void {
+		$batches = new RecordedBatches( 3 );
+		$steps   = array( $this->step( 1 ), $batches );
+		unset( $GLOBALS['wp_actions'][ "$this->hook_root/boot/succeeded" ] );
+
+		$this->load_wordpress( $this->make_runner( $steps ) );
+		$this->load_wordpress( $this->make_runner( $steps ) );
+		$before_the_boot = $this->count_pending_runs();
+		do_action( "$this->hook_root/boot/succeeded" );
+		$this->load_wordpress( $this->make_runner( $steps ) );
+
+		self::assertSame( array( array( 1, 0 ) ), $this->ran );
+		self::assertSame( 0, $before_the_boot );
+		self::assertSame( 0, $batches->processed );
+		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
+		self::assertSame( 1, $this->count_pending_runs() );
+		self::assertNull( $this->get_lock() );
+		self::assertFalse( get_option( "{$this->option}_error" ) );
+	}
+
+	public function test_before_the_boot_the_runner_hook_runs_plain_steps_and_leaves_a_batched_step_pending_without_the_lock_or_an_error(): void {
+		$batches = new RecordedBatches( 3 );
+		$this->make_runner( array( $this->step( 1 ), $batches ) )->register_hooks();
+		unset( $GLOBALS['wp_actions'][ "$this->hook_root/boot/succeeded" ] );
+
+		do_action( "$this->hook_root/migration/run" );
+		$this->record_option_writes();
+		do_action( "$this->hook_root/migration/run" );
+
+		self::assertSame( array( array( 1, 0 ) ), $this->ran );
+		self::assertSame( 0, $batches->processed );
+		self::assertSame( 1, MigrationRunner::get_revision( $this->option ) );
+		self::assertSame( array(), $this->writes );
+		self::assertSame( 0, $this->count_pending_runs() );
+		self::assertNull( $this->get_lock() );
+		self::assertFalse( get_option( "{$this->option}_error" ) );
+	}
+
 	public function test_a_request_outside_the_runner_hook_adds_nothing_while_the_hook_runs_elsewhere(): void {
 		as_enqueue_async_action( "$this->hook_root/migration/run", array(), $this->identity->prefix );
 		$running = as_get_scheduled_actions(

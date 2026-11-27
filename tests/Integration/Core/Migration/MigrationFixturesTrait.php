@@ -21,6 +21,9 @@ trait MigrationFixturesTrait {
 		$this->identity  = new PluginIdentity( \dirname( __DIR__, 3 ) . '/Fixtures/Core/acme-boot.php', "acme-runner-$suffix", "acme_db_$suffix" );
 		$this->option    = "acme_db_{$suffix}_revision";
 		$this->hook_root = "acme_runner_$suffix";
+
+		// The runner runs a batched step only once its plugin has booted.
+		do_action( "$this->hook_root/boot/succeeded" );
 	}
 
 	#[After]
