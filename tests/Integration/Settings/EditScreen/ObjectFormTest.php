@@ -21,6 +21,33 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+final class ParagraphRowsHost implements ObjectFormHostInterface {
+	public array $rows = array();
+
+	#[\Override]
+	public function register_hooks( ObjectForm $form ): void {}
+
+	#[\Override]
+	public function get_object_capability(): string {
+		return 'edit_post';
+	}
+
+	#[\Override]
+	public function get_default_store(): ObjectStoreInterface {
+		return new MetadataStore( 'post' );
+	}
+
+	#[\Override]
+	public function has_paragraph_rows(): bool {
+		return true;
+	}
+
+	#[\Override]
+	public function render_rows( string $title, array $rows ): void {
+		$this->rows = $rows;
+	}
+}
+
 #[CoversClass( ObjectForm::class )]
 final class ObjectFormTest extends TestCase {
 	use CreatesUsersTrait;
@@ -228,6 +255,11 @@ final class ObjectFormTest extends TestCase {
 			}
 
 			#[\Override]
+			public function has_paragraph_rows(): bool {
+				return false;
+			}
+
+			#[\Override]
 			public function render_rows( string $title, array $rows ): void {}
 		};
 		$form = $this->form( $host );
@@ -237,6 +269,53 @@ final class ObjectFormTest extends TestCase {
 		$this->expectException( LogicException::class );
 
 		new ObjectForm( $this->identity, "{$this->prefix}_other", new RecordedDefinition( static fn (): array => array() ), $host, new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) ) )->register_hooks();
+	}
+
+	public function test_a_host_with_paragraph_rows_names_each_group_itself_and_holds_each_control_in_its_paragraph(): void {
+		wp_set_current_user( $this->author_id );
+		$host = new ParagraphRowsHost();
+		$form = new ObjectForm(
+			$this->identity,
+			"{$this->prefix}_details",
+			new RecordedDefinition(
+				fn (): array => array(
+					'title'      => 'Details',
+					'capability' => 'edit_posts',
+					'fields'     => array(
+						array(
+							'type'    => 'checkboxes',
+							'id'      => "_{$this->prefix}_methods",
+							'title'   => 'Methods',
+							'desc'    => 'Pick.',
+							'options' => array(
+								'a' => 'A',
+								'b' => 'B',
+							),
+						),
+						array(
+							'type'  => 'text',
+							'id'    => "_{$this->prefix}_note",
+							'title' => 'Note',
+							'desc'  => 'Shown.',
+						),
+					),
+				)
+			),
+			$host,
+			new AdminNotices( $this->identity, new ErrorLogLogger( $this->identity ) )
+		);
+
+		\ob_start();
+		$form->render( $this->post_id );
+		\ob_end_clean();
+		$group = \Dom\HTMLDocument::createFromString( "<fieldset class=\"form-field\"><legend>{$host->rows[0]['title']}</legend>{$host->rows[0]['control']}</fieldset>", \LIBXML_NOERROR );
+		$field = \Dom\HTMLDocument::createFromString( "<p class=\"form-field\"><label>{$host->rows[1]['title']}</label>{$host->rows[1]['control']}</p>", \LIBXML_NOERROR );
+
+		self::assertSame( 'Methods', $host->rows[0]['title'] );
+		self::assertCount( 1, $group->querySelectorAll( 'legend' ) );
+		self::assertCount( 2, $group->querySelectorAll( 'fieldset > label > input[type="checkbox"]' ) );
+		self::assertSame( 1, $field->body?->childElementCount ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertNotNull( $field->querySelector( 'p.form-field > span.description' ) );
 	}
 
 	protected function form( ObjectFormHostInterface $host, string $capability = 'edit_posts' ): ObjectForm {

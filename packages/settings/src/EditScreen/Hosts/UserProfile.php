@@ -79,6 +79,17 @@ final class UserProfile implements ObjectFormHostInterface {
 	 * @version 2.0.0
 	 */
 	#[\Override]
+	public function has_paragraph_rows(): bool {
+		return false;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
 	public function render_rows( string $title, array $rows ): void {
 		FormTable::render_rows( $title, $rows );
 	}

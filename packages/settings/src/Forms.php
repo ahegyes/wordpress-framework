@@ -14,7 +14,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  * @since   2.0.0
  * @version 2.0.0
  *
- * @phpstan-type Field array{type: string, id?: string, title?: string, desc?: string, desc_tip?: bool|string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, css?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): (scalar|array<mixed>|\WP_Error|null), render?: callable(array<string, mixed>, mixed, string, string): string}
+ * @phpstan-type Field array{type: string, id?: string, title?: string, desc?: string, desc_tip?: bool|string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, css?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): (scalar|array<mixed>|\WP_Error|null), render?: callable(array<string, mixed>, mixed, string, string, bool): string}
  * @phpstan-type FieldRow array{field: Field&array{id: string, title: string}, value: mixed, name: string, id: string, label_for?: string}
  */
 final class Forms {
@@ -69,29 +69,30 @@ final class Forms {
 	/**
 	 * Returns the escaped markup of the field's control, without its row label.
 	 *
-	 * A group, as is_group() tells, renders in a fieldset its title names, or in its host's fieldset when it has no title. A field with a render callable renders through it, and the callable escapes, names and describes its control, prints its id through escape_attribute() as the row label does, and wraps a group the same way. Unless the field is disabled, the callable also prints a hidden empty input before its control, so that a field absent from a submission reads as unrendered or disabled.
+	 * A group, as is_group() tells, renders in a fieldset its title names, or in its host's fieldset when it has no title. Phrasing content, for a host that prints a row's label and control in one paragraph and a group in a fieldset of its own, leaves a group's fieldset to its host whatever the group's title, and puts help in spans. A field with a render callable renders through it, and the callable receives the phrasing flag as its fifth argument, escapes, names and describes its control, prints its id through escape_attribute() as the row label does, and wraps a group the same way. Unless the field is disabled, the callable also prints a hidden empty input before its control, so that a field absent from a submission reads as unrendered or disabled.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   Field  $field The field.
-	 * @param   mixed  $value The stored value.
-	 * @param   string $name  The name the control posts under.
-	 * @param   string $id    The control's HTML id, which also prefixes the ids of its choices and help.
+	 * @param   Field  $field    The field.
+	 * @param   mixed  $value    The stored value.
+	 * @param   string $name     The name the control posts under.
+	 * @param   string $id       The control's HTML id, which also prefixes the ids of its choices and help.
+	 * @param   bool   $phrasing Optional. Whether the control renders as phrasing content. Default is false.
 	 *
 	 * @return  string
 	 */
-	public static function render_control( array $field, mixed $value, string $name, string $id ): string {
+	public static function render_control( array $field, mixed $value, string $name, string $id, bool $phrasing = false ): string {
 		if ( isset( $field['render'] ) ) {
-			return $field['render']( $field, $value, $name, $id );
+			return $field['render']( $field, $value, $name, $id, $phrasing );
 		}
 
 		return match ( $field['type'] ) {
-			'text', 'number', 'email', 'url' => self::render_input( $field, $value, $name, $id ),
-			'textarea'                       => self::render_textarea( $field, $value, $name, $id ),
-			'checkbox'                       => self::render_checkbox( $field, $value, $name, $id ),
-			'select', 'multiselect'          => self::render_select( $field, $value, $name, $id ),
-			'radio', 'checkboxes'            => self::render_choices( $field, $value, $name, $id ),
+			'text', 'number', 'email', 'url' => self::render_input( $field, $value, $name, $id, $phrasing ),
+			'textarea'                       => self::render_textarea( $field, $value, $name, $id, $phrasing ),
+			'checkbox'                       => self::render_checkbox( $field, $value, $name, $id, $phrasing ),
+			'select', 'multiselect'          => self::render_select( $field, $value, $name, $id, $phrasing ),
+			'radio', 'checkboxes'            => self::render_choices( $field, $value, $name, $id, $phrasing ),
 			default                          => '',
 		};
 	}
@@ -326,14 +327,15 @@ final class Forms {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   Field  $field The field.
-	 * @param   mixed  $value The stored value.
-	 * @param   string $name  The name the control posts under.
-	 * @param   string $id    The control's HTML id.
+	 * @param   Field  $field    The field.
+	 * @param   mixed  $value    The stored value.
+	 * @param   string $name     The name the control posts under.
+	 * @param   string $id       The control's HTML id.
+	 * @param   bool   $phrasing Whether the control renders as phrasing content.
 	 *
 	 * @return  string
 	 */
-	protected static function render_input( array $field, mixed $value, string $name, string $id ): string {
+	protected static function render_input( array $field, mixed $value, string $name, string $id, bool $phrasing ): string {
 		$help   = self::get_help( $field, $id );
 		$custom = self::get_custom_attributes( $field ) + ( self::DEFAULT_CUSTOM_ATTRIBUTES[ $field['type'] ] ?? array() );
 
@@ -349,7 +351,7 @@ final class Forms {
 			'aria-describedby' => self::get_described_by( $help ),
 		);
 
-		return '<input' . self::render_attributes( $attributes, $custom ) . ' />' . self::render_help( $help );
+		return '<input' . self::render_attributes( $attributes, $custom ) . ' />' . self::render_help( $help, $phrasing );
 	}
 
 	/**
@@ -358,14 +360,15 @@ final class Forms {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   Field  $field The field.
-	 * @param   mixed  $value The stored value.
-	 * @param   string $name  The name the control posts under.
-	 * @param   string $id    The control's HTML id.
+	 * @param   Field  $field    The field.
+	 * @param   mixed  $value    The stored value.
+	 * @param   string $name     The name the control posts under.
+	 * @param   string $id       The control's HTML id.
+	 * @param   bool   $phrasing Whether the control renders as phrasing content.
 	 *
 	 * @return  string
 	 */
-	protected static function render_textarea( array $field, mixed $value, string $name, string $id ): string {
+	protected static function render_textarea( array $field, mixed $value, string $name, string $id, bool $phrasing ): string {
 		$help       = self::get_help( $field, $id );
 		$attributes = array(
 			'id'               => $id,
@@ -378,7 +381,7 @@ final class Forms {
 		);
 
 		// HTML parsing drops a newline right after the opening tag, so one is printed for it to drop instead of the value's own.
-		return '<textarea' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . ">\n" . esc_textarea( self::to_string( $value ) ) . '</textarea>' . self::render_help( $help );
+		return '<textarea' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . ">\n" . esc_textarea( self::to_string( $value ) ) . '</textarea>' . self::render_help( $help, $phrasing );
 	}
 
 	/**
@@ -387,14 +390,15 @@ final class Forms {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   Field  $field The field.
-	 * @param   mixed  $value The stored value.
-	 * @param   string $name  The name the control posts under.
-	 * @param   string $id    The control's HTML id.
+	 * @param   Field  $field    The field.
+	 * @param   mixed  $value    The stored value.
+	 * @param   string $name     The name the control posts under.
+	 * @param   string $id       The control's HTML id.
+	 * @param   bool   $phrasing Whether the control renders as phrasing content.
 	 *
 	 * @return  string
 	 */
-	protected static function render_checkbox( array $field, mixed $value, string $name, string $id ): string {
+	protected static function render_checkbox( array $field, mixed $value, string $name, string $id, bool $phrasing ): string {
 		$help       = self::get_help( $field, $id );
 		$disabled   = self::is_disabled( $field );
 		$attributes = array(
@@ -411,10 +415,15 @@ final class Forms {
 		$control    = ( $disabled ? '' : self::render_hidden_input( $name, 'no' ) ) . '<input' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . ' />';
 
 		if ( '' === ( $field['desc'] ?? '' ) ) {
-			return $control . self::render_help( $help );
+			return $control . self::render_help( $help, $phrasing );
 		}
 
-		return '<fieldset>' . self::render_legend( $field ) . '<label' . self::render_attributes( array( 'for' => $id ) ) . '>' . $control . ' ' . wp_kses_post( $field['desc'] ) . '</label>' . self::render_help( $help ) . '</fieldset>';
+		$labeled = '<label' . self::render_attributes( array( 'for' => $id ) ) . '>' . $control . ' ' . wp_kses_post( $field['desc'] ) . '</label>' . self::render_help( $help, $phrasing );
+		if ( $phrasing || '' === ( $field['title'] ?? '' ) ) {
+			return $labeled;
+		}
+
+		return '<fieldset>' . self::render_legend( $field ) . $labeled . '</fieldset>';
 	}
 
 	/**
@@ -423,14 +432,15 @@ final class Forms {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   Field  $field The field.
-	 * @param   mixed  $value The stored value.
-	 * @param   string $name  The name the control posts under.
-	 * @param   string $id    The control's HTML id.
+	 * @param   Field  $field    The field.
+	 * @param   mixed  $value    The stored value.
+	 * @param   string $name     The name the control posts under.
+	 * @param   string $id       The control's HTML id.
+	 * @param   bool   $phrasing Whether the control renders as phrasing content.
 	 *
 	 * @return  string
 	 */
-	protected static function render_select( array $field, mixed $value, string $name, string $id ): string {
+	protected static function render_select( array $field, mixed $value, string $name, string $id, bool $phrasing ): string {
 		$help     = self::get_help( $field, $id );
 		$multiple = 'multiselect' === $field['type'];
 		$disabled = self::is_disabled( $field );
@@ -456,7 +466,7 @@ final class Forms {
 			'aria-describedby' => self::get_described_by( $help ),
 		);
 
-		return ( $multiple && ! $disabled ? self::render_hidden_input( $name, '' ) : '' ) . '<select' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . '>' . $options . '</select>' . self::render_help( $help );
+		return ( $multiple && ! $disabled ? self::render_hidden_input( $name, '' ) : '' ) . '<select' . self::render_attributes( $attributes, self::get_custom_attributes( $field ) ) . '>' . $options . '</select>' . self::render_help( $help, $phrasing );
 	}
 
 	/**
@@ -465,20 +475,21 @@ final class Forms {
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   Field  $field The field.
-	 * @param   mixed  $value The stored value.
-	 * @param   string $name  The name the group posts under.
-	 * @param   string $id    The HTML id that prefixes the choice and help ids.
+	 * @param   Field  $field    The field.
+	 * @param   mixed  $value    The stored value.
+	 * @param   string $name     The name the group posts under.
+	 * @param   string $id       The HTML id that prefixes the choice and help ids.
+	 * @param   bool   $phrasing Whether the group renders as phrasing content.
 	 *
 	 * @return  string
 	 */
-	protected static function render_choices( array $field, mixed $value, string $name, string $id ): string {
+	protected static function render_choices( array $field, mixed $value, string $name, string $id, bool $phrasing ): string {
 		$help     = self::get_help( $field, $id );
 		$multiple = 'checkboxes' === $field['type'];
 		$disabled = self::is_disabled( $field );
 		$chosen   = self::get_chosen( $value, $multiple );
 		$custom   = self::get_custom_attributes( $field );
-		$untitled = '' === ( $field['title'] ?? '' );
+		$hosted   = $phrasing || '' === ( $field['title'] ?? '' );
 
 		$choices = $multiple && ! $disabled ? self::render_hidden_input( $name, '' ) : '';
 		$index   = 0;
@@ -492,21 +503,21 @@ final class Forms {
 				'style'            => $field['css'] ?? null,
 				'checked'          => \in_array( (string) $key, $chosen, true ),
 				'disabled'         => $disabled || self::is_disabled_choice( $field, $key ),
-				'aria-describedby' => $untitled ? self::get_described_by( $help ) : null,
+				'aria-describedby' => $hosted ? self::get_described_by( $help ) : null,
 			);
 			$choices   .= '<label' . self::render_attributes( array( 'for' => "$id.$index" ) ) . '><input' . self::render_attributes( $attributes, $custom ) . ' /> ' . esc_html( $label ) . '</label><br />';
 			++$index;
 		}
 
-		if ( $untitled ) { // A host that names the group in a fieldset of its own passes no title.
-			return $choices . self::render_help( $help );
+		if ( $hosted ) { // A host that names the group in a fieldset of its own passes no title or the phrasing flag.
+			return $choices . self::render_help( $help, $phrasing );
 		}
 
-		return '<fieldset' . self::render_attributes( array( 'aria-describedby' => self::get_described_by( $help ) ) ) . '>' . self::render_legend( $field ) . $choices . self::render_help( $help ) . '</fieldset>';
+		return '<fieldset' . self::render_attributes( array( 'aria-describedby' => self::get_described_by( $help ) ) ) . '>' . self::render_legend( $field ) . $choices . self::render_help( $help, $phrasing ) . '</fieldset>';
 	}
 
 	/**
-	 * Returns the screen-reader legend that names a fieldset by the field's title, or nothing when the field has no title.
+	 * Returns the screen-reader legend that names a fieldset by the field's title.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
@@ -516,26 +527,31 @@ final class Forms {
 	 * @return  string
 	 */
 	protected static function render_legend( array $field ): string {
-		return '' === ( $field['title'] ?? '' ) ? '' : '<legend class="screen-reader-text"><span>' . esc_html( $field['title'] ) . '</span></legend>';
+		return '<legend class="screen-reader-text"><span>' . esc_html( $field['title'] ?? '' ) . '</span></legend>';
 	}
 
 	/**
 	 * Returns the markup of the help texts.
 	 *
-	 * A text sits in a paragraph, which WordPress's admin styles as a description, unless it holds an element that ends a paragraph, which would end it before that element and leave the element the control names empty, so such a text sits in a div.
+	 * A text sits in a paragraph, which WordPress's admin styles as a description, unless it holds an element that ends a paragraph, which would end it before that element and leave the element the control names empty, so such a text sits in a div. Phrasing content takes its texts in spans instead, since a paragraph holds no other element.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0
 	 *
-	 * @param   array<string, string> $help The help texts, keyed by their ids.
+	 * @param   array<string, string> $help     The help texts, keyed by their ids.
+	 * @param   bool                  $phrasing Whether the control renders as phrasing content.
 	 *
 	 * @return  string
 	 */
-	protected static function render_help( array $help ): string {
+	protected static function render_help( array $help, bool $phrasing ): string {
 		$html = '';
 		foreach ( $help as $help_id => $text ) {
-			$text  = wp_kses_post( $text );
-			$tag   = 1 === \preg_match( '#<(?:address|article|aside|blockquote|details|dialog|div|dl|fieldset|figcaption|figure|footer|form|h[1-6]|header|hgroup|hr|main|menu|nav|ol|p|pre|search|section|table|ul)\b#i', $text ) ? 'div' : 'p';
+			$text = wp_kses_post( $text );
+			$tag  = 'span';
+			if ( ! $phrasing ) {
+				$tag = 1 === \preg_match( '#<(?:address|article|aside|blockquote|details|dialog|div|dl|fieldset|figcaption|figure|footer|form|h[1-6]|header|hgroup|hr|main|menu|nav|ol|p|pre|search|section|table|ul)\b#i', $text ) ? 'div' : 'p';
+			}
+
 			$html .= "<$tag" . self::render_attributes(
 				array(
 					'class' => 'description',

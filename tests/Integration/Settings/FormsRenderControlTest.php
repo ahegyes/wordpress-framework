@@ -369,6 +369,60 @@ final class FormsRenderControlTest extends TestCase {
 		}
 	}
 
+	public function test_a_checkbox_with_a_desc_and_no_title_prints_no_fieldset_and_links_its_help(): void {
+		$document = self::render(
+			'checkbox',
+			array(
+				'desc'     => 'Log every request.',
+				'desc_tip' => 'Logs grow fast.',
+			)
+		);
+
+		self::assertNull( $document->querySelector( 'fieldset' ) );
+		self::assertSame( 'Log every request.', \trim( self::text( $document->querySelector( 'label[for="acme.key"]' ) ) ) );
+		self::assertSame( array( 'Logs grow fast.' ), self::descriptions( $document, $document->getElementById( 'acme.key' ) ) );
+	}
+
+	public static function phrasing_controls(): array {
+		return array(
+			'text'               => array( 'text', array() ),
+			'textarea'           => array( 'textarea', array() ),
+			'select'             => array( 'select', array( 'options' => array( 'a' => 'A' ) ) ),
+			'multiselect'        => array( 'multiselect', array( 'options' => array( 'a' => 'A' ) ) ),
+			'checkbox'           => array( 'checkbox', array() ),
+			'checkbox-with-desc' => array( 'checkbox', array( 'desc' => 'Log every request.' ) ),
+			'radio'              => array( 'radio', array( 'options' => array( 'a' => 'A' ) ) ),
+			'checkboxes'         => array( 'checkboxes', array( 'options' => array( 'a' => 'A' ) ) ),
+			'titled-checkbox'    => array(
+				'checkbox',
+				array(
+					'title' => 'Logging',
+					'desc'  => 'Log every request.',
+				),
+			),
+			'titled-radio'       => array(
+				'radio',
+				array(
+					'title'   => 'Mode',
+					'options' => array( 'a' => 'A' ),
+				),
+			),
+		);
+	}
+
+	#[DataProvider( 'phrasing_controls' )]
+	public function test_a_control_in_a_paragraph_stays_inside_it_with_its_help_in_a_span( string $type, array $keys ): void {
+		$field    = array(
+			'type'     => $type,
+			'desc_tip' => 'Logs grow fast.',
+		) + $keys;
+		$control  = Forms::render_control( $field, '', 'acme_key', 'acme.key', true );
+		$document = \Dom\HTMLDocument::createFromString( "<p class=\"form-field\">$control</p>", \LIBXML_NOERROR );
+
+		self::assertSame( 1, $document->body?->childElementCount ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- A DOM property.
+		self::assertTrue( $document->getElementById( 'acme.key.help' )?->matches( 'p.form-field > span.description' ) );
+	}
+
 	public static function disabled_fields(): array {
 		return array(
 			'checkbox-top-level'           => array( 'checkbox', array( 'disabled' => true ) ),
@@ -551,6 +605,22 @@ final class FormsRenderControlTest extends TestCase {
 
 		self::assertSame( '<input type="color" id="acme.key">', Forms::render_control( $field, '#fff', 'acme_color', 'acme.key' ) );
 		self::assertSame( array( array( 'acme_color', '#fff', 'acme_color', 'acme.key' ) ), $calls );
+	}
+
+	public function test_a_render_callable_receives_whether_its_control_sits_in_a_paragraph(): void {
+		$received = array();
+		$field    = array(
+			'type'   => 'acme_color',
+			'render' => static function ( array $field, mixed $value, string $name, string $id, bool $phrasing = false ) use ( &$received ): string {
+				$received[] = $phrasing;
+				return '';
+			},
+		);
+
+		Forms::render_control( $field, '#fff', 'acme_color', 'acme.key' );
+		Forms::render_control( $field, '#fff', 'acme_color', 'acme.key', true );
+
+		self::assertSame( array( false, true ), $received );
 	}
 
 	public function test_an_unknown_type_without_render_prints_nothing(): void {

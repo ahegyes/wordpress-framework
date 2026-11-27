@@ -45,8 +45,8 @@ final class RecordedDefinition implements OptionsPageDefinitionInterface, Object
 		foreach ( $fields as &$field ) {
 			$field_id = $field['id'] ?? '';
 			if ( 'acme:render' === ( $field['render'] ?? null ) ) {
-				$field['render'] = static function ( array $field, mixed $value, string $name, string $id ) use ( $field_id ): string {
-					$GLOBALS['acme_outcome']['records'][] = array( 'render', $field_id, $value, $name, $id );
+				$field['render'] = static function ( array $field, mixed $value, string $name, string $id, bool $phrasing = false ) use ( $field_id ): string {
+					$GLOBALS['acme_outcome']['records'][] = array( 'render', $field_id, $value, $name, $id, $phrasing );
 
 					return '<input type="hidden" name="' . esc_attr( $name ) . '" value="" /><input type="text" class="acme-widget" id="' . Forms::escape_attribute( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( \is_string( $value ) ? $value : '' ) . '" />';
 				};

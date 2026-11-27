@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schemas.wp.org/trunk/wp-env.json",
-	"core": "WordPress/WordPress#tags/6.3.14",
+	"core": "WordPress/WordPress#tags/6.3.15",
 	"phpVersion": "7.4",
 	"port": 8803,
 	"testsEnvironment": false,

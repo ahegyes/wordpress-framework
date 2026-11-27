@@ -100,6 +100,17 @@ final class PostMetaBox implements ObjectFormHostInterface {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 */
+	#[\Override]
+	public function has_paragraph_rows(): bool {
+		return false;
+	}
+
+	/**
 	 * Prints the form's rows stacked, a group's title as plain text, and needs no hosted form, so another host can print through it.
 	 *
 	 * @since   2.0.0

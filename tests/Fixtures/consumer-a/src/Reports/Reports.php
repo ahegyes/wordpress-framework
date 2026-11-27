@@ -49,4 +49,20 @@ final class Reports implements CompositeComponentInterface, ConditionalComponent
 	public function register_hooks(): void {}
 
 	// endregion
+
+	// region METHODS
+
+	/**
+	 * Returns whether the reports are available, which they are once the plugin has booted on a site that switches them on.
+	 *
+	 * @since   1.0.0
+	 * @version 1.0.0
+	 *
+	 * @return  bool
+	 */
+	public static function are_available(): bool {
+		return 0 < did_action( 'acme_consumer_a/boot/succeeded' ) && self::should_load();
+	}
+
+	// endregion
 }

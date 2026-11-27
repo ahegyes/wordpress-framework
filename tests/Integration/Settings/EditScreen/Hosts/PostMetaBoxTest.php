@@ -254,7 +254,7 @@ final class PostMetaBoxTest extends TestCase {
 		$request = $this->edit_screen( $spec, $post_id );
 		$box     = $this->box( self::document( $request['body'] ) );
 
-		self::assertContains( array( 'render', "_{$this->prefix}_widget", 'stored', "{$this->id}[_{$this->prefix}_widget]", "$this->id._{$this->prefix}_widget" ), $request['records'] );
+		self::assertContains( array( 'render', "_{$this->prefix}_widget", 'stored', "{$this->id}[_{$this->prefix}_widget]", "$this->id._{$this->prefix}_widget", false ), $request['records'] );
 		self::assertNotNull( $box->querySelector( "label[for=\"$this->id._{$this->prefix}_widget\"]" ) );
 		self::assertNotNull( $box->querySelector( "input.acme-widget[id=\"$this->id._{$this->prefix}_widget\"]" ) );
 	}
