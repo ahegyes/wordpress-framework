@@ -48,9 +48,19 @@ interface ObjectFormHostInterface {
 	public function get_default_store(): ObjectStoreInterface;
 
 	/**
+	 * Returns whether the host prints a row's label and control in one paragraph and names a group in a fieldset of its own, so that the form renders every control as phrasing content.
+	 *
+	 * @since   2.0.0
+	 * @version 2.0.0
+	 *
+	 * @return  bool
+	 */
+	public function has_paragraph_rows(): bool;
+
+	/**
 	 * Prints the form's rows in the host's layout.
 	 *
-	 * A row's title and control are escaped markup. Its label_for is the HTML id the row's label points at, or null for a group, whose control is a fieldset its own legend names, so the row prints its title as plain text.
+	 * A row's title and control are escaped markup. Its label_for is the HTML id the row's label points at, or null for a group, whose control is a fieldset its own legend names, so the row prints its title as plain text, unless the host has paragraph rows, when the control holds only the group's choices and the title names the fieldset the host prints around them.
 	 *
 	 * @since   2.0.0
 	 * @version 2.0.0

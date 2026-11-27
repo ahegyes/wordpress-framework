@@ -37,6 +37,7 @@ final class ParagraphRowsHost implements ObjectFormHostInterface {
 		return new MetadataStore( 'post' );
 	}
 
+	#[\Override]
 	public function has_paragraph_rows(): bool {
 		return true;
 	}
@@ -251,6 +252,11 @@ final class ObjectFormTest extends TestCase {
 			#[\Override]
 			public function get_default_store(): ObjectStoreInterface {
 				return new MetadataStore( 'post' );
+			}
+
+			#[\Override]
+			public function has_paragraph_rows(): bool {
+				return false;
 			}
 
 			#[\Override]

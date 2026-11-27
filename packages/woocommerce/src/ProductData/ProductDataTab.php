@@ -16,7 +16,7 @@ use DeepWebSolutions\Framework\Shared\Exception\InvalidArgumentException;
  * @since   2.0.0
  * @version 2.0.0
  *
- * @phpstan-type ProductField array{type: string, id?: string, label?: string, description?: string, desc_tip?: bool, name?: string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, style?: string, wrapper_class?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): (scalar|array<mixed>|\WP_Error|null), render?: callable(array<string, mixed>, mixed, string, string): string}
+ * @phpstan-type ProductField array{type: string, id?: string, label?: string, description?: string, desc_tip?: bool, name?: string, default?: mixed, options?: array<int|string, string>, placeholder?: string, class?: string, style?: string, wrapper_class?: string, custom_attributes?: array<string, scalar>, disabled?: bool|list<int|string>, validate?: callable(mixed): (scalar|array<mixed>|\WP_Error|null), render?: callable(array<string, mixed>, mixed, string, string, bool): string}
  * @phpstan-type Group array{class?: list<string>, fields: list<ProductField>}
  * @phpstan-type Tab array{label: string, priority?: int, class?: list<string>, groups: list<Group>}
  */
@@ -250,14 +250,11 @@ final class ProductDataTab {
 		$row_class      = \trim( "form-field {$id}_field " . ( $field['wrapper_class'] ?? '' ) );
 
 		if ( isset( $field['render'] ) || \in_array( $field['type'], array( 'radio', 'checkboxes' ), true ) ) {
-			// The row's legend names a group, so Forms draws its choices without one of their own and with the description as their help.
-			$control = isset( $field['render'] ) ? $field : array(
-				'title' => '',
-				'desc'  => $field['description'] ?? '',
-			) + $field;
+			// The row's legend or label names the control, so Forms draws it as phrasing content, as WooCommerce's own rows hold theirs, with the description as a group's help.
+			$control = isset( $field['render'] ) ? $field : array( 'desc' => $field['description'] ?? '' ) + $field;
 			$group   = Forms::is_group( $field );
 			echo $group ? '<fieldset class="' . esc_attr( $row_class ) . '"><legend>' . wp_kses_post( $field['label'] ) . '</legend>' : '<p class="' . esc_attr( $row_class ) . '"><label for="' . Forms::escape_attribute( $id ) . '">' . wp_kses_post( $field['label'] ) . '</label>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Forms::escape_attribute() escapes the id as the control's id is.
-			echo Forms::render_control( $control, $field['value'], $key, $id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control, and a render callable its own.
+			echo Forms::render_control( $control, $field['value'], $key, $id, true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_control() escapes the control, and a render callable its own.
 			echo $group ? '</fieldset>' : '</p>';
 			return;
 		}

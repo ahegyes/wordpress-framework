@@ -171,10 +171,11 @@ final class ObjectForm {
 			return;
 		}
 
-		$fields = $this->get_form( $object_id )['fields'];
-		$rows   = array();
+		$fields     = $this->get_form( $object_id )['fields'];
+		$paragraphs = $this->host->has_paragraph_rows();
+		$rows       = array();
 		foreach ( Forms::get_rows( $fields, $this->get_store()->get_values( $object_id, \array_column( $fields, 'id' ) ), $this->id ) as $row ) {
-			$control = Forms::render_control( $row['field'], $row['value'], $row['name'], $row['id'] );
+			$control = Forms::render_control( $row['field'], $row['value'], $row['name'], $row['id'], $paragraphs );
 			if ( '' !== $control ) {
 				$rows[] = array(
 					'title'     => esc_html( $row['field']['title'] ),
