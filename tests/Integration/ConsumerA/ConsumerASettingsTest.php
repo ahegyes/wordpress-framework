@@ -61,6 +61,23 @@ final class ConsumerASettingsTest extends TestCase {
 		self::assertSame( $available, $request['records']['reports_page_class'] );
 	}
 
+	public function test_the_reports_decision_answers_no_while_the_plugin_has_not_booted(): void {
+		update_option( 'acme_ca_reports', 'yes' );
+		$plugin  = $this->install_consumer( 'consumer-a', 'acme-consumer-a' );
+		$request = $this->consumer_request(
+			'GET',
+			'index.php',
+			$this->make_user( 'acme_ca_admin', 'administrator' ),
+			array(
+				'activate'  => $plugin,
+				'constants' => array( 'ACME_CA_FAULT' => 'register' ),
+			)
+		);
+
+		self::assertSame( 'failed', $request['records']['consumer_a']['status'] );
+		self::assertFalse( $request['records']['reports_available'] );
+	}
+
 	#[RunInSeparateProcess]
 	public function test_each_seeding_step_records_the_key_set_it_stores(): void {
 		require_once self::FIXTURES . '/consumer-a/vendor/autoload.php';
